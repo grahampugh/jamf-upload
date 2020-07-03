@@ -12,6 +12,25 @@ As the HTTP response cannot be guaranteed, I have not yet added the ability to w
 
 I intend to add such functionality if changes are made to the Jamf Pro API so that these guarantees can be made.
 
-## [0.1] - 2020-06-26
+## [Unreleased] - TBD
+
+Any untagged tests will be announced here.
+
+## [0.2] - 2020-07.03
+
+- Bundle-style packages are now handled properly, by zipping them before performing the upload to Jamf. If a zip file of the correct name is already present in the same folder as the package, it will not be recreated. Delete it if you need it to be remade.
+
+This is developing into a testing script to accompany the AutoPkg processor `JamfCloudPackageUpload`, so some debug modes are now available
+
+- You can now use the `--curl` option to switch to using the system `curl` rather than the Python `requests` module, in case this improves reliability, or just to perform tests. My initial tests have not shown any improvement in upload reliability, but YMMV.
+
+- You can set a timeout limit using the `--timeout` flag. This sets the `timeout` option in `requests`, or the `--max-time` option if using `curl`.
+
+- Different output verbosity levels (`-v[v]`) are available.
+
+## 0.1 - 2020-06-26
 
 Initial commit. Formerly a GitHub gist.
+
+[unreleased]: https://github.com/grahampugh/JSSImporter/compare/v0.2...HEAD
+[0.2]: https://github.com/grahampugh/JSSImporter/compare/v0.1...v0.2

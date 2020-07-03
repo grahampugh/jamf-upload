@@ -13,6 +13,9 @@ for example an AutoPkg preferences file which has been configured for use with
 JSSImporter: ~/Library/Preferences/com.github.autopkg
 
 For usage, run jamf-upload.py --help
+
+Additional requests tools added based on:
+https://findwork.dev/blog/advanced-usage-python-requests-timeouts-retries-hooks/
 """
 
 
@@ -22,13 +25,21 @@ import sys
 import os
 import json
 from base64 import b64encode
+from zipfile import ZipFile, ZIP_DEFLATED
 import requests
+from requests_toolbelt.utils import dump
 import plistlib
-
+import subprocess
+import xml.etree.ElementTree as ElementTree
 import six
 
 if six.PY2:
     input = raw_input
+
+
+def logging_hook(response, *args, **kwargs):
+    data = dump.dump_all(response)
+    print(data)
 
 
 def get_credentials(prefs_file):
@@ -62,7 +73,7 @@ def check_pkg(pkg_name, jamf_url, enc_creds, replace_pkg):
             print("\nExisting Package Object ID found: {}".format(obj_id))
             if not replace_pkg:
                 print(
-                    "\nNot replacing existing package. Set 'replace_pkg' to True to force upload attempt.\n"
+                    "\nNot replacing existing package. Set '--replace' to force upload attempt.\n"
                 )
                 return
             else:
@@ -75,7 +86,30 @@ def check_pkg(pkg_name, jamf_url, enc_creds, replace_pkg):
         return obj_id
 
 
-def post_pkg(pkg_name, pkg_path, jamf_url, enc_creds, obj_id):
+def zip_pkg_path(path):
+    """Add files from path to a zip file handle.
+
+    Args:
+        path (str): Path to folder to zip.
+
+    Returns:
+        (str) name of resulting zip file.
+    """
+    zip_name = "{}.zip".format(path)
+    if os.path.exists(zip_name):
+        print("Package object is a bundle. Zipped version already exists.")
+        return zip_name
+
+    print("Package object is a bundle. Converting to zip...")
+    with ZipFile(zip_name, "w", ZIP_DEFLATED, allowZip64=True) as zip_handle:
+        for root, _, files in os.walk(path):
+            for member in files:
+                zip_handle.write(os.path.join(root, member))
+        print("Closing: {}".format(zip_name))
+    return zip_name
+
+
+def post_pkg(pkg_name, pkg_path, jamf_url, enc_creds, obj_id, r_timeout, verbosity):
     """sends the package"""
     files = {"file": open(pkg_path, "rb")}
     headers = {
@@ -87,7 +121,44 @@ def post_pkg(pkg_name, pkg_path, jamf_url, enc_creds, obj_id):
         "FILE_NAME": pkg_name,
     }
     url = "{}/dbfileupload".format(jamf_url)
-    r = requests.post(url, files=files, headers=headers)
+
+    http = requests.Session()
+    if verbosity > 1:
+        http.hooks["response"] = [logging_hook]
+
+    r = http.post(url, files=files, headers=headers, timeout=r_timeout)
+    return r
+
+
+def curl_pkg(pkg_name, pkg_path, jamf_url, enc_creds, obj_id, r_timeout, verbosity):
+    """sends the package"""
+    url = "{}/dbfileupload".format(jamf_url)
+    curl_cmd = [
+        "/usr/bin/curl",
+        "-X",
+        "POST",
+        "--header",
+        "authorization: Basic {}".format(enc_creds),
+        "--header",
+        "DESTINATION: 0",
+        "--header",
+        "OBJECT_ID: {}".format(obj_id),
+        "--header",
+        "FILE_TYPE: 0",
+        "--header",
+        "FILE_NAME: {}".format(pkg_name),
+        "--upload-file",
+        pkg_path,
+        "--connect-timeout",
+        str("60"),
+        "--max-time",
+        str(r_timeout),
+        url,
+    ]
+    if verbosity > 1:
+        print(curl_cmd)
+
+    r = subprocess.check_output(curl_cmd)
     return r
 
 
@@ -108,10 +179,20 @@ def main():
         action="store_true",
     )
     parser.add_argument(
+        "--curl",
+        help="use curl instead of requests (experimental)",
+        action="store_true",
+    )
+    parser.add_argument(
         "--url", default="", help="the Jamf Pro Server URL",
     )
     parser.add_argument(
         "--user", default="", help="a user with the rights to upload a package",
+    )
+    parser.add_argument(
+        "--timeout",
+        default="3600",
+        help="set timeout in seconds for HTTP request for problematic packages",
     )
     parser.add_argument(
         "--password",
@@ -130,7 +211,11 @@ def main():
         ),
     )
     parser.add_argument(
-        "--verbose", action="store_true", help="print verbose output headers",
+        "-v",
+        "--verbose",
+        action="count",
+        default=0,
+        help="print verbose output headers",
     )
     args = parser.parse_args()
 
@@ -157,10 +242,9 @@ def main():
         jamf_password = args.password
     elif not jamf_password:
         jamf_password = getpass.getpass("Enter the password for '%s' : " % jamf_user)
-    if args.verbose:
-        verbose = True
-    else:
-        verbose = False
+
+    # get HTTP request timeout
+    r_timeout = float(args.timeout)
 
     # encode the username and password into a basic auth b64 encoded string
     credentials = "%s:%s" % (jamf_user, jamf_password)
@@ -176,30 +260,75 @@ def main():
 
     # now process the list of packages
     for pkg_path in args.pkg:
-        # post the package
         pkg_name = os.path.basename(pkg_path)
+
+        # See if the package is non-flat (requires zipping prior to upload).
+        if os.path.isdir(pkg_path):
+            pkg_path = zip_pkg_path(pkg_path)
+            pkg_name += ".zip"
+
+        # post the package
         print("\nChecking '{}' on {}".format(pkg_name, jamf_url))
+        if args.verbose:
+            print("Full path: {}'".format(pkg_path))
+
         # check for existing
         replace_pkg = True if args.replace else False
         obj_id = check_pkg(pkg_name, jamf_url, enc_creds, replace_pkg)
         if obj_id:
             # post the package (won't run if the pkg exists and replace_pkg is False)
-            r = post_pkg(pkg_name, pkg_path, jamf_url, enc_creds, obj_id)
-            # print result of the request
-            if r.status_code == 200 or r.status_code == 201:
-                print("\nPackage uploaded successfully")
-                if verbose:
-                    print("HTTP POST Response Code: {}".format(r.status_code))
-            else:
-                print("\nHTTP POST Response Code: {}".format(r.status_code))
-            if verbose:
-                print("\nHeaders:\n")
-                print(r.headers)
-                print("\nResponse:\n")
-                if r.text:
-                    print(r.text)
+            if args.curl:
+                r = curl_pkg(
+                    pkg_name,
+                    pkg_path,
+                    jamf_url,
+                    enc_creds,
+                    obj_id,
+                    r_timeout,
+                    args.verbose,
+                )
+                try:
+                    pkg_id = ElementTree.fromstring(r).findtext("id")
+                    if pkg_id:
+                        print("\nPackage uploaded successfully, ID={}".format(pkg_id))
+                except ElementTree.ParseError as ParseError:
+                    print("Could not parse XML. Raw output:")
+                    print(r.decode("ascii"))
                 else:
-                    print("None")
+                    if args.verbose:
+                        if r:
+                            print("\nResponse:\n")
+                            print(r.decode("ascii"))
+                        else:
+                            print("No HTTP response")
+            else:
+                r = post_pkg(
+                    pkg_name,
+                    pkg_path,
+                    jamf_url,
+                    enc_creds,
+                    obj_id,
+                    r_timeout,
+                    args.verbose,
+                )
+                # print result of the request
+                if r.status_code == 200 or r.status_code == 201:
+                    pkg_id = ElementTree.fromstring(r.text).findtext("id")
+                    print("\nPackage uploaded successfully, ID={}".format(pkg_id))
+                    if verbose:
+                        print("HTTP POST Response Code: {}".format(r.status_code))
+                else:
+                    print("\nHTTP POST Response Code: {}".format(r.status_code))
+                if args.verbose:
+                    print("\nHeaders:\n")
+                    print(r.headers)
+                    print("\nResponse:\n")
+                    if r.text:
+                        print(r.text)
+                    else:
+                        print("None")
+
+    print()
 
 
 if __name__ == "__main__":

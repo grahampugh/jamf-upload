@@ -2,8 +2,8 @@
 
 Upload one or more packages to Jamf Cloud Distribution Points
 
-    usage: jamf_upload.py [-h] [--replace] [--url URL] [--user USER]
-                         [--password PASSWORD] [--prefs PREFS] [--verbose]
+    usage: jamf_upload.py [-h] [--replace] [--curl] [--url URL] [--user USER]
+                         [--password PASSWORD] [--prefs PREFS] [-v[v]]
                          pkg [pkg ...]
 
 ## Positional arguments:
@@ -14,8 +14,11 @@ Upload one or more packages to Jamf Cloud Distribution Points
 
     -h, --help           show help message and exit
     --replace            overwrite an existing uploaded package (experimental)
+    --curl               use curl instead of requests (experimental)
     --url URL            the Jamf Pro Server URL
     --user USER          a user with the rights to upload a package
+    --timeout TIMEOUT    set timeout in seconds for HTTP request for problematic
+                         packages
     --password PASSWORD  password of the user with the rights to upload a
                          package
     --prefs PREFS        full path to an AutoPkg prefs file containing JSS URL,
@@ -25,7 +28,7 @@ Upload one or more packages to Jamf Cloud Distribution Points
                          (~/Library/Preferences/com.github.autopkg.plist) or a
                          separate plist anywhere (e.g.
                          ~/.com.company.jcds_upload.plist)
-    --verbose            print verbose output headers
+    -v, --verbose        print verbose output headers
 
 Missing arguments (URL, username, password) will be asked for interactively if not already supplied.
 
