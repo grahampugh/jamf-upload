@@ -16,7 +16,7 @@ I intend to add such functionality if changes are made to the Jamf Pro API so th
 
 Any untagged tests will be announced here.
 
-## [0.2] - 2020-07.03
+## [0.1.0] - 2020-07.03
 
 - Bundle-style packages are now handled properly, by zipping them before performing the upload to Jamf. If a zip file of the correct name is already present in the same folder as the package, it will not be recreated. Delete it if you need it to be remade.
 
@@ -28,9 +28,9 @@ This is developing into a testing script to accompany the AutoPkg processor `Jam
 
 - Different output verbosity levels (`-v[v]`) are available.
 
-## 0.1 - 2020-06-26
+## 0.0.1 - 2020-06-26
 
 Initial commit. Formerly a GitHub gist.
 
-[unreleased]: https://github.com/grahampugh/JSSImporter/compare/v0.2...HEAD
-[0.2]: https://github.com/grahampugh/JSSImporter/compare/v0.1...v0.2
+[unreleased]: https://github.com/grahampugh/JSSImporter/compare/v0.1.0...HEAD
+[0.1.0]: https://github.com/grahampugh/JSSImporter/compare/v0.0.1...v0.1.0
