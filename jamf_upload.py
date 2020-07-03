@@ -27,6 +27,7 @@ import json
 from base64 import b64encode
 from zipfile import ZipFile, ZIP_DEFLATED
 import requests
+from time import sleep
 from requests_toolbelt.utils import dump
 import plistlib
 import subprocess
@@ -56,36 +57,6 @@ def get_credentials(prefs_file):
     return jamf_url, jamf_user, jamf_password
 
 
-def check_pkg(pkg_name, jamf_url, enc_creds, replace_pkg):
-    """check if a package with the same name exists in the repo
-    note that it is possible to have more than one with the same name
-    which could mess things up"""
-    headers = {
-        "authorization": "Basic {}".format(enc_creds),
-        "accept": "application/json",
-    }
-    url = "{}/JSSResource/packages/name/{}".format(jamf_url, pkg_name)
-    r = requests.get(url, headers=headers)
-    if r.status_code == 200:
-        obj = json.loads(r.text)
-        try:
-            obj_id = str(obj["package"]["id"])
-            print("\nExisting Package Object ID found: {}".format(obj_id))
-            if not replace_pkg:
-                print(
-                    "\nNot replacing existing package. Set '--replace' to force upload attempt.\n"
-                )
-                return
-            else:
-                print("Replacing existing package.")
-        except KeyError:
-            obj_id = "-1"
-        return obj_id
-    else:
-        obj_id = "-1"
-        return obj_id
-
-
 def zip_pkg_path(path):
     """Add files from path to a zip file handle.
 
@@ -107,6 +78,27 @@ def zip_pkg_path(path):
                 zip_handle.write(os.path.join(root, member))
         print("Closing: {}".format(zip_name))
     return zip_name
+
+
+def check_pkg(pkg_name, jamf_url, enc_creds):
+    """check if a package with the same name exists in the repo
+    note that it is possible to have more than one with the same name
+    which could mess things up"""
+    headers = {
+        "authorization": "Basic {}".format(enc_creds),
+        "accept": "application/json",
+    }
+    url = "{}/JSSResource/packages/name/{}".format(jamf_url, pkg_name)
+    r = requests.get(url, headers=headers)
+    if r.status_code == 200:
+        obj = json.loads(r.text)
+        try:
+            obj_id = str(obj["package"]["id"])
+        except KeyError:
+            obj_id = "-1"
+    else:
+        obj_id = "-1"
+    return obj_id
 
 
 def post_pkg(pkg_name, pkg_path, jamf_url, enc_creds, obj_id, r_timeout, verbosity):
@@ -155,11 +147,61 @@ def curl_pkg(pkg_name, pkg_path, jamf_url, enc_creds, obj_id, r_timeout, verbosi
         str(r_timeout),
         url,
     ]
-    if verbosity > 1:
+    if verbosity:
         print(curl_cmd)
 
     r = subprocess.check_output(curl_cmd)
     return r
+
+
+def update_pkg_metadata(
+    jamf_url, enc_creds, pkg_name, category, verbosity, pkg_id=None
+):
+    """Update package metadata. Currently only serves category"""
+
+    # build the package record XML
+    pkg_data = "<package>" + "<category>{}</category>".format(category) + "</package>"
+    headers = {
+        "authorization": "Basic {}".format(enc_creds),
+        "Accept": "application/xml",
+        "Content-type": "application/xml",
+    }
+    #  ideally we upload to the package ID but if we didn't get a good response
+    #  we fall back to the package name
+    if pkg_id:
+        url = "{}/JSSResource/packages/id/{}".format(jamf_url, pkg_id)
+    else:
+        url = "{}/JSSResource/packages/name/{}".format(jamf_url, pkg_name)
+
+    http = requests.Session()
+    if verbosity > 1:
+        http.hooks["response"] = [logging_hook]
+        print(pkg_data)
+
+    print("Updating package metadata...")
+
+    count = 0
+    while True:
+        count += 1
+        if verbosity > 1:
+            print("Package update attempt {}".format(count))
+
+        r = http.put(url, headers=headers, data=pkg_data, timeout=60)
+        if r.status_code == 201:
+            print("Package update successful")
+            break
+        if count > 5:
+            print("\nHTTP POST Response Code: {}".format(r.status_code))
+        sleep(30)
+
+    if verbosity:
+        print("\nHeaders:\n")
+        print(r.headers)
+        print("\nResponse:\n")
+        if r.text:
+            print(r.text)
+        else:
+            print("None")
 
 
 def main():
@@ -198,6 +240,11 @@ def main():
         "--password",
         default="",
         help="password of the user with the rights to upload a package",
+    )
+    parser.add_argument(
+        "--category",
+        default="",
+        help="a category to assign to the package (experimental)",
     )
     parser.add_argument(
         "--prefs",
@@ -274,8 +321,8 @@ def main():
 
         # check for existing
         replace_pkg = True if args.replace else False
-        obj_id = check_pkg(pkg_name, jamf_url, enc_creds, replace_pkg)
-        if obj_id:
+        obj_id = check_pkg(pkg_name, jamf_url, enc_creds)
+        if obj_id == "-1" or replace_pkg:
             # post the package (won't run if the pkg exists and replace_pkg is False)
             if args.curl:
                 r = curl_pkg(
@@ -291,7 +338,7 @@ def main():
                     pkg_id = ElementTree.fromstring(r).findtext("id")
                     if pkg_id:
                         print("\nPackage uploaded successfully, ID={}".format(pkg_id))
-                except ElementTree.ParseError as ParseError:
+                except ElementTree.ParseError:
                     print("Could not parse XML. Raw output:")
                     print(r.decode("ascii"))
                 else:
@@ -315,7 +362,7 @@ def main():
                 if r.status_code == 200 or r.status_code == 201:
                     pkg_id = ElementTree.fromstring(r.text).findtext("id")
                     print("\nPackage uploaded successfully, ID={}".format(pkg_id))
-                    if verbose:
+                    if args.verbose:
                         print("HTTP POST Response Code: {}".format(r.status_code))
                 else:
                     print("\nHTTP POST Response Code: {}".format(r.status_code))
@@ -327,6 +374,18 @@ def main():
                         print(r.text)
                     else:
                         print("None")
+
+        #  now process the package metadata if specified
+        if args.category:
+            try:
+                pkg_id
+                update_pkg_metadata(
+                    jamf_url, enc_creds, pkg_name, args.category, args.verbose, pkg_id
+                )
+            except UnboundLocalError:
+                update_pkg_metadata(
+                    jamf_url, enc_creds, pkg_name, args.category, args.verbose
+                )
 
     print()
 
