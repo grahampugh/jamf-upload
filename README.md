@@ -6,11 +6,11 @@ Upload one or more packages to Jamf Cloud Distribution Points
                          [--password PASSWORD] [--prefs PREFS] [-v[v]]
                          pkg [pkg ...]
 
-## Positional arguments:
+## Positional arguments
 
     pkg                  Full path to the package(s) to upload
 
-## Optional arguments:
+## Optional arguments
 
     -h, --help           show help message and exit
     --replace            overwrite an existing uploaded package (experimental)
@@ -21,6 +21,7 @@ Upload one or more packages to Jamf Cloud Distribution Points
                          packages
     --password PASSWORD  password of the user with the rights to upload a
                          package
+    --category CATEGORY  a category to assign to the package (experimental)
     --prefs PREFS        full path to an AutoPkg prefs file containing JSS URL,
                          API_USERNAME and API_PASSWORD, for example an AutoPkg
                          preferences file which has been configured for use with
@@ -32,11 +33,21 @@ Upload one or more packages to Jamf Cloud Distribution Points
 
 Missing arguments (URL, username, password) will be asked for interactively if not already supplied.
 
-## Examples:
+## Examples
+
+Here, we supply the JSS URL, API user and password, and the package to upload.
 
     ./jamf_upload.py --url https://myserver.jamfcloud.com --user jamf_admin --password myPasswordIsSecure /path/to/FoldingAtHome-7.5.1.pkg
 
-    ./jamf_upload.py --prefs ~/Library/Preferences/com.github.autopkg.plist --verbose --replace ~/Library/AutoPkg/Cache/local.pkg.FoldingAtHome/FoldingAtHome-7.5.1.pkg
+Here, we point to the AutoPkg preferences file, whicb should contains the JSS URL, API user and password. We add verbosity and specify that the package should be replaced.
+
+    ./jamf_upload.py --prefs ~/Library/Preferences/com.github.autopkg.plist -vv --replace ~/Library/AutoPkg/Cache/local.pkg.FoldingAtHome/FoldingAtHome-7.5.1.pkg
+
+Here, we point to a custom plist, whicb should contains the JSS URL, API user and password. We specify that the package should be replaced, and supply a category to assign to the package object.
+
+    ./jamf_upload.py --prefs ../credentials/custom.plist --category Applications --replace ~/Library/AutoPkg/Cache/local.pkg.FoldingAtHome/FoldingAtHome-7.5.1.pkg
+
+Here, we point to the AutoPkg preferences file, whicb should contains the JSS URL, API user and password. We specify multiple packages that we wish to be uploaded in one run.
 
     ./jamf_upload.py --prefs ~/Library/Preferences/com.github.autopkg.plist \
     /path/to/FoldingAtHome-7.5.1.pkg \
@@ -50,9 +61,7 @@ Missing arguments (URL, username, password) will be asked for interactively if n
 
 The HTTP responses from this API are unpredictable. You may see a `504` response, which indicates a Gateway Timeout error, but the package may well be delivered anyway. This is true whether uploading a new package or overwriting an existing one.
 
-As the HTTP response cannot be guaranteed, I have not yet added the ability to write any package metadata such as category, manifest etc., which, as far as I can tell, must be supplied by a different API call after the package object has been uploaded. There is no predictable way to check that the package was successfully loaded unless we can guarantee that we are making our HTTP request to the same cluster node to which the package was uploaded.
-
-I intend to add such functionality if changes are made to the Jamf Pro API so that these guarantees can be made.
+As the HTTP response cannot be guaranteed, and package metadata such as category, manifest etc., must be supplied by a different API call after the package object has been uploaded, it can be unpredictable as to whether the package will be successfully uploaded. For this reason, please consider the `--category` option as experimental.
 
 # AutoPkg users
 
