@@ -42,12 +42,11 @@ if six.PY2:
     input = raw_input
     from urlparse import urlparse
     from HTMLParser import HTMLParser
+
     html = HTMLParser()
 else:
     from urllib.parse import urlparse
     import html
-
-JCDS_CHUNK_SIZE = 52428800  # 50mb is the default
 
 
 def logging_hook(response, *args, **kwargs):
@@ -203,7 +202,7 @@ def post_pkg(pkg_name, pkg_path, jamf_url, enc_creds, obj_id, r_timeout, verbosi
     url = "{}/dbfileupload".format(jamf_url)
 
     http = requests.Session()
-    if verbosity > 1:
+    if verbosity > 2:
         http.hooks["response"] = [logging_hook]
 
     r = http.post(url, files=files, headers=headers, timeout=r_timeout)
@@ -268,7 +267,7 @@ def update_pkg_metadata(
         url = "{}/JSSResource/packages/name/{}".format(jamf_url, pkg_name)
 
     http = requests.Session()
-    if verbosity > 1:
+    if verbosity > 2:
         http.hooks["response"] = [logging_hook]
         print("Package data:")
         print(pkg_data)
@@ -303,65 +302,31 @@ def update_pkg_metadata(
         else:
             print("None")
 
-def update_pkg_by_form(
-    session, session_token, jamf_url, pkg_name, pkg_path, category=-1, verbosity=0
-):
-    """save the package using the web form, which should force JCDS into pending state."""
-    url = "{}/legacy/packages.html?id=-1&o=c".format(jamf_url)  # Create Package URL
-    r = session.post(url, data={
-        'session-token': session_token,
-        'lastTab': 'General',  # you dont really need these, but jamf does weird things with incomplete POJOs
-        'lastSideTab': 'null',
-        'lastSubTab': 'null',
-        'lastSubTabSet': 'null',
-        'name': pkg_name,
-        'categoryID': str(category),
-        'fileName': pkg_name,
-        'resetFIELD_MANIFEST_INPUT': '',
-        'info': '',
-        'notes': '',
-        'priority': '10',
-        'uninstall_disabled': 'true',
-        'osRequirements': '',
-        'requiredProcessor': 'ppc',
-        'switchWithPackageID': '-1',
-        'action': 'Save',
-    })
 
-    if verbosity > 1:
-        print(r.content)
-
-    if r.status_code == 200:
-        print("Successfully created package")
-        query = urlparse(r.url).query
-        matches = re.search(r'id=([^&]*)', query)
-        if matches is None:
-            print("No package id in redirected url")
-        else:
-            print("Package ID: {}".format(matches.group(1)))
-    else:
-        print("Package creation failed")
-
-
-def login(jamf_url, jamf_user, jamf_password, verbosity):  # type: (str, str, str, int) -> any
-    """create a web UI Session, required to scrape jcds information."""
+def login(
+    jamf_url, jamf_user, jamf_password, verbosity
+):  # type: (str, str, str, int) -> any
+    """For creating a web UI Session, which is required to scrape JCDS information."""
     http = requests.Session()
-    # if verbosity > 1:
-    #     http.hooks["response"] = [logging_hook]
+    if verbosity > 2:
+        http.hooks["response"] = [logging_hook]
 
-    r = http.post(jamf_url, data={'username': jamf_user, 'password': jamf_password})
+    r = http.post(jamf_url, data={"username": jamf_user, "password": jamf_password})
     return r, http
 
-def scrape_upload_token(session, jamf_url, verbosity):  # type: (requests.Session, str, int) -> any
-    """retrieve the packages page to scrape the jcds endpoint and data upload token for this session."""
-    url = '{}/legacy/packages.html?id=-1&o=c'.format(jamf_url)
-    r = session.get(url)
-    if six.PY3:
-        text = r.text
-    else:
-        text = r.content
 
-    if verbosity > 1:
+def scrape_upload_token(
+    session, jamf_url, verbosity
+):  # type: (requests.Session, str, int) -> any
+    """Retrieve the packages page from the web UI session to scrape the JCDS endpoint and data upload token for this session. Note that the JCDS endpoint varies by region."""
+    url = "{}/legacy/packages.html?id=-1&o=c".format(jamf_url)
+    r = session.get(url)
+    if six.PY2:
+        text = r.content
+    else:
+        text = r.text
+
+    if verbosity > 2:
         print("huge amount of html follows")
         print("------")
         print(text)
@@ -390,10 +355,21 @@ def scrape_upload_token(session, jamf_url, verbosity):  # type: (requests.Sessio
     jcds_base_url = html.unescape(jcds_base_url_urlencoded)
     return jcds_base_url, jcds_upload_token, session_token
 
-# def post_pkg(pkg_name, pkg_path, jamf_url, enc_creds, obj_id, r_timeout, verbosity):
-def post_pkg_chunks(pkg_name, pkg_path, jcds_base_url, jcds_upload_token, obj_id, verbosity=0):
-    fsize = os.stat(pkg_path).st_size
-    total_chunks = int(math.ceil(fsize / JCDS_CHUNK_SIZE))
+
+def post_pkg_chunks(
+    pkg_name,
+    pkg_path,
+    jcds_base_url,
+    jcds_upload_token,
+    obj_id,
+    jcds_chunk_mb,
+    verbosity=0,
+):
+    """sends the package in chunks"""
+
+    jcds_chunk_size = int(jcds_chunk_mb) * 1048576  # 1mb is the default
+    file_size = os.stat(pkg_path).st_size
+    total_chunks = int(math.ceil(file_size / jcds_chunk_size))
     resource = open(pkg_path, "rb")
 
     headers = {"X-Auth-Token": jcds_upload_token}
@@ -401,14 +377,17 @@ def post_pkg_chunks(pkg_name, pkg_path, jcds_base_url, jcds_upload_token, obj_id
 
     chunks_json = []
     for chunk in range(0, total_chunks):
-        resource.seek(chunk * JCDS_CHUNK_SIZE)
-        chunk_data = resource.read(JCDS_CHUNK_SIZE)
+        resource.seek(chunk * jcds_chunk_size)
+        chunk_data = resource.read(jcds_chunk_size)
         chunk_reader = io.BytesIO(chunk_data)
         chunk_url = "{}/{}/part?chunk={}&chunks={}".format(
-            jcds_base_url, pkg_name, chunk, total_chunks)
+            jcds_base_url, html.escape(pkg_name), chunk, total_chunks
+        )
+        if verbosity > 1:
+            print("URL to post chunks: {}".format(chunk_url))
 
-        r = http.post(chunk_url, files={'file': chunk_reader}, headers=headers)
-        print("uploaded chunk {} of {}".format(chunk + 1, total_chunks))
+        r = http.post(chunk_url, files={"file": chunk_reader}, headers=headers)
+        print("Uploaded chunk {} of {}".format(chunk + 1, total_chunks))
         if verbosity > 1:
             print(r.json())
 
@@ -416,6 +395,60 @@ def post_pkg_chunks(pkg_name, pkg_path, jcds_base_url, jcds_upload_token, obj_id
 
     resource.close()
     return chunks_json
+
+
+def update_pkg_by_form(
+    session,
+    session_token,
+    jamf_url,
+    pkg_name,
+    pkg_path,
+    obj_id,
+    category_id=-1,
+    verbosity=0,
+):
+    """save the package using the web form, which should force JCDS into pending state."""
+    # Create Package URL
+    url = "{}/legacy/packages.html?id={}&o=c".format(jamf_url, str(obj_id))
+    r = session.post(
+        url,
+        data={
+            "session-token": session_token,
+            "lastTab": "General",
+            "lastSideTab": "null",
+            "lastSubTab": "null",
+            "lastSubTabSet": "null",
+            "name": pkg_name,
+            "categoryID": str(category_id),
+            "fileName": pkg_name,
+            "resetFIELD_MANIFEST_INPUT": "",
+            "info": "",
+            "notes": "",
+            "priority": "10",
+            "uninstall_disabled": "true",
+            "osRequirements": "",
+            "requiredProcessor": "None",
+            "switchWithPackageID": "-1",
+            "action": "Save",
+        },
+    )
+
+    if verbosity > 1:
+        print(r.content)
+
+    if r.status_code == 200:
+        print("Successfully created package")
+        query = urlparse(r.url).query
+        matches = re.search(r"id=([^&]*)", query)
+        if matches is None:
+            print("No package id in redirected url")
+        else:
+            pkg_id = matches.group(1)
+            print("Package ID: {}".format(pkg_id))
+            return pkg_id
+    else:
+        print("Package creation failed")
+
 
 def get_args():
     """Parse any command line arguments"""
@@ -436,7 +469,7 @@ def get_args():
     parser.add_argument(
         "--direct",
         help="use direct upload to JCDS (experimental, will not work if JCDS is not primary distribution point)",
-        action="store_true"
+        action="store_true",
     )
     parser.add_argument(
         "--url", default="", help="the Jamf Pro Server URL",
@@ -482,6 +515,9 @@ def get_args():
         "--timeout",
         default="3600",
         help="set timeout in seconds for HTTP request for problematic packages",
+    )
+    parser.add_argument(
+        "--chunksize", default="1", help="set chunk size in megabytes",
     )
     parser.add_argument(
         "--prefs",
@@ -581,13 +617,9 @@ def main():
         pkg = input("Enter the full path to the package to upload: ")
         args.pkg = pkg
 
-    if args.direct:  # establish a web login session which is reusable for scraping tokens
-        r, login_session = login(
-            jamf_url,
-            jamf_user,
-            jamf_password,
-            args.verbose,
-        )
+    if args.direct:
+        # establish a web login session which is reusable for scraping tokens
+        r, login_session = login(jamf_url, jamf_user, jamf_password, args.verbose)
         if r.status_code != 200:
             print("Failed to log in to the Jamf instance at: {}".format(jamf_url))
 
@@ -608,7 +640,7 @@ def main():
         obj_id = check_pkg(pkg_name, jamf_url, enc_creds)
 
         # post the package (won't run if the pkg exists and replace_pkg is False)
-        #  process for SMB shares if defined
+        # process for SMB shares if defined
         if smb_url:
             # mount the share
             mount_smb(smb_url, smb_user, smb_password, args.verbose)
@@ -620,35 +652,41 @@ def main():
             # unmount the share
             umount_smb(smb_url)
 
-        #  otherwise process for cloud DP
+        # otherwise process for cloud DP
         else:
             if obj_id == "-1" or replace_pkg:
+                # JCDS direct upload method option
                 if args.direct:
-                    jcds_url, jcds_token, session_token = scrape_upload_token(login_session, jamf_url, args.verbose)
+                    jcds_url, jcds_token, session_token = scrape_upload_token(
+                        login_session, jamf_url, args.verbose
+                    )
                     if jcds_url and jcds_token and session_token:
-                        print("JCDS URL: {}".format(jcds_url))
-                        print("JCDS Upload token: {}".format(jcds_token))
-                        print("Session token: {}".format(session_token))
+                        if args.verbose:
+                            print("JCDS URL: {}".format(jcds_url))
+                            print("JCDS Upload token: {}".format(jcds_token))
+                            print("Session token: {}".format(session_token))
 
-                        chunks_json = post_pkg_chunks(
+                        #  post the package as chunks
+                        post_pkg_chunks(
                             pkg_name,
                             pkg_path,
                             jcds_url,
                             jcds_token,
                             obj_id,
+                            args.chunksize,
                             args.verbose,
                         )
 
-                        update_pkg_by_form(
+                        #  now create the package object and get the pkg ID
+                        pkg_id = update_pkg_by_form(
                             login_session,
                             session_token,
                             jamf_url,
                             pkg_name,
                             pkg_path,
+                            obj_id,
                         )
-
-                        # TODO: need to save pkg again to force JCDS to recombine chunks
-
+                # curl -> dbfileupload upload method option
                 elif args.curl:
                     r = curl_pkg(
                         pkg_name,
@@ -675,6 +713,7 @@ def main():
                                 print(r.decode("ascii"))
                             else:
                                 print("No HTTP response")
+                # requests -> dbfileupload upload method option
                 else:
                     r = post_pkg(
                         pkg_name,
