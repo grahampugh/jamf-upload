@@ -84,7 +84,6 @@ def get_credentials(prefs_file):
 
 def mount_smb(mount_share, mount_user, mount_pass, verbosity):
     """Mount distribution point."""
-    # osascript -e "mount volume \"$mount_share\" as user name "\$mount_user\" with password \"$mount_pass\"
     mount_cmd = [
         "/usr/bin/osascript",
         "-e",
@@ -92,48 +91,50 @@ def mount_smb(mount_share, mount_user, mount_pass, verbosity):
             mount_share, mount_user, mount_pass
         ),
     ]
-    if verbosity:
-        print(mount_cmd)
+    if verbosity > 1:
+        print("Mount command:\n{}".format(mount_cmd))
 
     r = subprocess.check_output(mount_cmd)
     if verbosity > 1:
-        print(r)
+        print("Mount command response:\n{}".format(r.decode("UTF-8")))
 
 
 def umount_smb(mount_share):
     """Unmount distribution point."""
-    path = urlparse(mount_share).path
-    cmd = ["/usr/sbin/diskutil", "unmount", "/Volumes{}".format(path)]
+    path = "/Volumes{}".format(urlparse(mount_share).path)
+    cmd = ["/usr/sbin/diskutil", "unmount", path]
     try:
         subprocess.check_call(cmd)
     except subprocess.CalledProcessError:
-        print("Warning! Unmount failed.")
+        print("WARNING! Unmount failed.")
 
 
-def check_local_pkg(mount_share, pkg_name):
+def check_local_pkg(mount_share, pkg_name, verbosity):
     """Check local DP or mounted share for existing package"""
-    path = urlparse(mount_share).path
+    path = "/Volumes{}".format(urlparse(mount_share).path)
     if os.path.isdir(path):
-        existing_pkg_path = os.path.join(
-            "/Volumes{}".format(path), "Packages", pkg_name
-        )
+        existing_pkg_path = os.path.join(path, "Packages", pkg_name)
         if os.path.isfile(existing_pkg_path):
             return existing_pkg_path
+        else:
+            print("No existing package found")
+            if verbosity:
+                print("Expected path: {}".format(existing_pkg_path))
+    else:
+        print("Expected path not found!: {}".format(path))
 
 
 def copy_pkg(mount_share, pkg_path, pkg_name):
     """Copy package from AutoPkg Cache to local or mounted Distribution Point"""
     if os.path.isfile(pkg_path):
-        path = urlparse(mount_share).path
-        destination_pkg_path = os.path.join(
-            "/Volumes{}".format(path), "Packages", pkg_name
-        )
-        print("Uploading {} to {}".format(pkg_name, destination_pkg_path))
+        path = "/Volumes{}".format(urlparse(mount_share).path)
+        destination_pkg_path = os.path.join(path, "Packages", pkg_name)
+        print("Copying {} to {}".format(pkg_name, destination_pkg_path))
         copyfile(pkg_path, destination_pkg_path)
     if os.path.isfile(destination_pkg_path):
-        print("Upload successful")
+        print("Package copy successful")
     else:
-        print("Upload failed")
+        print("Package copy failed")
 
 
 def zip_pkg_path(path):
@@ -261,6 +262,7 @@ def update_pkg_metadata(
     http = requests.Session()
     if verbosity > 1:
         http.hooks["response"] = [logging_hook]
+        print("Package data:")
         print(pkg_data)
 
     print("Updating package metadata...")
@@ -465,7 +467,7 @@ def main():
         # check for existing package
         print("\nChecking '{}' on {}".format(pkg_name, jamf_url))
         if args.verbose:
-            print("Full path: {}'".format(pkg_path))
+            print("Full path: {}".format(pkg_path))
         replace_pkg = True if args.replace else False
         obj_id = check_pkg(pkg_name, jamf_url, enc_creds)
 
@@ -475,7 +477,7 @@ def main():
             # mount the share
             mount_smb(smb_url, smb_user, smb_password, args.verbose)
             #  check for existing package
-            local_pkg = check_local_pkg(args.share, pkg_name)
+            local_pkg = check_local_pkg(args.share, pkg_name, args.verbose)
             if not local_pkg or replace_pkg:
                 # copy the file
                 copy_pkg(smb_url, pkg_path, pkg_name)
