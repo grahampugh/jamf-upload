@@ -32,10 +32,14 @@ from requests_toolbelt.utils import dump
 import plistlib
 import subprocess
 import xml.etree.ElementTree as ElementTree
+from shutil import copyfile
 import six
 
 if six.PY2:
     input = raw_input
+    from urlparse import urlparse
+else:
+    from urllib.parse import urlparse
 
 
 def logging_hook(response, *args, **kwargs):
@@ -51,10 +55,85 @@ def get_credentials(prefs_file):
         else:
             prefs = plistlib.load(pl)
 
-    jamf_url = prefs["JSS_URL"]
-    jamf_user = prefs["API_USERNAME"]
-    jamf_password = prefs["API_PASSWORD"]
-    return jamf_url, jamf_user, jamf_password
+    try:
+        jamf_url = prefs["JSS_URL"]
+    except KeyError:
+        jamf_url = ""
+    try:
+        jamf_user = prefs["API_USERNAME"]
+    except KeyError:
+        jamf_user = ""
+    try:
+        jamf_password = prefs["API_PASSWORD"]
+    except KeyError:
+        jamf_password = ""
+    try:
+        smb_url = prefs["SMB_URL"]
+    except KeyError:
+        smb_url = ""
+    try:
+        smb_user = prefs["SMB_USERNAME"]
+    except KeyError:
+        smb_user = ""
+    try:
+        smb_password = prefs["SMB_PASSWORD"]
+    except KeyError:
+        smb_password = ""
+    return jamf_url, jamf_user, jamf_password, smb_url, smb_user, smb_password
+
+
+def mount_smb(mount_share, mount_user, mount_pass, verbosity):
+    """Mount distribution point."""
+    # osascript -e "mount volume \"$mount_share\" as user name "\$mount_user\" with password \"$mount_pass\"
+    mount_cmd = [
+        "/usr/bin/osascript",
+        "-e",
+        'mount volume "{}" as user name "{}" with password "{}"'.format(
+            mount_share, mount_user, mount_pass
+        ),
+    ]
+    if verbosity:
+        print(mount_cmd)
+
+    r = subprocess.check_output(mount_cmd)
+    if verbosity > 1:
+        print(r)
+
+
+def umount_smb(mount_share):
+    """Unmount distribution point."""
+    path = urlparse(mount_share).path
+    cmd = ["/usr/sbin/diskutil", "unmount", "/Volumes{}".format(path)]
+    try:
+        subprocess.check_call(cmd)
+    except subprocess.CalledProcessError:
+        print("Warning! Unmount failed.")
+
+
+def check_local_pkg(mount_share, pkg_name):
+    """Check local DP or mounted share for existing package"""
+    path = urlparse(mount_share).path
+    if os.path.isdir(path):
+        existing_pkg_path = os.path.join(
+            "/Volumes{}".format(path), "Packages", pkg_name
+        )
+        if os.path.isfile(existing_pkg_path):
+            return existing_pkg_path
+
+
+def copy_pkg(mount_share, pkg_path, pkg_name):
+    """Copy package from AutoPkg Cache to local or mounted Distribution Point"""
+    if os.path.isfile(pkg_path):
+        path = urlparse(mount_share).path
+        destination_pkg_path = os.path.join(
+            "/Volumes{}".format(path), "Packages", pkg_name
+        )
+        print("Uploading {} to {}".format(pkg_name, destination_pkg_path))
+        copyfile(pkg_path, destination_pkg_path)
+    if os.path.isfile(destination_pkg_path):
+        print("Upload successful")
+    else:
+        print("Upload failed")
 
 
 def zip_pkg_path(path):
@@ -160,7 +239,13 @@ def update_pkg_metadata(
     """Update package metadata. Currently only serves category"""
 
     # build the package record XML
-    pkg_data = "<package>" + "<category>{}</category>".format(category) + "</package>"
+    pkg_data = (
+        "<package>"
+        + "<name>{}</name>".format(pkg_name)
+        + "<filename>{}</filename>".format(pkg_name)
+        + "<category>{}</category>".format(category)
+        + "</package>"
+    )
     headers = {
         "authorization": "Basic {}".format(enc_creds),
         "Accept": "application/xml",
@@ -190,8 +275,13 @@ def update_pkg_metadata(
         if r.status_code == 201:
             print("Package update successful")
             break
+        if r.status_code == 409:
+            print("WARNING: Package metadata update failed due to a conflict")
+            break
         if count > 5:
+            print("WARNING: Package metadata update did not succeed after 5 attempts")
             print("\nHTTP POST Response Code: {}".format(r.status_code))
+            break
         sleep(30)
 
     if verbosity:
@@ -204,13 +294,8 @@ def update_pkg_metadata(
             print("None")
 
 
-def main():
-    """Do the main thing here"""
-
-    print("\n** Jamf Cloud package upload script")
-    print("** Uploads packages to Jamf Cloud Distribution Points.\n")
-
-    # get inputs from the CLI
+def get_args():
+    """Parse any command line arguments"""
     parser = argparse.ArgumentParser()
     parser.add_argument(
         "pkg", nargs="+", help="Full path to the package(s) to upload",
@@ -232,19 +317,43 @@ def main():
         "--user", default="", help="a user with the rights to upload a package",
     )
     parser.add_argument(
-        "--timeout",
-        default="3600",
-        help="set timeout in seconds for HTTP request for problematic packages",
-    )
-    parser.add_argument(
         "--password",
         default="",
         help="password of the user with the rights to upload a package",
     )
     parser.add_argument(
+        "--share",
+        default="",
+        help=(
+            "Path to an SMB FileShare Distribution Point, in the form "
+            "smb://server/mountpoint"
+        ),
+    )
+    parser.add_argument(
+        "--shareuser",
+        default="",
+        help=(
+            "a user with the rights to upload a package to the SMB FileShare "
+            "Distribution Point"
+        ),
+    )
+    parser.add_argument(
+        "--sharepass",
+        default="",
+        help=(
+            "password of the user with the rights to upload a package to the SMB "
+            "FileShare Distribution Point"
+        ),
+    )
+    parser.add_argument(
         "--category",
         default="",
         help="a category to assign to the package (experimental)",
+    )
+    parser.add_argument(
+        "--timeout",
+        default="3600",
+        help="set timeout in seconds for HTTP request for problematic packages",
     )
     parser.add_argument(
         "--prefs",
@@ -265,14 +374,34 @@ def main():
         help="print verbose output headers",
     )
     args = parser.parse_args()
+    return args
+
+
+def main():
+    """Do the main thing here"""
+    print("\n** Jamf Cloud package upload script")
+    print("** Uploads packages to Jamf Cloud Distribution Points.\n")
+
+    #  parse the command line arguments
+    args = get_args()
 
     # grab values from a prefs file if supplied
     if args.prefs:
-        jamf_url, jamf_user, jamf_password = get_credentials(args.prefs)
+        (
+            jamf_url,
+            jamf_user,
+            jamf_password,
+            smb_url,
+            smb_user,
+            smb_password,
+        ) = get_credentials(args.prefs)
     else:
         jamf_url = ""
         jamf_user = ""
         jamf_password = ""
+        smb_url = ""
+        smb_user = ""
+        smb_password = ""
 
     # CLI arguments override any values from a prefs file
     if args.url:
@@ -288,7 +417,26 @@ def main():
     if args.password:
         jamf_password = args.password
     elif not jamf_password:
-        jamf_password = getpass.getpass("Enter the password for '%s' : " % jamf_user)
+        jamf_password = getpass.getpass(
+            "Enter the password for '{}' : ".format(jamf_user)
+        )
+
+    # repeat for optional SMB share (but must supply a share path to invoke this)
+    if args.share:
+        smb_url = args.share
+    if smb_url:
+        if args.shareuser:
+            smb_user = args.shareuser
+        elif not smb_user:
+            smb_user = input(
+                "Enter a user with read/write permissions to {} : ".format(smb_url)
+            )
+        if args.sharepass:
+            smb_password = args.sharepass
+        elif not smb_password:
+            smb_password = getpass.getpass(
+                "Enter the password for '{}' : ".format(smb_user)
+            )
 
     # get HTTP request timeout
     r_timeout = float(args.timeout)
@@ -314,69 +462,85 @@ def main():
             pkg_path = zip_pkg_path(pkg_path)
             pkg_name += ".zip"
 
-        # post the package
+        # check for existing package
         print("\nChecking '{}' on {}".format(pkg_name, jamf_url))
         if args.verbose:
             print("Full path: {}'".format(pkg_path))
-
-        # check for existing
         replace_pkg = True if args.replace else False
         obj_id = check_pkg(pkg_name, jamf_url, enc_creds)
-        if obj_id == "-1" or replace_pkg:
-            # post the package (won't run if the pkg exists and replace_pkg is False)
-            if args.curl:
-                r = curl_pkg(
-                    pkg_name,
-                    pkg_path,
-                    jamf_url,
-                    enc_creds,
-                    obj_id,
-                    r_timeout,
-                    args.verbose,
-                )
-                try:
-                    pkg_id = ElementTree.fromstring(r).findtext("id")
-                    if pkg_id:
-                        print("\nPackage uploaded successfully, ID={}".format(pkg_id))
-                except ElementTree.ParseError:
-                    print("Could not parse XML. Raw output:")
-                    print(r.decode("ascii"))
-                else:
-                    if args.verbose:
-                        if r:
-                            print("\nResponse:\n")
-                            print(r.decode("ascii"))
-                        else:
-                            print("No HTTP response")
-            else:
-                r = post_pkg(
-                    pkg_name,
-                    pkg_path,
-                    jamf_url,
-                    enc_creds,
-                    obj_id,
-                    r_timeout,
-                    args.verbose,
-                )
-                # print result of the request
-                if r.status_code == 200 or r.status_code == 201:
-                    pkg_id = ElementTree.fromstring(r.text).findtext("id")
-                    print("\nPackage uploaded successfully, ID={}".format(pkg_id))
-                    if args.verbose:
-                        print("HTTP POST Response Code: {}".format(r.status_code))
-                else:
-                    print("\nHTTP POST Response Code: {}".format(r.status_code))
-                if args.verbose:
-                    print("\nHeaders:\n")
-                    print(r.headers)
-                    print("\nResponse:\n")
-                    if r.text:
-                        print(r.text)
-                    else:
-                        print("None")
 
-        #  now process the package metadata if specified
-        if args.category:
+        # post the package (won't run if the pkg exists and replace_pkg is False)
+        #  process for SMB shares if defined
+        if smb_url:
+            # mount the share
+            mount_smb(smb_url, smb_user, smb_password, args.verbose)
+            #  check for existing package
+            local_pkg = check_local_pkg(args.share, pkg_name)
+            if not local_pkg or replace_pkg:
+                # copy the file
+                copy_pkg(smb_url, pkg_path, pkg_name)
+            # unmount the share
+            umount_smb(smb_url)
+
+        #  otherwise process for cloud DP
+        else:
+            if obj_id == "-1" or replace_pkg:
+                if args.curl:
+                    r = curl_pkg(
+                        pkg_name,
+                        pkg_path,
+                        jamf_url,
+                        enc_creds,
+                        obj_id,
+                        r_timeout,
+                        args.verbose,
+                    )
+                    try:
+                        pkg_id = ElementTree.fromstring(r).findtext("id")
+                        if pkg_id:
+                            print(
+                                "\nPackage uploaded successfully, ID={}".format(pkg_id)
+                            )
+                    except ElementTree.ParseError:
+                        print("Could not parse XML. Raw output:")
+                        print(r.decode("ascii"))
+                    else:
+                        if args.verbose:
+                            if r:
+                                print("\nResponse:\n")
+                                print(r.decode("ascii"))
+                            else:
+                                print("No HTTP response")
+                else:
+                    r = post_pkg(
+                        pkg_name,
+                        pkg_path,
+                        jamf_url,
+                        enc_creds,
+                        obj_id,
+                        r_timeout,
+                        args.verbose,
+                    )
+                    # print result of the request
+                    if r.status_code == 200 or r.status_code == 201:
+                        pkg_id = ElementTree.fromstring(r.text).findtext("id")
+                        print("\nPackage uploaded successfully, ID={}".format(pkg_id))
+                        if args.verbose:
+                            print("HTTP POST Response Code: {}".format(r.status_code))
+                    else:
+                        print("\nHTTP POST Response Code: {}".format(r.status_code))
+                    if args.verbose:
+                        print("\nHeaders:\n")
+                        print(r.headers)
+                        print("\nResponse:\n")
+                        if r.text:
+                            print(r.text)
+                        else:
+                            print("None")
+
+        # now process the package metadata if a category is supplied,
+        # or if we are dealing with an SMB share
+        if args.category or smb_url:
             try:
                 pkg_id
                 update_pkg_metadata(
