@@ -1,4 +1,4 @@
-#!/usr/bin/python3
+#!/usr/bin/env python3
 
 """
 ** Jamf Cloud Package Upload Script
@@ -24,6 +24,9 @@ import getpass
 import sys
 import os
 import json
+import re
+import math
+import io
 from base64 import b64encode
 from zipfile import ZipFile, ZIP_DEFLATED
 import requests
@@ -38,8 +41,13 @@ import six
 if six.PY2:
     input = raw_input
     from urlparse import urlparse
+    from HTMLParser import HTMLParser
+    html = HTMLParser()
 else:
     from urllib.parse import urlparse
+    import html
+
+JCDS_CHUNK_SIZE = 52428800  # 50mb is the default
 
 
 def logging_hook(response, *args, **kwargs):
@@ -295,6 +303,119 @@ def update_pkg_metadata(
         else:
             print("None")
 
+def update_pkg_by_form(
+    session, session_token, jamf_url, pkg_name, pkg_path, category=-1, verbosity=0
+):
+    """save the package using the web form, which should force JCDS into pending state."""
+    url = "{}/legacy/packages.html?id=-1&o=c".format(jamf_url)  # Create Package URL
+    r = session.post(url, data={
+        'session-token': session_token,
+        'lastTab': 'General',  # you dont really need these, but jamf does weird things with incomplete POJOs
+        'lastSideTab': 'null',
+        'lastSubTab': 'null',
+        'lastSubTabSet': 'null',
+        'name': pkg_name,
+        'categoryID': str(category),
+        'fileName': pkg_name,
+        'resetFIELD_MANIFEST_INPUT': '',
+        'info': '',
+        'notes': '',
+        'priority': '10',
+        'uninstall_disabled': 'true',
+        'osRequirements': '',
+        'requiredProcessor': 'ppc',
+        'switchWithPackageID': '-1',
+        'action': 'Save',
+    })
+
+    if verbosity > 1:
+        print(r.content)
+
+    if r.status_code == 200:
+        print("Successfully created package")
+        query = urlparse(r.url).query
+        matches = re.search(r'id=([^&]*)', query)
+        if matches is None:
+            print("No package id in redirected url")
+        else:
+            print("Package ID: {}".format(matches.group(1)))
+    else:
+        print("Package creation failed")
+
+
+def login(jamf_url, jamf_user, jamf_password, verbosity):  # type: (str, str, str, int) -> any
+    """create a web UI Session, required to scrape jcds information."""
+    http = requests.Session()
+    # if verbosity > 1:
+    #     http.hooks["response"] = [logging_hook]
+
+    r = http.post(jamf_url, data={'username': jamf_user, 'password': jamf_password})
+    return r, http
+
+def scrape_upload_token(session, jamf_url, verbosity):  # type: (requests.Session, str, int) -> any
+    """retrieve the packages page to scrape the jcds endpoint and data upload token for this session."""
+    url = '{}/legacy/packages.html?id=-1&o=c'.format(jamf_url)
+    r = session.get(url)
+    if six.PY3:
+        text = r.text
+    else:
+        text = r.content
+
+    if verbosity > 1:
+        print("huge amount of html follows")
+        print("------")
+        print(text)
+        print("------")
+
+    matches = re.search(r'data-base-url="([^"]*)"', text)
+    if matches is None:
+        print("WARNING: No JCDS distribution point URL was found")
+        print("- Are you sure that JCDS is your Primary distribution point?")
+
+    jcds_base_url_urlencoded = matches.group(1)
+
+    matches = re.search(r'data-upload-token="([^"]*)"', text)
+    if matches is None:
+        print("WARNING: No JCDS upload token was found")
+        print("- Are you sure that JCDS is your Primary distribution point?")
+
+    jcds_upload_token = matches.group(1)
+
+    matches = re.search(r'id="session-token" value="([^"]*)"', text)
+    if matches is None:
+        print("WARNING: No package upload session token was found")
+
+    session_token = matches.group(1)
+
+    jcds_base_url = html.unescape(jcds_base_url_urlencoded)
+    return jcds_base_url, jcds_upload_token, session_token
+
+# def post_pkg(pkg_name, pkg_path, jamf_url, enc_creds, obj_id, r_timeout, verbosity):
+def post_pkg_chunks(pkg_name, pkg_path, jcds_base_url, jcds_upload_token, obj_id, verbosity=0):
+    fsize = os.stat(pkg_path).st_size
+    total_chunks = int(math.ceil(fsize / JCDS_CHUNK_SIZE))
+    resource = open(pkg_path, "rb")
+
+    headers = {"X-Auth-Token": jcds_upload_token}
+    http = requests.Session()
+
+    chunks_json = []
+    for chunk in range(0, total_chunks):
+        resource.seek(chunk * JCDS_CHUNK_SIZE)
+        chunk_data = resource.read(JCDS_CHUNK_SIZE)
+        chunk_reader = io.BytesIO(chunk_data)
+        chunk_url = "{}/{}/part?chunk={}&chunks={}".format(
+            jcds_base_url, pkg_name, chunk, total_chunks)
+
+        r = http.post(chunk_url, files={'file': chunk_reader}, headers=headers)
+        print("uploaded chunk {} of {}".format(chunk + 1, total_chunks))
+        if verbosity > 1:
+            print(r.json())
+
+        chunks_json.append(r.json())
+
+    resource.close()
+    return chunks_json
 
 def get_args():
     """Parse any command line arguments"""
@@ -311,6 +432,11 @@ def get_args():
         "--curl",
         help="use curl instead of requests (experimental)",
         action="store_true",
+    )
+    parser.add_argument(
+        "--direct",
+        help="use direct upload to JCDS (experimental, will not work if JCDS is not primary distribution point)",
+        action="store_true"
     )
     parser.add_argument(
         "--url", default="", help="the Jamf Pro Server URL",
@@ -455,6 +581,16 @@ def main():
         pkg = input("Enter the full path to the package to upload: ")
         args.pkg = pkg
 
+    if args.direct:  # establish a web login session which is reusable for scraping tokens
+        r, login_session = login(
+            jamf_url,
+            jamf_user,
+            jamf_password,
+            args.verbose,
+        )
+        if r.status_code != 200:
+            print("Failed to log in to the Jamf instance at: {}".format(jamf_url))
+
     # now process the list of packages
     for pkg_path in args.pkg:
         pkg_name = os.path.basename(pkg_path)
@@ -487,7 +623,33 @@ def main():
         #  otherwise process for cloud DP
         else:
             if obj_id == "-1" or replace_pkg:
-                if args.curl:
+                if args.direct:
+                    jcds_url, jcds_token, session_token = scrape_upload_token(login_session, jamf_url, args.verbose)
+                    if jcds_url and jcds_token and session_token:
+                        print("JCDS URL: {}".format(jcds_url))
+                        print("JCDS Upload token: {}".format(jcds_token))
+                        print("Session token: {}".format(session_token))
+
+                        chunks_json = post_pkg_chunks(
+                            pkg_name,
+                            pkg_path,
+                            jcds_url,
+                            jcds_token,
+                            obj_id,
+                            args.verbose,
+                        )
+
+                        update_pkg_by_form(
+                            login_session,
+                            session_token,
+                            jamf_url,
+                            pkg_name,
+                            pkg_path,
+                        )
+
+                        # TODO: need to save pkg again to force JCDS to recombine chunks
+
+                elif args.curl:
                     r = curl_pkg(
                         pkg_name,
                         pkg_path,
