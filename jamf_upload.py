@@ -1,11 +1,13 @@
 #!/usr/bin/env python3
 
 """
-** Jamf Cloud Package Upload Script
+** Jamf Package Upload Script
    by G Pugh
 
 Developed from an idea posted at
 https://www.jamf.com/jamf-nation/discussions/27869#responseChild166021
+
+Incorporates a method for uploading packages using the web UI's method thanks to @mosen
 
 Credentials can be supplied from the command line as arguments, or inputted, or 
 from an existing PLIST containing values for JSS_URL, API_USERNAME and API_PASSWORD, 
@@ -241,6 +243,31 @@ def curl_pkg(pkg_name, pkg_path, jamf_url, enc_creds, obj_id, r_timeout, verbosi
     return r
 
 
+def get_object_id_from_name(jamf_url, enc_creds, object_name, verbosity, object_type):
+    """Get an API object from its name"""
+    headers = {
+        "authorization": "Basic {}".format(enc_creds),
+        "Accept": "application/xml",
+    }
+    object_name_escaped = html.escape(object_name)
+    url = "{}/JSSResource/{}/name/{}".format(jamf_url, object_type, object_name_escaped)
+
+    http = requests.Session()
+    if verbosity > 2:
+        http.hooks["response"] = [logging_hook]
+
+    r = http.get(url, headers=headers, timeout=60)
+    if verbosity > 2:
+        print(r.content)
+
+    obj_id = ElementTree.fromstring(r.content).findtext("id")
+    if obj_id:
+        print("ID of {} object '{}': {}".format(object_type, object_name, obj_id))
+        return obj_id
+    else:
+        print("WARNING: {} not found!".format(object_name))
+
+
 def update_pkg_metadata(
     jamf_url, enc_creds, pkg_name, category, verbosity, pkg_id=None
 ):
@@ -372,10 +399,12 @@ def post_pkg_chunks(
     total_chunks = int(math.ceil(file_size / jcds_chunk_size))
     resource = open(pkg_path, "rb")
 
-    headers = {"X-Auth-Token": jcds_upload_token}
+    headers = {
+        "X-Auth-Token": jcds_upload_token,
+        "content-type": "application/xml",
+    }
     http = requests.Session()
 
-    chunks_json = []
     for chunk in range(0, total_chunks):
         resource.seek(chunk * jcds_chunk_size)
         chunk_data = resource.read(jcds_chunk_size)
@@ -388,13 +417,10 @@ def post_pkg_chunks(
 
         r = http.post(chunk_url, files={"file": chunk_reader}, headers=headers)
         print("Uploaded chunk {} of {}".format(chunk + 1, total_chunks))
-        if verbosity > 1:
-            print(r.json())
-
-        chunks_json.append(r.json())
+        if verbosity > 2:
+            print(r)
 
     resource.close()
-    return chunks_json
 
 
 def update_pkg_by_form(
@@ -404,7 +430,7 @@ def update_pkg_by_form(
     pkg_name,
     pkg_path,
     obj_id,
-    category_id=-1,
+    category_id="-1",
     verbosity=0,
 ):
     """save the package using the web form, which should force JCDS into pending state."""
@@ -457,14 +483,10 @@ def get_args():
         "pkg", nargs="+", help="Full path to the package(s) to upload",
     )
     parser.add_argument(
-        "--replace",
-        help="overwrite an existing uploaded package (experimental)",
-        action="store_true",
+        "--replace", help="overwrite an existing uploaded package", action="store_true",
     )
     parser.add_argument(
-        "--curl",
-        help="use curl instead of requests (experimental)",
-        action="store_true",
+        "--curl", help="use curl instead of requests", action="store_true",
     )
     parser.add_argument(
         "--direct",
@@ -543,8 +565,8 @@ def get_args():
 
 def main():
     """Do the main thing here"""
-    print("\n** Jamf Cloud package upload script")
-    print("** Uploads packages to Jamf Cloud Distribution Points.\n")
+    print("\n** Jamf package upload script")
+    print("** Uploads packages to Jamf Cloud or SMB Distribution Points.")
 
     #  parse the command line arguments
     args = get_args()
@@ -617,11 +639,21 @@ def main():
         pkg = input("Enter the full path to the package to upload: ")
         args.pkg = pkg
 
+    # establish a web login session which is reusable for scraping tokens
     if args.direct:
-        # establish a web login session which is reusable for scraping tokens
         r, login_session = login(jamf_url, jamf_user, jamf_password, args.verbose)
         if r.status_code != 200:
             print("Failed to log in to the Jamf instance at: {}".format(jamf_url))
+
+    # get the id for a category if supplied
+    if args.category:
+        print("Checking ID for {}".format(args.category))
+        category_id = get_object_id_from_name(
+            jamf_url, enc_creds, args.category, args.verbose, "categories"
+        )
+        if not category_id:
+            print("WARNING: Category not found!")
+            category_id = "-1"
 
     # now process the list of packages
     for pkg_path in args.pkg:
@@ -685,6 +717,8 @@ def main():
                             pkg_name,
                             pkg_path,
                             obj_id,
+                            category_id,
+                            args.verbose,
                         )
                 # curl -> dbfileupload upload method option
                 elif args.curl:
@@ -743,7 +777,7 @@ def main():
 
         # now process the package metadata if a category is supplied,
         # or if we are dealing with an SMB share
-        if args.category or smb_url:
+        if (args.category or smb_url) and not args.direct:
             try:
                 pkg_id
                 update_pkg_metadata(
