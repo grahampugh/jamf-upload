@@ -15,12 +15,24 @@ Upload one or more packages to Jamf Cloud Distribution Points
     -h, --help           show help message and exit
     --replace            overwrite an existing uploaded package (experimental)
     --curl               use curl instead of requests (experimental)
+    --direct             use direct upload to JCDS (experimental, will not work
+                         if JCDS is not primary distribution point)
+    --chunksize CHUNKSIZE
+                         set chunk size in megabytes (for direct method only)
     --url URL            the Jamf Pro Server URL
     --user USER          a user with the rights to upload a package
-    --timeout TIMEOUT    set timeout in seconds for HTTP request for problematic
-                         packages
     --password PASSWORD  password of the user with the rights to upload a
                          package
+    --timeout TIMEOUT    set timeout in seconds for HTTP request for problematic
+                         packages
+    --share SHARE        Path to an SMB FileShare Distribution Point, in the
+                         form smb://server/mountpoint
+    --shareuser SHAREUSER
+                         a user with the rights to upload a package to the SMB
+                         FileShare Distribution Point
+    --sharepass SHAREPASS
+                         password of the user with the rights to upload a
+                         package to the SMB FileShare Distribution Point
     --category CATEGORY  a category to assign to the package (experimental)
     --prefs PREFS        full path to an AutoPkg prefs file containing JSS URL,
                          API_USERNAME and API_PASSWORD, for example an AutoPkg
