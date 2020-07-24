@@ -1,16 +1,21 @@
-# Jamf Cloud package upload script
+# Jamf Pro upload scripts
 
-Upload one or more packages to Jamf Cloud Distribution Points
+## jamf_upload.py
 
-    usage: jamf_upload.py [-h] [--replace] [--curl] [--url URL] [--user USER]
-                         [--password PASSWORD] [--prefs PREFS] [-v[v]]
-                         pkg [pkg ...]
+Upload one or more packages to a Jamf Cloud Distribution Point or an SMB FileShare Distribution Point
 
-## Positional arguments
+    usage: jamf_upload.py [-h] [--replace] [--curl] [--direct] [--url URL]
+                        [--user USER] [--password PASSWORD] [--share SHARE]
+                        [--shareuser SHAREUSER] [--sharepass SHAREPASS]
+                        [--category CATEGORY] [--timeout TIMEOUT]
+                        [--chunksize CHUNKSIZE] [--prefs PREFS] [-v]
+                        pkg [pkg ...]
+
+### Positional arguments
 
     pkg                  Full path to the package(s) to upload
 
-## Optional arguments
+### Optional arguments
 
     -h, --help           show help message and exit
     --replace            overwrite an existing uploaded package (experimental)
@@ -45,7 +50,7 @@ Upload one or more packages to Jamf Cloud Distribution Points
 
 Missing arguments (URL, username, password) will be asked for interactively if not already supplied.
 
-## Examples
+### Examples
 
 Here, we supply the JSS URL, API user and password, and the package to upload.
 
@@ -67,7 +72,7 @@ Here, we point to the AutoPkg preferences file, whicb should contains the JSS UR
     /path/to/Firefox-77.0.1.pkg \
     ...
 
-## Known issues in latest version
+### Known issues in latest version
 
 `jamf_upload.py` uses an undocumented API for uploading packages to Jamf Cloud. As far as I know, this is the same API used by the Jamf Admin app. It is also the same method used by JSSImporter.
 
@@ -77,7 +82,7 @@ As the HTTP response cannot be guaranteed, and package metadata such as category
 
 The script also provides the `--direct` option, which uses a method resembling the way the GUI performs uploads. In our tests, this is more reliable at completing the package upload and providing the package ID as a response, which means the `--category` option should work more of the time.
 
-## AutoPkg users
+### AutoPkg users
 
 Users of AutoPkg can use the `JamfCloudPackageUploader` processor to upload packages. It shares the functionality of this script, though will only upload one package per process. This can be run as a post-processor, e.g.:
 
@@ -88,3 +93,63 @@ When running this processor, the `JSS_URL`, `API_USER` and `API_PASSWORD` prefer
 The processor could also be added to an override, or a new recipe could be made wth the `.pkg` recipe as its parent. As long as there is a `pkg_path` output from the `.pkg` recipe, no parameters would need to be supplied. If not, you could supply a value for the `pkg_path` key as an argument to the processor. This would allow you to use the `.download` recipe as a parent if the download is a valid `pkg`.
 
 Please don't use the `.jss` suffix for such a recipe if you publish it, as that would confuse the recipe with JSSImporter recipes. I suggest `.jamf-upload.recipe`.
+
+## jamf_script_upload.py
+
+Upload one or more scripts to a Jamf Pro server using the API.
+
+    usage: jamf_script_upload.py [-h] [--replace] [--url URL] [--user USER]
+                                [--password PASSWORD] [--category CATEGORY]
+                                [--priority PRIORITY]
+                                [--osrequirements OSREQUIREMENTS] [--info INFO]
+                                [--notes NOTES] [--parameter4 PARAMETER4]
+                                [--parameter5 PARAMETER5]
+                                [--parameter6 PARAMETER6]
+                                [--parameter7 PARAMETER7]
+                                [--parameter8 PARAMETER8]
+                                [--parameter9 PARAMETER9]
+                                [--parameter10 PARAMETER10]
+                                [--parameter11 PARAMETER11] [--prefs PREFS] [-v]
+                                script [script ...]
+
+    positional arguments:
+        script                Full path to the script(s) to upload
+
+    optional arguments:
+        -h, --help              show this help message and exit
+        --replace               overwrite an existing uploaded script
+        --url URL               the Jamf Pro Server URL
+        --user USER             a user with the rights to upload a script
+        --password PASSWORD     password of the user with the rights to upload a
+                                script
+        --category CATEGORY     a category to assign to the script(s)
+        --priority PRIORITY     priority to assign to the script(s) - BEFORE or AFTER
+        --osrequirements OSREQUIREMENTS
+                                a value to assign to the OS requirements field of the
+                                script(s)
+        --info INFO             information to assign to the script(s)
+        --notes NOTES           notes to assign to the script(s)
+        --parameter4 PARAMETER4
+                                a value to assign to parameter4 of the script(s)
+        --parameter5 PARAMETER5
+                                a value to assign to parameter5 of the script(s)
+        --parameter6 PARAMETER6
+                                a value to assign to parameter6 of the script(s)
+        --parameter7 PARAMETER7
+                                a value to assign to parameter7 of the script(s)
+        --parameter8 PARAMETER8
+                                a value to assign to parameter8 of the script(s)
+        --parameter9 PARAMETER9
+                                a value to assign to parameter9 of the script(s)
+        --parameter10 PARAMETER10
+                                a value to assign to parameter10 of the script(s)
+        --parameter11 PARAMETER11
+                                a value to assign to parameter11 of the script(s)
+        --prefs PREFS           full path to an AutoPkg prefs file containing JSS URL,
+                                API_USERNAME and API_PASSWORD, for example an AutoPkg
+                                preferences file which has been configured for use
+                                with JSSImporter
+                                (~/Library/Preferences/com.github.autopkg.plist) or a
+                                separate plist anywhere (e.g.
+                                ~/.com.company.jcds_upload.plist)
+        -v, --verbose           print verbose output headers
