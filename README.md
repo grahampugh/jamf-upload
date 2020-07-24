@@ -73,9 +73,11 @@ Here, we point to the AutoPkg preferences file, whicb should contains the JSS UR
 
 The HTTP responses from this API are unpredictable. You may see a `504` response, which indicates a Gateway Timeout error, but the package may well be delivered anyway. This is true whether uploading a new package or overwriting an existing one.
 
-As the HTTP response cannot be guaranteed, and package metadata such as category, manifest etc., must be supplied by a different API call after the package object has been uploaded, it can be unpredictable as to whether the package will be successfully uploaded. For this reason, please consider the `--category` option as experimental.
+As the HTTP response cannot be guaranteed, and package metadata such as category, manifest etc., must be supplied by a different API call after the package object has been uploaded, it can be unpredictable as to whether the package will be successfully uploaded. For this reason, please consider the `--category` option as experimental when uploading to Jamf Cloud.
 
-# AutoPkg users
+The script also provides the `--direct` option, which uses a method resembling the way the GUI performs uploads. In our tests, this is more reliable at completing the package upload and providing the package ID as a response, which means the `--category` option should work more of the time.
+
+## AutoPkg users
 
 Users of AutoPkg can use the `JamfCloudPackageUploader` processor to upload packages. It shares the functionality of this script, though will only upload one package per process. This can be run as a post-processor, e.g.:
 

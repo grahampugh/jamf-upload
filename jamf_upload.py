@@ -41,9 +41,9 @@ from shutil import copyfile
 import six
 
 if six.PY2:
-    input = raw_input
-    from urlparse import urlparse
-    from HTMLParser import HTMLParser
+    input = raw_input  # pylint: disable=E0602
+    from urlparse import urlparse  # pylint: disable=F0401
+    from HTMLParser import HTMLParser  # pylint: disable=F0401
 
     html = HTMLParser()
 else:
