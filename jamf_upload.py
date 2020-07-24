@@ -207,7 +207,7 @@ def post_pkg(pkg_name, pkg_path, jamf_url, enc_creds, obj_id, r_timeout, verbosi
     if verbosity > 2:
         http.hooks["response"] = [logging_hook]
 
-    r = http.post(url, files=files, headers=headers, timeout=r_timeout)
+    r = http.post(url, data=files, headers=headers, timeout=r_timeout)
     return r
 
 
