@@ -15,12 +15,24 @@ Upload one or more packages to Jamf Cloud Distribution Points
     -h, --help           show help message and exit
     --replace            overwrite an existing uploaded package (experimental)
     --curl               use curl instead of requests (experimental)
+    --direct             use direct upload to JCDS (experimental, will not work
+                         if JCDS is not primary distribution point)
+    --chunksize CHUNKSIZE
+                         set chunk size in megabytes (for direct method only)
     --url URL            the Jamf Pro Server URL
     --user USER          a user with the rights to upload a package
-    --timeout TIMEOUT    set timeout in seconds for HTTP request for problematic
-                         packages
     --password PASSWORD  password of the user with the rights to upload a
                          package
+    --timeout TIMEOUT    set timeout in seconds for HTTP request for problematic
+                         packages
+    --share SHARE        Path to an SMB FileShare Distribution Point, in the
+                         form smb://server/mountpoint
+    --shareuser SHAREUSER
+                         a user with the rights to upload a package to the SMB
+                         FileShare Distribution Point
+    --sharepass SHAREPASS
+                         password of the user with the rights to upload a
+                         package to the SMB FileShare Distribution Point
     --category CATEGORY  a category to assign to the package (experimental)
     --prefs PREFS        full path to an AutoPkg prefs file containing JSS URL,
                          API_USERNAME and API_PASSWORD, for example an AutoPkg
@@ -61,9 +73,11 @@ Here, we point to the AutoPkg preferences file, whicb should contains the JSS UR
 
 The HTTP responses from this API are unpredictable. You may see a `504` response, which indicates a Gateway Timeout error, but the package may well be delivered anyway. This is true whether uploading a new package or overwriting an existing one.
 
-As the HTTP response cannot be guaranteed, and package metadata such as category, manifest etc., must be supplied by a different API call after the package object has been uploaded, it can be unpredictable as to whether the package will be successfully uploaded. For this reason, please consider the `--category` option as experimental.
+As the HTTP response cannot be guaranteed, and package metadata such as category, manifest etc., must be supplied by a different API call after the package object has been uploaded, it can be unpredictable as to whether the package will be successfully uploaded. For this reason, please consider the `--category` option as experimental when uploading to Jamf Cloud.
 
-# AutoPkg users
+The script also provides the `--direct` option, which uses a method resembling the way the GUI performs uploads. In our tests, this is more reliable at completing the package upload and providing the package ID as a response, which means the `--category` option should work more of the time.
+
+## AutoPkg users
 
 Users of AutoPkg can use the `JamfCloudPackageUploader` processor to upload packages. It shares the functionality of this script, though will only upload one package per process. This can be run as a post-processor, e.g.:
 
