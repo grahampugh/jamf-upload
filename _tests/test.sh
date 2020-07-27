@@ -1,0 +1,7 @@
+#!/bin/bash
+
+TEST="%TESTKEY%"
+TEST="%TESTKEY2%"
+TEST_AGAIN="%TESTKEY3%"
+
+exit 0

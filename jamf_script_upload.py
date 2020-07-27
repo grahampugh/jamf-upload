@@ -12,117 +12,15 @@ JSSImporter: ~/Library/Preferences/com.github.autopkg
 For usage, run jamf-script-upload.py --help
 """
 
-
 import argparse
-import getpass
-import sys
-import os
 import json
+import os.path
 import re
-import math
-import io
-from base64 import b64encode
-from zipfile import ZipFile, ZIP_DEFLATED
-from pathlib import Path
 import requests
 from time import sleep
 from requests_toolbelt.utils import dump
-import plistlib
-import subprocess
-import xml.etree.ElementTree as ElementTree
-from shutil import copyfile
-import six
 
-if six.PY2:
-    input = raw_input  # pylint: disable=E0602
-    from urlparse import urlparse  # pylint: disable=F0401
-    from HTMLParser import HTMLParser  # pylint: disable=F0401
-
-    html = HTMLParser()
-else:
-    from urllib.parse import urlparse
-    import html
-
-
-def logging_hook(response, *args, **kwargs):
-    data = dump.dump_all(response)
-    print(data)
-
-
-def get_credentials(prefs_file):
-    """get credentials from an existing AutoPkg prefs file"""
-    with open(prefs_file, "rb") as pl:
-        if six.PY2:
-            prefs = plistlib.readPlist(pl)
-        else:
-            prefs = plistlib.load(pl)
-
-    try:
-        jamf_url = prefs["JSS_URL"]
-    except KeyError:
-        jamf_url = ""
-    try:
-        jamf_user = prefs["API_USERNAME"]
-    except KeyError:
-        jamf_user = ""
-    try:
-        jamf_password = prefs["API_PASSWORD"]
-    except KeyError:
-        jamf_password = ""
-    return jamf_url, jamf_user, jamf_password
-
-
-def get_uapi_token(jamf_url, enc_creds, verbosity):
-    """get a token for the Jamf Pro API"""
-    headers = {
-        "authorization": "Basic {}".format(enc_creds),
-        "content-type": "application/json",
-        "accept": "application/json",
-    }
-    url = "{}/uapi/auth/tokens".format(jamf_url)
-    http = requests.Session()
-    if verbosity > 2:
-        http.hooks["response"] = [logging_hook]
-
-    r = http.post(url, headers=headers)
-    if verbosity > 2:
-        print(r.content)
-    if r.status_code == 200:
-        obj = json.loads(r.text)
-        try:
-            token = str(obj["token"])
-            print("Session token received")
-            return token
-        except KeyError:
-            print("ERROR: No token received")
-            return
-    else:
-        print("ERROR: No token received")
-        return
-
-
-def get_object_id_from_name(jamf_url, object_type, object_name, token, verbosity):
-    """The UAPI doesn't have a name object, so we have to get the list of scripts 
-    and parse the name to get the id """
-    headers = {
-        "authorization": "Bearer {}".format(token),
-        "accept": "application/json",
-    }
-    url = "{}/uapi/v1/{}".format(jamf_url, object_type)
-    http = requests.Session()
-    if verbosity > 2:
-        http.hooks["response"] = [logging_hook]
-
-    r = http.get(url, headers=headers)
-    if r.status_code == 200:
-        object_list = json.loads(r.text)
-        obj_id = 0
-        for obj in object_list["results"]:
-            if verbosity > 2:
-                print(obj)
-            if obj["name"] == object_name:
-                obj_id = obj["id"]
-        return obj_id
+from jamf_upload_lib import api_connect, api_get
 
 
 def upload_script(
@@ -145,17 +43,27 @@ def upload_script(
     script_os_requirements,
     verbosity,
     token,
+    cli_custom_keys,
     obj_id=None,
 ):
     """Update script metadata."""
 
-    # TODO user assignable keys
-    # we want to be able to replace values in scripts based on assigned keys
-    # in the form --key MY_KEY=value
-    # whenever %MY_KEY% is found in a script, it should be replaced with the assigned value
+    # import script from file and replace any keys in the script
+    # script_contents = Path(script_path).read_text()
+    with open(script_path, "r") as file:
+        script_contents = file.read()
 
-    # import script from file
-    script_contents = Path(script_path).read_text()
+    # user assignable keys
+    # whenever %MY_KEY% is found in a script, it is replaced with the assigned value of MY_KEY
+    for custom_key in cli_custom_keys:
+        if verbosity:
+            print(
+                f"Replacing any instances of '{custom_key}' with",
+                f"'{cli_custom_keys[custom_key]}'",
+            )
+        script_contents = script_contents.replace(
+            f"%{custom_key}%", cli_custom_keys[custom_key]
+        )
 
     # build the object
     script_data = {
@@ -191,7 +99,7 @@ def upload_script(
 
     http = requests.Session()
     if verbosity > 2:
-        http.hooks["response"] = [logging_hook]
+        http.hooks["response"] = [api_connect.logging_hook]
         print("Script data:")
         print(script_data)
 
@@ -223,13 +131,7 @@ def upload_script(
         sleep(10)
 
     if verbosity > 1:
-        print("\nHeaders:\n")
-        print(r.headers)
-        print("\nResponse:\n")
-        if r.text:
-            print(r.text)
-        else:
-            print("None")
+        api_get.get_headers(r)
 
     return r
 
@@ -239,9 +141,6 @@ def get_args():
     parser = argparse.ArgumentParser()
     parser.add_argument(
         "script", nargs="+", help="Full path to the script(s) to upload",
-    )
-    parser.add_argument(
-        "--replace", help="overwrite an existing uploaded script", action="store_true",
     )
     parser.add_argument(
         "--url", default="", help="the Jamf Pro Server URL",
@@ -325,6 +224,15 @@ def get_args():
         ),
     )
     parser.add_argument(
+        "-k",
+        "--key",
+        action="append",
+        dest="variables",
+        default=[],
+        metavar="KEY=VALUE",
+        help=("Provide key/value pairs for script value substitution. "),
+    )
+    parser.add_argument(
         "-v",
         "--verbose",
         action="count",
@@ -332,7 +240,17 @@ def get_args():
         help="print verbose output headers",
     )
     args = parser.parse_args()
-    return args
+
+    # Add variables from commandline. These might override those from
+    # environment variables and recipe_list
+    cli_custom_keys = {}
+    for arg in args.variables:
+        (key, sep, value) = arg.partition("=")
+        if sep != "=":
+            print(f"Invalid variable [key=value]: {arg}")
+        cli_custom_keys[key] = value
+
+    return args, cli_custom_keys
 
 
 def main():
@@ -341,44 +259,13 @@ def main():
     print("** Uploads script to Jamf Pro.")
 
     #  parse the command line arguments
-    args = get_args()
+    args, cli_custom_keys = get_args()
 
     # grab values from a prefs file if supplied
-    if args.prefs:
-        (jamf_url, jamf_user, jamf_password) = get_credentials(args.prefs)
-    else:
-        jamf_url = ""
-        jamf_user = ""
-        jamf_password = ""
-
-    # CLI arguments override any values from a prefs file
-    if args.url:
-        jamf_url = args.url
-    elif not jamf_url:
-        jamf_url = input("Enter Jamf Pro Server URL : ")
-    if args.user:
-        jamf_user = args.user
-    elif not jamf_user:
-        jamf_user = input(
-            "Enter a Jamf Pro user with API rights to upload a package : "
-        )
-    if args.password:
-        jamf_password = args.password
-    elif not jamf_password:
-        jamf_password = getpass.getpass(
-            "Enter the password for '{}' : ".format(jamf_user)
-        )
-
-    # encode the username and password into a basic auth b64 encoded string so that we can get the session token
-    credentials = "{}:{}".format(jamf_user, jamf_password)
-    if six.PY2:
-        enc_creds = b64encode(credentials)
-    else:
-        enc_creds_bytes = b64encode(credentials.encode("utf-8"))
-        enc_creds = str(enc_creds_bytes, "utf-8")
+    jamf_url, _, _, enc_creds = api_connect.get_creds_from_args(args)
 
     # now get the session token
-    token = get_uapi_token(jamf_url, enc_creds, args.verbose)
+    token = api_connect.get_uapi_token(jamf_url, enc_creds, args.verbose)
 
     if not args.script:
         script = input("Enter the full path to the script to upload: ")
@@ -387,7 +274,7 @@ def main():
     # get the id for a category if supplied
     if args.category:
         print("Checking categories for {}".format(args.category))
-        category_id = get_object_id_from_name(
+        category_id = api_get.get_uapi_obj_id_from_name(
             jamf_url, "categories", args.category, token, args.verbose
         )
         if not category_id:
@@ -406,7 +293,7 @@ def main():
         print("\nChecking '{}' on {}".format(script_name, jamf_url))
         if args.verbose:
             print("Full path: {}".format(script_path))
-        obj_id = get_object_id_from_name(
+        obj_id = api_get.get_uapi_obj_id_from_name(
             jamf_url, "scripts", script_name, token, args.verbose
         )
 
@@ -431,6 +318,7 @@ def main():
             args.osrequirements,
             args.verbose,
             token,
+            cli_custom_keys,
             obj_id,
         )
 

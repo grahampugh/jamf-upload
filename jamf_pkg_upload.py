@@ -14,7 +14,7 @@ from an existing PLIST containing values for JSS_URL, API_USERNAME and API_PASSW
 for example an AutoPkg preferences file which has been configured for use with 
 JSSImporter: ~/Library/Preferences/com.github.autopkg
 
-For usage, run jamf-upload.py --help
+For usage, run jamf_pkg_upload.py --help
 
 Additional requests tools added based on:
 https://findwork.dev/blog/advanced-usage-python-requests-timeouts-retries-hooks/
@@ -40,6 +40,8 @@ import xml.etree.ElementTree as ElementTree
 from shutil import copyfile
 import six
 
+from jamf_upload_lib import api_connect, api_get
+
 if six.PY2:
     input = raw_input  # pylint: disable=E0602
     from urlparse import urlparse  # pylint: disable=F0401
@@ -49,46 +51,6 @@ if six.PY2:
 else:
     from urllib.parse import urlparse
     import html
-
-
-def logging_hook(response, *args, **kwargs):
-    data = dump.dump_all(response)
-    print(data)
-
-
-def get_credentials(prefs_file):
-    """get credentials from an existing AutoPkg prefs file"""
-    with open(prefs_file, "rb") as pl:
-        if six.PY2:
-            prefs = plistlib.readPlist(pl)
-        else:
-            prefs = plistlib.load(pl)
-
-    try:
-        jamf_url = prefs["JSS_URL"]
-    except KeyError:
-        jamf_url = ""
-    try:
-        jamf_user = prefs["API_USERNAME"]
-    except KeyError:
-        jamf_user = ""
-    try:
-        jamf_password = prefs["API_PASSWORD"]
-    except KeyError:
-        jamf_password = ""
-    try:
-        smb_url = prefs["SMB_URL"]
-    except KeyError:
-        smb_url = ""
-    try:
-        smb_user = prefs["SMB_USERNAME"]
-    except KeyError:
-        smb_user = ""
-    try:
-        smb_password = prefs["SMB_PASSWORD"]
-    except KeyError:
-        smb_password = ""
-    return jamf_url, jamf_user, jamf_password, smb_url, smb_user, smb_password
 
 
 def mount_smb(mount_share, mount_user, mount_pass, verbosity):
@@ -205,7 +167,7 @@ def post_pkg(pkg_name, pkg_path, jamf_url, enc_creds, obj_id, r_timeout, verbosi
 
     http = requests.Session()
     if verbosity > 2:
-        http.hooks["response"] = [logging_hook]
+        http.hooks["response"] = [api_connect.logging_hook]
 
     r = http.post(url, data=files, headers=headers, timeout=r_timeout)
     return r
@@ -243,37 +205,13 @@ def curl_pkg(pkg_name, pkg_path, jamf_url, enc_creds, obj_id, r_timeout, verbosi
     return r
 
 
-def get_object_id_from_name(jamf_url, enc_creds, object_name, verbosity, object_type):
-    """Get an API object from its name"""
-    headers = {
-        "authorization": "Basic {}".format(enc_creds),
-        "Accept": "application/xml",
-    }
-    object_name_escaped = html.escape(object_name)
-    url = "{}/JSSResource/{}/name/{}".format(jamf_url, object_type, object_name_escaped)
-
-    http = requests.Session()
-    if verbosity > 2:
-        http.hooks["response"] = [logging_hook]
-
-    r = http.get(url, headers=headers, timeout=60)
-    if verbosity > 2:
-        print(r.content)
-
-    obj_id = ElementTree.fromstring(r.content).findtext("id")
-    if obj_id:
-        print("ID of {} object '{}': {}".format(object_type, object_name, obj_id))
-        return obj_id
-    else:
-        print("WARNING: {} not found!".format(object_name))
-
-
 def update_pkg_metadata(
     jamf_url, enc_creds, pkg_name, category, verbosity, pkg_id=None
 ):
     """Update package metadata. Currently only serves category"""
 
     # build the package record XML
+    #  TODO add other package options
     pkg_data = (
         "<package>"
         + "<name>{}</name>".format(pkg_name)
@@ -295,7 +233,7 @@ def update_pkg_metadata(
 
     http = requests.Session()
     if verbosity > 2:
-        http.hooks["response"] = [logging_hook]
+        http.hooks["response"] = [api_connect.logging_hook]
         print("Package data:")
         print(pkg_data)
 
@@ -336,7 +274,7 @@ def login(
     """For creating a web UI Session, which is required to scrape JCDS information."""
     http = requests.Session()
     if verbosity > 2:
-        http.hooks["response"] = [logging_hook]
+        http.hooks["response"] = [api_connect.logging_hook]
 
     r = http.post(jamf_url, data={"username": jamf_user, "password": jamf_password})
     return r, http
@@ -572,40 +510,16 @@ def main():
     args = get_args()
 
     # grab values from a prefs file if supplied
+    jamf_url, jamf_user, jamf_password, enc_creds = api_connect.get_creds_from_args(
+        args
+    )
+
     if args.prefs:
-        (
-            jamf_url,
-            jamf_user,
-            jamf_password,
-            smb_url,
-            smb_user,
-            smb_password,
-        ) = get_credentials(args.prefs)
+        smb_url, smb_user, smb_password = api_connect.get_smb_credentials(args.prefs)
     else:
-        jamf_url = ""
-        jamf_user = ""
-        jamf_password = ""
         smb_url = ""
         smb_user = ""
         smb_password = ""
-
-    # CLI arguments override any values from a prefs file
-    if args.url:
-        jamf_url = args.url
-    elif not jamf_url:
-        jamf_url = input("Enter Jamf Pro Server URL : ")
-    if args.user:
-        jamf_user = args.user
-    elif not jamf_user:
-        jamf_user = input(
-            "Enter a Jamf Pro user with API rights to upload a package : "
-        )
-    if args.password:
-        jamf_password = args.password
-    elif not jamf_password:
-        jamf_password = getpass.getpass(
-            "Enter the password for '{}' : ".format(jamf_user)
-        )
 
     # repeat for optional SMB share (but must supply a share path to invoke this)
     if args.share:
@@ -627,14 +541,6 @@ def main():
     # get HTTP request timeout
     r_timeout = float(args.timeout)
 
-    # encode the username and password into a basic auth b64 encoded string
-    credentials = "%s:%s" % (jamf_user, jamf_password)
-    if six.PY2:
-        enc_creds = b64encode(credentials)
-    else:
-        enc_creds_bytes = b64encode(credentials.encode("utf-8"))
-        enc_creds = str(enc_creds_bytes, "utf-8")
-
     if not args.pkg:
         pkg = input("Enter the full path to the package to upload: ")
         args.pkg = pkg
@@ -648,7 +554,7 @@ def main():
     # get the id for a category if supplied
     if args.category:
         print("Checking ID for {}".format(args.category))
-        category_id = get_object_id_from_name(
+        category_id = api_get.get_uapi_obj_id_from_name(
             jamf_url, enc_creds, args.category, args.verbose, "categories"
         )
         if not category_id:
@@ -767,13 +673,7 @@ def main():
                     else:
                         print("\nHTTP POST Response Code: {}".format(r.status_code))
                     if args.verbose:
-                        print("\nHeaders:\n")
-                        print(r.headers)
-                        print("\nResponse:\n")
-                        if r.text:
-                            print(r.text)
-                        else:
-                            print("None")
+                        api_get.get_headers(r)
 
         # now process the package metadata if a category is supplied,
         # or if we are dealing with an SMB share

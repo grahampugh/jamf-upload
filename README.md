@@ -1,10 +1,14 @@
 # Jamf Pro upload scripts
 
-## jamf_upload.py
+- jamf_pkg_upload.py
+- jamf_script_upload.py
+- jamf_category_upload.py
+
+## jamf_pkg_upload.py
 
 Upload one or more packages to a Jamf Cloud Distribution Point or an SMB FileShare Distribution Point
 
-    usage: jamf_upload.py [-h] [--replace] [--curl] [--direct] [--url URL]
+    usage: jamf_pkg_upload.py [-h] [--replace] [--curl] [--direct] [--url URL]
                         [--user USER] [--password PASSWORD] [--share SHARE]
                         [--shareuser SHAREUSER] [--sharepass SHAREPASS]
                         [--category CATEGORY] [--timeout TIMEOUT]
@@ -54,19 +58,19 @@ Missing arguments (URL, username, password) will be asked for interactively if n
 
 Here, we supply the JSS URL, API user and password, and the package to upload.
 
-    ./jamf_upload.py --url https://myserver.jamfcloud.com --user jamf_admin --password myPasswordIsSecure /path/to/FoldingAtHome-7.5.1.pkg
+    ./jamf_pkg_upload.py --url https://myserver.jamfcloud.com --user jamf_admin --password myPasswordIsSecure /path/to/FoldingAtHome-7.5.1.pkg
 
 Here, we point to the AutoPkg preferences file, whicb should contains the JSS URL, API user and password. We add verbosity and specify that the package should be replaced.
 
-    ./jamf_upload.py --prefs ~/Library/Preferences/com.github.autopkg.plist -vv --replace ~/Library/AutoPkg/Cache/local.pkg.FoldingAtHome/FoldingAtHome-7.5.1.pkg
+    ./jamf_pkg_upload.py --prefs ~/Library/Preferences/com.github.autopkg.plist -vv --replace ~/Library/AutoPkg/Cache/local.pkg.FoldingAtHome/FoldingAtHome-7.5.1.pkg
 
 Here, we point to a custom plist, whicb should contains the JSS URL, API user and password. We specify that the package should be replaced, and supply a category to assign to the package object.
 
-    ./jamf_upload.py --prefs ../credentials/custom.plist --category Applications --replace ~/Library/AutoPkg/Cache/local.pkg.FoldingAtHome/FoldingAtHome-7.5.1.pkg
+    ./jamf_pkg_upload.py --prefs ../credentials/custom.plist --category Applications --replace ~/Library/AutoPkg/Cache/local.pkg.FoldingAtHome/FoldingAtHome-7.5.1.pkg
 
 Here, we point to the AutoPkg preferences file, whicb should contains the JSS URL, API user and password. We specify multiple packages that we wish to be uploaded in one run.
 
-    ./jamf_upload.py --prefs ~/Library/Preferences/com.github.autopkg.plist \
+    ./jamf_pkg_upload.py --prefs ~/Library/Preferences/com.github.autopkg.plist \
     /path/to/FoldingAtHome-7.5.1.pkg \
     /path/to/AdoptOpenJDK11-11.0.6.pkg \
     /path/to/Firefox-77.0.1.pkg \
@@ -74,7 +78,7 @@ Here, we point to the AutoPkg preferences file, whicb should contains the JSS UR
 
 ### Known issues in latest version
 
-`jamf_upload.py` uses an undocumented API for uploading packages to Jamf Cloud. As far as I know, this is the same API used by the Jamf Admin app. It is also the same method used by JSSImporter.
+`jamf_pkg_upload.py` uses an undocumented API for uploading packages to Jamf Cloud. As far as I know, this is the same API used by the Jamf Admin app. It is also the same method used by JSSImporter.
 
 The HTTP responses from this API are unpredictable. You may see a `504` response, which indicates a Gateway Timeout error, but the package may well be delivered anyway. This is true whether uploading a new package or overwriting an existing one.
 
@@ -84,7 +88,7 @@ The script also provides the `--direct` option, which uses a method resembling t
 
 ### AutoPkg users
 
-Users of AutoPkg can use the `JamfCloudPackageUploader` processor to upload packages. It shares the functionality of this script, though will only upload one package per process. This can be run as a post-processor, e.g.:
+Users of AutoPkg can use the `JamfPackageUploader` processor to upload packages. It shares the functionality of this script, though will only upload one package per process. This can be run as a post-processor, e.g.:
 
     autopkg run FoldingAtHome.pkg --post com.github.grahampugh.recipes.postprocessors/JamfCloudPackageUploader
 
@@ -153,3 +157,31 @@ Upload one or more scripts to a Jamf Pro server using the API.
                                 separate plist anywhere (e.g.
                                 ~/.com.company.jcds_upload.plist)
         -v, --verbose           print verbose output headers
+
+## jamf_category_upload.py
+
+Create or update one or more categories on a Jamf Pro server using the API.
+
+    usage: jamf_category_upload.py [-h] [--priority PRIORITY] [--url URL]
+                                [--user USER] [--password PASSWORD]
+                                [--prefs PREFS] [-v]
+                                category [category ...]
+
+    positional arguments:
+    category             Category to create
+
+    optional arguments:
+    -h, --help           show this help message and exit
+    --priority PRIORITY  Category priority. Default value is 10
+    --url URL            the Jamf Pro Server URL
+    --user USER          a user with the rights to create a category
+    --password PASSWORD  password of the user with the rights to create a
+                         category
+    --prefs PREFS        full path to an AutoPkg prefs file containing JSS URL,
+                         API_USERNAME and API_PASSWORD, for example an AutoPkg
+                         preferences file which has been configured for use with
+                         JSSImporter
+                         (~/Library/Preferences/com.github.autopkg.plist) or a
+                         separate plist anywhere (e.g.
+                         ~/.com.company.jcds_upload.plist)
+    -v, --verbose        print verbose output headers

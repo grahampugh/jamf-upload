@@ -4,7 +4,7 @@ All notable changes to this project will be documented in this file. This projec
 
 ## Known issues in latest version
 
-`jamf_upload.py` uses an undocumented API for uploading packages to Jamf Cloud. As far as I know, this is the same API used by the Jamf Admin app. It is also the same method used by JSSImporter.
+`jamf_pkg_upload.py` uses an undocumented API for uploading packages to Jamf Cloud. As far as I know, this is the same API used by the Jamf Admin app. It is also the same method used by JSSImporter.
 
 The HTTP responses from this API are unpredictable. You may see a `504` response, which indicates a Gateway Timeout error, but the package may well be delivered anyway. This is true whether uploading a new package or overwriting an existing one.
 
@@ -14,7 +14,13 @@ I intend to add such functionality if changes are made to the Jamf Pro API so th
 
 ## [Unreleased] - TBD
 
-- Added the `jamf-script-upload.py` script. This is used for uploading scripts to Jamf Pro. An accompanying AutoPkg processor will be built in due course. The option to include variables as in AutoPkg (`%VARIABLE%`) will also be added.
+- Added the `jamf_script_upload.py` script. This is used for uploading scripts to Jamf Pro. The option to include variables as in AutoPkg (`%VARIABLE%`) has been included. An accompanying AutoPkg processor will be built in due course.
+
+- Added the `jamf_category_upload.py` script. This is used for creating or uploading categories in Jamf Pro. An accompanying AutoPkg processor will be built in due course.
+
+- Moved `jamf_upload.py` to `jamf_pkg_upload.py` since we now have multiple scripts.
+
+- Common functions have been moved into the `jamf_upload_lib` folder and included in each script to avoid too much repetition.
 
 ## [0.2.0] - 2020-07-24
 
@@ -38,5 +44,6 @@ This is developing into a testing script to accompany the AutoPkg processor `Jam
 
 Initial commit. Formerly a GitHub gist.
 
-[unreleased]: https://github.com/grahampugh/JSSImporter/compare/v0.1.0...HEAD
+[unreleased]: https://github.com/grahampugh/JSSImporter/compare/v0.2.0...HEAD
+[0.2.0]: https://github.com/grahampugh/JSSImporter/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/grahampugh/JSSImporter/compare/v0.0.1...v0.1.0
