@@ -20,7 +20,7 @@ import requests
 from time import sleep
 from requests_toolbelt.utils import dump
 
-from jamf_upload_lib import api_connect, api_get
+from jamf_upload_lib import actions, api_connect, api_get
 
 
 def upload_script(
@@ -53,17 +53,10 @@ def upload_script(
     with open(script_path, "r") as file:
         script_contents = file.read()
 
-    # user assignable keys
-    # whenever %MY_KEY% is found in a script, it is replaced with the assigned value of MY_KEY
-    for custom_key in cli_custom_keys:
-        if verbosity:
-            print(
-                f"Replacing any instances of '{custom_key}' with",
-                f"'{cli_custom_keys[custom_key]}'",
-            )
-        script_contents = script_contents.replace(
-            f"%{custom_key}%", cli_custom_keys[custom_key]
-        )
+    # substitute user-assignable keys
+    script_contents = actions.substitute_assignable_keys(
+        script_contents, cli_custom_keys, verbosity
+    )
 
     # build the object
     script_data = {
@@ -116,10 +109,10 @@ def upload_script(
         else:
             r = http.post(url, headers=headers, data=script_json, timeout=60)
         if r.status_code == 201:
-            print("Script created successfully")
+            print("Script updated successfully")
             break
         if r.status_code == 200:
-            print("Script update successful")
+            print("Script created successful")
             break
         if r.status_code == 409:
             print("ERROR: Script update failed due to a conflict")
@@ -258,7 +251,7 @@ def main():
     print("\n** Jamf script upload script")
     print("** Uploads script to Jamf Pro.")
 
-    #  parse the command line arguments
+    # parse the command line arguments
     args, cli_custom_keys = get_args()
 
     # grab values from a prefs file if supplied

@@ -18,6 +18,8 @@ I intend to add such functionality if changes are made to the Jamf Pro API so th
 
 - Added the `jamf_category_upload.py` script. This is used for creating or uploading categories in Jamf Pro. An accompanying AutoPkg processor will be built in due course.
 
+- Added the `jamf_computergroup_upload.py` script. This is used for creating or uploading categories in Jamf Pro. An accompanying AutoPkg processor will be built in due course.
+
 - Moved `jamf_upload.py` to `jamf_pkg_upload.py` since we now have multiple scripts.
 
 - Common functions have been moved into the `jamf_upload_lib` folder and included in each script to avoid too much repetition.
