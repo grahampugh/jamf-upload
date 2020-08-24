@@ -35,16 +35,18 @@ def check_api_obj_id_from_name(
 ):
     """check if a Classic API object with the same name exists on the server"""
     # define the relationship between the object types and their URL
-    #  we could make this shorter with some regex but I think this way is clearer
+    # we could make this shorter with some regex but I think this way is clearer
     object_types = {
         "package": "packages",
         "computer_group": "computergroups",
         "policy": "policies",
+        "extension_attribute": "computerextensionattributes",
     }
     object_list_types = {
         "package": "packages",
         "computer_group": "computer_groups",
         "policy": "policies",
+        "extension_attribute": "computer_extension_attributes",
     }
     headers = {
         "authorization": "Basic {}".format(enc_creds),
@@ -60,7 +62,8 @@ def check_api_obj_id_from_name(
         for obj in object_list[object_list_types[object_type]]:
             if verbosity > 2:
                 print(obj)
-            if obj["name"] == object_name:
+            # we need to check for a case-insensitive match
+            if obj["name"].lower() == object_name.lower():
                 obj_id = obj["id"]
         return obj_id
 

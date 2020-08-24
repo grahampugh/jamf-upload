@@ -82,8 +82,8 @@ def upload_script(
         "content-type": "application/json",
         "accept": "application/json",
     }
-    #  ideally we upload to the package ID but if we didn't get a good response
-    #  we fall back to the package name
+    # ideally we upload to the object ID but if we didn't get a good response
+    # we fall back to the name
     if obj_id:
         url = "{}/uapi/v1/scripts/{}".format(jamf_url, obj_id)
         script_data["id"] = obj_id
@@ -108,17 +108,14 @@ def upload_script(
             r = http.put(url, headers=headers, data=script_json, timeout=60)
         else:
             r = http.post(url, headers=headers, data=script_json, timeout=60)
-        if r.status_code == 201:
-            print("Script updated successfully")
-            break
-        if r.status_code == 200:
-            print("Script created successful")
+        if r.status_code == 200 or r.status_code == 201:
+            print("Script uploaded successfully")
             break
         if r.status_code == 409:
-            print("ERROR: Script update failed due to a conflict")
+            print("ERROR: Script upload failed due to a conflict")
             break
         if count > 5:
-            print("ERROR: Script update did not succeed after 5 attempts")
+            print("ERROR: Script upload did not succeed after 5 attempts")
             print("\nHTTP POST Response Code: {}".format(r.status_code))
             break
         sleep(10)

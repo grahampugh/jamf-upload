@@ -11,5 +11,5 @@ def substitute_assignable_keys(data, cli_custom_keys, verbosity):
                 f"'{cli_custom_keys[custom_key]}'",
             )
         data = data.replace(f"%{custom_key}%", cli_custom_keys[custom_key])
-        return data
+    return data
 

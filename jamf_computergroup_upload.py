@@ -27,33 +27,40 @@ from requests_toolbelt.utils import dump
 from jamf_upload_lib import actions, api_connect, api_get
 
 
+def get_computergroup_name(template_contents, verbosity):
+    """Determine group name from template - used when no name is supplied in CLI"""
+    regex_search = "<name>.*</name>"
+    result = re.search(regex_search, template_contents)[0]
+    print(result)
+    if result:
+        computergroup_name = re.sub("<name>", "", result, 1)
+        computergroup_name = re.sub("</name>", "", computergroup_name, 1)
+    else:
+        computergroup_name = ""
+
+    return computergroup_name
+
+
+def replace_computergroup_name(computergroup_name, template_contents, verbosity):
+    """Write group name to template - used when name is supplied in CLI"""
+    if verbosity:
+        print(f"Replacing smart group name '{computergroup_name}' in XML")
+    regex_search = "<name>.*</name>"
+    regex_replace = f"<name>{computergroup_name}</name>"
+    template_contents = re.sub(regex_search, regex_replace, template_contents, 1)
+    return template_contents
+
+
 def upload_computergroup(
     jamf_url,
     enc_creds,
     computergroup_name,
-    template,
+    template_contents,
     cli_custom_keys,
     verbosity,
     obj_id=None,
 ):
     """Upload computer group"""
-    # import computer group from file and replace any keys in the XML
-    with open(template, "r") as file:
-        template_contents = file.read()
-
-    # substitute user-assignable keys
-    template_contents = actions.substitute_assignable_keys(
-        template_contents, cli_custom_keys, verbosity
-    )
-
-    # it's also essential to set the name in the XML template to match the one we are posting/putting
-    # so we must overwrite that regardless
-    if verbosity:
-        print(f"Replacing smart group name '{computergroup_name}' in XML")
-    regex_search = "<name>.*</name>"
-    regex_replace = f"<name>{computergroup_name}</name>"
-    template_contents = re.sub(regex_search, regex_replace, template_contents)
-
     headers = {
         "authorization": "Basic {}".format(enc_creds),
         "Accept": "application/xml",
@@ -82,17 +89,15 @@ def upload_computergroup(
             r = http.put(url, headers=headers, data=template_contents, timeout=60)
         else:
             r = http.post(url, headers=headers, data=template_contents, timeout=60)
-        if r.status_code == 201:
-            print(f"Computer Group '{computergroup_name}' updated successfully")
-            break
-        if r.status_code == 200:
-            print(f"Computer Group '{computergroup_name}' created successfully")
+        if r.status_code == 200 or r.status_code == 201:
+            print(f"Computer Group '{computergroup_name}' uploaded successfully")
             break
         if r.status_code == 409:
-            print("WARNING: Computer Group update failed due to a conflict")
+            # TODO when using verbose mode we could get the reason for the conflict from the output
+            print("WARNING: Computer Group upload failed due to a conflict")
             break
         if count > 5:
-            print("WARNING: Computer Group update did not succeed after 5 attempts")
+            print("WARNING: Computer Group upload did not succeed after 5 attempts")
             print("\nHTTP POST Response Code: {}".format(r.status_code))
             break
         sleep(30)
@@ -111,7 +116,12 @@ def get_args():
     """Parse any command line arguments"""
     parser = argparse.ArgumentParser()
     parser.add_argument(
-        "name", nargs="+", help="Computer Group to create or update",
+        "-n",
+        "--name",
+        action="append",
+        dest="names",
+        default=[],
+        help=("Computer Group to create or update"),
     )
     parser.add_argument(
         "--template", default="", help="Path to Computer Group XML template",
@@ -175,16 +185,38 @@ def main():
 
     # parse the command line arguments
     args, cli_custom_keys = get_args()
+    verbosity = args.verbose
 
     # grab values from a prefs file if supplied
     jamf_url, _, _, enc_creds = api_connect.get_creds_from_args(args)
 
-    # now process the list of categories
-    for computergroup_name in args.name:
-        # check for existing category
+    # import computer group from file and replace any keys in the XML
+    with open(args.template, "r") as file:
+        template_contents = file.read()
+
+    # substitute user-assignable keys
+    template_contents = actions.substitute_assignable_keys(
+        template_contents, cli_custom_keys, verbosity
+    )
+
+    #  set a list of names either from the CLI args or from the template if no arg provided
+    if args.names:
+        names = args.names
+    else:
+        names = [get_computergroup_name(template_contents, verbosity)]
+
+    # now process the list of names
+    for computergroup_name in names:
+        # where a group name was supplied via CLI arg, replace this in the template
+        if args.names:
+            template_contents = replace_computergroup_name(
+                computergroup_name, template_contents, verbosity
+            )
+
+        # check for existing group
         print("\nChecking '{}' on {}".format(computergroup_name, jamf_url))
         obj_id = api_get.check_api_obj_id_from_name(
-            jamf_url, "computer_group", computergroup_name, enc_creds, args.verbose
+            jamf_url, "computer_group", computergroup_name, enc_creds, verbosity
         )
         if obj_id:
             print(
@@ -196,19 +228,22 @@ def main():
                 jamf_url,
                 enc_creds,
                 computergroup_name,
-                args.template,
+                template_contents,
                 cli_custom_keys,
-                args.verbose,
+                verbosity,
                 obj_id,
             )
         else:
+            print(
+                "Computer Group '{}' not found - will create".format(computergroup_name)
+            )
             upload_computergroup(
                 jamf_url,
                 enc_creds,
                 computergroup_name,
-                args.template,
+                template_contents,
                 cli_custom_keys,
-                args.verbose,
+                verbosity,
             )
 
     print()

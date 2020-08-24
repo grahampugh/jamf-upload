@@ -18,11 +18,15 @@ I intend to add such functionality if changes are made to the Jamf Pro API so th
 
 - Added the `jamf_category_upload.py` script. This is used for creating or uploading categories in Jamf Pro. An accompanying AutoPkg processor will be built in due course.
 
-- Added the `jamf_computergroup_upload.py` script. This is used for creating or uploading categories in Jamf Pro. An accompanying AutoPkg processor will be built in due course.
+- Added the `jamf_computergroup_upload.py` script. This is used for creating or uploading computer groups in Jamf Pro. The option to include variables as in AutoPkg (`%VARIABLE%`) has been included. An accompanying AutoPkg processor will be built in due course.
+
+- Added the `jamf_ea_upload.py` script. This is used for uploading script-based extension attributes to Jamf Pro. The option to include variables as in AutoPkg (`%VARIABLE%`) has been included. Other types of EA will be included in due course. An accompanying AutoPkg processor will be built in due course.
 
 - Moved `jamf_upload.py` to `jamf_pkg_upload.py` since we now have multiple scripts.
 
 - Common functions have been moved into the `jamf_upload_lib` folder and included in each script to avoid too much repetition.
+
+- Examples in the `_tests` folder have been used for testing each script.
 
 ## [0.2.0] - 2020-07-24
 
