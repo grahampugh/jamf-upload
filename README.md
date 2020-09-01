@@ -1,8 +1,11 @@
 # Jamf Pro upload scripts
 
-- jamf_pkg_upload.py
-- jamf_script_upload.py
-- jamf_category_upload.py
+- [jamf_pkg_upload.py](#jamf_pkg_upload.py)
+- [jamf_script_upload.py](#jamf_script_upload.py)
+- [jamf_category_upload.py](#jamf_category_upload.py)
+- [jamf_ea_upload.py](#jamf_ea_upload.py)
+- [jamf_computergroup_upload.py](#jamf_computergroup_upload.py)
+- _TODO: jamf_policy_upload.py_
 
 ## jamf_pkg_upload.py
 
