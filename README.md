@@ -1,13 +1,13 @@
 # Jamf Pro upload scripts
 
-- [jamf_pkg_upload.py](#jamf_pkg_upload.py)
-- [jamf_script_upload.py](#jamf_script_upload.py)
-- [jamf_category_upload.py](#jamf_category_upload.py)
-- [jamf_ea_upload.py](#jamf_ea_upload.py)
-- [jamf_computergroup_upload.py](#jamf_computergroup_upload.py)
-- _TODO: jamf_policy_upload.py_
+- [jamf_pkg_upload](#jamf_pkg_upload)
+- [jamf_script_upload.py](#jamf_script_upload)
+- [jamf_category_upload.py](#jamf_category_upload)
+- [jamf_ea_upload.py](#jamf_ea_upload)
+- [jamf_computergroup_upload.py](#jamf_computergroup_upload)
+- _TODO: jamf_policy_upload_
 
-## jamf_pkg_upload.py
+## jamf_pkg_upload
 
 Upload one or more packages to a Jamf Cloud Distribution Point or an SMB FileShare Distribution Point
 
@@ -101,7 +101,7 @@ The processor could also be added to an override, or a new recipe could be made 
 
 Please don't use the `.jss` suffix for such a recipe if you publish it, as that would confuse the recipe with JSSImporter recipes. I suggest `.jamf-upload.recipe`.
 
-## jamf_script_upload.py
+## jamf_script_upload
 
 Upload one or more scripts to a Jamf Pro server using the API.
 
@@ -161,7 +161,7 @@ Upload one or more scripts to a Jamf Pro server using the API.
                                 ~/.com.company.jcds_upload.plist)
         -v, --verbose           print verbose output headers
 
-## jamf_category_upload.py
+## jamf_category_upload
 
 Create or update one or more categories on a Jamf Pro server using the API.
 
@@ -189,7 +189,7 @@ Create or update one or more categories on a Jamf Pro server using the API.
                          ~/.com.company.jcds_upload.plist)
     -v, --verbose        print verbose output headers
 
-## jamf_ea_upload.py
+## jamf_ea_upload
 
 Upload an Extension Attribute to a Jamf Pro server using the API.
 
@@ -217,7 +217,7 @@ Upload an Extension Attribute to a Jamf Pro server using the API.
                             Provide key/value pairs for script value substitution.
     -v, --verbose           print verbose output headers
 
-## jamf_computergroup_upload.py
+## jamf_computergroup_upload
 
 Create or update one or more computer groups on a Jamf Pro server using the Classic API. Requires an XML template. The template can include wildcards using `%` signs e.g. `%POLICY_NAME%`, which can be overridden using key/value pairs.
 
