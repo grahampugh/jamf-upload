@@ -185,3 +185,59 @@ Create or update one or more categories on a Jamf Pro server using the API.
                          separate plist anywhere (e.g.
                          ~/.com.company.jcds_upload.plist)
     -v, --verbose        print verbose output headers
+
+## jamf_ea_upload.py
+
+Upload an Extension Attribute to a Jamf Pro server using the API.
+
+    usage: jamf_ea_upload.py [-h] [-n NAMES] [--script SCRIPT] [--url URL]
+                             [--user USER] [--password PASSWORD] [--prefs PREFS]
+                             [-k KEY=VALUE] [-v]
+
+    optional arguments:
+    -h, --help              show this help message and exit
+    -n NAMES, --name NAMES
+                            Extension Attribute to create or update
+    --script SCRIPT         Full path to the template script to upload
+    --url URL               the Jamf Pro Server URL
+    --user USER             a user with the rights to create and update an
+                            extension attribute
+    --password PASSWORD     password of the user
+    --prefs PREFS           full path to an AutoPkg prefs file containing JSS URL,
+                            API_USERNAME and API_PASSWORD, for example an AutoPkg
+                            preferences file which has been configured for use
+                            with JSSImporter
+                            (~/Library/Preferences/com.github.autopkg.plist) or a
+                            separate plist anywhere (e.g.
+                            ~/.com.company.jcds_upload.plist)
+    -k KEY=VALUE, --key KEY=VALUE
+                            Provide key/value pairs for script value substitution.
+    -v, --verbose           print verbose output headers
+
+## jamf_computergroup_upload.py
+
+Create or update one or more computer groups on a Jamf Pro server using the Classic API. Requires an XML template. The template can include wildcards using `%` signs e.g. `%POLICY_NAME%`, which can be overridden using key/value pairs.
+
+    usage: jamf_computergroup_upload.py [-h] [-n NAMES] [--template TEMPLATE]
+                                        [-k KEY=VALUE] [--url URL] [--user USER]
+                                        [--password PASSWORD] [--prefs PREFS] [-v]
+
+    optional arguments:
+    -h, --help              show this help message and exit
+    -n NAMES, --name NAMES
+                            Computer Group to create or update
+    --template TEMPLATE     Path to Computer Group XML template
+    -k KEY=VALUE, --key KEY=VALUE
+                            Provide key/value pairs for template value substitution.
+    --url URL               the Jamf Pro Server URL
+    --user USER             a user with the rights to create a category
+    --password PASSWORD     password of the user with the rights to create a
+                            category
+    --prefs PREFS           full path to an AutoPkg prefs file containing JSS URL,
+                            API_USERNAME and API_PASSWORD, for example an AutoPkg
+                            preferences file which has been configured for use
+                            with JSSImporter
+                            (~/Library/Preferences/com.github.autopkg.plist) or a
+                            separate plist anywhere (e.g.
+                            ~/.com.company.jcds_upload.plist)
+    -v, --verbose           print verbose output headers
