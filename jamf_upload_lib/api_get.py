@@ -30,6 +30,44 @@ def get_uapi_obj_id_from_name(jamf_url, object_type, object_name, token, verbosi
         return obj_id
 
 
+def check_api_obj_id_from_name(
+    jamf_url, object_type, object_name, enc_creds, verbosity
+):
+    """check if a Classic API object with the same name exists on the server"""
+    # define the relationship between the object types and their URL
+    # we could make this shorter with some regex but I think this way is clearer
+    object_types = {
+        "package": "packages",
+        "computer_group": "computergroups",
+        "policy": "policies",
+        "extension_attribute": "computerextensionattributes",
+    }
+    object_list_types = {
+        "package": "packages",
+        "computer_group": "computer_groups",
+        "policy": "policies",
+        "extension_attribute": "computer_extension_attributes",
+    }
+    headers = {
+        "authorization": "Basic {}".format(enc_creds),
+        "accept": "application/json",
+    }
+    url = "{}/JSSResource/{}".format(jamf_url, object_types[object_type])
+    r = requests.get(url, headers=headers)
+    if r.status_code == 200:
+        object_list = json.loads(r.text)
+        if verbosity > 2:
+            print(object_list)
+        obj_id = 0
+        for obj in object_list[object_list_types[object_type]]:
+            if verbosity > 2:
+                print(obj)
+            # we need to check for a case-insensitive match
+            if obj["name"].lower() == object_name.lower():
+                obj_id = obj["id"]
+        return obj_id
+
+
 def get_headers(r):
     print("\nHeaders:\n")
     print(r.headers)

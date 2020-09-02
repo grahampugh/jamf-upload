@@ -1,56 +1,57 @@
 # Jamf Pro upload scripts
 
-- jamf_pkg_upload.py
-- jamf_script_upload.py
-- jamf_category_upload.py
+- [jamf_pkg_upload.py](#jamf_pkg_upload)
+- [jamf_script_upload.py](#jamf_script_upload)
+- [jamf_category_upload.py](#jamf_category_upload)
+- [jamf_ea_upload.py](#jamf_ea_upload)
+- [jamf_computergroup_upload.py](#jamf_computergroup_upload)
+- [jamf_policy_upload.py](#jamf_policy_upload)
 
-## jamf_pkg_upload.py
+## jamf_pkg_upload
 
 Upload one or more packages to a Jamf Cloud Distribution Point or an SMB FileShare Distribution Point
 
     usage: jamf_pkg_upload.py [-h] [--replace] [--curl] [--direct] [--url URL]
-                        [--user USER] [--password PASSWORD] [--share SHARE]
-                        [--shareuser SHAREUSER] [--sharepass SHAREPASS]
-                        [--category CATEGORY] [--timeout TIMEOUT]
-                        [--chunksize CHUNKSIZE] [--prefs PREFS] [-v]
-                        pkg [pkg ...]
+                              [--user USER] [--password PASSWORD] [--share SHARE]
+                              [--shareuser SHAREUSER] [--sharepass SHAREPASS]
+                              [--category CATEGORY] [--timeout TIMEOUT]
+                              [--chunksize CHUNKSIZE] [--prefs PREFS] [-v]
+                              pkg [pkg ...]
 
-### Positional arguments
+    positional arguments:
+    pkg                     Full path to the package(s) to upload
 
-    pkg                  Full path to the package(s) to upload
-
-### Optional arguments
-
-    -h, --help           show help message and exit
-    --replace            overwrite an existing uploaded package (experimental)
-    --curl               use curl instead of requests (experimental)
-    --direct             use direct upload to JCDS (experimental, will not work
-                         if JCDS is not primary distribution point)
-    --chunksize CHUNKSIZE
-                         set chunk size in megabytes (for direct method only)
-    --url URL            the Jamf Pro Server URL
-    --user USER          a user with the rights to upload a package
-    --password PASSWORD  password of the user with the rights to upload a
-                         package
-    --timeout TIMEOUT    set timeout in seconds for HTTP request for problematic
-                         packages
-    --share SHARE        Path to an SMB FileShare Distribution Point, in the
-                         form smb://server/mountpoint
+    optional arguments:
+    -h, --help              show this help message and exit
+    --replace               overwrite an existing uploaded package
+    --curl                  use curl instead of requests
+    --direct                use direct upload to JCDS (experimental, will not work
+                            if JCDS is not primary distribution point)
+    --url URL               the Jamf Pro Server URL
+    --user USER             a user with the rights to upload a package
+    --password PASSWORD     password of the user with the rights to upload a
+                            package
+    --share SHARE           Path to an SMB FileShare Distribution Point, in the
+                            form smb://server/mountpoint
     --shareuser SHAREUSER
-                         a user with the rights to upload a package to the SMB
-                         FileShare Distribution Point
+                            a user with the rights to upload a package to the SMB
+                            FileShare Distribution Point
     --sharepass SHAREPASS
-                         password of the user with the rights to upload a
-                         package to the SMB FileShare Distribution Point
-    --category CATEGORY  a category to assign to the package (experimental)
-    --prefs PREFS        full path to an AutoPkg prefs file containing JSS URL,
-                         API_USERNAME and API_PASSWORD, for example an AutoPkg
-                         preferences file which has been configured for use with
-                         JSSImporter
-                         (~/Library/Preferences/com.github.autopkg.plist) or a
-                         separate plist anywhere (e.g.
-                         ~/.com.company.jcds_upload.plist)
-    -v, --verbose        print verbose output headers
+                            password of the user with the rights to upload a
+                            package to the SMB FileShare Distribution Point
+    --category CATEGORY     a category to assign to the package (experimental)
+    --timeout TIMEOUT       set timeout in seconds for HTTP request for
+                            problematic packages
+    --chunksize CHUNKSIZE
+                            set chunk size in megabytes
+    --prefs PREFS           full path to an AutoPkg prefs file containing JSS URL,
+                            API_USERNAME and API_PASSWORD, for example an AutoPkg
+                            preferences file which has been configured for use
+                            with JSSImporter
+                            (~/Library/Preferences/com.github.autopkg.plist) or a
+                            separate plist anywhere (e.g.
+                            ~/.com.company.jcds_upload.plist)
+    -v, --verbose           print verbose output headers
 
 Missing arguments (URL, username, password) will be asked for interactively if not already supplied.
 
@@ -98,7 +99,7 @@ The processor could also be added to an override, or a new recipe could be made 
 
 Please don't use the `.jss` suffix for such a recipe if you publish it, as that would confuse the recipe with JSSImporter recipes. I suggest `.jamf-upload.recipe`.
 
-## jamf_script_upload.py
+## jamf_script_upload
 
 Upload one or more scripts to a Jamf Pro server using the API.
 
@@ -158,7 +159,7 @@ Upload one or more scripts to a Jamf Pro server using the API.
                                 ~/.com.company.jcds_upload.plist)
         -v, --verbose           print verbose output headers
 
-## jamf_category_upload.py
+## jamf_category_upload
 
 Create or update one or more categories on a Jamf Pro server using the API.
 
@@ -185,3 +186,150 @@ Create or update one or more categories on a Jamf Pro server using the API.
                          separate plist anywhere (e.g.
                          ~/.com.company.jcds_upload.plist)
     -v, --verbose        print verbose output headers
+
+## jamf_ea_upload
+
+Upload an Extension Attribute to a Jamf Pro server using the API.
+
+    usage: jamf_ea_upload.py [-h] [-n NAMES] [--script SCRIPT] [--url URL]
+                             [--user USER] [--password PASSWORD] [--prefs PREFS]
+                             [-k KEY=VALUE] [-v]
+
+    optional arguments:
+    -h, --help              show this help message and exit
+    -n NAMES, --name NAMES
+                            Extension Attribute to create or update
+    --script SCRIPT         Full path to the template script to upload
+    --url URL               the Jamf Pro Server URL
+    --user USER             a user with the rights to create and update an
+                            extension attribute
+    --password PASSWORD     password of the user
+    --prefs PREFS           full path to an AutoPkg prefs file containing JSS URL,
+                            API_USERNAME and API_PASSWORD, for example an AutoPkg
+                            preferences file which has been configured for use
+                            with JSSImporter
+                            (~/Library/Preferences/com.github.autopkg.plist) or a
+                            separate plist anywhere (e.g.
+                            ~/.com.company.jcds_upload.plist)
+    -k KEY=VALUE, --key KEY=VALUE
+                            Provide key/value pairs for script value substitution.
+    -v, --verbose           print verbose output headers
+
+## jamf_computergroup_upload
+
+Create or update one or more computer groups on a Jamf Pro server using the Classic API. Requires an XML template. The template can include wildcards using `%` signs e.g. `%POLICY_NAME%`, which can be overridden using key/value pairs.
+
+    usage: jamf_computergroup_upload.py [-h] [-n NAMES] [--template TEMPLATE]
+                                        [-k KEY=VALUE] [--url URL] [--user USER]
+                                        [--password PASSWORD] [--prefs PREFS] [-v]
+
+    optional arguments:
+    -h, --help              show this help message and exit
+    -n NAMES, --name NAMES
+                            Computer Group to create or update
+    --template TEMPLATE     Path to Computer Group XML template
+    -k KEY=VALUE, --key KEY=VALUE
+                            Provide key/value pairs for template value substitution.
+    --url URL               the Jamf Pro Server URL
+    --user USER             a user with the rights to create and update a computer group
+    --password PASSWORD     password of the user with the rights to create and update
+                            a computer group
+    --prefs PREFS           full path to an AutoPkg prefs file containing JSS URL,
+                            API_USERNAME and API_PASSWORD, for example an AutoPkg
+                            preferences file which has been configured for use
+                            with JSSImporter
+                            (~/Library/Preferences/com.github.autopkg.plist) or a
+                            separate plist anywhere (e.g.
+                            ~/.com.company.jcds_upload.plist)
+    -v, --verbose           print verbose output headers
+
+## jamf_policy_upload
+
+    usage: jamf_policy_upload.py [-h] [-n NAMES] [--template TEMPLATE]
+                                 [-k KEY=VALUE] [--url URL] [--user USER]
+                                 [--password PASSWORD] [--prefs PREFS] [-v]
+
+    optional arguments:
+    -h, --help              show this help message and exit
+    -n NAMES, --name NAMES
+                            Policy to create or update
+    --template TEMPLATE     Path to Policy XML template
+    -k KEY=VALUE, --key KEY=VALUE
+                            Provide key/value pairs for template value
+                            substitution.
+    --url URL               the Jamf Pro Server URL
+    --user USER             a user with the rights to create and update a policy
+    --password PASSWORD     password of the user with the rights to create and
+                            update a policy
+    --prefs PREFS           full path to an AutoPkg prefs file containing JSS URL,
+                            API_USERNAME and API_PASSWORD, for example an AutoPkg
+                            preferences file which has been configured for use
+                            with JSSImporter
+                            (~/Library/Preferences/com.github.autopkg.plist) or a
+                            separate plist anywhere (e.g.
+                            ~/.com.company.jcds_upload.plist)
+    -v, --verbose           print verbose output headers
+
+## Example workflow for uploading a policy
+
+We want to make a policy for the Mattermost application. The policy should have the following:
+
+- The policy category is `Untested`.
+- The package category is `Applications`.
+- The scope should include the `Mattermost test users` smart group, and exclude the `Mattermost test version installed` smart group.
+
+The policy and smart groups require XML templates. The templates can include variables between `%` signs to be substituted, for example `%POLICY_NAME%`. These variables are specified from the command line using `--key VARIABLE=value`:
+
+- SmartGroupTemplate-test-users.xml
+- SmartGroupTemplate-test-version-installed.xml
+- PolicyTemplate-untested-package.xml
+
+These examples templates are in the `_tests` folder of this repo.
+
+- First we need to make sure the `Untested` and `Applications` categories exist:
+
+  ```bash
+  ./jamf_category_upload.py \
+  --prefs /path/to/jamf_upload_prefs.plist \
+  Untested \
+  Applications
+  ```
+
+- Next we upload the package:
+
+  ```bash
+  ./jamf_pkg_upload.py \
+  --prefs /path/to/jamf_upload_prefs.plist \
+  --category Applications \
+  /path/to//Mattermost-4.4.2.pkg
+
+  ```
+
+- Now, create the `Mattermost test users` and `Mattermost test version installed` smart groups, using templates and specifying any variables to be substituted in the templates:
+
+  ```bash
+  ./jamf_computergroup_upload.py \
+  --prefs /path/to/jamf_upload_prefs.plist \
+  --template /path/to/SmartGroupTemplate-test-users.xml \
+  --key POLICY_NAME=Mattermost
+
+  ./jamf_computergroup_upload.py \
+  --prefs /path/to/jamf_upload_prefs.plist \
+  --template /path/to/SmartGroupTemplate-test-version-installed.xml \
+  --key POLICY_NAME=Mattermost \
+  --key JSS_INVENTORY_NAME=Mattermost \
+  --key version=4.4.2
+  ```
+
+- Finally, create the policy:
+
+  ```bash
+  ./jamf_policy_upload.py \
+  --prefs /path/to/jamf_upload_prefs.plist \
+  --template /path/to/PolicyTemplate-untested-package.xml \
+  --key POLICY_NAME=Mattermost \
+  --key CATEGORY=Untested \
+  --key PKG_NAME=Mattermost-4.4.2.pkg \
+  --key SELF_SERVICE_DESCRIPTION="Installs Mattermost" \
+  --key version=4.4.2
+  ```

@@ -9,7 +9,7 @@ from an existing PLIST containing values for JSS_URL, API_USERNAME and API_PASSW
 for example an AutoPkg preferences file which has been configured for use with 
 JSSImporter: ~/Library/Preferences/com.github.autopkg
 
-For usage, run jamf-script-upload.py --help
+For usage, run jamf_script_upload.py --help
 """
 
 import argparse
@@ -20,7 +20,7 @@ import requests
 from time import sleep
 from requests_toolbelt.utils import dump
 
-from jamf_upload_lib import api_connect, api_get
+from jamf_upload_lib import actions, api_connect, api_get
 
 
 def upload_script(
@@ -53,17 +53,10 @@ def upload_script(
     with open(script_path, "r") as file:
         script_contents = file.read()
 
-    # user assignable keys
-    # whenever %MY_KEY% is found in a script, it is replaced with the assigned value of MY_KEY
-    for custom_key in cli_custom_keys:
-        if verbosity:
-            print(
-                f"Replacing any instances of '{custom_key}' with",
-                f"'{cli_custom_keys[custom_key]}'",
-            )
-        script_contents = script_contents.replace(
-            f"%{custom_key}%", cli_custom_keys[custom_key]
-        )
+    # substitute user-assignable keys
+    script_contents = actions.substitute_assignable_keys(
+        script_contents, cli_custom_keys, verbosity
+    )
 
     # build the object
     script_data = {
@@ -89,8 +82,8 @@ def upload_script(
         "content-type": "application/json",
         "accept": "application/json",
     }
-    #  ideally we upload to the package ID but if we didn't get a good response
-    #  we fall back to the package name
+    # ideally we upload to the object ID but if we didn't get a good response
+    # we fall back to the name
     if obj_id:
         url = "{}/uapi/v1/scripts/{}".format(jamf_url, obj_id)
         script_data["id"] = obj_id
@@ -115,17 +108,14 @@ def upload_script(
             r = http.put(url, headers=headers, data=script_json, timeout=60)
         else:
             r = http.post(url, headers=headers, data=script_json, timeout=60)
-        if r.status_code == 201:
-            print("Script created successfully")
-            break
-        if r.status_code == 200:
-            print("Script update successful")
+        if r.status_code == 200 or r.status_code == 201:
+            print("Script uploaded successfully")
             break
         if r.status_code == 409:
-            print("ERROR: Script update failed due to a conflict")
+            print("ERROR: Script upload failed due to a conflict")
             break
         if count > 5:
-            print("ERROR: Script update did not succeed after 5 attempts")
+            print("ERROR: Script upload did not succeed after 5 attempts")
             print("\nHTTP POST Response Code: {}".format(r.status_code))
             break
         sleep(10)
@@ -258,14 +248,15 @@ def main():
     print("\n** Jamf script upload script")
     print("** Uploads script to Jamf Pro.")
 
-    #  parse the command line arguments
+    # parse the command line arguments
     args, cli_custom_keys = get_args()
+    verbosity = args.verbose
 
     # grab values from a prefs file if supplied
     jamf_url, _, _, enc_creds = api_connect.get_creds_from_args(args)
 
     # now get the session token
-    token = api_connect.get_uapi_token(jamf_url, enc_creds, args.verbose)
+    token = api_connect.get_uapi_token(jamf_url, enc_creds, verbosity)
 
     if not args.script:
         script = input("Enter the full path to the script to upload: ")
@@ -275,7 +266,7 @@ def main():
     if args.category:
         print("Checking categories for {}".format(args.category))
         category_id = api_get.get_uapi_obj_id_from_name(
-            jamf_url, "categories", args.category, token, args.verbose
+            jamf_url, "categories", args.category, token, verbosity
         )
         if not category_id:
             print("WARNING: Category not found!")
@@ -291,10 +282,10 @@ def main():
 
         # check for existing script
         print("\nChecking '{}' on {}".format(script_name, jamf_url))
-        if args.verbose:
+        if verbosity:
             print("Full path: {}".format(script_path))
         obj_id = api_get.get_uapi_obj_id_from_name(
-            jamf_url, "scripts", script_name, token, args.verbose
+            jamf_url, "scripts", script_name, token, verbosity
         )
 
         # post the script
@@ -316,7 +307,7 @@ def main():
             args.parameter10,
             args.parameter11,
             args.osrequirements,
-            args.verbose,
+            verbosity,
             token,
             cli_custom_keys,
             obj_id,
