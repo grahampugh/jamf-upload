@@ -9,7 +9,7 @@ from an existing PLIST containing values for JSS_URL, API_USERNAME and API_PASSW
 for example an AutoPkg preferences file which has been configured for use with 
 JSSImporter: ~/Library/Preferences/com.github.autopkg
 
-For usage, run jamf-category-upload.py --help
+For usage, run jamf_category_upload.py --help
 """
 
 
@@ -119,12 +119,14 @@ def get_args():
         "--url", default="", help="the Jamf Pro Server URL",
     )
     parser.add_argument(
-        "--user", default="", help="a user with the rights to create a category",
+        "--user",
+        default="",
+        help="a user with the rights to create and update a category",
     )
     parser.add_argument(
         "--password",
         default="",
-        help="password of the user with the rights to create a category",
+        help="password of the user with the rights to create and update a category",
     )
     parser.add_argument(
         "--prefs",
@@ -156,28 +158,29 @@ def main():
 
     #  parse the command line arguments
     args = get_args()
+    verbosity = args.verbose
 
     # grab values from a prefs file if supplied
     jamf_url, _, _, enc_creds = api_connect.get_creds_from_args(args)
 
     # now get the session token
-    token = api_connect.get_uapi_token(jamf_url, enc_creds, args.verbose)
+    token = api_connect.get_uapi_token(jamf_url, enc_creds, verbosity)
 
     # now process the list of categories
     for category_name in args.category:
         # check for existing category
         print("\nChecking '{}' on {}".format(category_name, jamf_url))
         obj_id = api_get.get_uapi_obj_id_from_name(
-            jamf_url, "categories", category_name, token, args.verbose
+            jamf_url, "categories", category_name, token, verbosity
         )
         if obj_id:
             print("Category '{}' already exists: ID {}".format(category_name, obj_id))
             upload_category(
-                jamf_url, category_name, args.priority, args.verbose, token, obj_id
+                jamf_url, category_name, args.priority, verbosity, token, obj_id
             )
         else:
             # post the category
-            upload_category(jamf_url, category_name, args.priority, args.verbose, token)
+            upload_category(jamf_url, category_name, args.priority, verbosity, token)
 
     print()
 

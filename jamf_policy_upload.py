@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 
 """
-** Jamf Computer Group Upload Script
+** Jamf Policy Upload Script
    by G Pugh
 
 Credentials can be supplied from the command line as arguments, or inputted, or 
@@ -9,16 +9,15 @@ from an existing PLIST containing values for JSS_URL, API_USERNAME and API_PASSW
 for example an AutoPkg preferences file which has been configured for use with 
 JSSImporter: ~/Library/Preferences/com.github.autopkg
 
-Note that criteria containing dependent computer groups can only be set if those groups 
-already exist. This script will not create them. Ensure you script in a logical order
-to build up the dependencies in turn.
+Note that a policy can only be uploaded if the dependencies within are present on the JSS. This includes categories (general and self-service), scripts and computer groups. Your workflow should ensure that these items have been uploaded before running this script.
 
-For usage, run jamf_computergroup_upload.py --help
+For usage, run jamf_policy_upload.py --help
 """
 
 
 import argparse
 import json
+import os.path
 import re
 import requests
 from time import sleep
@@ -27,40 +26,40 @@ from requests_toolbelt.utils import dump
 from jamf_upload_lib import actions, api_connect, api_get
 
 
-def get_computergroup_name(template_contents, verbosity):
+def get_policy_name(template_contents, verbosity):
     """Determine group name from template - used when no name is supplied in CLI"""
     regex_search = "<name>.*</name>"
     result = re.search(regex_search, template_contents)[0]
     print(result)
     if result:
-        computergroup_name = re.sub("<name>", "", result, 1)
-        computergroup_name = re.sub("</name>", "", computergroup_name, 1)
+        policy_name = re.sub("<name>", "", result, 1)
+        policy_name = re.sub("</name>", "", policy_name, 1)
     else:
-        computergroup_name = ""
+        policy_name = ""
 
-    return computergroup_name
+    return policy_name
 
 
-def replace_computergroup_name(computergroup_name, template_contents, verbosity):
-    """Write group name to template - used when name is supplied in CLI"""
+def replace_policy_name(policy_name, template_contents, verbosity):
+    """Write policy to template - used when name is supplied in CLI"""
     if verbosity:
-        print(f"Replacing smart group name '{computergroup_name}' in XML")
+        print("Replacing policy name '{}' in XML".format(policy_name))
     regex_search = "<name>.*</name>"
-    regex_replace = f"<name>{computergroup_name}</name>"
+    regex_replace = "<name>{}</name>".format(policy_name)
     template_contents = re.sub(regex_search, regex_replace, template_contents, 1)
     return template_contents
 
 
-def upload_computergroup(
+def upload_policy(
     jamf_url,
     enc_creds,
-    computergroup_name,
+    policy_name,
     template_contents,
     cli_custom_keys,
     verbosity,
     obj_id=None,
 ):
-    """Upload computer group"""
+    """Upload policy"""
     headers = {
         "authorization": "Basic {}".format(enc_creds),
         "Accept": "application/xml",
@@ -68,36 +67,36 @@ def upload_computergroup(
     }
     # if we find an object ID we put, if not, we post
     if obj_id:
-        url = "{}/JSSResource/computergroups/id/{}".format(jamf_url, obj_id)
+        url = "{}/JSSResource/policies/id/{}".format(jamf_url, obj_id)
     else:
-        url = "{}/JSSResource/computergroups/id/0".format(jamf_url)
+        url = "{}/JSSResource/policies/id/0".format(jamf_url)
 
     http = requests.Session()
     if verbosity > 2:
         http.hooks["response"] = [api_connect.logging_hook]
-        print("Computer Group data:")
+        print("Policy data:")
         print(template_contents)
 
-    print("Uploading Computer Group...")
+    print("Uploading Policy...")
 
     count = 0
     while True:
         count += 1
         if verbosity > 1:
-            print("Computer Group upload attempt {}".format(count))
+            print("Policy upload attempt {}".format(count))
         if obj_id:
             r = http.put(url, headers=headers, data=template_contents, timeout=60)
         else:
             r = http.post(url, headers=headers, data=template_contents, timeout=60)
         if r.status_code == 200 or r.status_code == 201:
-            print(f"Computer Group '{computergroup_name}' uploaded successfully")
+            print(f"Policy '{policy_name}' uploaded successfully")
             break
         if r.status_code == 409:
             # TODO when using verbose mode we could get the reason for the conflict from the output
-            print("WARNING: Computer Group upload failed due to a conflict")
+            print("WARNING: Policy upload failed due to a conflict")
             break
         if count > 5:
-            print("WARNING: Computer Group upload did not succeed after 5 attempts")
+            print("WARNING: CPolicy upload did not succeed after 5 attempts")
             print("\nHTTP POST Response Code: {}".format(r.status_code))
             break
         sleep(30)
@@ -121,10 +120,10 @@ def get_args():
         action="append",
         dest="names",
         default=[],
-        help=("Computer Group to create or update"),
+        help=("Policy to create or update"),
     )
     parser.add_argument(
-        "--template", default="", help="Path to Computer Group XML template",
+        "--template", default="", help="Path to Policy XML template",
     )
     parser.add_argument(
         "-k",
@@ -141,12 +140,12 @@ def get_args():
     parser.add_argument(
         "--user",
         default="",
-        help="a user with the rights to create and update a computer group",
+        help="a user with the rights to create and update a policy",
     )
     parser.add_argument(
         "--password",
         default="",
-        help="password of the user with the rights to create and update a computer group",
+        help="password of the user with the rights to create and update a policy",
     )
     parser.add_argument(
         "--prefs",
@@ -182,8 +181,8 @@ def get_args():
 
 def main():
     """Do the main thing here"""
-    print("\n** Jamf computer group upload script")
-    print("** Creates a computer group in Jamf Pro.")
+    print("\n** Jamf policy upload script")
+    print("** Creates a policy in Jamf Pro.")
 
     # parse the command line arguments
     args, cli_custom_keys = get_args()
@@ -205,44 +204,38 @@ def main():
     if args.names:
         names = args.names
     else:
-        names = [get_computergroup_name(template_contents, verbosity)]
+        names = [get_policy_name(template_contents, verbosity)]
 
     # now process the list of names
-    for computergroup_name in names:
-        # where a group name was supplied via CLI arg, replace this in the template
+    for policy_name in names:
+        # where a policy name was supplied via CLI arg, replace this in the template
         if args.names:
-            template_contents = replace_computergroup_name(
-                computergroup_name, template_contents, verbosity
+            template_contents = replace_policy_name(
+                policy_name, template_contents, verbosity
             )
 
         # check for existing group
-        print("\nChecking '{}' on {}".format(computergroup_name, jamf_url))
+        print("\nChecking '{}' on {}".format(policy_name, jamf_url))
         obj_id = api_get.check_api_obj_id_from_name(
-            jamf_url, "computer_group", computergroup_name, enc_creds, verbosity
+            jamf_url, "policy", policy_name, enc_creds, verbosity
         )
         if obj_id:
-            print(
-                "Computer Group '{}' already exists: ID {}".format(
-                    computergroup_name, obj_id
-                )
-            )
-            upload_computergroup(
+            print("Policy '{}' already exists: ID {}".format(policy_name, obj_id))
+            upload_policy(
                 jamf_url,
                 enc_creds,
-                computergroup_name,
+                policy_name,
                 template_contents,
                 cli_custom_keys,
                 verbosity,
                 obj_id,
             )
         else:
-            print(
-                "Computer Group '{}' not found - will create".format(computergroup_name)
-            )
-            upload_computergroup(
+            print("Policy '{}' not found - will create".format(policy_name))
+            upload_policy(
                 jamf_url,
                 enc_creds,
-                computergroup_name,
+                policy_name,
                 template_contents,
                 cli_custom_keys,
                 verbosity,

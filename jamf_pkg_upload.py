@@ -508,6 +508,7 @@ def main():
 
     #  parse the command line arguments
     args = get_args()
+    verbosity = args.verbose
 
     # grab values from a prefs file if supplied
     jamf_url, jamf_user, jamf_password, enc_creds = api_connect.get_creds_from_args(
@@ -547,15 +548,19 @@ def main():
 
     # establish a web login session which is reusable for scraping tokens
     if args.direct:
-        r, login_session = login(jamf_url, jamf_user, jamf_password, args.verbose)
+        r, login_session = login(jamf_url, jamf_user, jamf_password, verbosity)
         if r.status_code != 200:
             print("Failed to log in to the Jamf instance at: {}".format(jamf_url))
 
     # get the id for a category if supplied
     if args.category:
-        print("Checking ID for {}".format(args.category))
+        print("Checking ID for category '{}'".format(args.category))
+
+        # now get the session token
+        token = api_connect.get_uapi_token(jamf_url, enc_creds, verbosity)
+
         category_id = api_get.get_uapi_obj_id_from_name(
-            jamf_url, enc_creds, args.category, args.verbose, "categories"
+            jamf_url, "categories", args.category, token, verbosity
         )
         if not category_id:
             print("WARNING: Category not found!")
@@ -572,7 +577,7 @@ def main():
 
         # check for existing package
         print("\nChecking '{}' on {}".format(pkg_name, jamf_url))
-        if args.verbose:
+        if verbosity:
             print("Full path: {}".format(pkg_path))
         replace_pkg = True if args.replace else False
         obj_id = check_pkg(pkg_name, jamf_url, enc_creds)
@@ -581,9 +586,9 @@ def main():
         # process for SMB shares if defined
         if smb_url:
             # mount the share
-            mount_smb(smb_url, smb_user, smb_password, args.verbose)
+            mount_smb(smb_url, smb_user, smb_password, verbosity)
             #  check for existing package
-            local_pkg = check_local_pkg(args.share, pkg_name, args.verbose)
+            local_pkg = check_local_pkg(args.share, pkg_name, verbosity)
             if not local_pkg or replace_pkg:
                 # copy the file
                 copy_pkg(smb_url, pkg_path, pkg_name)
@@ -596,10 +601,10 @@ def main():
                 # JCDS direct upload method option
                 if args.direct:
                     jcds_url, jcds_token, session_token = scrape_upload_token(
-                        login_session, jamf_url, args.verbose
+                        login_session, jamf_url, verbosity
                     )
                     if jcds_url and jcds_token and session_token:
-                        if args.verbose:
+                        if verbosity:
                             print("JCDS URL: {}".format(jcds_url))
                             print("JCDS Upload token: {}".format(jcds_token))
                             print("Session token: {}".format(session_token))
@@ -612,7 +617,7 @@ def main():
                             jcds_token,
                             obj_id,
                             args.chunksize,
-                            args.verbose,
+                            verbosity,
                         )
 
                         #  now create the package object and get the pkg ID
@@ -624,7 +629,7 @@ def main():
                             pkg_path,
                             obj_id,
                             category_id,
-                            args.verbose,
+                            verbosity,
                         )
                 # curl -> dbfileupload upload method option
                 elif args.curl:
@@ -635,7 +640,7 @@ def main():
                         enc_creds,
                         obj_id,
                         r_timeout,
-                        args.verbose,
+                        verbosity,
                     )
                     try:
                         pkg_id = ElementTree.fromstring(r).findtext("id")
@@ -647,7 +652,7 @@ def main():
                         print("Could not parse XML. Raw output:")
                         print(r.decode("ascii"))
                     else:
-                        if args.verbose:
+                        if verbosity:
                             if r:
                                 print("\nResponse:\n")
                                 print(r.decode("ascii"))
@@ -662,17 +667,17 @@ def main():
                         enc_creds,
                         obj_id,
                         r_timeout,
-                        args.verbose,
+                        verbosity,
                     )
                     # print result of the request
                     if r.status_code == 200 or r.status_code == 201:
                         pkg_id = ElementTree.fromstring(r.text).findtext("id")
                         print("\nPackage uploaded successfully, ID={}".format(pkg_id))
-                        if args.verbose:
+                        if verbosity:
                             print("HTTP POST Response Code: {}".format(r.status_code))
                     else:
                         print("\nHTTP POST Response Code: {}".format(r.status_code))
-                    if args.verbose:
+                    if verbosity:
                         api_get.get_headers(r)
 
         # now process the package metadata if a category is supplied,
@@ -681,11 +686,11 @@ def main():
             try:
                 pkg_id
                 update_pkg_metadata(
-                    jamf_url, enc_creds, pkg_name, args.category, args.verbose, pkg_id
+                    jamf_url, enc_creds, pkg_name, args.category, verbosity, pkg_id
                 )
             except UnboundLocalError:
                 update_pkg_metadata(
-                    jamf_url, enc_creds, pkg_name, args.category, args.verbose
+                    jamf_url, enc_creds, pkg_name, args.category, verbosity
                 )
 
     print()

@@ -9,7 +9,7 @@ from an existing PLIST containing values for JSS_URL, API_USERNAME and API_PASSW
 for example an AutoPkg preferences file which has been configured for use with 
 JSSImporter: ~/Library/Preferences/com.github.autopkg
 
-For usage, run jamf-script-upload.py --help
+For usage, run jamf_script_upload.py --help
 """
 
 import argparse
@@ -250,12 +250,13 @@ def main():
 
     # parse the command line arguments
     args, cli_custom_keys = get_args()
+    verbosity = args.verbose
 
     # grab values from a prefs file if supplied
     jamf_url, _, _, enc_creds = api_connect.get_creds_from_args(args)
 
     # now get the session token
-    token = api_connect.get_uapi_token(jamf_url, enc_creds, args.verbose)
+    token = api_connect.get_uapi_token(jamf_url, enc_creds, verbosity)
 
     if not args.script:
         script = input("Enter the full path to the script to upload: ")
@@ -265,7 +266,7 @@ def main():
     if args.category:
         print("Checking categories for {}".format(args.category))
         category_id = api_get.get_uapi_obj_id_from_name(
-            jamf_url, "categories", args.category, token, args.verbose
+            jamf_url, "categories", args.category, token, verbosity
         )
         if not category_id:
             print("WARNING: Category not found!")
@@ -281,10 +282,10 @@ def main():
 
         # check for existing script
         print("\nChecking '{}' on {}".format(script_name, jamf_url))
-        if args.verbose:
+        if verbosity:
             print("Full path: {}".format(script_path))
         obj_id = api_get.get_uapi_obj_id_from_name(
-            jamf_url, "scripts", script_name, token, args.verbose
+            jamf_url, "scripts", script_name, token, verbosity
         )
 
         # post the script
@@ -306,7 +307,7 @@ def main():
             args.parameter10,
             args.parameter11,
             args.osrequirements,
-            args.verbose,
+            verbosity,
             token,
             cli_custom_keys,
             obj_id,

@@ -11,7 +11,7 @@ JSSImporter: ~/Library/Preferences/com.github.autopkg
 
 Note: this currently will only upload a script-based Extension Attribute
 
-For usage, run jamf-extatt-upload.py --help
+For usage, run jamf_ea_upload.py --help
 """
 
 import argparse
