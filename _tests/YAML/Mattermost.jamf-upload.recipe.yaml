@@ -1,0 +1,15 @@
+Description: Creates a category and uploads a package.
+Identifier: com.github.grahampugh.jamf-upload-test.Mattermost
+MinimumVersion: 2.0.0
+ParentRecipe: com.github.jlehikoinen.pkg.Mattermost
+
+Input:
+  CATEGORY: Applications
+
+Process:
+  - Processor: com.github.grahampugh.jamf-upload-test.processors/JamfCategoryUploader
+    Arguments:
+      category: "%CATEGORY%"
+      priority: 5
+
+  - Processor: com.github.grahampugh.jamf-upload-test.processors/JamfPackageUploader

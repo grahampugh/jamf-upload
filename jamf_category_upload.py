@@ -76,7 +76,7 @@ def upload_category(jamf_url, category_name, priority, verbosity, token, obj_id=
                 break
             sleep(10)
 
-    # write the category. If updating an existing category, this reverts the name to it's original.
+    # write the category. If updating an existing category, this reverts the name to its original.
     while True:
         count += 1
         if verbosity > 1:

@@ -44,9 +44,9 @@ def get_computergroup_name(template_contents, verbosity):
 def replace_computergroup_name(computergroup_name, template_contents, verbosity):
     """Write group name to template - used when name is supplied in CLI"""
     if verbosity:
-        print(f"Replacing smart group name '{computergroup_name}' in XML")
+        print("Replacing smart group name '{}' in XML".format(computergroup_name))
     regex_search = "<name>.*</name>"
-    regex_replace = f"<name>{computergroup_name}</name>"
+    regex_replace = "<name>{}</name>".format(computergroup_name)
     template_contents = re.sub(regex_search, regex_replace, template_contents, 1)
     return template_contents
 
@@ -90,7 +90,9 @@ def upload_computergroup(
         else:
             r = http.post(url, headers=headers, data=template_contents, timeout=60)
         if r.status_code == 200 or r.status_code == 201:
-            print(f"Computer Group '{computergroup_name}' uploaded successfully")
+            print(
+                "Computer Group '{}' uploaded successfully".format(computergroup_name)
+            )
             break
         if r.status_code == 409:
             # TODO when using verbose mode we could get the reason for the conflict from the output
@@ -174,7 +176,7 @@ def get_args():
     for arg in args.variables:
         (key, sep, value) = arg.partition("=")
         if sep != "=":
-            print(f"Invalid variable [key=value]: {arg}")
+            print("Invalid variable [key=value]: {}".format(arg))
         cli_custom_keys[key] = value
 
     return args, cli_custom_keys

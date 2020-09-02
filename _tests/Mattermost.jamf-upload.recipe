@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>Description</key>
+	<string>Creates a category and uploads a package.</string>
+	<key>Identifier</key>
+	<string>com.github.grahampugh.jamf-upload-test.Mattermost</string>
+	<key>Input</key>
+	<dict>
+		<key>CATEGORY</key>
+		<string>Applications</string>
+	</dict>
+	<key>MinimumVersion</key>
+	<string>2.0.0</string>
+	<key>ParentRecipe</key>
+	<string>com.github.jlehikoinen.pkg.Mattermost</string>
+	<key>Process</key>
+	<array>
+		<dict>
+			<key>Arguments</key>
+			<dict>
+				<key>category</key>
+				<string>%CATEGORY%</string>
+				<key>priority</key>
+				<integer>5</integer>
+			</dict>
+			<key>Processor</key>
+			<string>com.github.grahampugh.jamf-upload-test.processors/JamfCategoryUploader</string>
+		</dict>
+		<dict>
+			<key>Processor</key>
+			<string>com.github.grahampugh.jamf-upload-test.processors/JamfPackageUploader</string>
+		</dict>
+	</array>
+</dict>
+</plist>

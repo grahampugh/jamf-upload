@@ -89,14 +89,14 @@ def upload_policy(
         else:
             r = http.post(url, headers=headers, data=template_contents, timeout=60)
         if r.status_code == 200 or r.status_code == 201:
-            print(f"Policy '{policy_name}' uploaded successfully")
+            print("Policy '{}' uploaded successfully".format(policy_name))
             break
         if r.status_code == 409:
             # TODO when using verbose mode we could get the reason for the conflict from the output
             print("WARNING: Policy upload failed due to a conflict")
             break
         if count > 5:
-            print("WARNING: CPolicy upload did not succeed after 5 attempts")
+            print("WARNING: Policy upload did not succeed after 5 attempts")
             print("\nHTTP POST Response Code: {}".format(r.status_code))
             break
         sleep(30)
@@ -173,7 +173,7 @@ def get_args():
     for arg in args.variables:
         (key, sep, value) = arg.partition("=")
         if sep != "=":
-            print(f"Invalid variable [key=value]: {arg}")
+            print("Invalid variable [key=value]: {}".format(arg))
         cli_custom_keys[key] = value
 
     return args, cli_custom_keys
