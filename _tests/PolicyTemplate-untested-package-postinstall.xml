@@ -27,7 +27,7 @@
     <packages>
       <size>1</size>
       <package>
-        <name>%PKG_NAME%</name>
+        <name>%pkg_name%</name>
         <action>Install</action>
       </package>
     </packages>
@@ -37,7 +37,7 @@
     <script>
       <name>%POSTINSTALL_SCRIPT_NAME%</name>
       <priority>After</priority>
-      <parameter4/>
+      <parameter4>%PARAMETER4_VALUE%</parameter4>
       <parameter5/>
       <parameter6/>
       <parameter7/>

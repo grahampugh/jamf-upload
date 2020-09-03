@@ -34,10 +34,10 @@ class JamfCategoryUploader(Processor):
             "description": "Password of api user, optionally set as a key in "
             "the com.github.autopkg preference file.",
         },
-        "category": {"required": False, "description": "Category", "default": "",},
-        "priority": {
+        "category_name": {"required": False, "description": "Category", "default": "",},
+        "category_priority": {
             "required": False,
-            "description": "Category priotity",
+            "description": "Category priority",
             "default": "10",
         },
     }
@@ -115,7 +115,7 @@ class JamfCategoryUploader(Processor):
 
         http = requests.Session()
 
-        print("Uploading category..")
+        self.output("Uploading category..")
 
         count = 0
         category_json = json.dumps(category_data)
@@ -138,16 +138,15 @@ class JamfCategoryUploader(Processor):
                     sleep(2)
                     break
                 if r.status_code == 409:
-                    self.output(
+                    raise ProcessorError(
                         "ERROR: Temporary category update failed due to a conflict"
                     )
-                    break
                 if count > 5:
                     self.output(
                         "ERROR: Temporary category update did not succeed after 5 attempts"
                     )
                     self.output("\nHTTP POST Response Code: {}".format(r.status_code))
-                    break
+                    raise ProcessorError("ERROR: Category upload failed ")
                 sleep(10)
 
         # write the category. If updating an existing category, this reverts the name to its original.
@@ -167,12 +166,13 @@ class JamfCategoryUploader(Processor):
                 self.output("Category update successful")
                 break
             if r.status_code == 409:
-                self.output("ERROR: Category creation failed due to a conflict")
-                break
+                raise ProcessorError(
+                    "ERROR: Category creation failed due to a conflict"
+                )
             if count > 5:
                 self.output("ERROR: Category creation did not succeed after 5 attempts")
                 self.output("\nHTTP POST Response Code: {}".format(r.status_code))
-                break
+                raise ProcessorError("ERROR: Category upload failed ")
             sleep(10)
         return r
 
@@ -181,8 +181,8 @@ class JamfCategoryUploader(Processor):
         self.jamf_url = self.env.get("JSS_URL")
         self.jamf_user = self.env.get("API_USERNAME")
         self.jamf_password = self.env.get("API_PASSWORD")
-        self.category_name = self.env.get("category")
-        self.priority = self.env.get("priority")
+        self.category_name = self.env.get("category_name")
+        self.category_priority = self.env.get("category_priority")
 
         # clear any pre-existing summary result
         if "jamfcategoryuploader_summary_result" in self.env:
@@ -198,7 +198,7 @@ class JamfCategoryUploader(Processor):
 
         # now process the category
         # check for existing category
-        self.output("\nChecking '{}' on {}".format(self.category_name, self.jamf_url))
+        self.output("Checking '{}' on {}".format(self.category_name, self.jamf_url))
         obj_id = self.get_uapi_obj_id_from_name(
             self.jamf_url, "categories", self.category_name, token
         )
@@ -208,20 +208,23 @@ class JamfCategoryUploader(Processor):
             )
             # PUT the category
             self.upload_category(
-                self.jamf_url, self.category_name, self.priority, token, obj_id
+                self.jamf_url, self.category_name, self.category_priority, token, obj_id
             )
         else:
             # POST the category
             self.upload_category(
-                self.jamf_url, self.category_name, self.priority, token
+                self.jamf_url, self.category_name, self.category_priority, token
             )
 
         # output the summary
         self.env["category"] = self.category_name
         self.env["jamfcategoryuploader_summary_result"] = {
-            "summary_text": "The following category was created or updated in Jamf Pro:",
+            "summary_text": "The following categories were created or updated in Jamf Pro:",
             "report_fields": ["category", "priority"],
-            "data": {"category": self.category_name, "priority": str(self.priority),},
+            "data": {
+                "category": self.category_name,
+                "priority": str(self.category_priority),
+            },
         }
 
 

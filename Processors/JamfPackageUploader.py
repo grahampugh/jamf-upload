@@ -260,8 +260,9 @@ class JamfPackageUploader(Processor):
                 self.output("Package metadata update successful")
                 break
             if r.status_code == 409:
-                self.output("WARNING: Package metadata update failed due to a conflict")
-                break
+                raise ProcessorError(
+                    "WARNING: Package metadata update failed due to a conflict"
+                )
             if count > 5:
                 self.output(
                     "WARNING: Package metadata update did not succeed after 5 attempts"
@@ -269,7 +270,7 @@ class JamfPackageUploader(Processor):
                 self.output(
                     f"HTTP POST Response Code: {r.status_code}", verbose_level=2,
                 )
-                break
+                raise ProcessorError("ERROR: Package metadata upload failed ")
             sleep(30)
 
     def main(self):
@@ -374,7 +375,7 @@ class JamfPackageUploader(Processor):
                 )
 
         # output the summary
-        self.env["pkg_path"] = self.pkg_path
+        self.env["pkg_name"] = pkg_name
         self.env["jamfpackageuploader_summary_result"] = {
             "summary_text": "The following packages were uploaded to Jamf Pro:",
             "report_fields": ["pkg_path", "pkg_name", "version", "category"],
