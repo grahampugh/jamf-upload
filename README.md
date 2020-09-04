@@ -1,4 +1,4 @@
-# Jamf Pro upload scripts
+# Jamf Pro upload scripts and AutoPkg processors
 
 - [jamf_pkg_upload.py](#jamf_pkg_upload)
 - [jamf_script_upload.py](#jamf_script_upload)
@@ -6,6 +6,7 @@
 - [jamf_ea_upload.py](#jamf_ea_upload)
 - [jamf_computergroup_upload.py](#jamf_computergroup_upload)
 - [jamf_policy_upload.py](#jamf_policy_upload)
+- [AutoPkg users](#AutoPkg_users)
 
 ## jamf_pkg_upload
 
