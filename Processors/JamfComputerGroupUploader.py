@@ -11,6 +11,7 @@ import json
 import requests
 import os.path
 from base64 import b64encode
+from pathlib import Path
 from time import sleep
 from requests_toolbelt.utils import dump
 from autopkglib import Processor, ProcessorError  # pylint: disable=import-error
@@ -46,6 +47,11 @@ class JamfComputerGroupUploader(Processor):
             "required": False,
             "description": "Full path to the XML template",
         },
+        "replace_group": {
+            "required": False,
+            "description": "Overwrite an existing Computer Group if True.",
+            "default": False,
+        },
     }
 
     output_variables = {
@@ -73,6 +79,27 @@ class JamfComputerGroupUploader(Processor):
         self.output(
             data, verbose_level=2,
         )
+
+    def get_path_to_file(self, filename):
+        """AutoPkg is not very good at finding dependent files. This function will look 
+        inside the search directories for any supplied file """
+        # if the supplied file is not a path, use the override directory or
+        # ercipe dir if no override
+        recipe_dir = self.env.get("RECIPE_DIR")
+        filepath = os.path.join(recipe_dir, filename)
+        if os.path.exists(filepath):
+            self.output(f"File found at: {filepath}")
+            return filepath
+
+        # if not found, search RECIPE_SEARCH_DIRS to look for it
+        search_dirs = self.env.get("RECIPE_SEARCH_DIRS")
+        for d in search_dirs:
+            for path in Path(d).rglob(filename):
+                matched_filepath = str(path)
+                break
+        if matched_filepath:
+            self.output(f"File found at: {matched_filepath}")
+            return matched_filepath
 
     def check_api_obj_id_from_name(self, jamf_url, object_type, object_name, enc_creds):
         """check if a Classic API object with the same name exists on the server"""
@@ -179,6 +206,10 @@ class JamfComputerGroupUploader(Processor):
         self.jamf_password = self.env.get("API_PASSWORD")
         self.group_name = self.env.get("group_name")
         self.group_template = self.env.get("group_template")
+        self.replace = self.env.get("replace_group")
+        # handle setting replace in overrides
+        if not self.replace or self.replace == "False":
+            self.replace = False
 
         # clear any pre-existing summary result
         if "jamfcomputergroupuploader_summary_result" in self.env:
@@ -188,6 +219,10 @@ class JamfComputerGroupUploader(Processor):
         credentials = f"{self.jamf_user}:{self.jamf_password}"
         enc_creds_bytes = b64encode(credentials.encode("utf-8"))
         enc_creds = str(enc_creds_bytes, "utf-8")
+
+        # handle files with no path
+        if "/" not in self.group_template:
+            self.group_template = self.get_path_to_file(self.group_template)
 
         # now start the process of uploading the object
         self.output(f"Checking '{self.group_name}' on {self.jamf_url}")
@@ -204,9 +239,20 @@ class JamfComputerGroupUploader(Processor):
                     self.group_name, obj_id
                 )
             )
-            self.upload_computergroup(
-                self.jamf_url, enc_creds, self.group_name, self.group_template, obj_id,
-            )
+            if self.replace:
+                self.upload_computergroup(
+                    self.jamf_url,
+                    enc_creds,
+                    self.group_name,
+                    self.group_template,
+                    obj_id,
+                )
+            else:
+                self.output(
+                    "Not replacing existing Computer Group. Use --replace to enforce.",
+                    verbose_level=1,
+                )
+                return
         else:
             # post the item
             self.upload_computergroup(

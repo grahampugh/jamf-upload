@@ -35,7 +35,7 @@
   <scripts>
     <size>1</size>
     <script>
-      <name>%POSTINSTALL_SCRIPT_NAME%</name>
+      <name>%POSTINSTALL_SCRIPT%</name>
       <priority>After</priority>
       <parameter4>%PARAMETER4_VALUE%</parameter4>
       <parameter5/>

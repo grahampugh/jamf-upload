@@ -13,45 +13,59 @@ Input:
   TESTKEY: Hello World!
   TESTKEY2: This is just a test script.
   TESTKEY3: "%version%"
-  POSTINSTALL_SCRIPT_NAME: test.sh
-  POSTINSTALL_SCRIPT_PATH: "%RECIPE_DIR%/test.sh"
+  POSTINSTALL_SCRIPT: test.sh
+  EXTENSION_ATTRIBUTE_NAME: Test Extension Attribute
+  EXTENSION_ATTRIBUTE_SCRIPT: Microsoft Office License Type.sh
+
   SELF_SERVICE_DESCRIPTION: This is a test policy upload using JamfPolicyUploader
+  REPLACE_ITEMS: "True"
 
 Process:
-  - Processor: com.github.grahampugh.jamf-upload-test.processors/JamfCategoryUploader
+  - Processor: com.github.grahampugh.jamf-upload.processors/JamfCategoryUploader
     Arguments:
       category_name: "%CATEGORY%"
       category_priority: 5
+      replace_category: False
 
-  - Processor: com.github.grahampugh.jamf-upload-test.processors/JamfCategoryUploader
+  - Processor: com.github.grahampugh.jamf-upload.processors/JamfCategoryUploader
     Arguments:
       category_name: "%SCRIPT_CATEGORY%"
-      category_priority: 5
+      category_priority: 10
+      replace_category: False
 
-  - Processor: com.github.grahampugh.jamf-upload-test.processors/JamfScriptUploader
+  - Processor: com.github.grahampugh.jamf-upload.processors/JamfScriptUploader
     Arguments:
       script_category: "%SCRIPT_CATEGORY%"
-      script_path: "%POSTINSTALL_SCRIPT_PATH%"
+      script_path: "%POSTINSTALL_SCRIPT%"
       script_parameter4: "%PARAMETER4_TITLE%"
+      replace_script: "%REPLACE_ITEMS%"
 
-  - Processor: com.github.grahampugh.jamf-upload-test.processors/JamfExtensionAttributeUploader
+  - Processor: com.github.grahampugh.jamf-upload.processors/JamfExtensionAttributeUploader
     Arguments:
-      ea_script_path: "%RECIPE_DIR%/Microsoft Office License Type.sh"
-      ea_name: Test Extension Attribute
+      ea_script_path: "%EXTENSION_ATTRIBUTE_SCRIPT%"
+      ea_name: "%EXTENSION_ATTRIBUTE_NAME%"
+      replace_ea: "%REPLACE_ITEMS%"
 
-  - Processor: com.github.grahampugh.jamf-upload-test.processors/JamfPackageUploader
-
-  - Processor: com.github.grahampugh.jamf-upload-test.processors/JamfComputerGroupUploader
+  - Processor: com.github.grahampugh.jamf-upload.processors/JamfPackageUploader
     Arguments:
-      group_template: "%RECIPE_DIR%/SmartGroupTemplate-test-users.xml"
+      replace_pkg: False
+
+  - Processor: com.github.grahampugh.jamf-upload.processors/JamfComputerGroupUploader
+    Arguments:
+      group_template: "SmartGroupTemplate-test-users.xml"
       group_name: "%POLICY_NAME% test users"
+      replace_group: False
 
-  - Processor: com.github.grahampugh.jamf-upload-test.processors/JamfComputerGroupUploader
+  - Processor: com.github.grahampugh.jamf-upload.processors/JamfComputerGroupUploader
     Arguments:
-      group_template: "%RECIPE_DIR%/SmartGroupTemplate-test-version-installed.xml"
+      group_template: "SmartGroupTemplate-test-version-installed.xml"
       group_name: "%POLICY_NAME% test version installed"
+      replace_group: "%REPLACE_ITEMS%"
 
-  - Processor: com.github.grahampugh.jamf-upload-test.processors/JamfPolicyUploader
+  - Processor: com.github.grahampugh.jamf-upload.processors/JamfPolicyUploader
     Arguments:
-      policy_template: "%RECIPE_DIR%/PolicyTemplate-untested-package-postinstall.xml"
+      policy_template: "PolicyTemplate-untested-package-postinstall.xml"
       policy_name: "%POLICY_NAME% v%version%"
+      icon: "%POLICY_NAME%.png"
+      replace_icon: True
+      replace_policy: "%REPLACE_ITEMS%"

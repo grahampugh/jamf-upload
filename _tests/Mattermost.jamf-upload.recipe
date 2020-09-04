@@ -10,6 +10,10 @@
 	<dict>
 		<key>CATEGORY</key>
 		<string>Applications</string>
+		<key>EXTENSION_ATTRIBUTE_NAME</key>
+		<string>Test Extension Attribute</string>
+		<key>EXTENSION_ATTRIBUTE_SCRIPT</key>
+		<string>Microsoft Office License Type.sh</string>
 		<key>JSS_INVENTORY_NAME</key>
 		<string>%NAME%.app</string>
 		<key>PARAMETER4_TITLE</key>
@@ -18,10 +22,10 @@
 		<string>Some Random Parameter Value like 36</string>
 		<key>POLICY_NAME</key>
 		<string>Mattermost</string>
-		<key>POSTINSTALL_SCRIPT_NAME</key>
+		<key>POSTINSTALL_SCRIPT</key>
 		<string>test.sh</string>
-		<key>POSTINSTALL_SCRIPT_PATH</key>
-		<string>%RECIPE_DIR%/test.sh</string>
+		<key>REPLACE_ITEMS</key>
+		<string>True</string>
 		<key>SCRIPT_CATEGORY</key>
 		<string>Postinstall Scripts</string>
 		<key>SELF_SERVICE_DESCRIPTION</key>
@@ -46,9 +50,11 @@
 				<string>%CATEGORY%</string>
 				<key>category_priority</key>
 				<integer>5</integer>
+				<key>replace_category</key>
+				<false/>
 			</dict>
 			<key>Processor</key>
-			<string>com.github.grahampugh.jamf-upload-test.processors/JamfCategoryUploader</string>
+			<string>com.github.grahampugh.jamf-upload.processors/JamfCategoryUploader</string>
 		</dict>
 		<dict>
 			<key>Arguments</key>
@@ -56,38 +62,49 @@
 				<key>category_name</key>
 				<string>%SCRIPT_CATEGORY%</string>
 				<key>category_priority</key>
-				<integer>5</integer>
+				<integer>10</integer>
+				<key>replace_category</key>
+				<false/>
 			</dict>
 			<key>Processor</key>
-			<string>com.github.grahampugh.jamf-upload-test.processors/JamfCategoryUploader</string>
+			<string>com.github.grahampugh.jamf-upload.processors/JamfCategoryUploader</string>
 		</dict>
 		<dict>
 			<key>Arguments</key>
 			<dict>
+				<key>replace_script</key>
+				<string>%REPLACE_ITEMS%</string>
 				<key>script_category</key>
 				<string>%SCRIPT_CATEGORY%</string>
 				<key>script_parameter4</key>
 				<string>%PARAMETER4_TITLE%</string>
 				<key>script_path</key>
-				<string>%POSTINSTALL_SCRIPT_PATH%</string>
+				<string>%POSTINSTALL_SCRIPT%</string>
 			</dict>
 			<key>Processor</key>
-			<string>com.github.grahampugh.jamf-upload-test.processors/JamfScriptUploader</string>
+			<string>com.github.grahampugh.jamf-upload.processors/JamfScriptUploader</string>
 		</dict>
 		<dict>
 			<key>Arguments</key>
 			<dict>
 				<key>ea_name</key>
-				<string>Test Extension Attribute</string>
+				<string>%EXTENSION_ATTRIBUTE_NAME%</string>
 				<key>ea_script_path</key>
-				<string>%RECIPE_DIR%/Microsoft Office License Type.sh</string>
+				<string>%EXTENSION_ATTRIBUTE_SCRIPT%</string>
+				<key>replace_ea</key>
+				<string>%REPLACE_ITEMS%</string>
 			</dict>
 			<key>Processor</key>
-			<string>com.github.grahampugh.jamf-upload-test.processors/JamfExtensionAttributeUploader</string>
+			<string>com.github.grahampugh.jamf-upload.processors/JamfExtensionAttributeUploader</string>
 		</dict>
 		<dict>
+			<key>Arguments</key>
+			<dict>
+				<key>replace_pkg</key>
+				<false/>
+			</dict>
 			<key>Processor</key>
-			<string>com.github.grahampugh.jamf-upload-test.processors/JamfPackageUploader</string>
+			<string>com.github.grahampugh.jamf-upload.processors/JamfPackageUploader</string>
 		</dict>
 		<dict>
 			<key>Arguments</key>
@@ -95,10 +112,12 @@
 				<key>group_name</key>
 				<string>%POLICY_NAME% test users</string>
 				<key>group_template</key>
-				<string>%RECIPE_DIR%/SmartGroupTemplate-test-users.xml</string>
+				<string>SmartGroupTemplate-test-users.xml</string>
+				<key>replace_group</key>
+				<false/>
 			</dict>
 			<key>Processor</key>
-			<string>com.github.grahampugh.jamf-upload-test.processors/JamfComputerGroupUploader</string>
+			<string>com.github.grahampugh.jamf-upload.processors/JamfComputerGroupUploader</string>
 		</dict>
 		<dict>
 			<key>Arguments</key>
@@ -106,21 +125,29 @@
 				<key>group_name</key>
 				<string>%POLICY_NAME% test version installed</string>
 				<key>group_template</key>
-				<string>%RECIPE_DIR%/SmartGroupTemplate-test-version-installed.xml</string>
+				<string>SmartGroupTemplate-test-version-installed.xml</string>
+				<key>replace_group</key>
+				<string>%REPLACE_ITEMS%</string>
 			</dict>
 			<key>Processor</key>
-			<string>com.github.grahampugh.jamf-upload-test.processors/JamfComputerGroupUploader</string>
+			<string>com.github.grahampugh.jamf-upload.processors/JamfComputerGroupUploader</string>
 		</dict>
 		<dict>
 			<key>Arguments</key>
 			<dict>
+				<key>icon</key>
+				<string>%POLICY_NAME%.png</string>
 				<key>policy_name</key>
 				<string>%POLICY_NAME% v%version%</string>
 				<key>policy_template</key>
-				<string>%RECIPE_DIR%/PolicyTemplate-untested-package-postinstall.xml</string>
+				<string>PolicyTemplate-untested-package-postinstall.xml</string>
+				<key>replace_icon</key>
+				<true/>
+				<key>replace_policy</key>
+				<string>%REPLACE_ITEMS%</string>
 			</dict>
 			<key>Processor</key>
-			<string>com.github.grahampugh.jamf-upload-test.processors/JamfPolicyUploader</string>
+			<string>com.github.grahampugh.jamf-upload.processors/JamfPolicyUploader</string>
 		</dict>
 	</array>
 </dict>

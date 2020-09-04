@@ -113,6 +113,9 @@ def get_args():
         "category", nargs="+", help="Category to create",
     )
     parser.add_argument(
+        "--replace", help="overwrite an existing category", action="store_true",
+    )
+    parser.add_argument(
         "--priority", default="10", help="Category priority. Default value is 10",
     )
     parser.add_argument(
@@ -175,9 +178,12 @@ def main():
         )
         if obj_id:
             print("Category '{}' already exists: ID {}".format(category_name, obj_id))
-            upload_category(
-                jamf_url, category_name, args.priority, verbosity, token, obj_id
-            )
+            if args.replace:
+                upload_category(
+                    jamf_url, category_name, args.priority, verbosity, token, obj_id
+                )
+            else:
+                print("Not replacing existing category. Use --replace to enforce.")
         else:
             # post the category
             upload_category(jamf_url, category_name, args.priority, verbosity, token)

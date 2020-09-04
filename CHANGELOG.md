@@ -14,21 +14,25 @@ I intend to add such functionality if changes are made to the Jamf Pro API so th
 
 ## [Unreleased] - TBD
 
-- Added the `jamf_script_upload.py` script. This is used for uploading scripts to Jamf Pro. The option to include variables as in AutoPkg (`%VARIABLE%`) has been included. An accompanying AutoPkg processor will be built in due course.
+- Added the `jamf_script_upload.py` script. This is used for uploading scripts to Jamf Pro. The option to include variables as in AutoPkg (`%VARIABLE%`) has been included.
 
-- Added the `jamf_category_upload.py` script. This is used for creating or uploading categories in Jamf Pro. An accompanying AutoPkg processor will be built in due course.
+- Added the `jamf_category_upload.py` script. This is used for creating or uploading categories in Jamf Pro.
 
-- Added the `jamf_computergroup_upload.py` script. This is used for creating or uploading computer groups in Jamf Pro. The option to include variables as in AutoPkg (`%VARIABLE%`) has been included. An accompanying AutoPkg processor will be built in due course.
+- Added the `jamf_computergroup_upload.py` script. This is used for creating or uploading computer groups in Jamf Pro. The option to include variables as in AutoPkg (`%VARIABLE%`) has been included.
 
-- Added the `jamf_ea_upload.py` script. This is used for uploading script-based extension attributes to Jamf Pro. The option to include variables as in AutoPkg (`%VARIABLE%`) has been included. Other types of EA will be included in due course. An accompanying AutoPkg processor will be built in due course.
+- Added the `jamf_ea_upload.py` script. This is used for uploading script-based extension attributes to Jamf Pro. The option to include variables as in AutoPkg (`%VARIABLE%`) has been included. Other types of EA will be included in due course.
 
-- Added the `jamf_policy_upload.py` script. This is used for creating or uploading policy in Jamf Pro. The option to include variables as in AutoPkg (`%VARIABLE%`) has been included. An accompanying AutoPkg processor will be built in due course.
+- Added the `jamf_policy_upload.py` script. This is used for creating or uploading policy in Jamf Pro. The option to include variables as in AutoPkg (`%VARIABLE%`) has been included.
 
 - Moved `jamf_upload.py` to `jamf_pkg_upload.py` since we now have multiple scripts.
 
 - Common functions have been moved into the `jamf_upload_lib` folder and included in each script to avoid too much repetition.
 
 - Examples in the `_tests` folder have been used for testing each script.
+
+- Added AutoPkg processors, `JamfScriptUploader.py`, `JamfCategorytUploader.py`, `JamfComputerGroupUploader.py`, `JamfExtensionAttributeUploader.py`, `JamfPackageUploader.py` and `JamfPolicyUploader.py`, which perform the same tasks as the standalone scripts. Unlike the standalone scripts, these are not designed to upoload multiple packages/policies etc in one process, but they can be called multiple times from withing an AutoPkg recipe to upload multiple objects in a single AutoPkg run. Due to the limitations of AutoPkg, these do not share common modules from this repo - instead, the functions are repeated in each Processor. This allows each Processor to be called independently without installing any dependencies.
+
+- The example (nonsense) recipe `Mattermost.jamf-upload.recipe` in the `_tests` directory showcases the capabilities of the AutoPkg processors.
 
 ## [0.2.0] - 2020-07-24
 

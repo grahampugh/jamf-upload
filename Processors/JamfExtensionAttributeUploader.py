@@ -12,6 +12,7 @@ import json
 import requests
 import os.path
 from base64 import b64encode
+from pathlib import Path
 from time import sleep
 from requests_toolbelt.utils import dump
 from xml.sax.saxutils import escape
@@ -47,6 +48,11 @@ class JamfExtensionAttributeUploader(Processor):
         "ea_script_path": {
             "required": False,
             "description": "Full path to the script to be uploaded",
+        },
+        "replace_ea": {
+            "required": False,
+            "description": "Overwrite an existing category if True.",
+            "default": False,
         },
     }
 
@@ -112,6 +118,27 @@ class JamfExtensionAttributeUploader(Processor):
         self.output(
             data, verbose_level=2,
         )
+
+    def get_path_to_file(self, filename):
+        """AutoPkg is not very good at finding dependent files. This function will look 
+        inside the search directories for any supplied file """
+        # if the supplied file is not a path, use the override directory or
+        # ercipe dir if no override
+        recipe_dir = self.env.get("RECIPE_DIR")
+        filepath = os.path.join(recipe_dir, filename)
+        if os.path.exists(filepath):
+            self.output(f"File found at: {filepath}")
+            return filepath
+
+        # if not found, search RECIPE_SEARCH_DIRS to look for it
+        search_dirs = self.env.get("RECIPE_SEARCH_DIRS")
+        for d in search_dirs:
+            for path in Path(d).rglob(filename):
+                matched_filepath = str(path)
+                break
+        if matched_filepath:
+            self.output(f"File found at: {matched_filepath}")
+            return matched_filepath
 
     def upload_extatt(
         self, jamf_url, enc_creds, extatt_name, script_path, obj_id=None,
@@ -203,6 +230,10 @@ class JamfExtensionAttributeUploader(Processor):
         self.jamf_password = self.env.get("API_PASSWORD")
         self.ea_script_path = self.env.get("ea_script_path")
         self.ea_name = self.env.get("ea_name")
+        self.replace = self.env.get("replace_ea")
+        # handle setting replace in overrides
+        if not self.replace or self.replace == "False":
+            self.replace = False
 
         # clear any pre-existing summary result
         if "jamfextensionattributeuploader_summary_result" in self.env:
@@ -212,6 +243,10 @@ class JamfExtensionAttributeUploader(Processor):
         credentials = f"{self.jamf_user}:{self.jamf_password}"
         enc_creds_bytes = b64encode(credentials.encode("utf-8"))
         enc_creds = str(enc_creds_bytes, "utf-8")
+
+        # handle files with no path
+        if "/" not in self.ea_script_path:
+            self.ea_script_path = self.get_path_to_file(self.ea_script_path)
 
         # now start the process of uploading the object
         self.output(f"Checking '{self.ea_name}' on {self.jamf_url}")
@@ -228,9 +263,16 @@ class JamfExtensionAttributeUploader(Processor):
                     self.ea_name, obj_id
                 )
             )
-            self.upload_extatt(
-                self.jamf_url, enc_creds, self.ea_name, self.ea_script_path, obj_id,
-            )
+            if self.replace:
+                self.upload_extatt(
+                    self.jamf_url, enc_creds, self.ea_name, self.ea_script_path, obj_id,
+                )
+            else:
+                self.output(
+                    "Not replacing existing Extension Attribute. Use --replace to enforce.",
+                    verbose_level=1,
+                )
+                return
         else:
             # post the item
             self.upload_extatt(

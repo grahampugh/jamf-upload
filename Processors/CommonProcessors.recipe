@@ -6,7 +6,7 @@
     <string>Recipe stub for any Processors in this directory.
     </string>
     <key>Identifier</key>
-    <string>com.github.grahampugh.jamf-upload-test.processors</string>
+    <string>com.github.grahampugh.jamf-upload.processors</string>
     <key>Input</key>
     <dict/>
     <key>MinimumVersion</key>

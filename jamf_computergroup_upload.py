@@ -126,6 +126,9 @@ def get_args():
         help=("Computer Group to create or update"),
     )
     parser.add_argument(
+        "--replace", help="overwrite an existing Computer Group", action="store_true",
+    )
+    parser.add_argument(
         "--template", default="", help="Path to Computer Group XML template",
     )
     parser.add_argument(
@@ -228,15 +231,20 @@ def main():
                     computergroup_name, obj_id
                 )
             )
-            upload_computergroup(
-                jamf_url,
-                enc_creds,
-                computergroup_name,
-                template_contents,
-                cli_custom_keys,
-                verbosity,
-                obj_id,
-            )
+            if args.replace:
+                upload_computergroup(
+                    jamf_url,
+                    enc_creds,
+                    computergroup_name,
+                    template_contents,
+                    cli_custom_keys,
+                    verbosity,
+                    obj_id,
+                )
+            else:
+                print(
+                    "Not replacing existing Computer Group. Use --replace to enforce."
+                )
         else:
             print(
                 "Computer Group '{}' not found - will create".format(computergroup_name)

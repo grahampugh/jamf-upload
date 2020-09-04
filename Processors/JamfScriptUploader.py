@@ -10,6 +10,7 @@ JamfScriptUploader processor for uploading items to Jamf Pro using AutoPkg
 import json
 import requests
 import os.path
+from pathlib import Path
 from base64 import b64encode
 from time import sleep
 from requests_toolbelt.utils import dump
@@ -106,6 +107,11 @@ class JamfScriptUploader(Processor):
             "description": "Script parameter 11 title",
             "default": "",
         },
+        "replace_script": {
+            "required": False,
+            "description": "Overwrite an existing category if True.",
+            "default": False,
+        },
     }
 
     output_variables = {
@@ -185,6 +191,27 @@ class JamfScriptUploader(Processor):
         self.output(
             data, verbose_level=2,
         )
+
+    def get_path_to_file(self, filename):
+        """AutoPkg is not very good at finding dependent files. This function will look 
+        inside the search directories for any supplied file """
+        # if the supplied file is not a path, use the override directory or
+        # ercipe dir if no override
+        recipe_dir = self.env.get("RECIPE_DIR")
+        filepath = os.path.join(recipe_dir, filename)
+        if os.path.exists(filepath):
+            self.output(f"File found at: {filepath}")
+            return filepath
+
+        # if not found, search RECIPE_SEARCH_DIRS to look for it
+        search_dirs = self.env.get("RECIPE_SEARCH_DIRS")
+        for d in search_dirs:
+            for path in Path(d).rglob(filename):
+                matched_filepath = str(path)
+                break
+        if matched_filepath:
+            self.output(f"File found at: {matched_filepath}")
+            return matched_filepath
 
     def upload_script(
         self,
@@ -305,6 +332,10 @@ class JamfScriptUploader(Processor):
         self.script_parameter9 = self.env.get("script_parameter9")
         self.script_parameter10 = self.env.get("script_parameter10")
         self.script_parameter11 = self.env.get("script_parameter11")
+        self.replace = self.env.get("replace_script")
+        # handle setting replace in overrides
+        if not self.replace or self.replace == "False":
+            self.replace = False
 
         # clear any pre-existing summary result
         if "jamfscriptuploader_summary_result" in self.env:
@@ -334,6 +365,10 @@ class JamfScriptUploader(Processor):
         else:
             self.script_category = ""
 
+        # handle files with no path
+        if "/" not in self.script_path:
+            self.script_path = self.get_path_to_file(self.script_path)
+
         # now start the process of uploading the object
         script_name = os.path.basename(self.script_path)
 
@@ -345,6 +380,15 @@ class JamfScriptUploader(Processor):
         obj_id = self.get_uapi_obj_id_from_name(
             self.jamf_url, "scripts", script_name, token
         )
+
+        if obj_id:
+            self.output("Script '{}' already exists: ID {}".format(script_name, obj_id))
+            if not self.replace:
+                self.output(
+                    "Not replacing existing script. Use --replace to enforce.",
+                    verbose_level=1,
+                )
+                return
 
         # post the script
         self.upload_script(

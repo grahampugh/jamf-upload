@@ -48,7 +48,7 @@ class JamfPackageUploader(Processor):
             "description": "Package category",
             "default": "",
         },
-        "replace_pkg": {
+        "replace": {
             "required": False,
             "description": "Overwrite an existing package if True.",
             "default": "False",
@@ -279,10 +279,10 @@ class JamfPackageUploader(Processor):
         self.pkg_path = self.env.get("pkg_path")
         self.version = self.env.get("version")
         self.category = self.env.get("category")
-        self.replace_pkg = self.env.get("replace_pkg")
-        # handle setting replace_pkg in overrides
-        if not self.replace_pkg or self.replace_pkg == "False":
-            self.replace_pkg = False
+        self.replace = self.env.get("replace_pkg")
+        # handle setting replace in overrides
+        if not self.replace or self.replace == "False":
+            self.replace = False
         self.jamf_url = self.env.get("JSS_URL")
         self.jamf_user = self.env.get("API_USERNAME")
         self.jamf_password = self.env.get("API_PASSWORD")
@@ -309,6 +309,8 @@ class JamfPackageUploader(Processor):
 
         # check for existing
         obj_id = self.check_pkg(pkg_name, self.jamf_url, enc_creds)
+        if obj_id != "-1":
+            self.output("Package '{}' already exists: ID {}".format(pkg_name, obj_id))
 
         #  process for SMB shares if defined
         if self.smb_url:
@@ -316,7 +318,7 @@ class JamfPackageUploader(Processor):
             self.mount_smb(self.smb_url, self.smb_user, self.smb_password)
             # check for existing package
             local_pkg = self.check_local_pkg(self.smb_url, pkg_name)
-            if not local_pkg or self.replace_pkg == "True":
+            if not local_pkg or self.replace:
                 # copy the file
                 self.copy_pkg(self.smb_url, self.pkg_path, pkg_name)
             else:
@@ -326,8 +328,8 @@ class JamfPackageUploader(Processor):
 
         #  otherwise process for cloud DP
         else:
-            if obj_id == "-1" or self.replace_pkg:
-                # post the package (won't run if the pkg exists and replace_pkg is False)
+            if obj_id == "-1" or self.replace:
+                # post the package (won't run if the pkg exists and replace is False)
                 r = self.post_pkg(
                     pkg_name, self.pkg_path, self.jamf_url, enc_creds, obj_id
                 )
@@ -338,9 +340,6 @@ class JamfPackageUploader(Processor):
                     self.output(f"Package uploaded successfully, ID={pkg_id}")
                     #  now process the package metadata if specified
                 else:
-                    self.output(
-                        "An error occurred while attempting to upload the package"
-                    )
                     self.output(
                         f"HTTP POST Response Code: {r.status_code}", verbose_level=2,
                     )
@@ -361,6 +360,17 @@ class JamfPackageUploader(Processor):
                         self.output(
                             "None", verbose_level=2,
                         )
+                    raise ProcessorError(
+                        "An error occurred while attempting to upload the package"
+                    )
+            else:
+                self.output(
+                    "Not replacing existing package. Use --replace to enforce.",
+                    verbose_level=1,
+                )
+                # even if we don't upload a package, we still need to pass it on so that a policy processor can use it
+                self.env["pkg_name"] = pkg_name
+                return
 
         #  now process the package metadata if specified
         if self.category or self.smb_url:

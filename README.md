@@ -87,18 +87,6 @@ As the HTTP response cannot be guaranteed, and package metadata such as category
 
 The script also provides the `--direct` option, which uses a method resembling the way the GUI performs uploads. In our tests, this is more reliable at completing the package upload and providing the package ID as a response, which means the `--category` option should work more of the time.
 
-### AutoPkg users
-
-Users of AutoPkg can use the `JamfPackageUploader` processor to upload packages. It shares the functionality of this script, though will only upload one package per process. This can be run as a post-processor, e.g.:
-
-    autopkg run FoldingAtHome.pkg --post com.github.grahampugh.recipes.postprocessors/JamfCloudPackageUploader
-
-When running this processor, the `JSS_URL`, `API_USER` and `API_PASSWORD` preferences must be supplied in your AutoPkg preferences.
-
-The processor could also be added to an override, or a new recipe could be made wth the `.pkg` recipe as its parent. As long as there is a `pkg_path` output from the `.pkg` recipe, no parameters would need to be supplied. If not, you could supply a value for the `pkg_path` key as an argument to the processor. This would allow you to use the `.download` recipe as a parent if the download is a valid `pkg`.
-
-Please don't use the `.jss` suffix for such a recipe if you publish it, as that would confuse the recipe with JSSImporter recipes. I suggest `.jamf-upload.recipe`.
-
 ## jamf_script_upload
 
 Upload one or more scripts to a Jamf Pro server using the API.
@@ -333,3 +321,17 @@ These examples templates are in the `_tests` folder of this repo.
   --key SELF_SERVICE_DESCRIPTION="Installs Mattermost" \
   --key version=4.4.2
   ```
+
+## AutoPkg users
+
+Users of AutoPkg can use the `JamfScriptUploader.py`, `JamfCategoryUploader.py`, `JamfComputerGroupUploader.py`, `JamfExtensionAttributeUploader.py`, `JamfPackageUploader.py` and `JamfPolicyUploader.py` processor to upload scripts, categories, computer groups, extension attributes, packages and policies (with icons) respectively. It shares the functionality of the standalone scripts, though will only upload one object per process. Multiple processors can be added to a single AutoPkg recipe.
+
+For people who just want to upload a package, `JamfPackageUploader.py` can be run as a post-processor, e.g.:
+
+    autopkg run FoldingAtHome.pkg --post com.github.grahampugh.recipes.postprocessors/JamfCloudPackageUploader
+
+When running this processor, the `JSS_URL`, `API_USER` and `API_PASSWORD` preferences must be supplied in your AutoPkg preferences.
+
+The processor could also be added to an override, or a new recipe could be made wth the `.pkg` recipe as its parent. As long as there is a `pkg_path` output from the `.pkg` recipe, no parameters would need to be supplied. If not, you could supply a value for the `pkg_path` key as an argument to the processor. This would allow you to use the `.download` recipe as a parent if the download is a valid `pkg`.
+
+Please don't use the `.jss` suffix for such a recipe if you publish it, as that would confuse the recipe with JSSImporter recipes. I suggest `.jamf-upload.recipe`.

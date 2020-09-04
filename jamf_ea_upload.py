@@ -125,6 +125,11 @@ def get_args():
         help=("Extension Attribute to create or update"),
     )
     parser.add_argument(
+        "--replace",
+        help="overwrite an existing Extension Attribute",
+        action="store_true",
+    )
+    parser.add_argument(
         "--script", default="", help="Full path to the template script to upload",
     )
     parser.add_argument(
@@ -208,15 +213,20 @@ def main():
                     extatt_name, obj_id
                 )
             )
-            upload_extatt(
-                jamf_url,
-                enc_creds,
-                extatt_name,
-                args.script,
-                verbosity,
-                cli_custom_keys,
-                obj_id,
-            )
+            if args.replace:
+                upload_extatt(
+                    jamf_url,
+                    enc_creds,
+                    extatt_name,
+                    args.script,
+                    verbosity,
+                    cli_custom_keys,
+                    obj_id,
+                )
+            else:
+                print(
+                    "Not replacing existing Extension Attribute. Use --replace to enforce."
+                )
         else:
             print(
                 "Extension Attribute '{}' not found - will create".format(extatt_name)

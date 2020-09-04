@@ -40,6 +40,11 @@ class JamfCategoryUploader(Processor):
             "description": "Category priority",
             "default": "10",
         },
+        "replace_category": {
+            "required": False,
+            "description": "Overwrite an existing category if True.",
+            "default": False,
+        },
     }
 
     output_variables = {
@@ -183,6 +188,10 @@ class JamfCategoryUploader(Processor):
         self.jamf_password = self.env.get("API_PASSWORD")
         self.category_name = self.env.get("category_name")
         self.category_priority = self.env.get("category_priority")
+        self.replace = self.env.get("replace_category")
+        # handle setting replace_pkg in overrides
+        if not self.replace or self.replace == "False":
+            self.replace = False
 
         # clear any pre-existing summary result
         if "jamfcategoryuploader_summary_result" in self.env:
@@ -206,10 +215,27 @@ class JamfCategoryUploader(Processor):
             self.output(
                 "Category '{}' already exists: ID {}".format(self.category_name, obj_id)
             )
-            # PUT the category
-            self.upload_category(
-                self.jamf_url, self.category_name, self.category_priority, token, obj_id
-            )
+            if self.replace:
+                self.output(
+                    "Replacing existing category as 'category_replace' is set to {}".format(
+                        self.replace
+                    ),
+                    verbose_level=1,
+                )
+                # PUT the category
+                self.upload_category(
+                    self.jamf_url,
+                    self.category_name,
+                    self.category_priority,
+                    token,
+                    obj_id,
+                )
+            else:
+                self.output(
+                    "Not replacing existing category. Use --replace to enforce.",
+                    verbose_level=1,
+                )
+                return
         else:
             # POST the category
             self.upload_category(
