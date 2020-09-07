@@ -1,5 +1,5 @@
 Description: Creates a category and uploads a package.
-Identifier: com.github.grahampugh.jamf-upload-test.Mattermost
+Identifier: com.github.grahampugh.jamf.Mattermost
 MinimumVersion: 2.0.0
 ParentRecipe: com.github.jlehikoinen.pkg.Mattermost
 

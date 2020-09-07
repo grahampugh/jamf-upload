@@ -31,6 +31,12 @@ class JamfPackageUploader(Processor):
     The pkg recipe must output pkg_path or this will fail."""
 
     input_variables = {
+        "pkg_name": {
+            "required": False,
+            "description": "Package name. If supplied, will rename the package supplied "
+            "in the pkg_path key when uploading it to the fileshare.",
+            "default": "",
+        },
         "pkg_path": {
             "required": False,
             "description": "Path to a pkg or dmg to import - provided by "
@@ -93,7 +99,13 @@ class JamfPackageUploader(Processor):
     }
 
     output_variables = {
-        "pkg_path": {"description": "The created package.",},
+        "pkg_path": {
+            "description": "The path of the package as provided from the parent recipe.",
+        },
+        "pkg_name": {"description": "The name of the uploaded package.",},
+        "pkg_uploaded": {
+            "description": "True/False depending if a package was uploaded or not.",
+        },
         "jamfpackageuploader_summary_result": {
             "description": "Description of interesting results.",
         },
@@ -277,6 +289,16 @@ class JamfPackageUploader(Processor):
         """Do the main thing here"""
 
         self.pkg_path = self.env.get("pkg_path")
+        if not self.pkg_path:
+            try:
+                pathname = self.env.get("pathname")
+                if pathname.endswith(".pkg"):
+                    self.pkg_path = pathname
+            except KeyError:
+                pass
+        self.pkg_name = self.env.get("pkg_name")
+        if not self.pkg_name:
+            self.pkg_name = os.path.basename(self.pkg_path)
         self.version = self.env.get("version")
         self.category = self.env.get("category")
         self.replace = self.env.get("replace_pkg")
@@ -298,37 +320,40 @@ class JamfPackageUploader(Processor):
         enc_creds_bytes = base64.b64encode(credentials.encode("utf-8"))
         enc_creds = str(enc_creds_bytes, "utf-8")
 
-        pkg_name = os.path.basename(self.pkg_path)
         # See if the package is non-flat (requires zipping prior to upload).
         if os.path.isdir(self.pkg_path):
             self.pkg_path = self.zip_pkg_path(self.pkg_path)
-            pkg_name += ".zip"
+            self.pkg_name += ".zip"
 
         # now start the process of uploading the package
-        self.output(f"Checking for existing '{pkg_name}' on {self.jamf_url}")
+        self.output(f"Checking for existing '{self.pkg_name}' on {self.jamf_url}")
 
         # check for existing
-        obj_id = self.check_pkg(pkg_name, self.jamf_url, enc_creds)
+        obj_id = self.check_pkg(self.pkg_name, self.jamf_url, enc_creds)
         if obj_id != "-1":
-            self.output("Package '{}' already exists: ID {}".format(pkg_name, obj_id))
+            self.output(
+                "Package '{}' already exists: ID {}".format(self.pkg_name, obj_id)
+            )
 
         #  process for SMB shares if defined
         if self.smb_url:
             # mount the share
             self.mount_smb(self.smb_url, self.smb_user, self.smb_password)
             # check for existing package
-            local_pkg = self.check_local_pkg(self.smb_url, pkg_name)
+            local_pkg = self.check_local_pkg(self.smb_url, self.pkg_name)
             if not local_pkg or self.replace:
                 # copy the file
-                self.copy_pkg(self.smb_url, self.pkg_path, pkg_name)
+                self.copy_pkg(self.smb_url, self.pkg_path, self.pkg_name)
                 # unmount the share
                 self.umount_smb(self.smb_url)
             else:
-                self.output(f"Not updating existing '{pkg_name}' on {self.jamf_url}")
+                self.output(
+                    f"Not updating existing '{self.pkg_name}' on {self.jamf_url}"
+                )
                 # unmount the share
                 self.umount_smb(self.smb_url)
                 # even if we don't upload a package, we still need to pass it on so that a policy processor can use it
-                self.env["pkg_name"] = pkg_name
+                self.env["pkg_name"] = self.pkg_name
                 self.env["pkg_uploaded"] = False
                 return
 
@@ -344,7 +369,7 @@ class JamfPackageUploader(Processor):
                     )
                 # post the package (won't run if the pkg exists and replace is False)
                 r = self.post_pkg(
-                    pkg_name, self.pkg_path, self.jamf_url, enc_creds, obj_id
+                    self.pkg_name, self.pkg_path, self.jamf_url, enc_creds, obj_id
                 )
 
                 # print result of the request
@@ -384,7 +409,7 @@ class JamfPackageUploader(Processor):
                     verbose_level=1,
                 )
                 # even if we don't upload a package, we still need to pass it on so that a policy processor can use it
-                self.env["pkg_name"] = pkg_name
+                self.env["pkg_name"] = self.pkg_name
                 self.env["pkg_uploaded"] = False
                 return
 
@@ -393,22 +418,22 @@ class JamfPackageUploader(Processor):
             try:
                 pkg_id
                 self.update_pkg_metadata(
-                    self.jamf_url, enc_creds, pkg_name, self.category, pkg_id
+                    self.jamf_url, enc_creds, self.pkg_name, self.category, pkg_id
                 )
             except UnboundLocalError:
                 self.update_pkg_metadata(
-                    self.jamf_url, enc_creds, pkg_name, self.category
+                    self.jamf_url, enc_creds, self.pkg_name, self.category
                 )
 
         # output the summary
-        self.env["pkg_name"] = pkg_name
+        self.env["pkg_name"] = self.pkg_name
         self.env["pkg_uploaded"] = True
         self.env["jamfpackageuploader_summary_result"] = {
             "summary_text": "The following packages were uploaded to Jamf Pro:",
             "report_fields": ["pkg_path", "pkg_name", "version", "category"],
             "data": {
                 "pkg_path": self.pkg_path,
-                "pkg_name": pkg_name,
+                "pkg_name": self.pkg_name,
                 "version": self.version,
                 "category": self.category,
             },
