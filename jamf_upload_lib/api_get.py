@@ -68,6 +68,46 @@ def check_api_obj_id_from_name(
         return obj_id
 
 
+def get_api_obj_value_from_id(
+    jamf_url, object_type, obj_id, obj_path, enc_creds, verbosity
+):
+    """get the value of an item in a Classic API object"""
+    # define the relationship between the object types and their URL
+    # we could make this shorter with some regex but I think this way is clearer
+    object_types = {
+        "package": "packages",
+        "computer_group": "computergroups",
+        "policy": "policies",
+        "extension_attribute": "computerextensionattributes",
+    }
+    headers = {
+        "authorization": "Basic {}".format(enc_creds),
+        "accept": "application/json",
+    }
+    url = "{}/JSSResource/{}/id/{}".format(jamf_url, object_types[object_type], obj_id)
+    r = requests.get(url, headers=headers)
+    if r.status_code == 200:
+        obj_content = json.loads(r.text)
+        if verbosity > 2:
+            print(obj_content)
+
+        # convert an xpath to json
+        xpath_list = obj_path.split("/")
+        value = obj_content[object_type]
+        for i in range(0, len(xpath_list)):
+            if xpath_list[i]:
+                try:
+                    value = value[xpath_list[i]]
+                    if verbosity > 2:
+                        print(value)
+                except KeyError:
+                    value = ""
+                    break
+        if value and verbosity > 2:
+            print("Value of '{}': {}".format(obj_path, value))
+        return value
+
+
 def get_headers(r):
     print("\nHeaders:\n")
     print(r.headers)

@@ -17,9 +17,11 @@ For usage, run jamf_policy_upload.py --help
 
 import argparse
 import json
+import mimetypes
 import os.path
 import re
 import requests
+import xml.etree.ElementTree as ElementTree
 from time import sleep
 from requests_toolbelt.utils import dump
 
@@ -89,14 +91,14 @@ def upload_policy(
         else:
             r = http.post(url, headers=headers, data=template_contents, timeout=60)
         if r.status_code == 200 or r.status_code == 201:
-            print(f"Policy '{policy_name}' uploaded successfully")
+            print("Policy '{}' uploaded successfully".format(policy_name))
             break
         if r.status_code == 409:
             # TODO when using verbose mode we could get the reason for the conflict from the output
             print("WARNING: Policy upload failed due to a conflict")
             break
         if count > 5:
-            print("WARNING: CPolicy upload did not succeed after 5 attempts")
+            print("WARNING: Policy upload did not succeed after 5 attempts")
             print("\nHTTP POST Response Code: {}".format(r.status_code))
             break
         sleep(30)
@@ -109,6 +111,95 @@ def upload_policy(
             print(r.text)
         else:
             print("None")
+    return r
+
+
+def upload_policy_icon(
+    jamf_url,
+    enc_creds,
+    policy_name,
+    policy_icon_path,
+    replace_icon,
+    verbosity,
+    obj_id=None,
+):
+    """Upload an icon to the policy that was just created"""
+    # check that the policy exists.
+    # Use the obj_id if we have it, or use name if we don't have it yet
+    # We may need a wait loop here for new policies
+    if not obj_id:
+        # check for existing policy
+        print("\nChecking '{}' on {}".format(policy_name, jamf_url))
+        obj_id = api_get.check_api_obj_id_from_name(
+            jamf_url, "policy", policy_name, enc_creds, verbosity
+        )
+        if not obj_id:
+            print(
+                "ERROR: could not locate ID for policy '{}' so cannot upload icon".format(
+                    policy_name
+                )
+            )
+            return
+
+    # Now grab the name of the existing icon using the API
+    existing_icon = api_get.get_api_obj_value_from_id(
+        jamf_url,
+        "policy",
+        obj_id,
+        "self_service/self_service_icon/filename",
+        enc_creds,
+        verbosity,
+    )
+
+    # If the icon naame matches that we already have, don't upload again
+    #  unless --replace-icon is set
+    policy_icon_name = os.path.basename(policy_icon_path)
+    if existing_icon != policy_icon_name or replace_icon:
+        url = "{}/JSSResource/fileuploads/policies/id/{}".format(jamf_url, obj_id)
+
+        headers = {
+            "authorization": "Basic {}".format(enc_creds),
+        }
+        http = requests.Session()
+        if verbosity > 2:
+            http.hooks["response"] = [api_connect.logging_hook]
+
+        print("Uploading icon...")
+        #  resource construction grabbed from python-jss / misc_endpoints.py
+        content_type = mimetypes.guess_type(policy_icon_name)[0]
+        resource = {
+            "name": (policy_icon_name, open(policy_icon_path, "rb"), content_type)
+        }
+
+        count = 0
+        while True:
+            count += 1
+            if verbosity > 1:
+                print("Icon upload attempt {}".format(count))
+            r = http.post(url, headers=headers, files=resource, timeout=60)
+            if r.status_code == 200 or r.status_code == 201:
+                print("Icon '{}' uploaded successfully".format(policy_icon_name))
+                break
+            if r.status_code == 409:
+                # TODO when using verbose mode we could get the reason for the conflict from the output
+                print("WARNING: Icon upload failed due to a conflict")
+                break
+            if count > 5:
+                print("WARNING: Icon upload did not succeed after 5 attempts")
+                print("\nHTTP POST Response Code: {}".format(r.status_code))
+                break
+            sleep(30)
+
+        if verbosity:
+            print("\nHeaders:\n")
+            print(r.headers)
+            print("\nResponse:\n")
+            if r.text:
+                print(r.text)
+            else:
+                print("None")
+    else:
+        print("Existing icon matches local resource - skipping upload.")
 
 
 def get_args():
@@ -123,7 +214,18 @@ def get_args():
         help=("Policy to create or update"),
     )
     parser.add_argument(
+        "--replace", help="overwrite an existing policy", action="store_true",
+    )
+    parser.add_argument(
         "--template", default="", help="Path to Policy XML template",
+    )
+    parser.add_argument(
+        "--icon", default="", help="Path to Policy Self Service icon",
+    )
+    parser.add_argument(
+        "--replace-icon",
+        help="Replace icon even if the name is the same",
+        action="store_true",
     )
     parser.add_argument(
         "-k",
@@ -173,7 +275,7 @@ def get_args():
     for arg in args.variables:
         (key, sep, value) = arg.partition("=")
         if sep != "=":
-            print(f"Invalid variable [key=value]: {arg}")
+            print("Invalid variable [key=value]: {}".format(arg))
         cli_custom_keys[key] = value
 
     return args, cli_custom_keys
@@ -214,25 +316,28 @@ def main():
                 policy_name, template_contents, verbosity
             )
 
-        # check for existing group
+        # check for existing policy
         print("\nChecking '{}' on {}".format(policy_name, jamf_url))
         obj_id = api_get.check_api_obj_id_from_name(
             jamf_url, "policy", policy_name, enc_creds, verbosity
         )
         if obj_id:
             print("Policy '{}' already exists: ID {}".format(policy_name, obj_id))
-            upload_policy(
-                jamf_url,
-                enc_creds,
-                policy_name,
-                template_contents,
-                cli_custom_keys,
-                verbosity,
-                obj_id,
-            )
+            if args.replace:
+                r = upload_policy(
+                    jamf_url,
+                    enc_creds,
+                    policy_name,
+                    template_contents,
+                    cli_custom_keys,
+                    verbosity,
+                    obj_id,
+                )
+            else:
+                print("Not replacing existing policy. Use --replace to enforce.")
         else:
             print("Policy '{}' not found - will create".format(policy_name))
-            upload_policy(
+            r = upload_policy(
                 jamf_url,
                 enc_creds,
                 policy_name,
@@ -240,6 +345,30 @@ def main():
                 cli_custom_keys,
                 verbosity,
             )
+
+        # now upload the icon to the policy if specified in the args
+        if args.icon:
+            # get the policy_id returned from the HTTP response
+            try:
+                policy_id = ElementTree.fromstring(r.text).findtext("id")
+                upload_policy_icon(
+                    jamf_url,
+                    enc_creds,
+                    policy_name,
+                    args.icon,
+                    args.replace_icon,
+                    verbosity,
+                    policy_id,
+                )
+            except UnboundLocalError:
+                upload_policy_icon(
+                    jamf_url,
+                    enc_creds,
+                    policy_name,
+                    args.icon,
+                    args.replace_icon,
+                    verbosity,
+                )
 
     print()
 

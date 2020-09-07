@@ -1,0 +1,154 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>Description</key>
+	<string>Creates a category and uploads a package.</string>
+	<key>Identifier</key>
+	<string>com.github.grahampugh.jamf-upload-test.Mattermost</string>
+	<key>Input</key>
+	<dict>
+		<key>CATEGORY</key>
+		<string>Applications</string>
+		<key>EXTENSION_ATTRIBUTE_NAME</key>
+		<string>Test Extension Attribute</string>
+		<key>EXTENSION_ATTRIBUTE_SCRIPT</key>
+		<string>Microsoft Office License Type.sh</string>
+		<key>JSS_INVENTORY_NAME</key>
+		<string>%NAME%.app</string>
+		<key>PARAMETER4_TITLE</key>
+		<string>Random Input Field</string>
+		<key>PARAMETER4_VALUE</key>
+		<string>Some Random Parameter Value like 36</string>
+		<key>POLICY_NAME</key>
+		<string>Mattermost</string>
+		<key>POSTINSTALL_SCRIPT</key>
+		<string>test.sh</string>
+		<key>REPLACE_ITEMS</key>
+		<string>True</string>
+		<key>SCRIPT_CATEGORY</key>
+		<string>Postinstall Scripts</string>
+		<key>SELF_SERVICE_DESCRIPTION</key>
+		<string>This is a test policy upload using JamfPolicyUploader</string>
+		<key>TESTKEY</key>
+		<string>Hello World!</string>
+		<key>TESTKEY2</key>
+		<string>This is just a test script.</string>
+		<key>TESTKEY3</key>
+		<string>%version%</string>
+	</dict>
+	<key>MinimumVersion</key>
+	<string>2.0.0</string>
+	<key>ParentRecipe</key>
+	<string>com.github.jlehikoinen.pkg.Mattermost</string>
+	<key>Process</key>
+	<array>
+		<dict>
+			<key>Arguments</key>
+			<dict>
+				<key>category_name</key>
+				<string>%CATEGORY%</string>
+				<key>category_priority</key>
+				<integer>5</integer>
+				<key>replace_category</key>
+				<false/>
+			</dict>
+			<key>Processor</key>
+			<string>com.github.grahampugh.jamf-upload.processors/JamfCategoryUploader</string>
+		</dict>
+		<dict>
+			<key>Arguments</key>
+			<dict>
+				<key>category_name</key>
+				<string>%SCRIPT_CATEGORY%</string>
+				<key>category_priority</key>
+				<integer>10</integer>
+				<key>replace_category</key>
+				<false/>
+			</dict>
+			<key>Processor</key>
+			<string>com.github.grahampugh.jamf-upload.processors/JamfCategoryUploader</string>
+		</dict>
+		<dict>
+			<key>Arguments</key>
+			<dict>
+				<key>replace_script</key>
+				<string>%REPLACE_ITEMS%</string>
+				<key>script_category</key>
+				<string>%SCRIPT_CATEGORY%</string>
+				<key>script_parameter4</key>
+				<string>%PARAMETER4_TITLE%</string>
+				<key>script_path</key>
+				<string>%POSTINSTALL_SCRIPT%</string>
+			</dict>
+			<key>Processor</key>
+			<string>com.github.grahampugh.jamf-upload.processors/JamfScriptUploader</string>
+		</dict>
+		<dict>
+			<key>Arguments</key>
+			<dict>
+				<key>ea_name</key>
+				<string>%EXTENSION_ATTRIBUTE_NAME%</string>
+				<key>ea_script_path</key>
+				<string>%EXTENSION_ATTRIBUTE_SCRIPT%</string>
+				<key>replace_ea</key>
+				<string>%REPLACE_ITEMS%</string>
+			</dict>
+			<key>Processor</key>
+			<string>com.github.grahampugh.jamf-upload.processors/JamfExtensionAttributeUploader</string>
+		</dict>
+		<dict>
+			<key>Arguments</key>
+			<dict>
+				<key>replace_pkg</key>
+				<false/>
+			</dict>
+			<key>Processor</key>
+			<string>com.github.grahampugh.jamf-upload.processors/JamfPackageUploader</string>
+		</dict>
+		<dict>
+			<key>Arguments</key>
+			<dict>
+				<key>group_name</key>
+				<string>%POLICY_NAME% test users</string>
+				<key>group_template</key>
+				<string>SmartGroupTemplate-test-users.xml</string>
+				<key>replace_group</key>
+				<false/>
+			</dict>
+			<key>Processor</key>
+			<string>com.github.grahampugh.jamf-upload.processors/JamfComputerGroupUploader</string>
+		</dict>
+		<dict>
+			<key>Arguments</key>
+			<dict>
+				<key>group_name</key>
+				<string>%POLICY_NAME% test version installed</string>
+				<key>group_template</key>
+				<string>SmartGroupTemplate-test-version-installed.xml</string>
+				<key>replace_group</key>
+				<string>%REPLACE_ITEMS%</string>
+			</dict>
+			<key>Processor</key>
+			<string>com.github.grahampugh.jamf-upload.processors/JamfComputerGroupUploader</string>
+		</dict>
+		<dict>
+			<key>Arguments</key>
+			<dict>
+				<key>icon</key>
+				<string>%POLICY_NAME%.png</string>
+				<key>policy_name</key>
+				<string>%POLICY_NAME% v%version%</string>
+				<key>policy_template</key>
+				<string>PolicyTemplate-untested-package-postinstall.xml</string>
+				<key>replace_icon</key>
+				<true/>
+				<key>replace_policy</key>
+				<string>%REPLACE_ITEMS%</string>
+			</dict>
+			<key>Processor</key>
+			<string>com.github.grahampugh.jamf-upload.processors/JamfPolicyUploader</string>
+		</dict>
+	</array>
+</dict>
+</plist>

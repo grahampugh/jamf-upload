@@ -133,6 +133,9 @@ def get_args():
         "script", nargs="+", help="Full path to the script(s) to upload",
     )
     parser.add_argument(
+        "--replace", help="overwrite an existing script", action="store_true",
+    )
+    parser.add_argument(
         "--url", default="", help="the Jamf Pro Server URL",
     )
     parser.add_argument(
@@ -287,6 +290,10 @@ def main():
         obj_id = api_get.get_uapi_obj_id_from_name(
             jamf_url, "scripts", script_name, token, verbosity
         )
+
+        if obj_id and not args.replace:
+            print("Not replacing existing script. Use --replace to enforce.")
+            continue
 
         # post the script
         upload_script(
