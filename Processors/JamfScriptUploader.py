@@ -373,7 +373,9 @@ class JamfScriptUploader(Processor):
         script_name = os.path.basename(self.script_path)
 
         # check for existing script
-        self.output("Checking '{}' on {}".format(script_name, self.jamf_url))
+        self.output(
+            "Checking for existing '{}' on {}".format(script_name, self.jamf_url)
+        )
         self.output(
             "Full path: {}".format(self.script_path), verbose_level=2,
         )
@@ -383,9 +385,16 @@ class JamfScriptUploader(Processor):
 
         if obj_id:
             self.output("Script '{}' already exists: ID {}".format(script_name, obj_id))
-            if not self.replace:
+            if self.replace:
                 self.output(
-                    "Not replacing existing script. Use --replace to enforce.",
+                    "Replacing existing script as 'replace_ea' is set to {}".format(
+                        self.replace
+                    ),
+                    verbose_level=1,
+                )
+            else:
+                self.output(
+                    "Not replacing existing script. Use replace_script='True' to enforce.",
                     verbose_level=1,
                 )
                 return

@@ -249,7 +249,7 @@ class JamfExtensionAttributeUploader(Processor):
             self.ea_script_path = self.get_path_to_file(self.ea_script_path)
 
         # now start the process of uploading the object
-        self.output(f"Checking '{self.ea_name}' on {self.jamf_url}")
+        self.output(f"Checking for existing '{self.ea_name}' on {self.jamf_url}")
 
         # check for existing - requires obj_name
         obj_type = "extension_attribute"
@@ -264,12 +264,18 @@ class JamfExtensionAttributeUploader(Processor):
                 )
             )
             if self.replace:
+                self.output(
+                    "Replacing existing Extension Attribute as 'replace_ea' is set to {}".format(
+                        self.replace
+                    ),
+                    verbose_level=1,
+                )
                 self.upload_extatt(
                     self.jamf_url, enc_creds, self.ea_name, self.ea_script_path, obj_id,
                 )
             else:
                 self.output(
-                    "Not replacing existing Extension Attribute. Use --replace to enforce.",
+                    "Not replacing existing Extension Attribute. Use replace_ea='True' to enforce.",
                     verbose_level=1,
                 )
                 return

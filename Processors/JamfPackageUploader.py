@@ -48,7 +48,7 @@ class JamfPackageUploader(Processor):
             "description": "Package category",
             "default": "",
         },
-        "replace": {
+        "replace_pkg": {
             "required": False,
             "description": "Overwrite an existing package if True.",
             "default": "False",
@@ -305,7 +305,7 @@ class JamfPackageUploader(Processor):
             pkg_name += ".zip"
 
         # now start the process of uploading the package
-        self.output(f"Checking '{pkg_name}' on {self.jamf_url}")
+        self.output(f"Checking for existing '{pkg_name}' on {self.jamf_url}")
 
         # check for existing
         obj_id = self.check_pkg(pkg_name, self.jamf_url, enc_creds)
@@ -321,14 +321,27 @@ class JamfPackageUploader(Processor):
             if not local_pkg or self.replace:
                 # copy the file
                 self.copy_pkg(self.smb_url, self.pkg_path, pkg_name)
+                # unmount the share
+                self.umount_smb(self.smb_url)
             else:
                 self.output(f"Not updating existing '{pkg_name}' on {self.jamf_url}")
-            # unmount the share
-            self.umount_smb(self.smb_url)
+                # unmount the share
+                self.umount_smb(self.smb_url)
+                # even if we don't upload a package, we still need to pass it on so that a policy processor can use it
+                self.env["pkg_name"] = pkg_name
+                self.env["pkg_uploaded"] = False
+                return
 
         #  otherwise process for cloud DP
         else:
             if obj_id == "-1" or self.replace:
+                if self.replace:
+                    self.output(
+                        "Replacing existing package as 'replace_pkg' is set to {}".format(
+                            self.replace
+                        ),
+                        verbose_level=1,
+                    )
                 # post the package (won't run if the pkg exists and replace is False)
                 r = self.post_pkg(
                     pkg_name, self.pkg_path, self.jamf_url, enc_creds, obj_id
@@ -365,11 +378,14 @@ class JamfPackageUploader(Processor):
                     )
             else:
                 self.output(
-                    "Not replacing existing package. Use --replace to enforce.",
+                    "Not replacing existing package as 'replace_pkg' is set to {}. Use replace_pkg='True' to enforce.".format(
+                        self.replace
+                    ),
                     verbose_level=1,
                 )
                 # even if we don't upload a package, we still need to pass it on so that a policy processor can use it
                 self.env["pkg_name"] = pkg_name
+                self.env["pkg_uploaded"] = False
                 return
 
         #  now process the package metadata if specified
@@ -386,6 +402,7 @@ class JamfPackageUploader(Processor):
 
         # output the summary
         self.env["pkg_name"] = pkg_name
+        self.env["pkg_uploaded"] = True
         self.env["jamfpackageuploader_summary_result"] = {
             "summary_text": "The following packages were uploaded to Jamf Pro:",
             "report_fields": ["pkg_path", "pkg_name", "version", "category"],

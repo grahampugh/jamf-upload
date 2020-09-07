@@ -279,10 +279,18 @@ class JamfPolicyUploader(Processor):
             "self_service/self_service_icon/filename",
             enc_creds,
         )
-
+        if existing_icon:
+            self.output(
+                "Existing policy icon is '{}'".format(existing_icon), verbose_level=1
+            )
         # If the icon naame matches that we already have, don't upload again
         #  unless --replace-icon is set
         policy_icon_name = os.path.basename(policy_icon_path)
+        if existing_icon == policy_icon_name:
+            self.output(
+                "Policy icon '{}' already exists: ID {}".format(existing_icon, obj_id)
+            )
+
         if existing_icon != policy_icon_name or replace_icon:
             url = "{}/JSSResource/fileuploads/policies/id/{}".format(jamf_url, obj_id)
 
@@ -319,9 +327,9 @@ class JamfPolicyUploader(Processor):
                     print("\nHTTP POST Response Code: {}".format(r.status_code))
                     raise ProcessorError("ERROR: Icon upload failed")
                 sleep(30)
-            return policy_icon_name
         else:
-            self.output("Existing icon matches local resource - skipping upload.")
+            self.output("Not replacing icon. Set replace_icon='True' to enforce...")
+        return policy_icon_name
 
     def main(self):
         """Do the main thing here"""
@@ -354,7 +362,7 @@ class JamfPolicyUploader(Processor):
             self.policy_template = self.get_path_to_file(self.policy_template)
 
         # now start the process of uploading the object
-        self.output(f"Checking '{self.policy_name}' on {self.jamf_url}")
+        self.output(f"Checking for existing '{self.policy_name}' on {self.jamf_url}")
 
         # check for existing - requires obj_name
         obj_type = "policy"
@@ -367,6 +375,12 @@ class JamfPolicyUploader(Processor):
                 "Policy '{}' already exists: ID {}".format(self.policy_name, obj_id)
             )
             if self.replace:
+                self.output(
+                    "Replacing existing policy as 'replace_policy' is set to {}".format(
+                        self.replace
+                    ),
+                    verbose_level=1,
+                )
                 r = self.upload_policy(
                     self.jamf_url,
                     enc_creds,
@@ -376,7 +390,7 @@ class JamfPolicyUploader(Processor):
                 )
             else:
                 self.output(
-                    "Not replacing existing policy. Use --replace to enforce.",
+                    "Not replacing existing policy. Use replace_policy='True' to enforce.",
                     verbose_level=1,
                 )
                 return

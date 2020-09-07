@@ -8,6 +8,7 @@ JamfComputerGroupUploader processor for uploading items to Jamf Pro using AutoPk
 
 # import variables go here. Do not import unused modules
 import json
+import re
 import requests
 import os.path
 from base64 import b64encode
@@ -62,7 +63,7 @@ class JamfComputerGroupUploader(Processor):
 
     def substitute_assignable_keys(self, data):
         """substitutes any key in the inputted text using the %MY_KEY% nomenclature"""
-        # whenever %MY_KEY% is found in a template, it is replaced with the assigned value of MY_KEY
+        # whenever %MY_KEY% is found in a template, it is replaced with the assigned value of MY_KEY. This did done case-insensitively
         for custom_key in self.env:
             self.output(
                 (
@@ -71,7 +72,12 @@ class JamfComputerGroupUploader(Processor):
                 ),
                 verbose_level=2,
             )
-            data = data.replace(f"%{custom_key}%", str(self.env.get(custom_key)))
+            data = re.sub(
+                f"%{custom_key}%",
+                str(self.env.get(custom_key)),
+                data,
+                flags=re.IGNORECASE,
+            )
         return data
 
     def logging_hook(self, response, *args, **kwargs):
@@ -150,6 +156,16 @@ class JamfComputerGroupUploader(Processor):
         else:
             raise ProcessorError("Template does not exist!")
 
+        # if JSS_INVENTORY_NAME is not given, make it equivalent to %NAME%.app
+        # (this is to allow use of legacy JSSImporter group templates)
+        try:
+            self.env["JSS_INVENTORY_NAME"]
+        except KeyError:
+            try:
+                self.env["JSS_INVENTORY_NAME"] = self.env["NAME"] + ".app"
+            except KeyError:
+                pass
+
         # substitute user-assignable keys
         template_contents = self.substitute_assignable_keys(template_contents)
 
@@ -225,7 +241,7 @@ class JamfComputerGroupUploader(Processor):
             self.group_template = self.get_path_to_file(self.group_template)
 
         # now start the process of uploading the object
-        self.output(f"Checking '{self.group_name}' on {self.jamf_url}")
+        self.output(f" for existing '{self.group_name}' on {self.jamf_url}")
 
         # check for existing - requires obj_name
         obj_type = "computer_group"
@@ -240,6 +256,12 @@ class JamfComputerGroupUploader(Processor):
                 )
             )
             if self.replace:
+                self.output(
+                    "Replacing existing Computer Group as 'replace_group' is set to {}".format(
+                        self.replace
+                    ),
+                    verbose_level=1,
+                )
                 self.upload_computergroup(
                     self.jamf_url,
                     enc_creds,
@@ -249,7 +271,7 @@ class JamfComputerGroupUploader(Processor):
                 )
             else:
                 self.output(
-                    "Not replacing existing Computer Group. Use --replace to enforce.",
+                    "Not replacing existing Computer Group. Use replace_group='True' to enforce.",
                     verbose_level=1,
                 )
                 return

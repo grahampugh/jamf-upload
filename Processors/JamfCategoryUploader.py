@@ -207,7 +207,9 @@ class JamfCategoryUploader(Processor):
 
         # now process the category
         # check for existing category
-        self.output("Checking '{}' on {}".format(self.category_name, self.jamf_url))
+        self.output(
+            "Checking for existing '{}' on {}".format(self.category_name, self.jamf_url)
+        )
         obj_id = self.get_uapi_obj_id_from_name(
             self.jamf_url, "categories", self.category_name, token
         )
@@ -217,7 +219,7 @@ class JamfCategoryUploader(Processor):
             )
             if self.replace:
                 self.output(
-                    "Replacing existing category as 'category_replace' is set to {}".format(
+                    "Replacing existing category as 'replace_category' is set to {}".format(
                         self.replace
                     ),
                     verbose_level=1,
@@ -232,7 +234,7 @@ class JamfCategoryUploader(Processor):
                 )
             else:
                 self.output(
-                    "Not replacing existing category. Use --replace to enforce.",
+                    "Not replacing existing category. Use replace_category='True' to enforce.",
                     verbose_level=1,
                 )
                 return
