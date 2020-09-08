@@ -10,8 +10,6 @@
 	<dict>
 		<key>CATEGORY</key>
 		<string>Productivity</string>
-		<key>EXCLUSION_GROUP_NAME</key>
-		<string>macOS %OS_EXCLUDE_MAX% or less</string>
 		<key>EXCLUSION_GROUP_TEMPLATE</key>
 		<string>SmartGroup-OSVersionLimits.xml</string>
 		<key>GROUP_NAME</key>
@@ -30,6 +28,8 @@
 		<string>10.13.6</string>
 		<key>OS_EXCLUDE_MIN</key>
 		<string>10.0.0</string>
+		<key>OS_LIMITS_GROUP_NAME</key>
+		<string>macOS %OS_EXCLUDE_MAX% or less</string>
 		<key>PARAMETER4_TITLE</key>
 		<string>--All or --O365 or --Volume</string>
 		<key>PARAMETER4_VALUE</key>
@@ -143,7 +143,7 @@
 			<key>Arguments</key>
 			<dict>
 				<key>group_name</key>
-				<string>%EXCLUSION_GROUP_NAME%</string>
+				<string>%OS_LIMITS_GROUP_NAME%</string>
 				<key>group_template</key>
 				<string>%EXCLUSION_GROUP_TEMPLATE%</string>
 			</dict>

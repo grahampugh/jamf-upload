@@ -9,7 +9,7 @@ Input:
   INSTALLED_REGEX_MATCH: '^(16\.1[7-9]\.|16\.[2-9]\d\.|17\.)'
   OS_EXCLUDE_MIN: 10.0.0
   OS_EXCLUDE_MAX: 10.13.6
-  EXCLUSION_GROUP_NAME: "macOS %OS_EXCLUDE_MAX% or less"
+  OS_LIMITS_GROUP_NAME: "macOS %OS_EXCLUDE_MAX% or less"
   EXCLUSION_GROUP_TEMPLATE: SmartGroup-OSVersionLimits.xml
   CATEGORY: Productivity
   GROUP_NAME: "%NAME%-update-smart"
@@ -73,7 +73,7 @@ Process:
   - Processor: com.github.grahampugh.jamf-upload.processors/JamfComputerGroupUploader
     Arguments:
       group_template: "%EXCLUSION_GROUP_TEMPLATE%"
-      group_name: "%EXCLUSION_GROUP_NAME%"
+      group_name: "%OS_LIMITS_GROUP_NAME%"
 
   - Processor: com.github.grahampugh.jamf-upload.processors/JamfPolicyUploader
     Arguments:

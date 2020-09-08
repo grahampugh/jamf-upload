@@ -17,7 +17,7 @@
 		<exclusions>
 			<computer_groups>
 				<computer_group>
-					<name>%EXCLUSION_GROUP_NAME%</name>
+					<name>%OS_LIMITS_GROUP_NAME%</name>
 				</computer_group>
 			</computer_groups>
 		</exclusions>
