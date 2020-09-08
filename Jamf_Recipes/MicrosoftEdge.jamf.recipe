@@ -3,13 +3,17 @@
 <plist version="1.0">
 <dict>
 	<key>Description</key>
-	<string>Downloads the latest version of PyCharm CE and makes a pkg. Then, uploads the package to the Jamf Pro Server and creates a Self Service Policy and Smart Group.</string>
+	<string>Downloads the latest version of Microsoft Edge and makes a pkg. Then, uploads the package to the Jamf Pro Server and creates a Self Service Policy and Smart Group.</string>
 	<key>Identifier</key>
-	<string>com.github.grahampugh.jamf-upload.jamf.PyCharmCE</string>
+	<string>com.github.grahampugh.recipes.jamf.MicrosoftEdge</string>
 	<key>Input</key>
 	<dict>
 		<key>CATEGORY</key>
-		<string>Computer Science</string>
+		<string>Productivity</string>
+		<key>EXTENSION_ATTRIBUTE_NAME</key>
+		<string>%NAME% Version</string>
+		<key>EXTENSION_ATTRIBUTE_SCRIPT</key>
+		<string>ExtensionAttribute-CFBundleShortVersionString.sh</string>
 		<key>GROUP_NAME</key>
 		<string>%NAME%-update-smart</string>
 		<key>GROUP_TEMPLATE</key>
@@ -17,7 +21,7 @@
 		<key>INSTALL_BUTTON_TEXT</key>
 		<string>Install %version%</string>
 		<key>NAME</key>
-		<string>PyCharm CE</string>
+		<string>Microsoft Edge</string>
 		<key>POLICY_CATEGORY</key>
 		<string>Testing</string>
 		<key>POLICY_NAME</key>
@@ -27,7 +31,7 @@
 		<key>REINSTALL_BUTTON_TEXT</key>
 		<string>Install %version%</string>
 		<key>SELF_SERVICE_DESCRIPTION</key>
-		<string>PyCharm CE the community edition of an Integrated Development Environment (IDE) used for programming in Python. It provides code analysis, a graphical debugger, an integrated unit tester, integration with version control systems (VCS), and supports web development with Django.</string>
+		<string>Microsoft Edge is a fast, simple, and secure web browser, built for the modern web.</string>
 		<key>SELF_SERVICE_DISPLAY_NAME</key>
 		<string>Install Latest %NAME%</string>
 		<key>SELF_SERVICE_ICON</key>
@@ -36,6 +40,8 @@
 		<string>Testing</string>
 		<key>UPDATE_PREDICATE</key>
 		<string>pkg_uploaded == False</string>
+		<key>replace_ea</key>
+		<string>True</string>
 		<key>replace_group</key>
 		<string>True</string>
 		<key>replace_policy</key>
@@ -44,7 +50,7 @@
 	<key>MinimumVersion</key>
 	<string>2.0.0</string>
 	<key>ParentRecipe</key>
-	<string>com.github.hansen-m.pkg.pycharm</string>
+	<string>com.github.rtrouton.pkg.microsoftedge</string>
 	<key>Process</key>
 	<array>
 		<dict>
@@ -68,6 +74,17 @@
 			</dict>
 			<key>Processor</key>
 			<string>StopProcessingIf</string>
+		</dict>
+		<dict>
+			<key>Arguments</key>
+			<dict>
+				<key>ea_name</key>
+				<string>%EXTENSION_ATTRIBUTE_NAME%</string>
+				<key>ea_script_path</key>
+				<string>%EXTENSION_ATTRIBUTE_SCRIPT%</string>
+			</dict>
+			<key>Processor</key>
+			<string>com.github.grahampugh.jamf-upload.processors/JamfExtensionAttributeUploader</string>
 		</dict>
 		<dict>
 			<key>Arguments</key>

@@ -1,5 +1,5 @@
 Description: Downloads the latest version of EXAMPLE_RECIPE and makes a pkg. Then, uploads the package to the Jamf Pro Server and creates a Self Service Policy and Smart Group.
-Identifier: com.github.grahampugh.recipes.jamf.EXAMPLE_RECIPE
+Identifier: com.github.grahampugh.jamf-upload.jamf.EXAMPLE_RECIPE
 MinimumVersion: 2.0.0
 ParentRecipe: com.github.autopkg.pkg.EXAMPLE_RECIPE
 
@@ -7,13 +7,13 @@ Input:
   NAME: EXAMPLE_RECIPE
   CATEGORY: Productivity
   GROUP_NAME: "%NAME%-update-smart"
-  GROUP_TEMPLATE: SmartGroupTemplate-update-smart.xml
+  GROUP_TEMPLATE: SmartGroup-update-smart.xml
   TESTING_GROUP_NAME: Testing
   POLICY_CATEGORY: Testing
-  POLICY_TEMPLATE: PolicyTemplate-install-latest.xml
+  POLICY_TEMPLATE: Policy-install-latest.xml
   POLICY_NAME: "Install Latest %NAME%"
   SELF_SERVICE_DISPLAY_NAME: "Install Latest %NAME%"
-  SELF_SERVICE_DESCRIPTION: EXAMPLE_RECIPE_DESCRIPTION.
+  SELF_SERVICE_DESCRIPTION: EXAMPLE_RECIPE_DESCRIPTION
   SELF_SERVICE_ICON: "%NAME%.png"
   INSTALL_BUTTON_TEXT: "Install %version%"
   REINSTALL_BUTTON_TEXT: "Install %version%"
@@ -34,7 +34,7 @@ Process:
 
   - Processor: com.github.grahampugh.jamf-upload.processors/JamfComputerGroupUploader
     Arguments:
-      group_template: "SmartGroupTemplate.xml"
+      group_template: "%GROUP_TEMPLATE%"
       group_name: "%GROUP_NAME%"
 
   - Processor: com.github.grahampugh.jamf-upload.processors/JamfPolicyUploader

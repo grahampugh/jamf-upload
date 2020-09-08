@@ -3,13 +3,13 @@
 <plist version="1.0">
 <dict>
 	<key>Description</key>
-	<string>Downloads the latest version of PyCharm CE and makes a pkg. Then, uploads the package to the Jamf Pro Server and creates a Self Service Policy and Smart Group.</string>
+	<string>Downloads the latest version of Privileges and makes a pkg. Then, uploads the package to the Jamf Pro Server and creates a Self Service Policy and Smart Group.</string>
 	<key>Identifier</key>
-	<string>com.github.grahampugh.jamf-upload.jamf.PyCharmCE</string>
+	<string>com.github.grahampugh.recipes.jamf.Privileges</string>
 	<key>Input</key>
 	<dict>
 		<key>CATEGORY</key>
-		<string>Computer Science</string>
+		<string>Productivity</string>
 		<key>GROUP_NAME</key>
 		<string>%NAME%-update-smart</string>
 		<key>GROUP_TEMPLATE</key>
@@ -17,7 +17,7 @@
 		<key>INSTALL_BUTTON_TEXT</key>
 		<string>Install %version%</string>
 		<key>NAME</key>
-		<string>PyCharm CE</string>
+		<string>Privileges</string>
 		<key>POLICY_CATEGORY</key>
 		<string>Testing</string>
 		<key>POLICY_NAME</key>
@@ -27,7 +27,10 @@
 		<key>REINSTALL_BUTTON_TEXT</key>
 		<string>Install %version%</string>
 		<key>SELF_SERVICE_DESCRIPTION</key>
-		<string>PyCharm CE the community edition of an Integrated Development Environment (IDE) used for programming in Python. It provides code analysis, a graphical debugger, an integrated unit tester, integration with version control systems (VCS), and supports web development with Django.</string>
+		<string>Privileges.app for macOS is designed to allow users to work as a standard user for day-to-day use, by providing a quick and easy way to get administrator rights when needed. When you do need admin rights, you can get them by clicking on the Privileges icon in your Dock.
+
+We believe all users, including all developers, can benefit from using Privileges.app. Working as a standard user instead of an administrator adds another layer of security to your Mac and is considered a security best practice. Privileges.app helps enable users to act as administrators of the system only when required.
+</string>
 		<key>SELF_SERVICE_DISPLAY_NAME</key>
 		<string>Install Latest %NAME%</string>
 		<key>SELF_SERVICE_ICON</key>
@@ -44,7 +47,7 @@
 	<key>MinimumVersion</key>
 	<string>2.0.0</string>
 	<key>ParentRecipe</key>
-	<string>com.github.hansen-m.pkg.pycharm</string>
+	<string>com.github.rtrouton.pkg.privileges</string>
 	<key>Process</key>
 	<array>
 		<dict>

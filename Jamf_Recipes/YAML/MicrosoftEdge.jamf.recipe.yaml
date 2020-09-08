@@ -1,30 +1,28 @@
-Description: |
-  Downloads the latest version of Firefox and makes a pkg. Then, uploads the package to the Jamf Pro Server and creates a Self Service Policy and Smart Group. Values for FIREFOX_BUILD correspond to directories here: http://download-origin.cdn.mozilla.net/pub/mozilla.org/firefox/releases/
-  Some useful values are: 'latest', 'latest-10.0esr', 'latest-esr', 'latest-3.6', 'latest-beta'
-  LOCALE corresponds to directories at http://download-origin.cdn.mozilla.net/pub/mozilla.org/firefox/releases/$FIREFOX_BUILD/mac/
-  Examples include 'en-US', 'de', 'ja-JP-mac', 'sv-SE', and 'zh-TW'
-  No idea if all Firefox builds are available in all the same localizations, so you may need to verify that any particular combination is offered.
-Identifier: com.github.grahampugh.jamf-upload.jamf.Firefox
+Description: Downloads the latest version of Microsoft Edge and makes a pkg. Then, uploads the package to the Jamf Pro Server and creates a Self Service Policy and Smart Group.
+Identifier: com.github.grahampugh.recipes.jamf.MicrosoftEdge
 MinimumVersion: 2.0.0
-ParentRecipe: com.github.autopkg.pkg.Firefox_EN
+ParentRecipe: com.github.rtrouton.pkg.microsoftedge
 
 Input:
-  NAME: Firefox
+  NAME: Microsoft Edge
   CATEGORY: Productivity
   GROUP_NAME: "%NAME%-update-smart"
   GROUP_TEMPLATE: SmartGroup-update-smart.xml
+  EXTENSION_ATTRIBUTE_NAME: "%NAME% Version"
+  EXTENSION_ATTRIBUTE_SCRIPT: ExtensionAttribute-CFBundleShortVersionString.sh
   TESTING_GROUP_NAME: Testing
   POLICY_CATEGORY: Testing
   POLICY_TEMPLATE: Policy-install-latest.xml
   POLICY_NAME: "Install Latest %NAME%"
   SELF_SERVICE_DISPLAY_NAME: "Install Latest %NAME%"
-  SELF_SERVICE_DESCRIPTION: Mozilla Firefox is a free and open source web browser.
+  SELF_SERVICE_DESCRIPTION: Microsoft Edge is a fast, simple, and secure web browser, built for the modern web.
   SELF_SERVICE_ICON: "%NAME%.png"
   INSTALL_BUTTON_TEXT: "Install %version%"
   REINSTALL_BUTTON_TEXT: "Install %version%"
   UPDATE_PREDICATE: "pkg_uploaded == False"
   replace_policy: "True"
   replace_group: "True"
+  replace_ea: "True"
 
 Process:
   - Processor: com.github.grahampugh.jamf-upload.processors/JamfCategoryUploader
@@ -36,6 +34,11 @@ Process:
   - Processor: StopProcessingIf
     Arguments:
       predicate: "%UPDATE_PREDICATE%"
+
+  - Processor: com.github.grahampugh.jamf-upload.processors/JamfExtensionAttributeUploader
+    Arguments:
+      ea_script_path: "%EXTENSION_ATTRIBUTE_SCRIPT%"
+      ea_name: "%EXTENSION_ATTRIBUTE_NAME%"
 
   - Processor: com.github.grahampugh.jamf-upload.processors/JamfComputerGroupUploader
     Arguments:

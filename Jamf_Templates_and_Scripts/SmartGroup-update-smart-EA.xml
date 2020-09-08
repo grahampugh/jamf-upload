@@ -1,5 +1,6 @@
+<?xml version="1.0" encoding="UTF-8"?>
 <computer_group>
-	<name>%group_name%</name>
+	<name>%GROUP_NAME%</name>
 	<is_smart>true</is_smart>
 	<criteria>
 		<criterion>

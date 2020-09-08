@@ -5,7 +5,7 @@
 	<key>Description</key>
 	<string>Downloads the latest version of Visual Studio Code and makes a pkg. Then, uploads the package to the Jamf Pro Server and creates a Self Service Policy and Smart Group.</string>
 	<key>Identifier</key>
-	<string>com.github.grahampugh.recipes.jamf.VisualStudioCode</string>
+	<string>com.github.grahampugh.jamf-upload.jamf.VisualStudioCode</string>
 	<key>Input</key>
 	<dict>
 		<key>CATEGORY</key>
@@ -13,7 +13,7 @@
 		<key>GROUP_NAME</key>
 		<string>%NAME%-update-smart</string>
 		<key>GROUP_TEMPLATE</key>
-		<string>SmartGroupTemplate-update-smart.xml</string>
+		<string>SmartGroup-update-smart.xml</string>
 		<key>INSTALL_BUTTON_TEXT</key>
 		<string>Install %version%</string>
 		<key>NAME</key>
@@ -23,7 +23,7 @@
 		<key>POLICY_NAME</key>
 		<string>Install Latest %NAME%</string>
 		<key>POLICY_TEMPLATE</key>
-		<string>PolicyTemplate-install-latest.xml</string>
+		<string>Policy-install-latest.xml</string>
 		<key>REINSTALL_BUTTON_TEXT</key>
 		<string>Install %version%</string>
 		<key>SELF_SERVICE_DESCRIPTION</key>
@@ -75,7 +75,7 @@
 				<key>group_name</key>
 				<string>%GROUP_NAME%</string>
 				<key>group_template</key>
-				<string>SmartGroupTemplate.xml</string>
+				<string>%GROUP_TEMPLATE%</string>
 			</dict>
 			<key>Processor</key>
 			<string>com.github.grahampugh.jamf-upload.processors/JamfComputerGroupUploader</string>

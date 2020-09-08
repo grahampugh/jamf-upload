@@ -10,7 +10,7 @@ Examples include 'en-US', 'de', 'ja-JP-mac', 'sv-SE', and 'zh-TW'
 No idea if all Firefox builds are available in all the same localizations, so you may need to verify that any particular combination is offered.
 </string>
 	<key>Identifier</key>
-	<string>com.github.grahampugh.recipes.jamf.Firefox</string>
+	<string>com.github.grahampugh.jamf-upload.jamf.Firefox</string>
 	<key>Input</key>
 	<dict>
 		<key>CATEGORY</key>
@@ -18,7 +18,7 @@ No idea if all Firefox builds are available in all the same localizations, so yo
 		<key>GROUP_NAME</key>
 		<string>%NAME%-update-smart</string>
 		<key>GROUP_TEMPLATE</key>
-		<string>SmartGroupTemplate-update-smart.xml</string>
+		<string>SmartGroup-update-smart.xml</string>
 		<key>INSTALL_BUTTON_TEXT</key>
 		<string>Install %version%</string>
 		<key>NAME</key>
@@ -28,7 +28,7 @@ No idea if all Firefox builds are available in all the same localizations, so yo
 		<key>POLICY_NAME</key>
 		<string>Install Latest %NAME%</string>
 		<key>POLICY_TEMPLATE</key>
-		<string>PolicyTemplate-install-latest.xml</string>
+		<string>Policy-install-latest.xml</string>
 		<key>REINSTALL_BUTTON_TEXT</key>
 		<string>Install %version%</string>
 		<key>SELF_SERVICE_DESCRIPTION</key>
@@ -80,7 +80,7 @@ No idea if all Firefox builds are available in all the same localizations, so yo
 				<key>group_name</key>
 				<string>%GROUP_NAME%</string>
 				<key>group_template</key>
-				<string>SmartGroupTemplate.xml</string>
+				<string>%GROUP_TEMPLATE%</string>
 			</dict>
 			<key>Processor</key>
 			<string>com.github.grahampugh.jamf-upload.processors/JamfComputerGroupUploader</string>

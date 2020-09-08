@@ -1,15 +1,10 @@
-Description: |
-  Downloads the latest version of Firefox and makes a pkg. Then, uploads the package to the Jamf Pro Server and creates a Self Service Policy and Smart Group. Values for FIREFOX_BUILD correspond to directories here: http://download-origin.cdn.mozilla.net/pub/mozilla.org/firefox/releases/
-  Some useful values are: 'latest', 'latest-10.0esr', 'latest-esr', 'latest-3.6', 'latest-beta'
-  LOCALE corresponds to directories at http://download-origin.cdn.mozilla.net/pub/mozilla.org/firefox/releases/$FIREFOX_BUILD/mac/
-  Examples include 'en-US', 'de', 'ja-JP-mac', 'sv-SE', and 'zh-TW'
-  No idea if all Firefox builds are available in all the same localizations, so you may need to verify that any particular combination is offered.
-Identifier: com.github.grahampugh.jamf-upload.jamf.Firefox
+Description: Downloads the latest version of Privileges and makes a pkg. Then, uploads the package to the Jamf Pro Server and creates a Self Service Policy and Smart Group.
+Identifier: com.github.grahampugh.recipes.jamf.Privileges
 MinimumVersion: 2.0.0
-ParentRecipe: com.github.autopkg.pkg.Firefox_EN
+ParentRecipe: com.github.rtrouton.pkg.privileges
 
 Input:
-  NAME: Firefox
+  NAME: Privileges
   CATEGORY: Productivity
   GROUP_NAME: "%NAME%-update-smart"
   GROUP_TEMPLATE: SmartGroup-update-smart.xml
@@ -18,7 +13,10 @@ Input:
   POLICY_TEMPLATE: Policy-install-latest.xml
   POLICY_NAME: "Install Latest %NAME%"
   SELF_SERVICE_DISPLAY_NAME: "Install Latest %NAME%"
-  SELF_SERVICE_DESCRIPTION: Mozilla Firefox is a free and open source web browser.
+  SELF_SERVICE_DESCRIPTION: |
+    Privileges.app for macOS is designed to allow users to work as a standard user for day-to-day use, by providing a quick and easy way to get administrator rights when needed. When you do need admin rights, you can get them by clicking on the Privileges icon in your Dock.
+
+    We believe all users, including all developers, can benefit from using Privileges.app. Working as a standard user instead of an administrator adds another layer of security to your Mac and is considered a security best practice. Privileges.app helps enable users to act as administrators of the system only when required.
   SELF_SERVICE_ICON: "%NAME%.png"
   INSTALL_BUTTON_TEXT: "Install %version%"
   REINSTALL_BUTTON_TEXT: "Install %version%"

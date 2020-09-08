@@ -1,5 +1,5 @@
-Description: Creates a category and uploads a package.
-Identifier: com.github.grahampugh.jamf.Mattermost
+Description: This is a temporary recipe that is showcasing all the possible processor uses while real examples are identified. Do not use for Mattermost!
+Identifier: com.github.grahampugh.jamf-test-do-not-use.Mattermost
 MinimumVersion: 2.0.0
 ParentRecipe: com.github.jlehikoinen.pkg.Mattermost
 
