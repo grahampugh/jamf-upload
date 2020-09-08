@@ -72,12 +72,21 @@ class JamfComputerGroupUploader(Processor):
                 ),
                 verbose_level=2,
             )
-            data = re.sub(
-                f"%{custom_key}%",
-                str(self.env.get(custom_key)),
-                data,
-                flags=re.IGNORECASE,
-            )
+            try:
+                data = re.sub(
+                    f"%{custom_key}%",
+                    str(self.env.get(custom_key)),
+                    data,
+                    flags=re.IGNORECASE,
+                )
+            except re.error:
+                self.output(
+                    (
+                        f"WARNING: Could not replace instances of '{custom_key}' with",
+                        f"'{str(self.env.get(custom_key))}'",
+                    ),
+                    verbose_level=2,
+                )
         return data
 
     def logging_hook(self, response, *args, **kwargs):
@@ -241,7 +250,7 @@ class JamfComputerGroupUploader(Processor):
             self.group_template = self.get_path_to_file(self.group_template)
 
         # now start the process of uploading the object
-        self.output(f" for existing '{self.group_name}' on {self.jamf_url}")
+        self.output(f"Checking for existing '{self.group_name}' on {self.jamf_url}")
 
         # check for existing - requires obj_name
         obj_type = "computer_group"
