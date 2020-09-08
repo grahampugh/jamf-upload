@@ -58,6 +58,10 @@ def upload_script(
         script_contents, cli_custom_keys, verbosity
     )
 
+    # priority has to be in upper case. Let's make it nice for the user
+    if script_priority:
+        script_priority = script_priority.upper()
+
     # build the object
     script_data = {
         "name": script_name,
