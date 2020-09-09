@@ -129,6 +129,10 @@
 			<string>com.github.grahampugh.jamf-upload.processors/JamfScriptUploader</string>
 		</dict>
 		<dict>
+			<key>Processor</key>
+			<string>com.github.grahampugh.jamf-upload.processors/VersionRegexGenerator</string>
+		</dict>
+		<dict>
 			<key>Arguments</key>
 			<dict>
 				<key>group_name</key>

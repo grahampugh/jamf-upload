@@ -17,7 +17,7 @@
 		<key>GROUP_NAME</key>
 		<string>%NAME%-update-smart</string>
 		<key>GROUP_TEMPLATE</key>
-		<string>SmartGroup-update-smart-EA.xml</string>
+		<string>SmartGroup-update-smart-EA-regex.xml</string>
 		<key>INSTALL_BUTTON_TEXT</key>
 		<string>Install %version%</string>
 		<key>NAME</key>
@@ -74,6 +74,10 @@
 			</dict>
 			<key>Processor</key>
 			<string>StopProcessingIf</string>
+		</dict>
+		<dict>
+			<key>Processor</key>
+			<string>com.github.grahampugh.jamf-upload.processors/VersionRegexGenerator</string>
 		</dict>
 		<dict>
 			<key>Arguments</key>

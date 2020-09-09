@@ -18,7 +18,7 @@ No idea if all Firefox builds are available in all the same localizations, so yo
 		<key>GROUP_NAME</key>
 		<string>%NAME%-update-smart</string>
 		<key>GROUP_TEMPLATE</key>
-		<string>SmartGroup-update-smart.xml</string>
+		<string>SmartGroup-update-smart-regex.xml</string>
 		<key>INSTALL_BUTTON_TEXT</key>
 		<string>Install %version%</string>
 		<key>NAME</key>
@@ -73,6 +73,10 @@ No idea if all Firefox builds are available in all the same localizations, so yo
 			</dict>
 			<key>Processor</key>
 			<string>StopProcessingIf</string>
+		</dict>
+		<dict>
+			<key>Processor</key>
+			<string>com.github.grahampugh.jamf-upload.processors/VersionRegexGenerator</string>
 		</dict>
 		<dict>
 			<key>Arguments</key>

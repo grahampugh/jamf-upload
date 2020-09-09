@@ -24,7 +24,7 @@
 		<criterion>
 			<name>Application Title</name>
 			<priority>2</priority>
-			<and_or>and</and_or>
+			<and_or>or</and_or>
 			<search_type>is not</search_type>
 			<value>%JSS_INVENTORY_NAME%</value>
 			<opening_paren>false</opening_paren>

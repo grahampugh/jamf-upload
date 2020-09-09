@@ -7,7 +7,7 @@ Input:
   NAME: Skype
   CATEGORY: Productivity
   GROUP_NAME: "%NAME%-update-smart"
-  GROUP_TEMPLATE: SmartGroup-update-smart-EA.xml
+  GROUP_TEMPLATE: SmartGroup-update-smart-EA-regex.xml
   EXTENSION_ATTRIBUTE_NAME: "%NAME% Version"
   EXTENSION_ATTRIBUTE_SCRIPT: ExtensionAttribute-CFBundleVersion.sh
   TESTING_GROUP_NAME: Testing
@@ -34,6 +34,8 @@ Process:
   - Processor: StopProcessingIf
     Arguments:
       predicate: "%UPDATE_PREDICATE%"
+
+  - Processor: com.github.grahampugh.jamf-upload.processors/VersionRegexGenerator
 
   - Processor: com.github.grahampugh.jamf-upload.processors/JamfExtensionAttributeUploader
     Arguments:

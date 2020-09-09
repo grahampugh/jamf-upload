@@ -65,6 +65,8 @@ Process:
       script_parameter5: "%PARAMETER5_TITLE%"
       script_parameter6: "%PARAMETER6_TITLE%"
 
+  - Processor: com.github.grahampugh.jamf-upload.processors/VersionRegexGenerator
+
   - Processor: com.github.grahampugh.jamf-upload.processors/JamfComputerGroupUploader
     Arguments:
       group_template: "%GROUP_TEMPLATE%"

@@ -12,7 +12,7 @@ Input:
   NAME: Firefox
   CATEGORY: Productivity
   GROUP_NAME: "%NAME%-update-smart"
-  GROUP_TEMPLATE: SmartGroup-update-smart.xml
+  GROUP_TEMPLATE: SmartGroup-update-smart-regex.xml
   TESTING_GROUP_NAME: Testing
   POLICY_CATEGORY: Testing
   POLICY_TEMPLATE: Policy-install-latest.xml
@@ -36,6 +36,8 @@ Process:
   - Processor: StopProcessingIf
     Arguments:
       predicate: "%UPDATE_PREDICATE%"
+
+  - Processor: com.github.grahampugh.jamf-upload.processors/VersionRegexGenerator
 
   - Processor: com.github.grahampugh.jamf-upload.processors/JamfComputerGroupUploader
     Arguments:

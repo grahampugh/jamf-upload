@@ -14,8 +14,8 @@
 			<name>%EXTENSION_ATTRIBUTE_NAME%</name>
 			<priority>1</priority>
 			<and_or>and</and_or>
-			<search_type>is not</search_type>
-			<value>%version%</value>
+			<search_type>does not match regex</search_type>
+			<value>%version_regex%</value>
 		</criterion>
 		<criterion>
 			<name>%EXTENSION_ATTRIBUTE_NAME%</name>

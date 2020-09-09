@@ -9,6 +9,7 @@ JamfPolicyUploader processor for uploading items to Jamf Pro using AutoPkg
 # import variables go here. Do not import unused modules
 import json
 import mimetypes
+import re
 import requests
 import os.path
 import xml.etree.ElementTree as ElementTree
@@ -74,7 +75,7 @@ class JamfPolicyUploader(Processor):
 
     def substitute_assignable_keys(self, data):
         """substitutes any key in the inputted text using the %MY_KEY% nomenclature"""
-        # whenever %MY_KEY% is found in a template, it is replaced with the assigned value of MY_KEY
+        # whenever %MY_KEY% is found in a template, it is replaced with the assigned value of MY_KEY. This did done case-insensitively
         for custom_key in self.env:
             self.output(
                 (
@@ -83,7 +84,21 @@ class JamfPolicyUploader(Processor):
                 ),
                 verbose_level=2,
             )
-            data = data.replace(f"%{custom_key}%", str(self.env.get(custom_key)))
+            try:
+                data = re.sub(
+                    f"%{custom_key}%",
+                    lambda _: str(self.env.get(custom_key)),
+                    data,
+                    flags=re.IGNORECASE,
+                )
+            except re.error:
+                self.output(
+                    (
+                        f"WARNING: Could not replace instances of '{custom_key}' with",
+                        f"'{str(self.env.get(custom_key))}'",
+                    ),
+                    verbose_level=2,
+                )
         return data
 
     def logging_hook(self, response, *args, **kwargs):

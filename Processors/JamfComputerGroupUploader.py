@@ -75,7 +75,7 @@ class JamfComputerGroupUploader(Processor):
             try:
                 data = re.sub(
                     f"%{custom_key}%",
-                    str(self.env.get(custom_key)),
+                    lambda _: str(self.env.get(custom_key)),
                     data,
                     flags=re.IGNORECASE,
                 )

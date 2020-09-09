@@ -25,8 +25,8 @@
 			<name>Application Version</name>
 			<priority>2</priority>
 			<and_or>and</and_or>
-			<search_type>is not</search_type>
-			<value>%version%</value>
+			<search_type>does not match regex</search_type>
+			<value>%version_regex%</value>
 			<opening_paren>false</opening_paren>
 			<closing_paren>true</closing_paren>
 		</criterion>
