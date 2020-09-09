@@ -174,7 +174,7 @@ def post_pkg(pkg_name, pkg_path, jamf_url, enc_creds, obj_id, r_timeout, verbosi
 
 
 def curl_pkg(pkg_name, pkg_path, jamf_url, enc_creds, obj_id, r_timeout, verbosity):
-    """sends the package"""
+    """uploads the package using curl"""
     url = "{}/dbfileupload".format(jamf_url)
     curl_cmd = [
         "/usr/bin/curl",
@@ -202,6 +202,38 @@ def curl_pkg(pkg_name, pkg_path, jamf_url, enc_creds, obj_id, r_timeout, verbosi
         print(curl_cmd)
 
     r = subprocess.check_output(curl_cmd)
+    return r
+
+
+def nscurl_pkg(pkg_name, pkg_path, jamf_url, enc_creds, obj_id, r_timeout, verbosity):
+    """uploads the package using nscurl"""
+    url = "{}/dbfileupload".format(jamf_url)
+    nscurl_cmd = [
+        "/usr/bin/nscurl",
+        "-M",
+        "POST",
+        "--header",
+        "authorization: Basic {}".format(enc_creds),
+        "--header",
+        "DESTINATION: 0",
+        "--header",
+        "OBJECT_ID: {}".format(obj_id),
+        "--header",
+        "FILE_TYPE: 0",
+        "--header",
+        "FILE_NAME: {}".format(pkg_name),
+        "--upload",
+        pkg_path,
+        "--payload-transmission-timeout",
+        str(r_timeout),
+        "--output",
+        "-",
+        url,
+    ]
+    if verbosity:
+        print(nscurl_cmd)
+
+    r = subprocess.check_output(nscurl_cmd)
     return r
 
 
@@ -427,6 +459,11 @@ def get_args():
         "--curl", help="use curl instead of requests", action="store_true",
     )
     parser.add_argument(
+        "--nscurl",
+        help="use nscurl instead of requests (experimental)",
+        action="store_true",
+    )
+    parser.add_argument(
         "--direct",
         help="use direct upload to JCDS (experimental, will not work if JCDS is not primary distribution point)",
         action="store_true",
@@ -634,6 +671,33 @@ def main():
                 # curl -> dbfileupload upload method option
                 elif args.curl:
                     r = curl_pkg(
+                        pkg_name,
+                        pkg_path,
+                        jamf_url,
+                        enc_creds,
+                        obj_id,
+                        r_timeout,
+                        verbosity,
+                    )
+                    try:
+                        pkg_id = ElementTree.fromstring(r).findtext("id")
+                        if pkg_id:
+                            print(
+                                "\nPackage uploaded successfully, ID={}".format(pkg_id)
+                            )
+                    except ElementTree.ParseError:
+                        print("Could not parse XML. Raw output:")
+                        print(r.decode("ascii"))
+                    else:
+                        if verbosity:
+                            if r:
+                                print("\nResponse:\n")
+                                print(r.decode("ascii"))
+                            else:
+                                print("No HTTP response")
+                # nscurl -> dbfileupload upload method option
+                elif args.nscurl:
+                    r = nscurl_pkg(
                         pkg_name,
                         pkg_path,
                         jamf_url,
