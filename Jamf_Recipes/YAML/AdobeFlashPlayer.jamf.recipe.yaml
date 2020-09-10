@@ -1,0 +1,63 @@
+Description: Downloads the latest version of Adobe Flash Player and makes a pkg. Then, uploads the package to the Jamf Pro Server and creates a Self Service Policy and Smart Group.
+Identifier: com.github.grahampugh.jamf-upload.jamf.AdobeFlashPlayer
+MinimumVersion: 2.0.0
+ParentRecipe: com.github.autopkg.pkg.FlashPlayerExtractPackage
+
+Input:
+  NAME: Adobe Flash Player
+  JSS_INVENTORY_NAME: Adobe Flash Player Install Manager.app
+  CATEGORY: Browsers & Players
+  GROUP_NAME: "%NAME%-update-smart"
+  GROUP_TEMPLATE: SmartGroup-update-smart-EA-regex.xml
+  EXTENSION_ATTRIBUTE_NAME: AdobeFlashVersion
+  EXTENSION_ATTRIBUTE_SCRIPT: ExtensionAttribute-AdobeFlashPlayer.sh
+  TESTING_GROUP_NAME: Testing
+  POLICY_CATEGORY: Testing
+  POLICY_TEMPLATE: Policy-install-latest.xml
+  POLICY_NAME: "Install Latest %NAME%"
+  SCRIPT_NAME: "Postinstall-AdobeFlashPlayer.sh"
+  SCRIPT_PRIORITY: After
+  SELF_SERVICE_DISPLAY_NAME: "Install Latest %NAME%"
+  SELF_SERVICE_DESCRIPTION: Adobe Flash Player is freeware software for using content created on the Adobe Flash platform, including viewing multimedia, executing rich Internet applications, and streaming video and audio.
+  SELF_SERVICE_ICON: "%NAME%.png"
+  INSTALL_BUTTON_TEXT: "Install %version%"
+  REINSTALL_BUTTON_TEXT: "Install %version%"
+  UPDATE_PREDICATE: "pkg_uploaded == False"
+  replace_policy: "True"
+  replace_group: "True"
+  replace_script: "True"
+
+Process:
+  - Processor: com.github.grahampugh.jamf-upload.processors/JamfCategoryUploader
+    Arguments:
+      category_name: "%CATEGORY%"
+
+  - Processor: com.github.grahampugh.jamf-upload.processors/JamfPackageUploader
+
+  - Processor: StopProcessingIf
+    Arguments:
+      predicate: "%UPDATE_PREDICATE%"
+
+  - Processor: com.github.grahampugh.jamf-upload.processors/VersionRegexGenerator
+
+  - Processor: com.github.grahampugh.jamf-upload.processors/JamfScriptUploader
+    Arguments:
+      script_category: "%CATEGORY%"
+      script_path: "%SCRIPT_NAME%"
+      script_priority: "%SCRIPT_PRIORITY%"
+
+  - Processor: com.github.grahampugh.jamf-upload.processors/JamfExtensionAttributeUploader
+    Arguments:
+      ea_script_path: "%EXTENSION_ATTRIBUTE_SCRIPT%"
+      ea_name: "%EXTENSION_ATTRIBUTE_NAME%"
+
+  - Processor: com.github.grahampugh.jamf-upload.processors/JamfComputerGroupUploader
+    Arguments:
+      group_template: "%GROUP_TEMPLATE%"
+      group_name: "%GROUP_NAME%"
+
+  - Processor: com.github.grahampugh.jamf-upload.processors/JamfPolicyUploader
+    Arguments:
+      policy_template: "%POLICY_TEMPLATE%"
+      policy_name: "%POLICY_NAME%"
+      icon: "%SELF_SERVICE_ICON%"
