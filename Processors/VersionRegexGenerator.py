@@ -33,6 +33,12 @@ class VersionRegexGenerator(Processor):
         "version_regex": {
             "description": "Regex which matches or exceeds the inputted version string.",
         },
+        "version_regex_1": {
+            "description": "Regex which matches or exceeds the inputted version string - second line for complex version numbers.",
+        },
+        "version_regex_3": {
+            "description": "Regex which matches or exceeds the inputted version string - third line for complex version numbers.",
+        },
     }
 
     def get_path_to_file(self, filename):
@@ -78,12 +84,24 @@ class VersionRegexGenerator(Processor):
             "-j",
             self.version,
         ]
-        regex = subprocess.check_output(cmd).decode("ascii")
-        # TODO complex version strings might output two lines
-        # so we will have to account for this and have a second output variable
-        self.output("Regex for version string {}:".format(self.version))
-        self.output(regex)
-        self.env["version_regex"] = regex
+        regex_lines = subprocess.check_output(cmd).decode("ascii").splitlines()
+        # complex version strings might output two or even three lines
+        # so we have to account for this and have a second and third output variable
+        self.env["version_regex"] = ""
+        self.env["version_regex_2"] = ""
+        self.env["version_regex_3"] = ""
+        for i in range(0, len(regex_lines)):
+            self.output(
+                "Regex {} for version string {}: {}".format(
+                    i, self.version, regex_lines[i]
+                )
+            )
+            if i == 0:
+                self.env["version_regex"] = regex_lines[i]
+            if i == 1:
+                self.env["version_regex_2"] = regex_lines[i]
+            if i == 2:
+                self.env["version_regex_3"] = regex_lines[i]
 
 
 if __name__ == "__main__":
