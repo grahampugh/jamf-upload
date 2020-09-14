@@ -76,7 +76,7 @@ No idea if all Firefox builds are available in all the same localizations, so yo
 		</dict>
 		<dict>
 			<key>Processor</key>
-			<string>com.github.grahampugh.jamf-upload.processors/VersionRegexGenerator</string>
+			<string>com.github.grahampugh.recipes.commonprocessors/VersionRegexGenerator</string>
 		</dict>
 		<dict>
 			<key>Arguments</key>
