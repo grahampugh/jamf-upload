@@ -6,6 +6,7 @@ JamfPackageUploader processor for AutoPkg
 
 Developed from an idea posted at
     https://www.jamf.com/jamf-nation/discussions/27869#responseChild166021
+    Modified by Everette Allen to provide summary information for SlackJPUNotifier and HangoutsChatJPUNotifier
 """
 
 
@@ -22,7 +23,7 @@ import xml.etree.ElementTree as ElementTree
 from shutil import copyfile
 from urllib.parse import urlparse
 from autopkglib import Processor, ProcessorError  # pylint: disable=import-error
-
+from datetime import datetime
 
 class JamfPackageUploader(Processor):
     """A processor for AutoPkg that will upload a package to a JCDS or 
@@ -101,6 +102,12 @@ class JamfPackageUploader(Processor):
             "the com.github.autopkg preference file.",
             "default": "",
         },
+            "pkg_prefix": {
+            "required": False,
+            "description": "Optional string to prepend to package before upload"
+            "can be in preferences or passed from environment",
+            "default": "",
+        }
     }
 
     output_variables = {
@@ -212,10 +219,12 @@ class JamfPackageUploader(Processor):
             obj = json.loads(r.text)
             try:
                 obj_id = str(obj["package"]["id"])
+                #pkg_date = str(obj["package"]["note"])
             except KeyError:
                 obj_id = "-1"
         else:
             obj_id = "-1"
+            
         return obj_id
 
     def post_pkg(self, pkg_name, pkg_path, jamf_url, enc_creds, obj_id):
@@ -233,6 +242,7 @@ class JamfPackageUploader(Processor):
 
         http = requests.Session()
         r = http.post(url, data=files, headers=headers, timeout=3600)
+        sleep(30)
         return r
 
     def curl_pkg(self, pkg_name, pkg_path, jamf_url, enc_creds, obj_id):
@@ -263,19 +273,22 @@ class JamfPackageUploader(Processor):
         self.output(curl_cmd, verbose_level=2)
 
         r = subprocess.check_output(curl_cmd)
+        #sleep(30)
         return r
 
     def update_pkg_metadata(self, jamf_url, enc_creds, pkg_name, category, pkg_id=None):
         """Update package metadata. Currently only serves category"""
 
+        self.output("in update metadata routine")
         # build the package record XML
         pkg_data = (
             "<package>"
             + f"<name>{pkg_name}</name>"
-            + f"<filename>{pkg_name}</filename>"
+            + f"<filename>{pkg_name}</filename>" 
             + f"<category>{category}</category>"
             + "</package>"
         )
+        
         headers = {
             "authorization": f"Basic {enc_creds}",
             "Accept": "application/xml",
@@ -350,6 +363,13 @@ class JamfPackageUploader(Processor):
         self.smb_url = self.env.get("SMB_URL")
         self.smb_user = self.env.get("SMB_USERNAME")
         self.smb_password = self.env.get("SMB_PASSWORD")
+        self.pkg_status = "Unchanged"
+        self.pkg_prefix = self.env.get("pkg_prefix")
+        self.pkg_uploaded = False
+        #get the local time 
+        now = datetime.now()
+        self.pkg_date = date_time = now.strftime("%m/%d/%Y, %H:%M:%S")
+
         # clear any pre-existing summary result
         if "jamfpackageuploader_summary_result" in self.env:
             del self.env["jamfpackageuploader_summary_result"]
@@ -363,6 +383,15 @@ class JamfPackageUploader(Processor):
         if os.path.isdir(self.pkg_path):
             self.pkg_path = self.zip_pkg_path(self.pkg_path)
             self.pkg_name += ".zip"
+            
+        # change name of package to add prefix if set
+        if self.pkg_prefix:
+            dn = os.path.dirname(self.pkg_path)
+            rename_path = f"{dn}/{self.pkg_prefix}{self.pkg_name}"
+            os.rename (f"{self.pkg_path}", f"{rename_path}")
+            self.pkg_path = rename_path
+            self.pkg_name = os.path.basename(self.pkg_path)
+
 
         # now start the process of uploading the package
         self.output(f"Checking for existing '{self.pkg_name}' on {self.jamf_url}")
@@ -383,6 +412,8 @@ class JamfPackageUploader(Processor):
             if not local_pkg or self.replace:
                 # copy the file
                 self.copy_pkg(self.smb_url, self.pkg_path, self.pkg_name)
+                pkg_status = "New Package Uploaded"
+                self.pkg_updated = True
                 # unmount the share
                 self.umount_smb(self.smb_url)
             else:
@@ -394,7 +425,7 @@ class JamfPackageUploader(Processor):
                 # even if we don't upload a package, we still need to pass it on so that a policy processor can use it
                 self.env["pkg_name"] = self.pkg_name
                 self.env["pkg_uploaded"] = False
-                return
+                # return
 
         #  otherwise process for cloud DP
         else:
@@ -417,6 +448,8 @@ class JamfPackageUploader(Processor):
                             self.output(
                                 "Package uploaded successfully, ID={}".format(pkg_id)
                             )
+                            self.pkg_status = (f"Package uploaded successfully, ID={pkg_id}")
+                            self.pkg_uploaded = True
                     except ElementTree.ParseError:
                         self.output("Could not parse XML. Raw output:", verbose_level=2)
                         self.output(r.decode("ascii"), verbose_level=2)
@@ -434,6 +467,8 @@ class JamfPackageUploader(Processor):
                     if r.status_code == 200 or r.status_code == 201:
                         pkg_id = ElementTree.fromstring(r.text).findtext("id")
                         self.output(f"Package uploaded successfully, ID={pkg_id}")
+                        self.pkg_status = (f"Package uploaded successfully, ID={pkg_id}")
+                        self.pkg_uploaded = True
                         #  now process the package metadata if specified
                     else:
                         self.output(
@@ -469,32 +504,36 @@ class JamfPackageUploader(Processor):
                 )
                 # even if we don't upload a package, we still need to pass it on so that a policy processor can use it
                 self.env["pkg_name"] = self.pkg_name
-                self.env["pkg_uploaded"] = False
-                return
+                self.pkg_uploaded = False
+                #return
 
-        #  now process the package metadata if specified
-        if self.category or self.smb_url:
-            try:
-                pkg_id
-                self.update_pkg_metadata(
-                    self.jamf_url, enc_creds, self.pkg_name, self.category, pkg_id
-                )
-            except UnboundLocalError:
-                self.update_pkg_metadata(
-                    self.jamf_url, enc_creds, self.pkg_name, self.category
-                )
+        #  now process the package metadata if specified and there is an update
+        if self.replace or self.pkg_uploaded:
+            if self.category:
+                try:
+                    pkg_id
+                    self.update_pkg_metadata(
+                        self.jamf_url, enc_creds, self.pkg_name, self.category, pkg_id
+                    )
+                except UnboundLocalError:
+                    self.update_pkg_metadata(
+                        self.jamf_url, enc_creds, self.pkg_name, self.category
+                    )
+        
 
         # output the summary
         self.env["pkg_name"] = self.pkg_name
-        self.env["pkg_uploaded"] = True
+        self.env["pkg_uploaded"] = self.pkg_uploaded
         self.env["jamfpackageuploader_summary_result"] = {
             "summary_text": "The following packages were uploaded to Jamf Pro:",
-            "report_fields": ["pkg_path", "pkg_name", "version", "category"],
+            "report_fields": ["pkg_path", "pkg_name", "version", "category", "pkg_status", "pkg_date"],
             "data": {
                 "pkg_path": self.pkg_path,
                 "pkg_name": self.pkg_name,
                 "version": self.version,
                 "category": self.category,
+                "pkg_status": self.pkg_status,
+                "pkg_date": self.pkg_date
             },
         }
 
