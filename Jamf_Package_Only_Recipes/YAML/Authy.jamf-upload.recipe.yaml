@@ -1,0 +1,16 @@
+Description: Downloads the latest version of Authy and makes a pkg. Then, uploads to the Jamf Pro Server.
+Identifier: com.github.grahampugh.recipes.jamf-upload.Authy
+MinimumVersion: 2.0.0
+ParentRecipe: com.github.nzmacgeek.pkg.authy
+
+Input:
+  CATEGORY: Security
+
+Process:
+  - Processor: com.github.grahampugh.jamf-upload.processors/JamfCategoryUploader
+    Arguments:
+      category_name: "%CATEGORY%"
+
+  - Processor: com.github.grahampugh.jamf-upload.processors/JamfPackageUploader
+    Arguments:
+      pkg_category: "%CATEGORY%"
