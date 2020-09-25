@@ -1,28 +1,23 @@
 #!/usr/bin/env python3
 
 import json
-import requests
+import subprocess
+import sys  # temp
 
-from . import api_connect
+from . import actions, api_connect
 
 
 def get_uapi_obj_id_from_name(jamf_url, object_type, object_name, token, verbosity):
     """The UAPI doesn't have a name object, so we have to get the list of scripts 
     and parse the name to get the id """
-    headers = {
-        "authorization": "Bearer {}".format(token),
-        "accept": "application/json",
-    }
-    url = "{}/uapi/v1/{}".format(jamf_url, object_type)
-    http = requests.Session()
-    if verbosity > 2:
-        http.hooks["response"] = [api_connect.logging_hook]
 
-    r = http.get(url, headers=headers)
+    url = "{}/uapi/v1/{}".format(jamf_url, object_type)
+
+    r = actions.nscurl("GET", url, token, verbosity)
+
     if r.status_code == 200:
-        object_list = json.loads(r.text)
         obj_id = 0
-        for obj in object_list["results"]:
+        for obj in r.output["results"]:
             if verbosity > 2:
                 print(obj)
             if obj["name"] == object_name:
@@ -48,14 +43,12 @@ def check_api_obj_id_from_name(
         "policy": "policies",
         "extension_attribute": "computer_extension_attributes",
     }
-    headers = {
-        "authorization": "Basic {}".format(enc_creds),
-        "accept": "application/json",
-    }
+
     url = "{}/JSSResource/{}".format(jamf_url, object_types[object_type])
-    r = requests.get(url, headers=headers)
+    r = actions.nscurl("GET", url, enc_creds, verbosity)
+
     if r.status_code == 200:
-        object_list = json.loads(r.text)
+        object_list = json.loads(r.output)
         if verbosity > 2:
             print(object_list)
         obj_id = 0
@@ -80,14 +73,11 @@ def get_api_obj_value_from_id(
         "policy": "policies",
         "extension_attribute": "computerextensionattributes",
     }
-    headers = {
-        "authorization": "Basic {}".format(enc_creds),
-        "accept": "application/json",
-    }
+
     url = "{}/JSSResource/{}/id/{}".format(jamf_url, object_types[object_type], obj_id)
-    r = requests.get(url, headers=headers)
+    r = actions.nscurl("GET", url, enc_creds, verbosity)
     if r.status_code == 200:
-        obj_content = json.loads(r.text)
+        obj_content = json.loads(r.output)
         if verbosity > 2:
             print(obj_content)
 
@@ -112,7 +102,7 @@ def get_headers(r):
     print("\nHeaders:\n")
     print(r.headers)
     print("\nResponse:\n")
-    if r.text:
-        print(r.text)
+    if r.output:
+        print(r.output)
     else:
         print("None")

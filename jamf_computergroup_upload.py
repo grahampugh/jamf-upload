@@ -20,9 +20,7 @@ For usage, run jamf_computergroup_upload.py --help
 import argparse
 import json
 import re
-import requests
 from time import sleep
-from requests_toolbelt.utils import dump
 
 from jamf_upload_lib import actions, api_connect, api_get
 
@@ -61,34 +59,30 @@ def upload_computergroup(
     obj_id=None,
 ):
     """Upload computer group"""
-    headers = {
-        "authorization": "Basic {}".format(enc_creds),
-        "Accept": "application/xml",
-        "Content-type": "application/xml",
-    }
+
     # if we find an object ID we put, if not, we post
     if obj_id:
         url = "{}/JSSResource/computergroups/id/{}".format(jamf_url, obj_id)
     else:
         url = "{}/JSSResource/computergroups/id/0".format(jamf_url)
 
-    http = requests.Session()
     if verbosity > 2:
-        http.hooks["response"] = [api_connect.logging_hook]
         print("Computer Group data:")
         print(template_contents)
 
     print("Uploading Computer Group...")
+
+    #  write the template to temp file
+    template_xml = actions.write_temp_file(template_contents)
 
     count = 0
     while True:
         count += 1
         if verbosity > 1:
             print("Computer Group upload attempt {}".format(count))
-        if obj_id:
-            r = http.put(url, headers=headers, data=template_contents, timeout=60)
-        else:
-            r = http.post(url, headers=headers, data=template_contents, timeout=60)
+        method = "PUT" if obj_id else "POST"
+        r = actions.nscurl(method, url, enc_creds, verbosity, template_xml)
+
         if r.status_code == 200 or r.status_code == 201:
             print(
                 "Computer Group '{}' uploaded successfully".format(computergroup_name)
@@ -104,14 +98,8 @@ def upload_computergroup(
             break
         sleep(30)
 
-    if verbosity:
-        print("\nHeaders:\n")
-        print(r.headers)
-        print("\nResponse:\n")
-        if r.text:
-            print(r.text)
-        else:
-            print("None")
+    if verbosity > 1:
+        api_get.get_headers(r)
 
 
 def get_args():

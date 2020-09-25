@@ -8,6 +8,8 @@ from base64 import b64encode
 import requests
 from requests_toolbelt.utils import dump
 
+from . import actions
+
 
 def get_credentials(prefs_file):
     """get credentials from an existing AutoPkg prefs file"""
@@ -74,23 +76,11 @@ def logging_hook(response, *args, **kwargs):
 
 def get_uapi_token(jamf_url, enc_creds, verbosity):
     """get a token for the Jamf Pro API"""
-    headers = {
-        "authorization": "Basic {}".format(enc_creds),
-        "content-type": "application/json",
-        "accept": "application/json",
-    }
     url = "{}/uapi/auth/tokens".format(jamf_url)
-    http = requests.Session()
-    if verbosity > 2:
-        http.hooks["response"] = [logging_hook]
-
-    r = http.post(url, headers=headers)
-    if verbosity > 2:
-        print(r.content)
+    r = actions.nscurl("POST", url, enc_creds, verbosity)
     if r.status_code == 200:
-        obj = json.loads(r.text)
         try:
-            token = str(obj["token"])
+            token = str(r.output["token"])
             print("Session token received")
             return token
         except KeyError:

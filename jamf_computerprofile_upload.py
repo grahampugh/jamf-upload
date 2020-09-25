@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 
 """
-** Jamf Extension Attribute Upload Script
+** Jamf Computer Configuration Profile Upload Script
    by G Pugh
 
 Credentials can be supplied from the command line as arguments, or inputted, or 
@@ -9,35 +9,64 @@ from an existing PLIST containing values for JSS_URL, API_USERNAME and API_PASSW
 for example an AutoPkg preferences file which has been configured for use with 
 JSSImporter: ~/Library/Preferences/com.github.autopkg
 
-Note: this currently will only upload a script-based Extension Attribute
-
-For usage, run jamf_ea_upload.py --help
+For usage, run jamf_computerprofile_upload.py --help
 """
 
 import argparse
 import json
 import os.path
+import plistlib
 import re
+import requests
 from time import sleep
+from requests_toolbelt.utils import dump
 from xml.sax.saxutils import escape
 
 from jamf_upload_lib import actions, api_connect, api_get
 
 
-def upload_extatt(
-    jamf_url,
-    enc_creds,
-    extatt_name,
-    script_path,
-    verbosity,
-    cli_custom_keys,
-    obj_id=None,
+def construct_mobileconfig(payload_path):
+    """create a mobileconfig file using a payload file"""
+    # import plist and replace any substitutable keys
+    with open(payload_path, "r") as file:
+        payload_contents = plistlib.load(file)
+
+    # substitute user-assignable keys
+    payload_contents = actions.substitute_assignable_keys(
+        payload_contents, cli_custom_keys, verbosity
+    )
+
+    # now write the mobileconfig file
+    mobileconfig_data = {
+        "PayloadDescription": description,
+        "PayloadDisplayName": profile_name,
+        "PayloadEnabled": True,
+        "PayloadOrganization": organization,
+        "PayloadRemovalDisallowed": False,
+        "PayloadScope": "System",
+        "PayloadType": "Configuration",
+        "PayloadVersion": 1,
+        "PayloadIdentifier": uuid,
+        "PayloadUUID": uuid,
+        "PayloadContent": payload_contents,
+    }
+
+    return mobileconfig_data
+
+
+def get_existing_uuid():
+    """get the existing UUID to ensure we don't change it"""
+    pass
+
+
+def upload_mobileconfig(
+    jamf_url, enc_creds, verbosity, mobileconfig_data, cli_custom_keys, obj_id=None,
 ):
     """Update extension attribute metadata."""
 
-    # import script from file and replace any keys in the script
-    with open(script_path, "r") as file:
-        script_contents = file.read()
+    # import mobileconfig and replace any substitutable keys
+    with open(mobileconfig_data, "r") as file:
+        payload_contents = plistlib.load(file)
 
     # substitute user-assignable keys
     script_contents = actions.substitute_assignable_keys(
@@ -63,7 +92,11 @@ def upload_extatt(
         + "<recon_display>Extension Attributes</recon_display>"
         + "</computer_extension_attribute>"
     )
-
+    headers = {
+        "authorization": "Basic {}".format(enc_creds),
+        "Accept": "application/xml",
+        "Content-type": "application/xml",
+    }
     # if we find an object ID we put, if not, we post
     if obj_id:
         url = "{}/JSSResource/computerextensionattributes/id/{}".format(
@@ -72,22 +105,23 @@ def upload_extatt(
     else:
         url = "{}/JSSResource/computerextensionattributes/id/0".format(jamf_url)
 
+    http = requests.Session()
     if verbosity > 2:
+        http.hooks["response"] = [api_connect.logging_hook]
         print("Extension Attribute data:")
         print(extatt_data)
 
     print("Uploading Extension Attribute..")
-
-    #  write the template to temp file
-    template_xml = actions.write_temp_file(extatt_data)
 
     count = 0
     while True:
         count += 1
         if verbosity > 1:
             print("Extension Attribute upload attempt {}".format(count))
-        method = "PUT" if obj_id else "POST"
-        r = actions.nscurl(method, url, enc_creds, verbosity, template_xml)
+        if obj_id:
+            r = http.put(url, headers=headers, data=extatt_data, timeout=60)
+        else:
+            r = http.post(url, headers=headers, data=extatt_data, timeout=60)
         if r.status_code == 200 or r.status_code == 201:
             print("Extension Attribute uploaded successfully")
             break

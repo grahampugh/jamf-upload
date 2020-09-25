@@ -16,9 +16,7 @@ import argparse
 import json
 import os.path
 import re
-import requests
 from time import sleep
-from requests_toolbelt.utils import dump
 
 from jamf_upload_lib import actions, api_connect, api_get
 
@@ -94,24 +92,22 @@ def upload_script(
     else:
         url = "{}/uapi/v1/scripts".format(jamf_url)
 
-    http = requests.Session()
     if verbosity > 2:
-        http.hooks["response"] = [api_connect.logging_hook]
         print("Script data:")
         print(script_data)
 
     print("Uploading script..")
 
     count = 0
-    script_json = json.dumps(script_data)
+    script_json = actions.write_json_file(script_data)
+
     while True:
         count += 1
         if verbosity > 1:
             print("Script upload attempt {}".format(count))
-        if obj_id:
-            r = http.put(url, headers=headers, data=script_json, timeout=60)
-        else:
-            r = http.post(url, headers=headers, data=script_json, timeout=60)
+        method = "PUT" if obj_id else "POST"
+        r = actions.nscurl(method, url, token, verbosity, script_json)
+
         if r.status_code == 200 or r.status_code == 201:
             print("Script uploaded successfully")
             break
