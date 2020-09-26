@@ -84,7 +84,10 @@ def nscurl(method, url, auth, verbosity, data="", additional_headers=""):
         r.headers = [x.strip() for x in headers]
         r.status_code = int(r.headers[0].split()[1])
         with open(output_file, "rb") as file:
-            r.output = json.load(file)
+            if "uapi" in url: 
+                r.output = json.load(file)
+            else:
+                r.output = file.read()
         return r
     except IOError:
         print("WARNING: {} not found".format(headers_file))
