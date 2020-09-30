@@ -16,7 +16,7 @@ For usage, run jamf_ea_upload.py --help
 
 import argparse
 import json
-import os.path
+import os
 import re
 from time import sleep
 from xml.sax.saxutils import escape
@@ -24,14 +24,8 @@ from xml.sax.saxutils import escape
 from jamf_upload_lib import actions, api_connect, api_get
 
 
-def upload_extatt(
-    jamf_url,
-    enc_creds,
-    extatt_name,
-    script_path,
-    verbosity,
-    cli_custom_keys,
-    obj_id=None,
+def upload_ea(
+    jamf_url, enc_creds, ea_name, script_path, verbosity, cli_custom_keys, obj_id=None,
 ):
     """Update extension attribute metadata."""
 
@@ -48,9 +42,9 @@ def upload_extatt(
     script_contents_escaped = escape(script_contents)
 
     # build the object
-    extatt_data = (
+    ea_data = (
         "<computer_extension_attribute>"
-        + "<name>{}</name>".format(extatt_name)
+        + "<name>{}</name>".format(ea_name)
         + "<enabled>true</enabled>"
         + "<description/>"
         + "<data_type>String</data_type>"
@@ -74,12 +68,12 @@ def upload_extatt(
 
     if verbosity > 2:
         print("Extension Attribute data:")
-        print(extatt_data)
+        print(ea_data)
 
     print("Uploading Extension Attribute..")
 
     #  write the template to temp file
-    template_xml = actions.write_temp_file(extatt_data)
+    template_xml = actions.write_temp_file(ea_data)
 
     count = 0
     while True:
@@ -88,11 +82,8 @@ def upload_extatt(
             print("Extension Attribute upload attempt {}".format(count))
         method = "PUT" if obj_id else "POST"
         r = actions.nscurl(method, url, enc_creds, verbosity, template_xml)
-        if r.status_code == 200 or r.status_code == 201:
-            print("Extension Attribute uploaded successfully")
-            break
-        if r.status_code == 409:
-            print("ERROR: Extension Attribute upload failed due to a conflict")
+        # check HTTP response
+        if actions.status_check(r, "Extension Attribute", ea_name) == "break":
             break
         if count > 5:
             print("ERROR: Extension Attribute upload did not succeed after 5 attempts")
@@ -103,7 +94,9 @@ def upload_extatt(
     if verbosity > 1:
         api_get.get_headers(r)
 
-    return r
+    # clean up temp files
+    if os.path.exists(template_xml):
+        os.remove(template_xml)
 
 
 def get_args():
@@ -194,23 +187,21 @@ def main():
         args.script = script
 
     # now process the list of scripts
-    for extatt_name in args.names:
+    for ea_name in args.names:
         # check for existing Extension Attribute
-        print("\nChecking '{}' on {}".format(extatt_name, jamf_url))
+        print("\nChecking '{}' on {}".format(ea_name, jamf_url))
         obj_id = api_get.check_api_obj_id_from_name(
-            jamf_url, "extension_attribute", extatt_name, enc_creds, verbosity
+            jamf_url, "extension_attribute", ea_name, enc_creds, verbosity
         )
         if obj_id:
             print(
-                "Extension Attribute '{}' already exists: ID {}".format(
-                    extatt_name, obj_id
-                )
+                "Extension Attribute '{}' already exists: ID {}".format(ea_name, obj_id)
             )
             if args.replace:
-                upload_extatt(
+                upload_ea(
                     jamf_url,
                     enc_creds,
-                    extatt_name,
+                    ea_name,
                     args.script,
                     verbosity,
                     cli_custom_keys,
@@ -221,16 +212,9 @@ def main():
                     "Not replacing existing Extension Attribute. Use --replace to enforce."
                 )
         else:
-            print(
-                "Extension Attribute '{}' not found - will create".format(extatt_name)
-            )
-            upload_extatt(
-                jamf_url,
-                enc_creds,
-                extatt_name,
-                args.script,
-                verbosity,
-                cli_custom_keys,
+            print("Extension Attribute '{}' not found - will create".format(ea_name))
+            upload_ea(
+                jamf_url, enc_creds, ea_name, args.script, verbosity, cli_custom_keys,
             )
 
     print()

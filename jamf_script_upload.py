@@ -79,11 +79,6 @@ def upload_script(
         "osRequirements": script_os_requirements,
         "scriptContents": script_contents,
     }
-    headers = {
-        "authorization": "Bearer {}".format(token),
-        "content-type": "application/json",
-        "accept": "application/json",
-    }
     # ideally we upload to the object ID but if we didn't get a good response
     # we fall back to the name
     if obj_id:
@@ -107,12 +102,8 @@ def upload_script(
             print("Script upload attempt {}".format(count))
         method = "PUT" if obj_id else "POST"
         r = actions.nscurl(method, url, token, verbosity, script_json)
-
-        if r.status_code == 200 or r.status_code == 201:
-            print("Script uploaded successfully")
-            break
-        if r.status_code == 409:
-            print("ERROR: Script upload failed due to a conflict")
+        # check HTTP response
+        if actions.status_check(r, "Script", script_name) == "break":
             break
         if count > 5:
             print("ERROR: Script upload did not succeed after 5 attempts")
@@ -123,7 +114,9 @@ def upload_script(
     if verbosity > 1:
         api_get.get_headers(r)
 
-    return r
+    # clean up temp files
+    if os.path.exists(script_json):
+        os.remove(script_json)
 
 
 def get_args():

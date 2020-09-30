@@ -19,6 +19,7 @@ For usage, run jamf_computergroup_upload.py --help
 
 import argparse
 import json
+import os
 import re
 from time import sleep
 
@@ -72,7 +73,7 @@ def upload_computergroup(
 
     print("Uploading Computer Group...")
 
-    #  write the template to temp file
+    # write the template to temp file
     template_xml = actions.write_temp_file(template_contents)
 
     count = 0
@@ -82,15 +83,8 @@ def upload_computergroup(
             print("Computer Group upload attempt {}".format(count))
         method = "PUT" if obj_id else "POST"
         r = actions.nscurl(method, url, enc_creds, verbosity, template_xml)
-
-        if r.status_code == 200 or r.status_code == 201:
-            print(
-                "Computer Group '{}' uploaded successfully".format(computergroup_name)
-            )
-            break
-        if r.status_code == 409:
-            # TODO when using verbose mode we could get the reason for the conflict from the output
-            print("WARNING: Computer Group upload failed due to a conflict")
+        # check HTTP response
+        if actions.status_check(r, "Computer Group", computergroup_name) == "break":
             break
         if count > 5:
             print("WARNING: Computer Group upload did not succeed after 5 attempts")
@@ -100,6 +94,10 @@ def upload_computergroup(
 
     if verbosity > 1:
         api_get.get_headers(r)
+
+    # clean up temp files
+    if os.path.exists(template_xml):
+        os.remove(template_xml)
 
 
 def get_args():

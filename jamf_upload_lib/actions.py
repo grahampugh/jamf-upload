@@ -53,7 +53,7 @@ def nscurl(method, url, auth, verbosity, data="", additional_headers=""):
         nscurl_cmd.extend(["--header", "Accept: application/json"])
     elif method == "POST" or method == "PUT":
         if data:
-            nscurl_cmd.append(["--upload", data])
+            nscurl_cmd.extend(["--upload", data])
         # uapi sends json, classic API must send xml
         if "uapi" in url:
             nscurl_cmd.extend(["--header", "Content-type: application/json"])
@@ -84,7 +84,7 @@ def nscurl(method, url, auth, verbosity, data="", additional_headers=""):
         r.headers = [x.strip() for x in headers]
         r.status_code = int(r.headers[0].split()[1])
         with open(output_file, "rb") as file:
-            if "uapi" in url: 
+            if "uapi" in url:
                 r.output = json.load(file)
             else:
                 r.output = file.read()
@@ -107,4 +107,17 @@ def write_temp_file(data):
     with open(tf, "w") as fp:
         fp.write(data)
     return tf
+
+
+def status_check(r, endpoint_type, obj_name):
+    """Return a message dependent on the HTTP response"""
+    if r.status_code == 200 or r.status_code == 201:
+        print("{} '{}' uploaded successfully".format(endpoint_type, obj_name))
+        return "break"
+    elif r.status_code == 409:
+        print("WARNING: {} upload failed due to a conflict".format(endpoint_type))
+        return "break"
+    elif r.status_code == 401:
+        print("ERROR: {} upload failed due to permissions error".format(endpoint_type))
+        return "break"
 

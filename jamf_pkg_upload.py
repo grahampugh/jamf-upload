@@ -265,11 +265,8 @@ def update_pkg_metadata(
 
         pkg_xml = actions.write_temp_file(pkg_data)
         r = actions.nscurl("PUT", url, enc_creds, verbosity, pkg_xml)
-        if r.status_code == 201:
-            print("Package update successful")
-            break
-        if r.status_code == 409:
-            print("WARNING: Package metadata update failed due to a conflict")
+        # check HTTP response
+        if actions.status_check(r, "Package", pkg_name) == "break":
             break
         if count > 5:
             print("WARNING: Package metadata update did not succeed after 5 attempts")

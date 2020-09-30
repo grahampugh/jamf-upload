@@ -83,13 +83,8 @@ def upload_policy(
             print("Policy upload attempt {}".format(count))
         method = "PUT" if obj_id else "POST"
         r = actions.nscurl(method, url, enc_creds, verbosity, template_xml)
-
-        if r.status_code == 200 or r.status_code == 201:
-            print("Policy '{}' uploaded successfully".format(policy_name))
-            break
-        if r.status_code == 409:
-            # TODO when using verbose mode we could get the reason for the conflict from the output
-            print("WARNING: Policy upload failed due to a conflict")
+        # check HTTP response
+        if actions.status_check(r, "Policy", policy_name) == "break":
             break
         if count > 5:
             print("WARNING: Policy upload did not succeed after 5 attempts")
@@ -99,6 +94,10 @@ def upload_policy(
 
     if verbosity > 1:
         api_get.get_headers(r)
+
+    # clean up temp files
+    if os.path.exists(template_xml):
+        os.remove(template_xml)
 
     return r
 
@@ -159,13 +158,8 @@ def upload_policy_icon(
             if verbosity > 1:
                 print("Icon upload attempt {}".format(count))
             r = actions.nscurl("POST", url, enc_creds, verbosity, resource)
-
-            if r.status_code == 200 or r.status_code == 201:
-                print("Icon '{}' uploaded successfully".format(policy_icon_name))
-                break
-            if r.status_code == 409:
-                # TODO when using verbose mode we could get the reason for the conflict from the output
-                print("WARNING: Icon upload failed due to a conflict")
+            # check HTTP response
+            if actions.status_check(r, "Icon", policy_icon_name) == "break":
                 break
             if count > 5:
                 print("WARNING: Icon upload did not succeed after 5 attempts")
@@ -173,9 +167,8 @@ def upload_policy_icon(
                 break
             sleep(30)
 
-    if verbosity > 1:
-        api_get.get_headers(r)
-
+        if verbosity > 1:
+            api_get.get_headers(r)
     else:
         print("Existing icon matches local resource - skipping upload.")
 

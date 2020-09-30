@@ -10,13 +10,15 @@ JamfPolicyUploader processor for uploading items to Jamf Pro using AutoPkg
 import json
 import mimetypes
 import re
-import requests
 import os.path
+import subprocess
+import uuid
 import xml.etree.ElementTree as ElementTree
+
+from collections import namedtuple
 from base64 import b64encode
 from pathlib import Path
 from time import sleep
-from requests_toolbelt.utils import dump
 from autopkglib import Processor, ProcessorError  # pylint: disable=import-error
 
 
@@ -73,6 +75,98 @@ class JamfPolicyUploader(Processor):
         },
     }
 
+    def nscurl(self, method, url, auth, data="", additional_headers=""):
+        """
+        build an nscurl command based on method (GET, PUT, POST, DELETE)
+        If the URL contains 'uapi' then token should be passed to the auth variable, 
+        otherwise the enc_creds variable should be passed to the auth variable
+        """
+        headers_file = "/tmp/nscurl_headers_from_jamf_upload.txt"
+        output_file = "/tmp/nscurl_output_from_jamf_upload.txt"
+
+        # build the nscurl command
+        nscurl_cmd = [
+            "/usr/bin/nscurl",
+            "-M",
+            method,
+            "-D",
+            headers_file,
+            "--output",
+            output_file,
+            url,
+        ]
+
+        # the authorisation is Basic unless we are using the uapi and already have a token
+        if "uapi" in url and "tokens" not in url:
+            nscurl_cmd.extend(["--header", f"authorization: Bearer {auth}"])
+        else:
+            nscurl_cmd.extend(["--header", f"authorization: Basic {auth}"])
+
+        # set either Accept or Content-Type depending on method
+        if method == "GET" or method == "DELETE":
+            nscurl_cmd.extend(["--header", "Accept: application/json"])
+        elif method == "POST" or method == "PUT":
+            if data:
+                nscurl_cmd.extend(["--upload", data])
+            # uapi sends json, classic API must send xml
+            if "uapi" in url:
+                nscurl_cmd.extend(["--header", "Content-type: application/json"])
+            else:
+                nscurl_cmd.extend(["--header", "Content-type: application/xml"])
+        else:
+            self.output(f"WARNING: HTTP method {method} not supported")
+
+        # additional headers for advanced requests
+        if additional_headers:
+            nscurl_cmd.extend(additional_headers)
+
+        # now subprocess the nscurl command and build the r tuple which contains the
+        # headers, status code and outputted data
+        subprocess.check_output(nscurl_cmd)
+
+        r = namedtuple("r", ["headers", "status_code", "output"])
+        try:
+            with open(headers_file, "r") as file:
+                headers = file.readlines()
+            r.headers = [x.strip() for x in headers]
+            r.status_code = int(r.headers[0].split()[1])
+            with open(output_file, "rb") as file:
+                if "uapi" in url:
+                    r.output = json.load(file)
+                else:
+                    r.output = file.read()
+            return r
+        except IOError:
+            raise ProcessorError(f"WARNING: {headers_file} not found")
+
+    def write_json_file(self, data):
+        """dump some json to a temporary file"""
+        tf = os.path.join("/tmp", str(uuid.uuid4()))
+        with open(tf, "w") as fp:
+            json.dump(data, fp)
+        return tf
+
+    def write_temp_file(self, data):
+        """dump some text to a temporary file"""
+        tf = os.path.join("/tmp", str(uuid.uuid4()))
+        with open(tf, "w") as fp:
+            fp.write(data)
+        return tf
+
+    def status_check(self, r, endpoint_type, obj_name):
+        """Return a message dependent on the HTTP response"""
+        if r.status_code == 200 or r.status_code == 201:
+            self.output(f"{endpoint_type} '{obj_name}' uploaded successfully")
+            return "break"
+        elif r.status_code == 409:
+            self.output(f"WARNING: {endpoint_type} upload failed due to a conflict")
+            return "break"
+        elif r.status_code == 401:
+            self.output(
+                f"ERROR: {endpoint_type} upload failed due to permissions error"
+            )
+            return "break"
+
     def substitute_assignable_keys(self, data):
         """substitutes any key in the inputted text using the %MY_KEY% nomenclature"""
         # whenever %MY_KEY% is found in a template, it is replaced with the assigned value of MY_KEY. This did done case-insensitively
@@ -101,12 +195,6 @@ class JamfPolicyUploader(Processor):
                 )
         return data
 
-    def logging_hook(self, response, *args, **kwargs):
-        data = dump.dump_all(response)
-        self.output(
-            data, verbose_level=2,
-        )
-
     def check_api_obj_id_from_name(self, jamf_url, object_type, object_name, enc_creds):
         """check if a Classic API object with the same name exists on the server"""
         # define the relationship between the object types and their URL
@@ -123,14 +211,11 @@ class JamfPolicyUploader(Processor):
             "policy": "policies",
             "extension_attribute": "computer_extension_attributes",
         }
-        headers = {
-            "authorization": "Basic {}".format(enc_creds),
-            "accept": "application/json",
-        }
-        url = "{}/JSSResource/{}".format(jamf_url, object_types[object_type])
-        r = requests.get(url, headers=headers)
+        url = f"{jamf_url}/JSSResource/{object_types[object_type]}"
+        r = self.nscurl("GET", url, enc_creds)
+
         if r.status_code == 200:
-            object_list = json.loads(r.text)
+            object_list = json.loads(r.output)
             self.output(
                 object_list, verbose_level=2,
             )
@@ -178,16 +263,12 @@ class JamfPolicyUploader(Processor):
             "policy": "policies",
             "extension_attribute": "computerextensionattributes",
         }
-        headers = {
-            "authorization": "Basic {}".format(enc_creds),
-            "accept": "application/json",
-        }
         url = "{}/JSSResource/{}/id/{}".format(
             jamf_url, object_types[object_type], obj_id
         )
-        r = requests.get(url, headers=headers)
+        r = self.nscurl("GET", url, enc_creds)
         if r.status_code == 200:
-            obj_content = json.loads(r.text)
+            obj_content = json.loads(r.output)
             self.output(obj_content, verbose_level=2)
 
             # convert an xpath to json
@@ -222,43 +303,38 @@ class JamfPolicyUploader(Processor):
         # substitute user-assignable keys
         template_contents = self.substitute_assignable_keys(template_contents)
 
-        headers = {
-            "authorization": "Basic {}".format(enc_creds),
-            "Accept": "application/xml",
-            "Content-type": "application/xml",
-        }
         # if we find an object ID we put, if not, we post
         if obj_id:
             url = "{}/JSSResource/policies/id/{}".format(jamf_url, obj_id)
         else:
             url = "{}/JSSResource/policies/id/0".format(jamf_url)
 
-        http = requests.Session()
-        http.hooks["response"] = [self.logging_hook]
         self.output("Policy data:", verbose_level=2)
         self.output(template_contents, verbose_level=2)
 
         self.output("Uploading Policy...")
+        # write the template to temp file
+        template_xml = self.write_temp_file(template_contents)
 
         count = 0
         while True:
             count += 1
             self.output("Policy upload attempt {}".format(count), verbose_level=2)
-            if obj_id:
-                r = http.put(url, headers=headers, data=template_contents, timeout=60)
-            else:
-                r = http.post(url, headers=headers, data=template_contents, timeout=60)
-            if r.status_code == 200 or r.status_code == 201:
-                self.output("Policy '{}' uploaded successfully".format(policy_name))
+            method = "PUT" if obj_id else "POST"
+            r = self.nscurl(method, url, enc_creds, template_xml)
+            # check HTTP response
+            if self.status_check(r, "Policy", policy_name) == "break":
                 break
-            if r.status_code == 409:
-                # TODO when using verbose mode we could get the reason for the conflict from the output
-                raise ProcessorError("WARNING: Policy upload failed due to a conflict")
             if count > 5:
                 self.output("WARNING: Policy upload did not succeed after 5 attempts")
                 self.output("\nHTTP POST Response Code: {}".format(r.status_code))
                 raise ProcessorError("ERROR: Policy upload failed ")
             sleep(30)
+
+        # clean up temp files
+        if os.path.exists(template_xml):
+            os.remove(template_xml)
+
         return r
 
     def upload_policy_icon(
@@ -300,7 +376,7 @@ class JamfPolicyUploader(Processor):
                 "Existing policy icon is '{}'".format(existing_icon), verbose_level=1
             )
         # If the icon naame matches that we already have, don't upload again
-        #  unless --replace-icon is set
+        # unless --replace-icon is set
         policy_icon_name = os.path.basename(policy_icon_path)
         if existing_icon == policy_icon_name:
             self.output(
@@ -310,14 +386,8 @@ class JamfPolicyUploader(Processor):
         if existing_icon != policy_icon_name or replace_icon:
             url = "{}/JSSResource/fileuploads/policies/id/{}".format(jamf_url, obj_id)
 
-            headers = {
-                "authorization": "Basic {}".format(enc_creds),
-            }
-            http = requests.Session()
-            http.hooks["response"] = [self.logging_hook]
-
             self.output("Uploading icon...")
-            #  resource construction grabbed from python-jss / misc_endpoints.py
+            # resource construction grabbed from python-jss / misc_endpoints.py
             content_type = mimetypes.guess_type(policy_icon_name)[0]
             resource = {
                 "name": (policy_icon_name, open(policy_icon_path, "rb"), content_type)
@@ -327,17 +397,10 @@ class JamfPolicyUploader(Processor):
             while True:
                 count += 1
                 self.output("Icon upload attempt {}".format(count), verbose_level=2)
-                r = http.post(url, headers=headers, files=resource, timeout=60)
-                if r.status_code == 200 or r.status_code == 201:
-                    self.output(
-                        "Icon '{}' uploaded successfully".format(policy_icon_name)
-                    )
+                r = self.nscurl("POST", url, enc_creds, resource)
+                # check HTTP response
+                if self.status_check(r, "Icon", policy_icon_name) == "break":
                     break
-                if r.status_code == 409:
-                    # TODO when using verbose mode we could get the reason for the conflict from the output
-                    raise ProcessorError(
-                        "WARNING: Icon upload failed due to a conflict"
-                    )
                 if count > 5:
                     print("WARNING: Icon upload did not succeed after 5 attempts")
                     print("\nHTTP POST Response Code: {}".format(r.status_code))

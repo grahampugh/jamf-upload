@@ -59,25 +59,29 @@ def get_existing_uuid():
     pass
 
 
+def generate_uuid():
+    """generate a UUID for new profiles"""
+
+
 def upload_mobileconfig(
     jamf_url, enc_creds, verbosity, mobileconfig_data, cli_custom_keys, obj_id=None,
 ):
-    """Update extension attribute metadata."""
+    """Update Configuration Profile metadata."""
 
     # import mobileconfig and replace any substitutable keys
     with open(mobileconfig_data, "r") as file:
         payload_contents = plistlib.load(file)
 
     # substitute user-assignable keys
-    script_contents = actions.substitute_assignable_keys(
-        script_contents, cli_custom_keys, verbosity
+    payload_contents = actions.substitute_assignable_keys(
+        payload_contents, cli_custom_keys, verbosity
     )
 
     #  XML-escape the script
-    script_contents_escaped = escape(script_contents)
+    payload_contents_escaped = escape(script_contents)
 
     # build the object
-    extatt_data = (
+    profile_data = (
         "<computer_extension_attribute>"
         + "<name>{}</name>".format(extatt_name)
         + "<enabled>true</enabled>"
@@ -86,10 +90,10 @@ def upload_mobileconfig(
         + "<input_type>"
         + "  <type>script</type>"
         + "  <platform>Mac</platform>"
-        + "  <script>{}</script>".format(script_contents_escaped)
+        + "  <script>{}</script>".format(payload_contents_escaped)
         + "</input_type>"
-        + "<inventory_display>Extension Attributes</inventory_display>"
-        + "<recon_display>Extension Attributes</recon_display>"
+        + "<inventory_display>Configuration Profiles</inventory_display>"
+        + "<recon_display>Configuration Profiles</recon_display>"
         + "</computer_extension_attribute>"
     )
     headers = {
@@ -108,28 +112,26 @@ def upload_mobileconfig(
     http = requests.Session()
     if verbosity > 2:
         http.hooks["response"] = [api_connect.logging_hook]
-        print("Extension Attribute data:")
+        print("Configuration Profile data:")
         print(extatt_data)
 
-    print("Uploading Extension Attribute..")
+    print("Uploading Configuration Profile..")
 
     count = 0
     while True:
         count += 1
         if verbosity > 1:
-            print("Extension Attribute upload attempt {}".format(count))
+            print("Configuration Profile upload attempt {}".format(count))
         if obj_id:
             r = http.put(url, headers=headers, data=extatt_data, timeout=60)
         else:
             r = http.post(url, headers=headers, data=extatt_data, timeout=60)
-        if r.status_code == 200 or r.status_code == 201:
-            print("Extension Attribute uploaded successfully")
-            break
-        if r.status_code == 409:
-            print("ERROR: Extension Attribute upload failed due to a conflict")
+        if actions.status_check(r, "Configuration Profile", category_name) == "break":
             break
         if count > 5:
-            print("ERROR: Extension Attribute upload did not succeed after 5 attempts")
+            print(
+                "ERROR: Configuration Profile upload did not succeed after 5 attempts"
+            )
             print("\nHTTP POST Response Code: {}".format(r.status_code))
             break
         sleep(10)
@@ -149,11 +151,11 @@ def get_args():
         action="append",
         dest="names",
         default=[],
-        help=("Extension Attribute to create or update"),
+        help=("Configuration Profile to create or update"),
     )
     parser.add_argument(
         "--replace",
-        help="overwrite an existing Extension Attribute",
+        help="overwrite an existing Configuration Profile",
         action="store_true",
     )
     parser.add_argument(
@@ -165,7 +167,7 @@ def get_args():
     parser.add_argument(
         "--user",
         default="",
-        help="a user with the rights to create and update an extension attribute",
+        help="a user with the rights to create and update an Configuration Profile",
     )
     parser.add_argument(
         "--password", default="", help="password of the user",
@@ -213,8 +215,8 @@ def get_args():
 
 def main():
     """Do the main thing here"""
-    print("\n** Jamf Extension Attribute upload script")
-    print("** Uploads Extension Attribute to Jamf Pro.")
+    print("\n** Jamf Configuration Profile upload script")
+    print("** Uploads Configuration Profile to Jamf Pro.")
 
     # parse the command line arguments
     args, cli_custom_keys = get_args()
@@ -229,14 +231,14 @@ def main():
 
     # now process the list of scripts
     for extatt_name in args.names:
-        # check for existing Extension Attribute
+        # check for existing Configuration Profile
         print("\nChecking '{}' on {}".format(extatt_name, jamf_url))
         obj_id = api_get.check_api_obj_id_from_name(
             jamf_url, "extension_attribute", extatt_name, enc_creds, verbosity
         )
         if obj_id:
             print(
-                "Extension Attribute '{}' already exists: ID {}".format(
+                "Configuration Profile '{}' already exists: ID {}".format(
                     extatt_name, obj_id
                 )
             )
@@ -252,11 +254,11 @@ def main():
                 )
             else:
                 print(
-                    "Not replacing existing Extension Attribute. Use --replace to enforce."
+                    "Not replacing existing Configuration Profile. Use --replace to enforce."
                 )
         else:
             print(
-                "Extension Attribute '{}' not found - will create".format(extatt_name)
+                "Configuration Profile '{}' not found - will create".format(extatt_name)
             )
             upload_extatt(
                 jamf_url,

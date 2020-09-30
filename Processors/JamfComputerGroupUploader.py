@@ -9,12 +9,13 @@ JamfComputerGroupUploader processor for uploading items to Jamf Pro using AutoPk
 # import variables go here. Do not import unused modules
 import json
 import re
-import requests
 import os.path
+import subprocess
+import uuid
+from collections import namedtuple
 from base64 import b64encode
 from pathlib import Path
 from time import sleep
-from requests_toolbelt.utils import dump
 from autopkglib import Processor, ProcessorError  # pylint: disable=import-error
 
 
@@ -39,12 +40,12 @@ class JamfComputerGroupUploader(Processor):
             "description": "Password of api user, optionally set as a key in "
             "the com.github.autopkg preference file.",
         },
-        "group_name": {
+        "computergroup_name": {
             "required": False,
             "description": "Computer Group name",
             "default": "",
         },
-        "group_template": {
+        "computergroup_template": {
             "required": False,
             "description": "Full path to the XML template",
         },
@@ -60,6 +61,98 @@ class JamfComputerGroupUploader(Processor):
             "description": "Description of interesting results.",
         },
     }
+
+    def nscurl(self, method, url, auth, data="", additional_headers=""):
+        """
+        build an nscurl command based on method (GET, PUT, POST, DELETE)
+        If the URL contains 'uapi' then token should be passed to the auth variable, 
+        otherwise the enc_creds variable should be passed to the auth variable
+        """
+        headers_file = "/tmp/nscurl_headers_from_jamf_upload.txt"
+        output_file = "/tmp/nscurl_output_from_jamf_upload.txt"
+
+        # build the nscurl command
+        nscurl_cmd = [
+            "/usr/bin/nscurl",
+            "-M",
+            method,
+            "-D",
+            headers_file,
+            "--output",
+            output_file,
+            url,
+        ]
+
+        # the authorisation is Basic unless we are using the uapi and already have a token
+        if "uapi" in url and "tokens" not in url:
+            nscurl_cmd.extend(["--header", f"authorization: Bearer {auth}"])
+        else:
+            nscurl_cmd.extend(["--header", f"authorization: Basic {auth}"])
+
+        # set either Accept or Content-Type depending on method
+        if method == "GET" or method == "DELETE":
+            nscurl_cmd.extend(["--header", "Accept: application/json"])
+        elif method == "POST" or method == "PUT":
+            if data:
+                nscurl_cmd.extend(["--upload", data])
+            # uapi sends json, classic API must send xml
+            if "uapi" in url:
+                nscurl_cmd.extend(["--header", "Content-type: application/json"])
+            else:
+                nscurl_cmd.extend(["--header", "Content-type: application/xml"])
+        else:
+            self.output(f"WARNING: HTTP method {method} not supported")
+
+        # additional headers for advanced requests
+        if additional_headers:
+            nscurl_cmd.extend(additional_headers)
+
+        # now subprocess the nscurl command and build the r tuple which contains the
+        # headers, status code and outputted data
+        subprocess.check_output(nscurl_cmd)
+
+        r = namedtuple("r", ["headers", "status_code", "output"])
+        try:
+            with open(headers_file, "r") as file:
+                headers = file.readlines()
+            r.headers = [x.strip() for x in headers]
+            r.status_code = int(r.headers[0].split()[1])
+            with open(output_file, "rb") as file:
+                if "uapi" in url:
+                    r.output = json.load(file)
+                else:
+                    r.output = file.read()
+            return r
+        except IOError:
+            raise ProcessorError(f"WARNING: {headers_file} not found")
+
+    def write_json_file(self, data):
+        """dump some json to a temporary file"""
+        tf = os.path.join("/tmp", str(uuid.uuid4()))
+        with open(tf, "w") as fp:
+            json.dump(data, fp)
+        return tf
+
+    def write_temp_file(self, data):
+        """dump some text to a temporary file"""
+        tf = os.path.join("/tmp", str(uuid.uuid4()))
+        with open(tf, "w") as fp:
+            fp.write(data)
+        return tf
+
+    def status_check(self, r, endpoint_type, obj_name):
+        """Return a message dependent on the HTTP response"""
+        if r.status_code == 200 or r.status_code == 201:
+            self.output(f"{endpoint_type} '{obj_name}' uploaded successfully")
+            return "break"
+        elif r.status_code == 409:
+            self.output(f"WARNING: {endpoint_type} upload failed due to a conflict")
+            return "break"
+        elif r.status_code == 401:
+            self.output(
+                f"ERROR: {endpoint_type} upload failed due to permissions error"
+            )
+            return "break"
 
     def substitute_assignable_keys(self, data):
         """substitutes any key in the inputted text using the %MY_KEY% nomenclature"""
@@ -88,12 +181,6 @@ class JamfComputerGroupUploader(Processor):
                     verbose_level=2,
                 )
         return data
-
-    def logging_hook(self, response, *args, **kwargs):
-        data = dump.dump_all(response)
-        self.output(
-            data, verbose_level=2,
-        )
 
     def get_path_to_file(self, filename):
         """AutoPkg is not very good at finding dependent files. This function will look 
@@ -132,14 +219,11 @@ class JamfComputerGroupUploader(Processor):
             "policy": "policies",
             "extension_attribute": "computer_extension_attributes",
         }
-        headers = {
-            "authorization": "Basic {}".format(enc_creds),
-            "accept": "application/json",
-        }
-        url = "{}/JSSResource/{}".format(jamf_url, object_types[object_type])
-        r = requests.get(url, headers=headers)
+        url = f"{jamf_url}/JSSResource/{object_types[object_type]}"
+        r = self.nscurl("GET", url, enc_creds)
+
         if r.status_code == 200:
-            object_list = json.loads(r.text)
+            object_list = json.loads(r.output)
             self.output(
                 object_list, verbose_level=2,
             )
@@ -154,13 +238,18 @@ class JamfComputerGroupUploader(Processor):
             return obj_id
 
     def upload_computergroup(
-        self, jamf_url, enc_creds, group_name, group_template, obj_id=None
+        self,
+        jamf_url,
+        enc_creds,
+        computergroup_name,
+        computergroup_template,
+        obj_id=None,
     ):
         """Upload computer group"""
 
         # import template from file and replace any keys in the template
-        if os.path.exists(group_template):
-            with open(group_template, "r") as file:
+        if os.path.exists(computergroup_template):
+            with open(computergroup_template, "r") as file:
                 template_contents = file.read()
         else:
             raise ProcessorError("Template does not exist!")
@@ -178,59 +267,47 @@ class JamfComputerGroupUploader(Processor):
         # substitute user-assignable keys
         template_contents = self.substitute_assignable_keys(template_contents)
 
-        headers = {
-            "authorization": "Basic {}".format(enc_creds),
-            "Accept": "application/xml",
-            "Content-type": "application/xml",
-        }
         # if we find an object ID we put, if not, we post
         if obj_id:
-            url = "{}/JSSResource/computergroups/id/{}".format(jamf_url, obj_id)
+            url = f"{jamf_url}/JSSResource/computergroups/id/{obj_id}"
         else:
-            url = "{}/JSSResource/computergroups/id/0".format(jamf_url)
+            url = f"{jamf_url}/JSSResource/computergroups/id/0"
 
-        http = requests.Session()
-        http.hooks["response"] = [self.logging_hook]
         self.output("Computer Group data:", verbose_level=2)
         self.output(template_contents, verbose_level=2)
 
         self.output("Uploading Computer Group...")
+        # write the template to temp file
+        template_xml = self.write_temp_file(template_contents)
 
         count = 0
         while True:
             count += 1
-            self.output(
-                "Computer Group upload attempt {}".format(count), verbose_level=2
-            )
-            if obj_id:
-                r = http.put(url, headers=headers, data=template_contents, timeout=60)
-            else:
-                r = http.post(url, headers=headers, data=template_contents, timeout=60)
-            if r.status_code == 200 or r.status_code == 201:
-                self.output(
-                    "Computer Group '{}' uploaded successfully".format(group_name)
-                )
+            self.output(f"Computer Group upload attempt {count}", verbose_level=2)
+            method = "PUT" if obj_id else "POST"
+            r = self.nscurl(method, url, enc_creds, template_xml)
+            # check HTTP response
+            if self.status_check(r, "Computer Group", computergroup_name) == "break":
                 break
-            if r.status_code == 409:
-                # TODO when using verbose mode we could get the reason for the conflict from the output
-                raise ProcessorError(
-                    "WARNING: Computer Group upload failed due to a conflict"
-                )
             if count > 5:
                 self.output(
                     "WARNING: Computer Group upload did not succeed after 5 attempts"
                 )
-                self.output("\nHTTP POST Response Code: {}".format(r.status_code))
+                self.output(f"\nHTTP POST Response Code: {r.status_code}")
                 raise ProcessorError("ERROR: Computer Group upload failed ")
             sleep(30)
+
+        # clean up temp files
+        if os.path.exists(template_xml):
+            os.remove(template_xml)
 
     def main(self):
         """Do the main thing here"""
         self.jamf_url = self.env.get("JSS_URL")
         self.jamf_user = self.env.get("API_USERNAME")
         self.jamf_password = self.env.get("API_PASSWORD")
-        self.group_name = self.env.get("group_name")
-        self.group_template = self.env.get("group_template")
+        self.computergroup_name = self.env.get("computergroup_name")
+        self.computergroup_template = self.env.get("computergroup_template")
         self.replace = self.env.get("replace_group")
         # handle setting replace in overrides
         if not self.replace or self.replace == "False":
@@ -246,36 +323,36 @@ class JamfComputerGroupUploader(Processor):
         enc_creds = str(enc_creds_bytes, "utf-8")
 
         # handle files with no path
-        if "/" not in self.group_template:
-            self.group_template = self.get_path_to_file(self.group_template)
+        if "/" not in self.computergroup_template:
+            self.computergroup_template = self.get_path_to_file(
+                self.computergroup_template
+            )
 
         # now start the process of uploading the object
-        self.output(f"Checking for existing '{self.group_name}' on {self.jamf_url}")
+        self.output(
+            f"Checking for existing '{self.computergroup_name}' on {self.jamf_url}"
+        )
 
         # check for existing - requires obj_name
         obj_type = "computer_group"
         obj_id = self.check_api_obj_id_from_name(
-            self.jamf_url, obj_type, self.group_name, enc_creds
+            self.jamf_url, obj_type, self.computergroup_name, enc_creds
         )
 
         if obj_id:
             self.output(
-                "Computer group '{}' already exists: ID {}".format(
-                    self.group_name, obj_id
-                )
+                f"Computer group '{self.computergroup_name}' already exists: ID {obj_id}"
             )
             if self.replace:
                 self.output(
-                    "Replacing existing Computer Group as 'replace_group' is set to {}".format(
-                        self.replace
-                    ),
+                    f"Replacing existing Computer Group as 'replace_group' is set to {self.replace}",
                     verbose_level=1,
                 )
                 self.upload_computergroup(
                     self.jamf_url,
                     enc_creds,
-                    self.group_name,
-                    self.group_template,
+                    self.computergroup_name,
+                    self.computergroup_template,
                     obj_id,
                 )
             else:
@@ -287,14 +364,20 @@ class JamfComputerGroupUploader(Processor):
         else:
             # post the item
             self.upload_computergroup(
-                self.jamf_url, enc_creds, self.group_name, self.group_template,
+                self.jamf_url,
+                enc_creds,
+                self.computergroup_name,
+                self.computergroup_template,
             )
 
         # output the summary
         self.env["jamfcomputergroupuploader_summary_result"] = {
             "summary_text": "The following computer groups were created or updated in Jamf Pro:",
             "report_fields": ["group", "template"],
-            "data": {"group": self.group_name, "template": self.group_template,},
+            "data": {
+                "group": self.computergroup_name,
+                "template": self.computergroup_template,
+            },
         }
 
 

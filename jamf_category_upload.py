@@ -43,22 +43,16 @@ def upload_category(jamf_url, category_name, priority, verbosity, token, obj_id=
     # we cannot PUT a category of the same name due to a bug in Jamf Pro (PI-008157).
     # so we have to do a first pass with a temporary different name, then change it back...
     if obj_id:
-        category_data_temp = {"priority": priority, "name": category_name + "_TEMP"}
+        category_name_temp = category_name + "_TEMP"
+        category_data_temp = {"priority": priority, "name": category_name_temp}
         category_json_temp = actions.write_json_file(category_data_temp)
         while True:
             count += 1
             if verbosity > 1:
                 print("Category upload attempt {}".format(count))
             r = actions.nscurl("PUT", url, token, verbosity, category_json_temp)
-            # r = http.put(url, headers=headers, data=category_json_temp, timeout=60)
-            if r.status_code == 200:
-                print(
-                    "Temporary category update successful. Waiting before updating again..."
-                )
-                sleep(2)
-                break
-            if r.status_code == 409:
-                print("ERROR: Temporary category update failed due to a conflict")
+            # check HTTP response
+            if actions.status_check(r, "Category", category_name_temp) == "break":
                 break
             if count > 5:
                 print(
@@ -77,14 +71,8 @@ def upload_category(jamf_url, category_name, priority, verbosity, token, obj_id=
             print("Category upload attempt {}".format(count))
         method = "PUT" if obj_id else "POST"
         r = actions.nscurl(method, url, token, verbosity, category_json)
-        if r.status_code == 201:
-            print("Category created successfully")
-            break
-        elif r.status_code == 200:
-            print("Category update successful")
-            break
-        elif r.status_code == 409:
-            print("ERROR: Category creation failed due to a conflict")
+        # check HTTP response
+        if actions.status_check(r, "Category", category_name) == "break":
             break
         if count > 5:
             print("ERROR: Category creation did not succeed after 5 attempts")

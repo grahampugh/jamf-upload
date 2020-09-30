@@ -13,12 +13,15 @@ import sys
 import os
 import json
 import base64
+import os.path
+import subprocess
+import uuid
+import plistlib
+import xml.etree.ElementTree as ElementTree
+
+from collections import namedtuple
 from time import sleep
 from zipfile import ZipFile, ZIP_DEFLATED
-import requests
-import plistlib
-import subprocess
-import xml.etree.ElementTree as ElementTree
 from shutil import copyfile
 from urllib.parse import urlparse
 from autopkglib import Processor, ProcessorError  # pylint: disable=import-error
@@ -61,7 +64,12 @@ class JamfPackageUploader(Processor):
         },
         "curl": {
             "required": False,
-            "description": "Use curl instead of requests to upload package if True.",
+            "description": "Use curl instead of nscurl to upload package if True.",
+            "default": "False",
+        },
+        "requests": {
+            "required": False,
+            "description": "Use curl instead of nscurl to upload package if True.",
             "default": "False",
         },
         "JSS_URL": {
@@ -117,6 +125,98 @@ class JamfPackageUploader(Processor):
     }
 
     description = __doc__
+
+    def nscurl(self, method, url, auth, data="", additional_headers=""):
+        """
+        build an nscurl command based on method (GET, PUT, POST, DELETE)
+        If the URL contains 'uapi' then token should be passed to the auth variable, 
+        otherwise the enc_creds variable should be passed to the auth variable
+        """
+        headers_file = "/tmp/nscurl_headers_from_jamf_upload.txt"
+        output_file = "/tmp/nscurl_output_from_jamf_upload.txt"
+
+        # build the nscurl command
+        nscurl_cmd = [
+            "/usr/bin/nscurl",
+            "-M",
+            method,
+            "-D",
+            headers_file,
+            "--output",
+            output_file,
+            url,
+        ]
+
+        # the authorisation is Basic unless we are using the uapi and already have a token
+        if "uapi" in url and "tokens" not in url:
+            nscurl_cmd.extend(["--header", f"authorization: Bearer {auth}"])
+        else:
+            nscurl_cmd.extend(["--header", f"authorization: Basic {auth}"])
+
+        # set either Accept or Content-Type depending on method
+        if method == "GET" or method == "DELETE":
+            nscurl_cmd.extend(["--header", "Accept: application/json"])
+        elif method == "POST" or method == "PUT":
+            if data:
+                nscurl_cmd.extend(["--upload", data])
+            # uapi sends json, classic API must send xml
+            if "uapi" in url:
+                nscurl_cmd.extend(["--header", "Content-type: application/json"])
+            else:
+                nscurl_cmd.extend(["--header", "Content-type: application/xml"])
+        else:
+            self.output(f"WARNING: HTTP method {method} not supported")
+
+        # additional headers for advanced requests
+        if additional_headers:
+            nscurl_cmd.extend(additional_headers)
+
+        # now subprocess the nscurl command and build the r tuple which contains the
+        # headers, status code and outputted data
+        subprocess.check_output(nscurl_cmd)
+
+        r = namedtuple("r", ["headers", "status_code", "output"])
+        try:
+            with open(headers_file, "r") as file:
+                headers = file.readlines()
+            r.headers = [x.strip() for x in headers]
+            r.status_code = int(r.headers[0].split()[1])
+            with open(output_file, "rb") as file:
+                if "uapi" in url:
+                    r.output = json.load(file)
+                else:
+                    r.output = file.read()
+            return r
+        except IOError:
+            raise ProcessorError(f"WARNING: {headers_file} not found")
+
+    def write_json_file(self, data):
+        """dump some json to a temporary file"""
+        tf = os.path.join("/tmp", str(uuid.uuid4()))
+        with open(tf, "w") as fp:
+            json.dump(data, fp)
+        return tf
+
+    def write_temp_file(self, data):
+        """dump some text to a temporary file"""
+        tf = os.path.join("/tmp", str(uuid.uuid4()))
+        with open(tf, "w") as fp:
+            fp.write(data)
+        return tf
+
+    def status_check(self, r, endpoint_type, obj_name):
+        """Return a message dependent on the HTTP response"""
+        if r.status_code == 200 or r.status_code == 201:
+            self.output(f"{endpoint_type} '{obj_name}' uploaded successfully")
+            return "break"
+        elif r.status_code == 409:
+            self.output(f"WARNING: {endpoint_type} upload failed due to a conflict")
+            return "break"
+        elif r.status_code == 401:
+            self.output(
+                f"ERROR: {endpoint_type} upload failed due to permissions error"
+            )
+            return "break"
 
     def mount_smb(self, mount_share, mount_user, mount_pass):
         """Mount distribution point."""
@@ -202,14 +302,10 @@ class JamfPackageUploader(Processor):
         """check if a package with the same name exists in the repo
         note that it is possible to have more than one with the same name
         which could mess things up"""
-        headers = {
-            "authorization": f"Basic {enc_creds}",
-            "accept": "application/json",
-        }
         url = f"{jamf_url}/JSSResource/packages/name/{pkg_name}"
-        r = requests.get(url, headers=headers)
+        r = self.nscurl("GET", url, enc_creds)
         if r.status_code == 200:
-            obj = json.loads(r.text)
+            obj = json.loads(r.output)
             try:
                 obj_id = str(obj["package"]["id"])
             except KeyError:
@@ -219,7 +315,14 @@ class JamfPackageUploader(Processor):
         return obj_id
 
     def post_pkg(self, pkg_name, pkg_path, jamf_url, enc_creds, obj_id):
-        """sends the package"""
+        """sends the package using requests instead of nscurl"""
+        try:
+            import requests
+        except ImportError:
+            raise ProcessorError(
+                "WARNING: could not import requests module. Use pip to install requests and try again."
+            )
+
         files = {"file": open(pkg_path, "rb")}
         headers = {
             "authorization": f"Basic {enc_creds}",
@@ -236,7 +339,7 @@ class JamfPackageUploader(Processor):
         return r
 
     def curl_pkg(self, pkg_name, pkg_path, jamf_url, enc_creds, obj_id):
-        """sends the package via curl instead of requests"""
+        """sends the package via curl instead of nscurl"""
         url = f"{jamf_url}/dbfileupload"
         curl_cmd = [
             "/usr/bin/curl",
@@ -265,6 +368,25 @@ class JamfPackageUploader(Processor):
         r = subprocess.check_output(curl_cmd)
         return r
 
+    def nscurl_pkg(self, pkg_name, pkg_path, jamf_url, enc_creds, obj_id):
+        """uploads the package using nscurl"""
+        url = "{}/dbfileupload".format(jamf_url)
+        additional_headers = [
+            "--header",
+            "DESTINATION: 0",
+            "--header",
+            "OBJECT_ID: {}".format(obj_id),
+            "--header",
+            "FILE_TYPE: 0",
+            "--header",
+            "FILE_NAME: {}".format(pkg_name),
+            "--payload-transmission-timeout",
+            str("3600"),
+        ]
+        r = self.nscurl("POST", url, enc_creds, pkg_path, additional_headers)
+        self.output("HTTP response: {}".format(r.status_code), verbose_level=2)
+        return r.output
+
     def update_pkg_metadata(self, jamf_url, enc_creds, pkg_name, category, pkg_id=None):
         """Update package metadata. Currently only serves category"""
 
@@ -276,19 +398,12 @@ class JamfPackageUploader(Processor):
             + f"<category>{category}</category>"
             + "</package>"
         )
-        headers = {
-            "authorization": f"Basic {enc_creds}",
-            "Accept": "application/xml",
-            "Content-type": "application/xml",
-        }
-        #  ideally we upload to the package ID but if we didn't get a good response
-        #  we fall back to the package name
+        # ideally we upload to the package ID but if we didn't get a good response
+        # we fall back to the package name
         if pkg_id:
             url = f"{jamf_url}/JSSResource/packages/id/{pkg_id}"
         else:
             url = f"{jamf_url}/JSSResource/packages/name/{pkg_name}"
-
-        http = requests.Session()
 
         self.output("Updating package metadata...")
         self.output(
@@ -299,17 +414,14 @@ class JamfPackageUploader(Processor):
         while True:
             count += 1
             self.output(
-                f"Package update attempt {count}", verbose_level=2,
+                f"Package metadata update attempt {count}", verbose_level=2,
             )
 
-            r = http.put(url, headers=headers, data=pkg_data, timeout=60)
-            if r.status_code == 201:
-                self.output("Package metadata update successful")
+            pkg_xml = self.write_temp_file(pkg_data)
+            r = self.nscurl("PUT", url, enc_creds, pkg_xml)
+            # check HTTP response
+            if self.status_check(r, "Package", pkg_name) == "break":
                 break
-            if r.status_code == 409:
-                raise ProcessorError(
-                    "WARNING: Package metadata update failed due to a conflict"
-                )
             if count > 5:
                 self.output(
                     "WARNING: Package metadata update did not succeed after 5 attempts"
@@ -319,6 +431,10 @@ class JamfPackageUploader(Processor):
                 )
                 raise ProcessorError("ERROR: Package metadata upload failed ")
             sleep(30)
+
+        # clean up temp files
+        if os.path.exists(pkg_xml):
+            os.remove(pkg_xml)
 
     def main(self):
         """Do the main thing here"""
@@ -341,6 +457,7 @@ class JamfPackageUploader(Processor):
         if not self.replace or self.replace == "False":
             self.replace = False
         self.curl = self.env.get("curl")
+        self.requests = self.env.get("requests")
         # handle setting replace in overrides
         if not self.curl or self.curl == "False":
             self.curl = False
@@ -374,7 +491,7 @@ class JamfPackageUploader(Processor):
                 "Package '{}' already exists: ID {}".format(self.pkg_name, obj_id)
             )
 
-        #  process for SMB shares if defined
+        # process for SMB shares if defined
         if self.smb_url:
             # mount the share
             self.mount_smb(self.smb_url, self.smb_user, self.smb_password)
@@ -396,7 +513,7 @@ class JamfPackageUploader(Processor):
                 self.env["pkg_uploaded"] = False
                 return
 
-        #  otherwise process for cloud DP
+        # otherwise process for cloud DP
         else:
             if obj_id == "-1" or self.replace:
                 if self.replace:
@@ -426,7 +543,7 @@ class JamfPackageUploader(Processor):
                             self.output(r.decode("ascii"), verbose_level=2)
                         else:
                             self.output("No HTTP response", verbose_level=2)
-                else:
+                elif self.requests:
                     r = self.post_pkg(
                         self.pkg_name, self.pkg_path, self.jamf_url, enc_creds, obj_id
                     )
@@ -434,7 +551,7 @@ class JamfPackageUploader(Processor):
                     if r.status_code == 200 or r.status_code == 201:
                         pkg_id = ElementTree.fromstring(r.text).findtext("id")
                         self.output(f"Package uploaded successfully, ID={pkg_id}")
-                        #  now process the package metadata if specified
+                        # now process the package metadata if specified
                     else:
                         self.output(
                             f"HTTP POST Response Code: {r.status_code}",
@@ -460,6 +577,25 @@ class JamfPackageUploader(Processor):
                         raise ProcessorError(
                             "An error occurred while attempting to upload the package"
                         )
+                else:
+                    r = self.nscurl_pkg(
+                        self.pkg_name, self.pkg_path, self.jamf_url, enc_creds, obj_id
+                    )
+                    try:
+                        pkg_id = ElementTree.fromstring(r).findtext("id")
+                        if pkg_id:
+                            self.output(
+                                "Package uploaded successfully, ID={}".format(pkg_id)
+                            )
+                    except ElementTree.ParseError:
+                        self.output("Could not parse XML. Raw output:", verbose_level=2)
+                        self.output(r.decode("ascii"), verbose_level=2)
+                    else:
+                        if r:
+                            self.output("\nResponse:\n", verbose_level=2)
+                            self.output(r.decode("ascii"), verbose_level=2)
+                        else:
+                            self.output("No HTTP response", verbose_level=2)
             else:
                 self.output(
                     "Not replacing existing package as 'replace_pkg' is set to {}. Use replace_pkg='True' to enforce.".format(
@@ -472,7 +608,7 @@ class JamfPackageUploader(Processor):
                 self.env["pkg_uploaded"] = False
                 return
 
-        #  now process the package metadata if specified
+        # now process the package metadata if specified
         if self.category or self.smb_url:
             try:
                 pkg_id
