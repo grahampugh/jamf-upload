@@ -102,6 +102,8 @@ class JamfCategoryUploader(Processor):
         if additional_headers:
             nscurl_cmd.extend(additional_headers)
 
+        self.output(f"nscurl command: {' '.join(nscurl_cmd)}", verbose_level=2)
+
         # now subprocess the nscurl command and build the r tuple which contains the
         # headers, status code and outputted data
         subprocess.check_output(nscurl_cmd)

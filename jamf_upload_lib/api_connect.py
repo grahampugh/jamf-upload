@@ -8,7 +8,7 @@ from base64 import b64encode
 import requests
 from requests_toolbelt.utils import dump
 
-from . import actions
+from . import nscurl
 
 
 def get_credentials(prefs_file):
@@ -77,7 +77,7 @@ def logging_hook(response, *args, **kwargs):
 def get_uapi_token(jamf_url, enc_creds, verbosity):
     """get a token for the Jamf Pro API"""
     url = "{}/uapi/auth/tokens".format(jamf_url)
-    r = actions.nscurl("POST", url, enc_creds, verbosity)
+    r = nscurl.request("POST", url, enc_creds, verbosity)
     if r.status_code == 200:
         try:
             token = str(r.output["token"])

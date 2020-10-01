@@ -29,17 +29,18 @@ import json
 import re
 import math
 import io
+import plistlib
+import six
+import subprocess
+import xml.etree.ElementTree as ElementTree
+
 from base64 import b64encode
 from zipfile import ZipFile, ZIP_DEFLATED
 from time import sleep
-from requests_toolbelt.utils import dump
-import plistlib
-import subprocess
-import xml.etree.ElementTree as ElementTree
+from urllib.parse import quote
 from shutil import copyfile
-import six
 
-from jamf_upload_lib import api_connect, api_get, actions
+from jamf_upload_lib import api_connect, api_get, actions, nscurl
 
 if six.PY2:
     input = raw_input  # pylint: disable=E0602
@@ -134,8 +135,8 @@ def check_pkg(pkg_name, jamf_url, enc_creds, verbosity):
     """check if a package with the same name exists in the repo
     note that it is possible to have more than one with the same name
     which could mess things up"""
-    url = "{}/JSSResource/packages/name/{}".format(jamf_url, pkg_name)
-    r = actions.nscurl("GET", url, enc_creds, verbosity)
+    url = "{}/JSSResource/packages/name/{}".format(jamf_url, quote(pkg_name))
+    r = nscurl.request("GET", url, enc_creds, verbosity)
     if r.status_code == 200:
         obj = json.loads(r.output)
         try:
@@ -223,7 +224,7 @@ def nscurl_pkg(pkg_name, pkg_path, jamf_url, enc_creds, obj_id, r_timeout, verbo
         "--payload-transmission-timeout",
         str(r_timeout),
     ]
-    r = actions.nscurl("POST", url, enc_creds, verbosity, pkg_path, additional_headers)
+    r = nscurl.request("POST", url, enc_creds, verbosity, pkg_path, additional_headers)
     if verbosity:
         print("HTTP response: {}".format(r.status_code))
     return r.output
@@ -263,10 +264,10 @@ def update_pkg_metadata(
         if verbosity > 1:
             print("Package update attempt {}".format(count))
 
-        pkg_xml = actions.write_temp_file(pkg_data)
-        r = actions.nscurl("PUT", url, enc_creds, verbosity, pkg_xml)
+        pkg_xml = nscurl.write_temp_file(pkg_data)
+        r = nscurl.request("PUT", url, enc_creds, verbosity, pkg_xml)
         # check HTTP response
-        if actions.status_check(r, "Package", pkg_name) == "break":
+        if nscurl.status_check(r, "Package", pkg_name) == "break":
             break
         if count > 5:
             print("WARNING: Package metadata update did not succeed after 5 attempts")

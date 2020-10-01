@@ -171,6 +171,8 @@ class JamfScriptUploader(Processor):
         if additional_headers:
             nscurl_cmd.extend(additional_headers)
 
+        self.output(f"nscurl command: {' '.join(nscurl_cmd)}", verbose_level=2)
+
         # now subprocess the nscurl command and build the r tuple which contains the
         # headers, status code and outputted data
         subprocess.check_output(nscurl_cmd)
@@ -256,7 +258,7 @@ class JamfScriptUploader(Processor):
                     f"Replacing any instances of '{custom_key}' with",
                     f"'{str(self.env.get(custom_key))}'",
                 ),
-                verbose_level=2,
+                verbose_level=3,
             )
             try:
                 data = re.sub(
@@ -373,7 +375,6 @@ class JamfScriptUploader(Processor):
         script_json = self.write_json_file(script_data)
 
         count = 0
-        script_json = json.dumps(script_data)
         while True:
             count += 1
             self.output(
@@ -465,7 +466,7 @@ class JamfScriptUploader(Processor):
             self.output("Script '{}' already exists: ID {}".format(script_name, obj_id))
             if self.replace:
                 self.output(
-                    "Replacing existing script as 'replace_ea' is set to {}".format(
+                    "Replacing existing script as 'replace_script' is set to {}".format(
                         self.replace
                     ),
                     verbose_level=1,

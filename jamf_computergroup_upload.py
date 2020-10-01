@@ -23,7 +23,7 @@ import os
 import re
 from time import sleep
 
-from jamf_upload_lib import actions, api_connect, api_get
+from jamf_upload_lib import actions, api_connect, api_get, nscurl
 
 
 def get_computergroup_name(template_contents, verbosity):
@@ -74,7 +74,7 @@ def upload_computergroup(
     print("Uploading Computer Group...")
 
     # write the template to temp file
-    template_xml = actions.write_temp_file(template_contents)
+    template_xml = nscurl.write_temp_file(template_contents)
 
     count = 0
     while True:
@@ -82,9 +82,9 @@ def upload_computergroup(
         if verbosity > 1:
             print("Computer Group upload attempt {}".format(count))
         method = "PUT" if obj_id else "POST"
-        r = actions.nscurl(method, url, enc_creds, verbosity, template_xml)
+        r = nscurl.request(method, url, enc_creds, verbosity, template_xml)
         # check HTTP response
-        if actions.status_check(r, "Computer Group", computergroup_name) == "break":
+        if nscurl.status_check(r, "Computer Group", computergroup_name) == "break":
             break
         if count > 5:
             print("WARNING: Computer Group upload did not succeed after 5 attempts")

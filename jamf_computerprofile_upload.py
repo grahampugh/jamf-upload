@@ -22,7 +22,7 @@ from time import sleep
 from requests_toolbelt.utils import dump
 from xml.sax.saxutils import escape
 
-from jamf_upload_lib import actions, api_connect, api_get
+from jamf_upload_lib import actions, api_connect, api_get, nscurl
 
 
 def construct_mobileconfig(payload_path):

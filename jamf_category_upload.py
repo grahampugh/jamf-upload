@@ -18,7 +18,7 @@ import os
 import json
 from time import sleep
 
-from jamf_upload_lib import api_connect, api_get, actions
+from jamf_upload_lib import api_connect, api_get, actions, nscurl
 
 
 def upload_category(jamf_url, category_name, priority, verbosity, token, obj_id=0):
@@ -45,14 +45,14 @@ def upload_category(jamf_url, category_name, priority, verbosity, token, obj_id=
     if obj_id:
         category_name_temp = category_name + "_TEMP"
         category_data_temp = {"priority": priority, "name": category_name_temp}
-        category_json_temp = actions.write_json_file(category_data_temp)
+        category_json_temp = nscurl.write_json_file(category_data_temp)
         while True:
             count += 1
             if verbosity > 1:
                 print("Category upload attempt {}".format(count))
-            r = actions.nscurl("PUT", url, token, verbosity, category_json_temp)
+            r = nscurl.request("PUT", url, token, verbosity, category_json_temp)
             # check HTTP response
-            if actions.status_check(r, "Category", category_name_temp) == "break":
+            if nscurl.status_check(r, "Category", category_name_temp) == "break":
                 break
             if count > 5:
                 print(
@@ -63,16 +63,16 @@ def upload_category(jamf_url, category_name, priority, verbosity, token, obj_id=
             sleep(10)
 
     # write the category. If updating an existing category, this reverts the name to its original.
-    category_json = actions.write_json_file(category_data)
+    category_json = nscurl.write_json_file(category_data)
 
     while True:
         count += 1
         if verbosity > 1:
             print("Category upload attempt {}".format(count))
         method = "PUT" if obj_id else "POST"
-        r = actions.nscurl(method, url, token, verbosity, category_json)
+        r = nscurl.request(method, url, token, verbosity, category_json)
         # check HTTP response
-        if actions.status_check(r, "Category", category_name) == "break":
+        if nscurl.status_check(r, "Category", category_name) == "break":
             break
         if count > 5:
             print("ERROR: Category creation did not succeed after 5 attempts")

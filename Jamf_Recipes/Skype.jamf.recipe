@@ -93,9 +93,9 @@
 		<dict>
 			<key>Arguments</key>
 			<dict>
-				<key>group_name</key>
+				<key>computergroup_name</key>
 				<string>%GROUP_NAME%</string>
-				<key>group_template</key>
+				<key>computergroup_template</key>
 				<string>%GROUP_TEMPLATE%</string>
 			</dict>
 			<key>Processor</key>

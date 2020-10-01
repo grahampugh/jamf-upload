@@ -23,7 +23,7 @@ import re
 import xml.etree.ElementTree as ElementTree
 from time import sleep
 
-from jamf_upload_lib import actions, api_connect, api_get
+from jamf_upload_lib import actions, api_connect, api_get, nscurl
 
 
 def get_policy_name(template_contents, verbosity):
@@ -74,7 +74,7 @@ def upload_policy(
     print("Uploading Policy...")
 
     #  write the template to temp file
-    template_xml = actions.write_temp_file(template_contents)
+    template_xml = nscurl.write_temp_file(template_contents)
 
     count = 0
     while True:
@@ -82,9 +82,9 @@ def upload_policy(
         if verbosity > 1:
             print("Policy upload attempt {}".format(count))
         method = "PUT" if obj_id else "POST"
-        r = actions.nscurl(method, url, enc_creds, verbosity, template_xml)
+        r = nscurl.request(method, url, enc_creds, verbosity, template_xml)
         # check HTTP response
-        if actions.status_check(r, "Policy", policy_name) == "break":
+        if nscurl.status_check(r, "Policy", policy_name) == "break":
             break
         if count > 5:
             print("WARNING: Policy upload did not succeed after 5 attempts")
@@ -157,9 +157,9 @@ def upload_policy_icon(
             count += 1
             if verbosity > 1:
                 print("Icon upload attempt {}".format(count))
-            r = actions.nscurl("POST", url, enc_creds, verbosity, resource)
+            r = nscurl.request("POST", url, enc_creds, verbosity, resource)
             # check HTTP response
-            if actions.status_check(r, "Icon", policy_icon_name) == "break":
+            if nscurl.status_check(r, "Icon", policy_icon_name) == "break":
                 break
             if count > 5:
                 print("WARNING: Icon upload did not succeed after 5 attempts")

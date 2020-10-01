@@ -120,6 +120,8 @@ class JamfPolicyUploader(Processor):
         if additional_headers:
             nscurl_cmd.extend(additional_headers)
 
+        self.output(f"nscurl command: {' '.join(nscurl_cmd)}", verbose_level=2)
+
         # now subprocess the nscurl command and build the r tuple which contains the
         # headers, status code and outputted data
         subprocess.check_output(nscurl_cmd)
@@ -487,7 +489,7 @@ class JamfPolicyUploader(Processor):
 
             # get the policy_id returned from the HTTP response
             try:
-                policy_id = ElementTree.fromstring(r.text).findtext("id")
+                policy_id = ElementTree.fromstring(r.output).findtext("id")
                 policy_icon_name = self.upload_policy_icon(
                     self.jamf_url,
                     enc_creds,

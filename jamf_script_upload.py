@@ -18,7 +18,7 @@ import os.path
 import re
 from time import sleep
 
-from jamf_upload_lib import actions, api_connect, api_get
+from jamf_upload_lib import actions, api_connect, api_get, nscurl
 
 
 def upload_script(
@@ -94,16 +94,16 @@ def upload_script(
     print("Uploading script..")
 
     count = 0
-    script_json = actions.write_json_file(script_data)
+    script_json = nscurl.write_json_file(script_data)
 
     while True:
         count += 1
         if verbosity > 1:
             print("Script upload attempt {}".format(count))
         method = "PUT" if obj_id else "POST"
-        r = actions.nscurl(method, url, token, verbosity, script_json)
+        r = nscurl.request(method, url, token, verbosity, script_json)
         # check HTTP response
-        if actions.status_check(r, "Script", script_name) == "break":
+        if nscurl.status_check(r, "Script", script_name) == "break":
             break
         if count > 5:
             print("ERROR: Script upload did not succeed after 5 attempts")

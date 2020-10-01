@@ -23,7 +23,7 @@ from collections import namedtuple
 from time import sleep
 from zipfile import ZipFile, ZIP_DEFLATED
 from shutil import copyfile
-from urllib.parse import urlparse
+from urllib.parse import urlparse, quote
 from autopkglib import Processor, ProcessorError  # pylint: disable=import-error
 
 
@@ -171,6 +171,8 @@ class JamfPackageUploader(Processor):
         if additional_headers:
             nscurl_cmd.extend(additional_headers)
 
+        self.output(f"nscurl command: {' '.join(nscurl_cmd)}", verbose_level=2)
+
         # now subprocess the nscurl command and build the r tuple which contains the
         # headers, status code and outputted data
         subprocess.check_output(nscurl_cmd)
@@ -302,7 +304,7 @@ class JamfPackageUploader(Processor):
         """check if a package with the same name exists in the repo
         note that it is possible to have more than one with the same name
         which could mess things up"""
-        url = f"{jamf_url}/JSSResource/packages/name/{pkg_name}"
+        url = f"{jamf_url}/JSSResource/packages/name/{quote(pkg_name)}"
         r = self.nscurl("GET", url, enc_creds)
         if r.status_code == 200:
             obj = json.loads(r.output)
@@ -370,21 +372,21 @@ class JamfPackageUploader(Processor):
 
     def nscurl_pkg(self, pkg_name, pkg_path, jamf_url, enc_creds, obj_id):
         """uploads the package using nscurl"""
-        url = "{}/dbfileupload".format(jamf_url)
+        url = f"{jamf_url}/dbfileupload"
         additional_headers = [
             "--header",
             "DESTINATION: 0",
             "--header",
-            "OBJECT_ID: {}".format(obj_id),
+            f"OBJECT_ID: {obj_id}",
             "--header",
             "FILE_TYPE: 0",
             "--header",
-            "FILE_NAME: {}".format(pkg_name),
+            f"FILE_NAME: {pkg_name}",
             "--payload-transmission-timeout",
             str("3600"),
         ]
         r = self.nscurl("POST", url, enc_creds, pkg_path, additional_headers)
-        self.output("HTTP response: {}".format(r.status_code), verbose_level=2)
+        self.output(f"HTTP response: {r.status_code}", verbose_level=2)
         return r.output
 
     def update_pkg_metadata(self, jamf_url, enc_creds, pkg_name, category, pkg_id=None):

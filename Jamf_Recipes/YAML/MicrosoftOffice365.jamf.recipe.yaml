@@ -69,13 +69,13 @@ Process:
 
   - Processor: com.github.grahampugh.jamf-upload.processors/JamfComputerGroupUploader
     Arguments:
-      group_template: "%GROUP_TEMPLATE%"
-      group_name: "%GROUP_NAME%"
+      computergroup_template: "%GROUP_TEMPLATE%"
+      computergroup_name: "%GROUP_NAME%"
 
   - Processor: com.github.grahampugh.jamf-upload.processors/JamfComputerGroupUploader
     Arguments:
-      group_template: "%EXCLUSION_GROUP_TEMPLATE%"
-      group_name: "%OS_LIMITS_GROUP_NAME%"
+      computergroup_template: "%EXCLUSION_GROUP_TEMPLATE%"
+      computergroup_name: "%OS_LIMITS_GROUP_NAME%"
 
   - Processor: com.github.grahampugh.jamf-upload.processors/JamfPolicyUploader
     Arguments:
