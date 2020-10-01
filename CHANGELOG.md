@@ -32,11 +32,13 @@ I intend to add such functionality if changes are made to the Jamf Pro API so th
 
 - Added AutoPkg processors, `JamfScriptUploader.py`, `JamfCategorytUploader.py`, `JamfComputerGroupUploader.py`, `JamfExtensionAttributeUploader.py`, `JamfPackageUploader.py` and `JamfPolicyUploader.py`, which perform the same tasks as the standalone scripts. Unlike the standalone scripts, these are not designed to upoload multiple packages/policies etc in one process, but they can be called multiple times from withing an AutoPkg recipe to upload multiple objects in a single AutoPkg run. Due to the limitations of AutoPkg, these do not share common modules from this repo - instead, the functions are repeated in each Processor. This allows each Processor to be called independently without installing any dependencies.
 
-- The example (nonsense) recipe `Mattermost.jamf-upload.recipe` in the `_tests` directory showcases the capabilities of the AutoPkg processors.
+- Added various working `.jamf` recipes, and associated templates and Self Service icons.
+
+- Switched from using Python's `requests` package to using a built-in `nscurl` library for most functions. Only `jamf.pkg_upload.py` retains an option to use `requests` for uploading a package, or using the `--direct` method, both of which require the `requests` package to be present in your python3 environment. The default upload method does not require `requests`.
 
 ## [0.2.0] - 2020-07-24
 
-- Added the `--direct` method which allows package upload using the same method as performed via the Jamf Cloud GUI. This method has been ported here from `python-jss`. Packages are uploaded in chunks. The default chunk size is 1MB, but this can be altered using the `--chunksize` option. Many thanks to `@mosen` for porting this across.
+- Added the `--direct` method to `jamf.pkg_upload.py`, which allows package upload using the same method as performed via the Jamf Cloud GUI. This method has been ported here from `python-jss`. Packages are uploaded in chunks. The default chunk size is 1MB, but this can be altered using the `--chunksize` option. Many thanks to `@mosen` for porting this across.
 
 - Changed the `requests` option to upload via the `data` option rather than the `files` option. This prevents a problem of files larger than 2GB failing to upload due to a limitation in the `ssl` module (see [https://github.com/psf/requests/issues/2717#issuecomment-130343655](https://github.com/psf/requests/issues/2717#issuecomment-130343655)).
 

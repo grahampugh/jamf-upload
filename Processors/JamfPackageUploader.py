@@ -62,16 +62,6 @@ class JamfPackageUploader(Processor):
             "description": "Overwrite an existing package if True.",
             "default": "False",
         },
-        "curl": {
-            "required": False,
-            "description": "Use curl instead of nscurl to upload package if True.",
-            "default": "False",
-        },
-        "requests": {
-            "required": False,
-            "description": "Use curl instead of nscurl to upload package if True.",
-            "default": "False",
-        },
         "JSS_URL": {
             "required": True,
             "description": "URL to a Jamf Pro server that the API user has write access "
@@ -316,60 +306,6 @@ class JamfPackageUploader(Processor):
             obj_id = "-1"
         return obj_id
 
-    def post_pkg(self, pkg_name, pkg_path, jamf_url, enc_creds, obj_id):
-        """sends the package using requests instead of nscurl"""
-        try:
-            import requests
-        except ImportError:
-            raise ProcessorError(
-                "WARNING: could not import requests module. Use pip to install requests and try again."
-            )
-
-        files = {"file": open(pkg_path, "rb")}
-        headers = {
-            "authorization": f"Basic {enc_creds}",
-            "content-type": "application/xml",
-            "DESTINATION": "0",
-            "OBJECT_ID": obj_id,
-            "FILE_TYPE": "0",
-            "FILE_NAME": pkg_name,
-        }
-        url = f"{jamf_url}/dbfileupload"
-
-        http = requests.Session()
-        r = http.post(url, data=files, headers=headers, timeout=3600)
-        return r
-
-    def curl_pkg(self, pkg_name, pkg_path, jamf_url, enc_creds, obj_id):
-        """sends the package via curl instead of nscurl"""
-        url = f"{jamf_url}/dbfileupload"
-        curl_cmd = [
-            "/usr/bin/curl",
-            "-X",
-            "POST",
-            "--header",
-            "authorization: Basic {}".format(enc_creds),
-            "--header",
-            "DESTINATION: 0",
-            "--header",
-            "OBJECT_ID: {}".format(obj_id),
-            "--header",
-            "FILE_TYPE: 0",
-            "--header",
-            "FILE_NAME: {}".format(pkg_name),
-            "--upload-file",
-            pkg_path,
-            "--connect-timeout",
-            str("60"),
-            "--max-time",
-            str("3600"),
-            url,
-        ]
-        self.output(curl_cmd, verbose_level=2)
-
-        r = subprocess.check_output(curl_cmd)
-        return r
-
     def nscurl_pkg(self, pkg_name, pkg_path, jamf_url, enc_creds, obj_id):
         """uploads the package using nscurl"""
         url = f"{jamf_url}/dbfileupload"
@@ -458,11 +394,6 @@ class JamfPackageUploader(Processor):
         # handle setting replace in overrides
         if not self.replace or self.replace == "False":
             self.replace = False
-        self.curl = self.env.get("curl")
-        self.requests = self.env.get("requests")
-        # handle setting replace in overrides
-        if not self.curl or self.curl == "False":
-            self.curl = False
         self.jamf_url = self.env.get("JSS_URL")
         self.jamf_user = self.env.get("API_USERNAME")
         self.jamf_password = self.env.get("API_PASSWORD")
@@ -526,78 +457,24 @@ class JamfPackageUploader(Processor):
                         verbose_level=1,
                     )
                 # post the package (won't run if the pkg exists and replace is False)
-                if self.curl:
-                    r = self.curl_pkg(
-                        self.pkg_name, self.pkg_path, self.jamf_url, enc_creds, obj_id,
-                    )
-                    try:
-                        pkg_id = ElementTree.fromstring(r).findtext("id")
-                        if pkg_id:
-                            self.output(
-                                "Package uploaded successfully, ID={}".format(pkg_id)
-                            )
-                    except ElementTree.ParseError:
-                        self.output("Could not parse XML. Raw output:", verbose_level=2)
-                        self.output(r.decode("ascii"), verbose_level=2)
-                    else:
-                        if r:
-                            self.output("\nResponse:\n", verbose_level=2)
-                            self.output(r.decode("ascii"), verbose_level=2)
-                        else:
-                            self.output("No HTTP response", verbose_level=2)
-                elif self.requests:
-                    r = self.post_pkg(
-                        self.pkg_name, self.pkg_path, self.jamf_url, enc_creds, obj_id
-                    )
-                    # print result of the request
-                    if r.status_code == 200 or r.status_code == 201:
-                        pkg_id = ElementTree.fromstring(r.text).findtext("id")
-                        self.output(f"Package uploaded successfully, ID={pkg_id}")
-                        # now process the package metadata if specified
-                    else:
+                r = self.nscurl_pkg(
+                    self.pkg_name, self.pkg_path, self.jamf_url, enc_creds, obj_id
+                )
+                try:
+                    pkg_id = ElementTree.fromstring(r).findtext("id")
+                    if pkg_id:
                         self.output(
-                            f"HTTP POST Response Code: {r.status_code}",
-                            verbose_level=2,
+                            "Package uploaded successfully, ID={}".format(pkg_id)
                         )
-                        self.output(
-                            "Headers:", verbose_level=2,
-                        )
-                        self.output(
-                            r.headers, verbose_level=2,
-                        )
-                        self.output(
-                            "Response:", verbose_level=2,
-                        )
-                        if r.text:
-                            self.output(
-                                r.text, verbose_level=2,
-                            )
-                        else:
-                            self.output(
-                                "None", verbose_level=2,
-                            )
-                        raise ProcessorError(
-                            "An error occurred while attempting to upload the package"
-                        )
+                except ElementTree.ParseError:
+                    self.output("Could not parse XML. Raw output:", verbose_level=2)
+                    self.output(r.decode("ascii"), verbose_level=2)
                 else:
-                    r = self.nscurl_pkg(
-                        self.pkg_name, self.pkg_path, self.jamf_url, enc_creds, obj_id
-                    )
-                    try:
-                        pkg_id = ElementTree.fromstring(r).findtext("id")
-                        if pkg_id:
-                            self.output(
-                                "Package uploaded successfully, ID={}".format(pkg_id)
-                            )
-                    except ElementTree.ParseError:
-                        self.output("Could not parse XML. Raw output:", verbose_level=2)
+                    if r:
+                        self.output("\nResponse:\n", verbose_level=2)
                         self.output(r.decode("ascii"), verbose_level=2)
                     else:
-                        if r:
-                            self.output("\nResponse:\n", verbose_level=2)
-                            self.output(r.decode("ascii"), verbose_level=2)
-                        else:
-                            self.output("No HTTP response", verbose_level=2)
+                        self.output("No HTTP response", verbose_level=2)
             else:
                 self.output(
                     "Not replacing existing package as 'replace_pkg' is set to {}. Use replace_pkg='True' to enforce.".format(
