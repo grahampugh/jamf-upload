@@ -135,4 +135,4 @@ dmypy.json
 .vscode
 
 # temporary ignore for prospective projects
-jamf_computerprofile_upload.py
+jamf_computerprofile_upload.*
