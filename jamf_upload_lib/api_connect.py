@@ -5,8 +5,6 @@ import json
 import plistlib
 import six
 from base64 import b64encode
-import requests
-from requests_toolbelt.utils import dump
 
 from . import nscurl
 
@@ -67,11 +65,6 @@ def encode_creds(jamf_user, jamf_password):
         enc_creds = str(enc_creds_bytes, "utf-8")
 
     return enc_creds
-
-
-def logging_hook(response, *args, **kwargs):
-    data = dump.dump_all(response)
-    print(data)
 
 
 def get_uapi_token(jamf_url, enc_creds, verbosity):

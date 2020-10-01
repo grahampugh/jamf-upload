@@ -15,9 +15,6 @@ for example an AutoPkg preferences file which has been configured for use with
 JSSImporter: ~/Library/Preferences/com.github.autopkg
 
 For usage, run jamf_pkg_upload.py --help
-
-Additional requests tools added based on:
-https://findwork.dev/blog/advanced-usage-python-requests-timeouts-retries-hooks/
 """
 
 
@@ -170,8 +167,6 @@ def post_pkg(pkg_name, pkg_path, jamf_url, enc_creds, obj_id, r_timeout, verbosi
     url = "{}/dbfileupload".format(jamf_url)
 
     http = requests.Session()
-    if verbosity > 2:
-        http.hooks["response"] = [api_connect.logging_hook]
 
     r = http.post(url, data=files, headers=headers, timeout=r_timeout)
     return r
