@@ -264,7 +264,7 @@ def main():
     # grab values from a prefs file if supplied
     jamf_url, _, _, enc_creds = api_connect.get_creds_from_args(args)
 
-    # import computer group from file and replace any keys in the XML
+    # import policy template and replace any keys in the XML
     with open(args.template, "r") as file:
         template_contents = file.read()
 
@@ -273,7 +273,7 @@ def main():
         template_contents, cli_custom_keys, verbosity
     )
 
-    #  set a list of names either from the CLI args or from the template if no arg provided
+    # set a list of names either from the CLI args or from the template if no arg provided
     if args.names:
         names = args.names
     else:

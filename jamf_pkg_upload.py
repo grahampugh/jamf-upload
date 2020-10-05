@@ -481,9 +481,7 @@ def get_args():
         ),
     )
     parser.add_argument(
-        "--category",
-        default="",
-        help="a category to assign to the package (experimental)",
+        "--category", default="", help="a category to assign to the package",
     )
     parser.add_argument(
         "--timeout",

@@ -7,6 +7,34 @@ import sys  # temp
 from . import nscurl
 
 
+def object_types(object_type):
+    """return a dictionary of jamf API objects and their corresponding URI names"""
+    # define the relationship between the object types and their URL
+    # we could make this shorter with some regex but I think this way is clearer
+    object_types = {
+        "package": "packages",
+        "computer_group": "computergroups",
+        "policy": "policies",
+        "extension_attribute": "computerextensionattributes",
+        "os_x_configuration_profile": "osxconfigurationprofiles",
+    }
+    return object_types[object_type]
+
+
+def object_list_types(object_type):
+    """return a dictionary of jamf API objects and their corresponding URI names"""
+    # define the relationship between the object types and the xml key in a GET request of all objects
+    # we could make this shorter with some regex but I think this way is clearer
+    object_list_types = {
+        "package": "packages",
+        "computer_group": "computer_groups",
+        "policy": "policies",
+        "extension_attribute": "computer_extension_attributes",
+        "os_x_configuration_profile": "os_x_configuration_profiles",
+    }
+    return object_list_types[object_type]
+
+
 def get_uapi_obj_id_from_name(jamf_url, object_type, object_name, token, verbosity):
     """The UAPI doesn't have a name object, so we have to get the list of scripts 
     and parse the name to get the id """
@@ -29,22 +57,8 @@ def check_api_obj_id_from_name(
     jamf_url, object_type, object_name, enc_creds, verbosity
 ):
     """check if a Classic API object with the same name exists on the server"""
-    # define the relationship between the object types and their URL
-    # we could make this shorter with some regex but I think this way is clearer
-    object_types = {
-        "package": "packages",
-        "computer_group": "computergroups",
-        "policy": "policies",
-        "extension_attribute": "computerextensionattributes",
-    }
-    object_list_types = {
-        "package": "packages",
-        "computer_group": "computer_groups",
-        "policy": "policies",
-        "extension_attribute": "computer_extension_attributes",
-    }
 
-    url = "{}/JSSResource/{}".format(jamf_url, object_types[object_type])
+    url = "{}/JSSResource/{}".format(jamf_url, object_types(object_type))
     r = nscurl.request("GET", url, enc_creds, verbosity)
 
     if r.status_code == 200:
@@ -52,7 +66,7 @@ def check_api_obj_id_from_name(
         if verbosity > 2:
             print(object_list)
         obj_id = 0
-        for obj in object_list[object_list_types[object_type]]:
+        for obj in object_list[object_list_types(object_type)]:
             if verbosity > 2:
                 print(obj)
             # we need to check for a case-insensitive match
@@ -65,16 +79,8 @@ def get_api_obj_value_from_id(
     jamf_url, object_type, obj_id, obj_path, enc_creds, verbosity
 ):
     """get the value of an item in a Classic API object"""
-    # define the relationship between the object types and their URL
-    # we could make this shorter with some regex but I think this way is clearer
-    object_types = {
-        "package": "packages",
-        "computer_group": "computergroups",
-        "policy": "policies",
-        "extension_attribute": "computerextensionattributes",
-    }
 
-    url = "{}/JSSResource/{}/id/{}".format(jamf_url, object_types[object_type], obj_id)
+    url = "{}/JSSResource/{}/id/{}".format(jamf_url, object_types(object_type), obj_id)
     r = nscurl.request("GET", url, enc_creds, verbosity)
     if r.status_code == 200:
         obj_content = json.loads(r.output)
@@ -103,6 +109,6 @@ def get_headers(r):
     print(r.headers)
     print("\nResponse:\n")
     if r.output:
-        print(r.output)
+        print(r.output.decode("UTF-8"))
     else:
         print("None")

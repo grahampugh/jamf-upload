@@ -38,7 +38,7 @@ def upload_ea(
         script_contents, cli_custom_keys, verbosity
     )
 
-    #  XML-escape the script
+    # XML-escape the script
     script_contents_escaped = escape(script_contents)
 
     # build the object
