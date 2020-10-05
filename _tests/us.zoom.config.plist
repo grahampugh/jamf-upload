@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>ForceLoginWithSSO</key>
+	<integer>0</integer>
+	<key>LastLoginType</key>
+	<integer>1</integer>
+	<key>ZAutoSSOLogin</key>
+	<integer>0</integer>
+	<key>ZAutoUpdate</key>
+	<integer>0</integer>
+	<key>keepsignedin</key>
+	<integer>1</integer>
+	<key>nofacebook</key>
+	<integer>1</integer>
+	<key>nogoogle</key>
+	<integer>1</integer>
+</dict>
+</plist>

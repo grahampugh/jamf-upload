@@ -20,12 +20,10 @@ import json
 import mimetypes
 import os.path
 import re
-import requests
 import xml.etree.ElementTree as ElementTree
 from time import sleep
-from requests_toolbelt.utils import dump
 
-from jamf_upload_lib import actions, api_connect, api_get
+from jamf_upload_lib import actions, api_connect, api_get, nscurl
 
 
 def get_policy_name(template_contents, verbosity):
@@ -62,40 +60,31 @@ def upload_policy(
     obj_id=None,
 ):
     """Upload policy"""
-    headers = {
-        "authorization": "Basic {}".format(enc_creds),
-        "Accept": "application/xml",
-        "Content-type": "application/xml",
-    }
+
     # if we find an object ID we put, if not, we post
     if obj_id:
         url = "{}/JSSResource/policies/id/{}".format(jamf_url, obj_id)
     else:
         url = "{}/JSSResource/policies/id/0".format(jamf_url)
 
-    http = requests.Session()
     if verbosity > 2:
-        http.hooks["response"] = [api_connect.logging_hook]
         print("Policy data:")
         print(template_contents)
 
     print("Uploading Policy...")
+
+    #  write the template to temp file
+    template_xml = nscurl.write_temp_file(template_contents)
 
     count = 0
     while True:
         count += 1
         if verbosity > 1:
             print("Policy upload attempt {}".format(count))
-        if obj_id:
-            r = http.put(url, headers=headers, data=template_contents, timeout=60)
-        else:
-            r = http.post(url, headers=headers, data=template_contents, timeout=60)
-        if r.status_code == 200 or r.status_code == 201:
-            print("Policy '{}' uploaded successfully".format(policy_name))
-            break
-        if r.status_code == 409:
-            # TODO when using verbose mode we could get the reason for the conflict from the output
-            print("WARNING: Policy upload failed due to a conflict")
+        method = "PUT" if obj_id else "POST"
+        r = nscurl.request(method, url, enc_creds, verbosity, template_xml)
+        # check HTTP response
+        if nscurl.status_check(r, "Policy", policy_name) == "break":
             break
         if count > 5:
             print("WARNING: Policy upload did not succeed after 5 attempts")
@@ -103,14 +92,13 @@ def upload_policy(
             break
         sleep(30)
 
-    if verbosity:
-        print("\nHeaders:\n")
-        print(r.headers)
-        print("\nResponse:\n")
-        if r.text:
-            print(r.text)
-        else:
-            print("None")
+    if verbosity > 1:
+        api_get.get_headers(r)
+
+    # clean up temp files
+    if os.path.exists(template_xml):
+        os.remove(template_xml)
+
     return r
 
 
@@ -157,13 +145,6 @@ def upload_policy_icon(
     if existing_icon != policy_icon_name or replace_icon:
         url = "{}/JSSResource/fileuploads/policies/id/{}".format(jamf_url, obj_id)
 
-        headers = {
-            "authorization": "Basic {}".format(enc_creds),
-        }
-        http = requests.Session()
-        if verbosity > 2:
-            http.hooks["response"] = [api_connect.logging_hook]
-
         print("Uploading icon...")
         #  resource construction grabbed from python-jss / misc_endpoints.py
         content_type = mimetypes.guess_type(policy_icon_name)[0]
@@ -176,13 +157,9 @@ def upload_policy_icon(
             count += 1
             if verbosity > 1:
                 print("Icon upload attempt {}".format(count))
-            r = http.post(url, headers=headers, files=resource, timeout=60)
-            if r.status_code == 200 or r.status_code == 201:
-                print("Icon '{}' uploaded successfully".format(policy_icon_name))
-                break
-            if r.status_code == 409:
-                # TODO when using verbose mode we could get the reason for the conflict from the output
-                print("WARNING: Icon upload failed due to a conflict")
+            r = nscurl.request("POST", url, enc_creds, verbosity, resource)
+            # check HTTP response
+            if nscurl.status_check(r, "Icon", policy_icon_name) == "break":
                 break
             if count > 5:
                 print("WARNING: Icon upload did not succeed after 5 attempts")
@@ -190,14 +167,8 @@ def upload_policy_icon(
                 break
             sleep(30)
 
-        if verbosity:
-            print("\nHeaders:\n")
-            print(r.headers)
-            print("\nResponse:\n")
-            if r.text:
-                print(r.text)
-            else:
-                print("None")
+        if verbosity > 1:
+            api_get.get_headers(r)
     else:
         print("Existing icon matches local resource - skipping upload.")
 
@@ -293,7 +264,7 @@ def main():
     # grab values from a prefs file if supplied
     jamf_url, _, _, enc_creds = api_connect.get_creds_from_args(args)
 
-    # import computer group from file and replace any keys in the XML
+    # import policy template and replace any keys in the XML
     with open(args.template, "r") as file:
         template_contents = file.read()
 
@@ -302,7 +273,7 @@ def main():
         template_contents, cli_custom_keys, verbosity
     )
 
-    #  set a list of names either from the CLI args or from the template if no arg provided
+    # set a list of names either from the CLI args or from the template if no arg provided
     if args.names:
         names = args.names
     else:

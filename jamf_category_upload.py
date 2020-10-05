@@ -14,12 +14,11 @@ For usage, run jamf_category_upload.py --help
 
 
 import argparse
+import os
 import json
-import requests
 from time import sleep
-from requests_toolbelt.utils import dump
 
-from jamf_upload_lib import api_connect, api_get
+from jamf_upload_lib import api_connect, api_get, actions, nscurl
 
 
 def upload_category(jamf_url, category_name, priority, verbosity, token, obj_id=0):
@@ -27,46 +26,33 @@ def upload_category(jamf_url, category_name, priority, verbosity, token, obj_id=
 
     # build the object
     category_data = {"priority": priority, "name": category_name}
-    headers = {
-        "authorization": "Bearer {}".format(token),
-        "content-type": "application/json",
-        "accept": "application/json",
-    }
     if obj_id:
         url = "{}/uapi/v1/categories/{}".format(jamf_url, obj_id)
         category_data["name"] = category_name
     else:
         url = "{}/uapi/v1/categories".format(jamf_url)
 
-    http = requests.Session()
     if verbosity > 2:
-        http.hooks["response"] = [api_connect.logging_hook]
         print("Category data:")
         print(category_data)
 
     print("Uploading category..")
 
     count = 0
-    category_json = json.dumps(category_data)
 
     # we cannot PUT a category of the same name due to a bug in Jamf Pro (PI-008157).
     # so we have to do a first pass with a temporary different name, then change it back...
     if obj_id:
-        category_data_temp = {"priority": priority, "name": category_name + "_TEMP"}
-        category_json_temp = json.dumps(category_data_temp)
+        category_name_temp = category_name + "_TEMP"
+        category_data_temp = {"priority": priority, "name": category_name_temp}
+        category_json_temp = nscurl.write_json_file(category_data_temp)
         while True:
             count += 1
             if verbosity > 1:
                 print("Category upload attempt {}".format(count))
-            r = http.put(url, headers=headers, data=category_json_temp, timeout=60)
-            if r.status_code == 200:
-                print(
-                    "Temporary category update successful. Waiting before updating again..."
-                )
-                sleep(2)
-                break
-            if r.status_code == 409:
-                print("ERROR: Temporary category update failed due to a conflict")
+            r = nscurl.request("PUT", url, token, verbosity, category_json_temp)
+            # check HTTP response
+            if nscurl.status_check(r, "Category", category_name_temp) == "break":
                 break
             if count > 5:
                 print(
@@ -77,22 +63,16 @@ def upload_category(jamf_url, category_name, priority, verbosity, token, obj_id=
             sleep(10)
 
     # write the category. If updating an existing category, this reverts the name to its original.
+    category_json = nscurl.write_json_file(category_data)
+
     while True:
         count += 1
         if verbosity > 1:
             print("Category upload attempt {}".format(count))
-        if obj_id:
-            r = http.put(url, headers=headers, data=category_json, timeout=60)
-        else:
-            r = http.post(url, headers=headers, data=category_json, timeout=60)
-        if r.status_code == 201:
-            print("Category created successfully")
-            break
-        if r.status_code == 200:
-            print("Category update successful")
-            break
-        if r.status_code == 409:
-            print("ERROR: Category creation failed due to a conflict")
+        method = "PUT" if obj_id else "POST"
+        r = nscurl.request(method, url, token, verbosity, category_json)
+        # check HTTP response
+        if nscurl.status_check(r, "Category", category_name) == "break":
             break
         if count > 5:
             print("ERROR: Category creation did not succeed after 5 attempts")
@@ -102,6 +82,11 @@ def upload_category(jamf_url, category_name, priority, verbosity, token, obj_id=
 
     if verbosity > 1:
         api_get.get_headers(r)
+
+    # clean up temp files
+    for file in category_json, category_json_temp:
+        if os.path.exists(file):
+            os.remove(file)
 
     return r
 

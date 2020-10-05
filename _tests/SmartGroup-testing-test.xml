@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<computer_group>
+    <name>Testing</name>
+    <is_smart>true</is_smart>
+    <criteria>
+        <size>1</size>
+        <criterion>
+            <name>Username</name>
+            <priority>0</priority>
+            <and_or>and</and_or>
+            <search_type>matches regex</search_type>
+            <value>4ea$</value>
+        </criterion>
+        <criterion>
+            <name>Computer Group</name>
+            <priority>1</priority>
+            <and_or>or</and_or>
+            <search_type>member of</search_type>
+            <value>Testing-static</value>
+        </criterion>
+    </criteria>
+</computer_group>

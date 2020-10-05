@@ -133,3 +133,6 @@ dmypy.json
 
 # Visual Studio Code settings
 .vscode
+
+# temporary ignore for prospective projects
+jamf_signed_computerprofile_upload.py

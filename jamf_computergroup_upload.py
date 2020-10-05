@@ -19,12 +19,11 @@ For usage, run jamf_computergroup_upload.py --help
 
 import argparse
 import json
+import os
 import re
-import requests
 from time import sleep
-from requests_toolbelt.utils import dump
 
-from jamf_upload_lib import actions, api_connect, api_get
+from jamf_upload_lib import actions, api_connect, api_get, nscurl
 
 
 def get_computergroup_name(template_contents, verbosity):
@@ -61,42 +60,31 @@ def upload_computergroup(
     obj_id=None,
 ):
     """Upload computer group"""
-    headers = {
-        "authorization": "Basic {}".format(enc_creds),
-        "Accept": "application/xml",
-        "Content-type": "application/xml",
-    }
+
     # if we find an object ID we put, if not, we post
     if obj_id:
         url = "{}/JSSResource/computergroups/id/{}".format(jamf_url, obj_id)
     else:
         url = "{}/JSSResource/computergroups/id/0".format(jamf_url)
 
-    http = requests.Session()
     if verbosity > 2:
-        http.hooks["response"] = [api_connect.logging_hook]
         print("Computer Group data:")
         print(template_contents)
 
     print("Uploading Computer Group...")
+
+    # write the template to temp file
+    template_xml = nscurl.write_temp_file(template_contents)
 
     count = 0
     while True:
         count += 1
         if verbosity > 1:
             print("Computer Group upload attempt {}".format(count))
-        if obj_id:
-            r = http.put(url, headers=headers, data=template_contents, timeout=60)
-        else:
-            r = http.post(url, headers=headers, data=template_contents, timeout=60)
-        if r.status_code == 200 or r.status_code == 201:
-            print(
-                "Computer Group '{}' uploaded successfully".format(computergroup_name)
-            )
-            break
-        if r.status_code == 409:
-            # TODO when using verbose mode we could get the reason for the conflict from the output
-            print("WARNING: Computer Group upload failed due to a conflict")
+        method = "PUT" if obj_id else "POST"
+        r = nscurl.request(method, url, enc_creds, verbosity, template_xml)
+        # check HTTP response
+        if nscurl.status_check(r, "Computer Group", computergroup_name) == "break":
             break
         if count > 5:
             print("WARNING: Computer Group upload did not succeed after 5 attempts")
@@ -104,14 +92,12 @@ def upload_computergroup(
             break
         sleep(30)
 
-    if verbosity:
-        print("\nHeaders:\n")
-        print(r.headers)
-        print("\nResponse:\n")
-        if r.text:
-            print(r.text)
-        else:
-            print("None")
+    if verbosity > 1:
+        api_get.get_headers(r)
+
+    # clean up temp files
+    if os.path.exists(template_xml):
+        os.remove(template_xml)
 
 
 def get_args():

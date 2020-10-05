@@ -15,9 +15,6 @@ for example an AutoPkg preferences file which has been configured for use with
 JSSImporter: ~/Library/Preferences/com.github.autopkg
 
 For usage, run jamf_pkg_upload.py --help
-
-Additional requests tools added based on:
-https://findwork.dev/blog/advanced-usage-python-requests-timeouts-retries-hooks/
 """
 
 
@@ -29,18 +26,18 @@ import json
 import re
 import math
 import io
-from base64 import b64encode
-from zipfile import ZipFile, ZIP_DEFLATED
-import requests
-from time import sleep
-from requests_toolbelt.utils import dump
 import plistlib
+import six
 import subprocess
 import xml.etree.ElementTree as ElementTree
-from shutil import copyfile
-import six
 
-from jamf_upload_lib import api_connect, api_get
+from base64 import b64encode
+from zipfile import ZipFile, ZIP_DEFLATED
+from time import sleep
+from urllib.parse import quote
+from shutil import copyfile
+
+from jamf_upload_lib import api_connect, api_get, actions, nscurl
 
 if six.PY2:
     input = raw_input  # pylint: disable=E0602
@@ -131,18 +128,14 @@ def zip_pkg_path(path):
     return zip_name
 
 
-def check_pkg(pkg_name, jamf_url, enc_creds):
+def check_pkg(pkg_name, jamf_url, enc_creds, verbosity):
     """check if a package with the same name exists in the repo
     note that it is possible to have more than one with the same name
     which could mess things up"""
-    headers = {
-        "authorization": "Basic {}".format(enc_creds),
-        "accept": "application/json",
-    }
-    url = "{}/JSSResource/packages/name/{}".format(jamf_url, pkg_name)
-    r = requests.get(url, headers=headers)
+    url = "{}/JSSResource/packages/name/{}".format(jamf_url, quote(pkg_name))
+    r = nscurl.request("GET", url, enc_creds, verbosity)
     if r.status_code == 200:
-        obj = json.loads(r.text)
+        obj = json.loads(r.output)
         try:
             obj_id = str(obj["package"]["id"])
         except KeyError:
@@ -153,7 +146,15 @@ def check_pkg(pkg_name, jamf_url, enc_creds):
 
 
 def post_pkg(pkg_name, pkg_path, jamf_url, enc_creds, obj_id, r_timeout, verbosity):
-    """sends the package"""
+    """sends the package using requests"""
+    try:
+        import requests
+    except ImportError:
+        print(
+            "WARNING: could not import requests module. Use pip to install requests and try again."
+        )
+        sys.exit()
+
     files = {"file": open(pkg_path, "rb")}
     headers = {
         "authorization": "Basic {}".format(enc_creds),
@@ -166,8 +167,6 @@ def post_pkg(pkg_name, pkg_path, jamf_url, enc_creds, obj_id, r_timeout, verbosi
     url = "{}/dbfileupload".format(jamf_url)
 
     http = requests.Session()
-    if verbosity > 2:
-        http.hooks["response"] = [api_connect.logging_hook]
 
     r = http.post(url, data=files, headers=headers, timeout=r_timeout)
     return r
@@ -208,12 +207,7 @@ def curl_pkg(pkg_name, pkg_path, jamf_url, enc_creds, obj_id, r_timeout, verbosi
 def nscurl_pkg(pkg_name, pkg_path, jamf_url, enc_creds, obj_id, r_timeout, verbosity):
     """uploads the package using nscurl"""
     url = "{}/dbfileupload".format(jamf_url)
-    nscurl_cmd = [
-        "/usr/bin/nscurl",
-        "-M",
-        "POST",
-        "--header",
-        "authorization: Basic {}".format(enc_creds),
+    additional_headers = [
         "--header",
         "DESTINATION: 0",
         "--header",
@@ -222,19 +216,13 @@ def nscurl_pkg(pkg_name, pkg_path, jamf_url, enc_creds, obj_id, r_timeout, verbo
         "FILE_TYPE: 0",
         "--header",
         "FILE_NAME: {}".format(pkg_name),
-        "--upload",
-        pkg_path,
         "--payload-transmission-timeout",
         str(r_timeout),
-        "--output",
-        "-",
-        url,
     ]
+    r = nscurl.request("POST", url, enc_creds, verbosity, pkg_path, additional_headers)
     if verbosity:
-        print(nscurl_cmd)
-
-    r = subprocess.check_output(nscurl_cmd)
-    return r
+        print("HTTP response: {}".format(r.status_code))
+    return r.output
 
 
 def update_pkg_metadata(
@@ -251,11 +239,7 @@ def update_pkg_metadata(
         + "<category>{}</category>".format(category)
         + "</package>"
     )
-    headers = {
-        "authorization": "Basic {}".format(enc_creds),
-        "Accept": "application/xml",
-        "Content-type": "application/xml",
-    }
+
     #  ideally we upload to the package ID but if we didn't get a good response
     #  we fall back to the package name
     if pkg_id:
@@ -263,9 +247,7 @@ def update_pkg_metadata(
     else:
         url = "{}/JSSResource/packages/name/{}".format(jamf_url, pkg_name)
 
-    http = requests.Session()
     if verbosity > 2:
-        http.hooks["response"] = [api_connect.logging_hook]
         print("Package data:")
         print(pkg_data)
 
@@ -277,12 +259,10 @@ def update_pkg_metadata(
         if verbosity > 1:
             print("Package update attempt {}".format(count))
 
-        r = http.put(url, headers=headers, data=pkg_data, timeout=60)
-        if r.status_code == 201:
-            print("Package update successful")
-            break
-        if r.status_code == 409:
-            print("WARNING: Package metadata update failed due to a conflict")
+        pkg_xml = nscurl.write_temp_file(pkg_data)
+        r = nscurl.request("PUT", url, enc_creds, verbosity, pkg_xml)
+        # check HTTP response
+        if nscurl.status_check(r, "Package", pkg_name) == "break":
             break
         if count > 5:
             print("WARNING: Package metadata update did not succeed after 5 attempts")
@@ -291,23 +271,20 @@ def update_pkg_metadata(
         sleep(30)
 
     if verbosity:
-        print("\nHeaders:\n")
-        print(r.headers)
-        print("\nResponse:\n")
-        if r.text:
-            print(r.text)
-        else:
-            print("None")
+        api_get.get_headers(r)
+
+    # clean up temp files
+    if os.path.exists(pkg_xml):
+        os.remove(pkg_xml)
 
 
 def login(
     jamf_url, jamf_user, jamf_password, verbosity
 ):  # type: (str, str, str, int) -> any
     """For creating a web UI Session, which is required to scrape JCDS information."""
-    http = requests.Session()
-    if verbosity > 2:
-        http.hooks["response"] = [api_connect.logging_hook]
+    import requests
 
+    http = requests.Session()
     r = http.post(jamf_url, data={"username": jamf_user, "password": jamf_password})
     return r, http
 
@@ -363,6 +340,8 @@ def post_pkg_chunks(
     verbosity=0,
 ):
     """sends the package in chunks"""
+
+    import requests
 
     jcds_chunk_size = int(jcds_chunk_mb) * 1048576  # 1mb is the default
     file_size = os.stat(pkg_path).st_size
@@ -456,12 +435,10 @@ def get_args():
         "--replace", help="overwrite an existing uploaded package", action="store_true",
     )
     parser.add_argument(
-        "--curl", help="use curl instead of requests", action="store_true",
+        "--curl", help="use curl instead of nscurl", action="store_true",
     )
     parser.add_argument(
-        "--nscurl",
-        help="use nscurl instead of requests (experimental)",
-        action="store_true",
+        "--requests", help="use requests instead of nscurl", action="store_true",
     )
     parser.add_argument(
         "--direct",
@@ -504,9 +481,7 @@ def get_args():
         ),
     )
     parser.add_argument(
-        "--category",
-        default="",
-        help="a category to assign to the package (experimental)",
+        "--category", default="", help="a category to assign to the package",
     )
     parser.add_argument(
         "--timeout",
@@ -617,7 +592,7 @@ def main():
         if verbosity:
             print("Full path: {}".format(pkg_path))
         replace_pkg = True if args.replace else False
-        obj_id = check_pkg(pkg_name, jamf_url, enc_creds)
+        obj_id = check_pkg(pkg_name, jamf_url, enc_creds, verbosity)
 
         # post the package (won't run if the pkg exists and replace_pkg is False)
         # process for SMB shares if defined
@@ -695,8 +670,29 @@ def main():
                                 print(r.decode("ascii"))
                             else:
                                 print("No HTTP response")
+                # requests -> dbfileupload upload method option
+                elif args.requests:
+                    r = post_pkg(
+                        pkg_name,
+                        pkg_path,
+                        jamf_url,
+                        enc_creds,
+                        obj_id,
+                        r_timeout,
+                        verbosity,
+                    )
+                    # print result of the request
+                    if r.status_code == 200 or r.status_code == 201:
+                        pkg_id = ElementTree.fromstring(r.text).findtext("id")
+                        print("\nPackage uploaded successfully, ID={}".format(pkg_id))
+                        if verbosity:
+                            print("HTTP POST Response Code: {}".format(r.status_code))
+                    else:
+                        print("\nHTTP POST Response Code: {}".format(r.status_code))
+                    if verbosity:
+                        api_get.get_headers(r)
                 # nscurl -> dbfileupload upload method option
-                elif args.nscurl:
+                else:
                     r = nscurl_pkg(
                         pkg_name,
                         pkg_path,
@@ -722,27 +718,6 @@ def main():
                                 print(r.decode("ascii"))
                             else:
                                 print("No HTTP response")
-                # requests -> dbfileupload upload method option
-                else:
-                    r = post_pkg(
-                        pkg_name,
-                        pkg_path,
-                        jamf_url,
-                        enc_creds,
-                        obj_id,
-                        r_timeout,
-                        verbosity,
-                    )
-                    # print result of the request
-                    if r.status_code == 200 or r.status_code == 201:
-                        pkg_id = ElementTree.fromstring(r.text).findtext("id")
-                        print("\nPackage uploaded successfully, ID={}".format(pkg_id))
-                        if verbosity:
-                            print("HTTP POST Response Code: {}".format(r.status_code))
-                    else:
-                        print("\nHTTP POST Response Code: {}".format(r.status_code))
-                    if verbosity:
-                        api_get.get_headers(r)
 
         # now process the package metadata if a category is supplied,
         # or if we are dealing with an SMB share

@@ -10,12 +10,13 @@ to Jamf Pro using AutoPkg
 # import variables go here. Do not import unused modules
 import json
 import re
-import requests
 import os.path
+import subprocess
+import uuid
+from collections import namedtuple
 from base64 import b64encode
 from pathlib import Path
 from time import sleep
-from requests_toolbelt.utils import dump
 from xml.sax.saxutils import escape
 from autopkglib import Processor, ProcessorError  # pylint: disable=import-error
 
@@ -63,6 +64,121 @@ class JamfExtensionAttributeUploader(Processor):
         },
     }
 
+    def nscurl(self, method, url, auth, data="", additional_headers=""):
+        """
+        build an nscurl command based on method (GET, PUT, POST, DELETE)
+        If the URL contains 'uapi' then token should be passed to the auth variable, 
+        otherwise the enc_creds variable should be passed to the auth variable
+        """
+        headers_file = "/tmp/nscurl_headers_from_jamf_upload.txt"
+        output_file = "/tmp/nscurl_output_from_jamf_upload.txt"
+
+        # build the nscurl command
+        nscurl_cmd = [
+            "/usr/bin/nscurl",
+            "-M",
+            method,
+            "-D",
+            headers_file,
+            "--output",
+            output_file,
+            url,
+        ]
+
+        # the authorisation is Basic unless we are using the uapi and already have a token
+        if "uapi" in url and "tokens" not in url:
+            nscurl_cmd.extend(["--header", f"authorization: Bearer {auth}"])
+        else:
+            nscurl_cmd.extend(["--header", f"authorization: Basic {auth}"])
+
+        # set either Accept or Content-Type depending on method
+        if method == "GET" or method == "DELETE":
+            nscurl_cmd.extend(["--header", "Accept: application/json"])
+        elif method == "POST" or method == "PUT":
+            if data:
+                nscurl_cmd.extend(["--upload", data])
+            # uapi sends json, classic API must send xml
+            if "uapi" in url:
+                nscurl_cmd.extend(["--header", "Content-type: application/json"])
+            else:
+                nscurl_cmd.extend(["--header", "Content-type: application/xml"])
+        else:
+            self.output(f"WARNING: HTTP method {method} not supported")
+
+        # additional headers for advanced requests
+        if additional_headers:
+            nscurl_cmd.extend(additional_headers)
+
+        self.output(f"nscurl command: {' '.join(nscurl_cmd)}", verbose_level=2)
+
+        # now subprocess the nscurl command and build the r tuple which contains the
+        # headers, status code and outputted data
+        subprocess.check_output(nscurl_cmd)
+
+        r = namedtuple("r", ["headers", "status_code", "output"])
+        try:
+            with open(headers_file, "r") as file:
+                headers = file.readlines()
+            r.headers = [x.strip() for x in headers]
+            r.status_code = int(r.headers[0].split()[1])
+            with open(output_file, "rb") as file:
+                if "uapi" in url:
+                    r.output = json.load(file)
+                else:
+                    r.output = file.read()
+            return r
+        except IOError:
+            raise ProcessorError(f"WARNING: {headers_file} not found")
+
+    def write_json_file(self, data):
+        """dump some json to a temporary file"""
+        tf = os.path.join("/tmp", str(uuid.uuid4()))
+        with open(tf, "w") as fp:
+            json.dump(data, fp)
+        return tf
+
+    def write_temp_file(self, data):
+        """dump some text to a temporary file"""
+        tf = os.path.join("/tmp", str(uuid.uuid4()))
+        with open(tf, "w") as fp:
+            fp.write(data)
+        return tf
+
+    def status_check(self, r, endpoint_type, obj_name):
+        """Return a message dependent on the HTTP response"""
+        if r.status_code == 200 or r.status_code == 201:
+            self.output(f"{endpoint_type} '{obj_name}' uploaded successfully")
+            return "break"
+        elif r.status_code == 409:
+            self.output(f"WARNING: {endpoint_type} upload failed due to a conflict")
+            return "break"
+        elif r.status_code == 401:
+            self.output(
+                f"ERROR: {endpoint_type} upload failed due to permissions error"
+            )
+            return "break"
+
+    def get_path_to_file(self, filename):
+        """AutoPkg is not very good at finding dependent files. This function will look 
+        inside the search directories for any supplied file """
+        # if the supplied file is not a path, use the override directory or
+        # ercipe dir if no override
+        recipe_dir = self.env.get("RECIPE_DIR")
+        filepath = os.path.join(recipe_dir, filename)
+        if os.path.exists(filepath):
+            self.output(f"File found at: {filepath}")
+            return filepath
+
+        # if not found, search RECIPE_SEARCH_DIRS to look for it
+        search_dirs = self.env.get("RECIPE_SEARCH_DIRS")
+        for d in search_dirs:
+            for path in Path(d).rglob(filename):
+                matched_filepath = str(path)
+                break
+        if matched_filepath:
+            self.output(f"File found at: {matched_filepath}")
+            return matched_filepath
+
     def check_api_obj_id_from_name(self, jamf_url, object_type, object_name, enc_creds):
         """check if a Classic API object with the same name exists on the server"""
         # define the relationship between the object types and their URL
@@ -79,14 +195,11 @@ class JamfExtensionAttributeUploader(Processor):
             "policy": "policies",
             "extension_attribute": "computer_extension_attributes",
         }
-        headers = {
-            "authorization": "Basic {}".format(enc_creds),
-            "accept": "application/json",
-        }
-        url = "{}/JSSResource/{}".format(jamf_url, object_types[object_type])
-        r = requests.get(url, headers=headers)
+        url = f"{jamf_url}/JSSResource/{object_types[object_type]}"
+        r = self.nscurl("GET", url, enc_creds)
+
         if r.status_code == 200:
-            object_list = json.loads(r.text)
+            object_list = json.loads(r.output)
             self.output(
                 object_list, verbose_level=2,
             )
@@ -128,35 +241,8 @@ class JamfExtensionAttributeUploader(Processor):
                 )
         return data
 
-    def logging_hook(self, response, *args, **kwargs):
-        data = dump.dump_all(response)
-        self.output(
-            data, verbose_level=2,
-        )
-
-    def get_path_to_file(self, filename):
-        """AutoPkg is not very good at finding dependent files. This function will look 
-        inside the search directories for any supplied file """
-        # if the supplied file is not a path, use the override directory or
-        # ercipe dir if no override
-        recipe_dir = self.env.get("RECIPE_DIR")
-        filepath = os.path.join(recipe_dir, filename)
-        if os.path.exists(filepath):
-            self.output(f"File found at: {filepath}")
-            return filepath
-
-        # if not found, search RECIPE_SEARCH_DIRS to look for it
-        search_dirs = self.env.get("RECIPE_SEARCH_DIRS")
-        for d in search_dirs:
-            for path in Path(d).rglob(filename):
-                matched_filepath = str(path)
-                break
-        if matched_filepath:
-            self.output(f"File found at: {matched_filepath}")
-            return matched_filepath
-
-    def upload_extatt(
-        self, jamf_url, enc_creds, extatt_name, script_path, obj_id=None,
+    def upload_ea(
+        self, jamf_url, enc_creds, ea_name, script_path, obj_id=None,
     ):
         """Update extension attribute metadata."""
         # import script from file and replace any keys in the script
@@ -173,9 +259,9 @@ class JamfExtensionAttributeUploader(Processor):
         script_contents_escaped = escape(script_contents)
 
         # build the object
-        extatt_data = (
+        ea_data = (
             "<computer_extension_attribute>"
-            + "<name>{}</name>".format(extatt_name)
+            + "<name>{}</name>".format(ea_name)
             + "<enabled>true</enabled>"
             + "<description/>"
             + "<data_type>String</data_type>"
@@ -188,11 +274,6 @@ class JamfExtensionAttributeUploader(Processor):
             + "<recon_display>Extension Attributes</recon_display>"
             + "</computer_extension_attribute>"
         )
-        headers = {
-            "authorization": "Basic {}".format(enc_creds),
-            "Accept": "application/xml",
-            "Content-type": "application/xml",
-        }
         # if we find an object ID we put, if not, we post
         if obj_id:
             url = "{}/JSSResource/computerextensionattributes/id/{}".format(
@@ -201,16 +282,16 @@ class JamfExtensionAttributeUploader(Processor):
         else:
             url = "{}/JSSResource/computerextensionattributes/id/0".format(jamf_url)
 
-        http = requests.Session()
-        http.hooks["response"] = [self.logging_hook]
         self.output(
             "Extension Attribute data:", verbose_level=2,
         )
         self.output(
-            extatt_data, verbose_level=2,
+            ea_data, verbose_level=2,
         )
 
         self.output("Uploading Extension Attribute..")
+        # write the template to temp file
+        template_xml = self.write_temp_file(ea_data)
 
         count = 0
         while True:
@@ -218,17 +299,11 @@ class JamfExtensionAttributeUploader(Processor):
             self.output(
                 "Extension Attribute upload attempt {}".format(count), verbose_level=2,
             )
-            if obj_id:
-                r = http.put(url, headers=headers, data=extatt_data, timeout=60)
-            else:
-                r = http.post(url, headers=headers, data=extatt_data, timeout=60)
-            if r.status_code == 200 or r.status_code == 201:
-                self.output("Extension Attribute uploaded successfully")
+            method = "PUT" if obj_id else "POST"
+            r = self.nscurl(method, url, enc_creds, template_xml)
+            # check HTTP response
+            if self.status_check(r, "Extension Attribute", ea_name) == "break":
                 break
-            if r.status_code == 409:
-                raise ProcessorError(
-                    "ERROR: Extension Attribute upload failed due to a conflict"
-                )
             if count > 5:
                 self.output(
                     "ERROR: Extension Attribute upload did not succeed after 5 attempts"
@@ -236,7 +311,10 @@ class JamfExtensionAttributeUploader(Processor):
                 self.output("\nHTTP POST Response Code: {}".format(r.status_code))
                 raise ProcessorError("ERROR: Extension Attribute upload failed ")
             sleep(10)
-        return r
+
+        # clean up temp files
+        if os.path.exists(template_xml):
+            os.remove(template_xml)
 
     def main(self):
         """Do the main thing here"""
@@ -285,7 +363,7 @@ class JamfExtensionAttributeUploader(Processor):
                     ),
                     verbose_level=1,
                 )
-                self.upload_extatt(
+                self.upload_ea(
                     self.jamf_url, enc_creds, self.ea_name, self.ea_script_path, obj_id,
                 )
             else:
@@ -296,7 +374,7 @@ class JamfExtensionAttributeUploader(Processor):
                 return
         else:
             # post the item
-            self.upload_extatt(
+            self.upload_ea(
                 self.jamf_url, enc_creds, self.ea_name, self.ea_script_path,
             )
 
