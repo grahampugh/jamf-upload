@@ -17,12 +17,23 @@ import json
 import os.path
 import plistlib
 import re
+import subprocess
 import sys
 import uuid
 from time import sleep
 from xml.sax.saxutils import escape, unescape
 
 from jamf_upload_lib import actions, api_connect, api_get, nscurl
+
+
+def pretty_print_xml(xml):
+    proc = subprocess.Popen(
+        ["xmllint", "--format", "/dev/stdin"],
+        stdin=subprocess.PIPE,
+        stdout=subprocess.PIPE,
+    )
+    (output, _) = proc.communicate(xml)
+    return output
 
 
 def make_mobileconfig_from_payload(
@@ -102,12 +113,22 @@ def get_existing_uuid(jamf_url, obj_id, enc_creds, verbosity):
         verbosity,
     )
 
+    # Jamf seems to sometimes export an empty key which plistlib considers invalid,
+    # so let's remove this
+    existing_plist = existing_plist.replace("<key/>", "")
+
+    # make the xml pretty so we can see where the problem importing it is better
+    existing_plist = pretty_print_xml(bytes(existing_plist, "utf-8"))
+
     if verbosity > 2:
-        print("Existing payload:")
-        print(existing_plist)
+        print("\nExisting payload (type: {}):".format(type(existing_plist)))
+        print(existing_plist.decode("UTF-8"))
 
     # now extract the UUID from the existing payload
-    existing_payload = plistlib.loads(existing_plist.encode())
+    existing_payload = plistlib.loads(existing_plist)
+    if verbosity > 2:
+        print("\nImported payload:")
+        print(existing_payload)
     existing_uuid = existing_payload["PayloadUUID"]
     print("Existing UUID found: {}".format(existing_uuid))
     return existing_uuid

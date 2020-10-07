@@ -57,7 +57,7 @@ def request(method, url, auth, verbosity, data="", additional_headers=""):
         nscurl_cmd.append("-v")
 
     if verbosity:
-        print("nscurl command: {}".format(" ".join(nscurl_cmd)))
+        print("\nnscurl command:\n{}".format(" ".join(nscurl_cmd)))
 
     # now subprocess the nscurl command and build the r tuple which contains the
     # headers, status code and outputted data

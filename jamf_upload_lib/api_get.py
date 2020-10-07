@@ -47,6 +47,7 @@ def get_uapi_obj_id_from_name(jamf_url, object_type, object_name, token, verbosi
         obj_id = 0
         for obj in r.output["results"]:
             if verbosity > 2:
+                print("\nAPI object:")
                 print(obj)
             if obj["name"] == object_name:
                 obj_id = obj["id"]
@@ -63,9 +64,12 @@ def check_api_obj_id_from_name(
 
     if r.status_code == 200:
         object_list = json.loads(r.output)
-        if verbosity > 2:
+        if verbosity > 3:
+            print("\nAPI object raw output:")
             print(object_list)
         obj_id = 0
+        if verbosity > 2:
+            print("\nAPI object list:")
         for obj in object_list[object_list_types(object_type)]:
             if verbosity > 2:
                 print(obj)
@@ -85,6 +89,7 @@ def get_api_obj_value_from_id(
     if r.status_code == 200:
         obj_content = json.loads(r.output)
         if verbosity > 2:
+            print("\nAPI object content:")
             print(obj_content)
 
         # convert an xpath to json
@@ -95,12 +100,13 @@ def get_api_obj_value_from_id(
                 try:
                     value = value[xpath_list[i]]
                     if verbosity > 2:
+                        print("\nAPI object value:")
                         print(value)
                 except KeyError:
                     value = ""
                     break
         if value and verbosity > 2:
-            print("Value of '{}': {}".format(obj_path, value))
+            print("\nValue of '{}':\n{}".format(obj_path, value))
         return value
 
 

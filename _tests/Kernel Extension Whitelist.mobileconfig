@@ -1,0 +1,59 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1">
+    <dict>
+        <key>PayloadUUID</key>
+        <string>40C19D5B-76D7-4C1C-BC9D-2F7EB29CFF4D</string>
+        <key>PayloadType</key>
+        <string>Configuration</string>
+        <key>PayloadOrganization</key>
+        <string>ETH Zürich</string>
+        <key>PayloadIdentifier</key>
+        <string>40C19D5B-76D7-4C1C-BC9D-2F7EB29CFF4D</string>
+        <key>PayloadDisplayName</key>
+        <string>Approved Kernel Extensions</string>
+        <key>PayloadDescription</key>
+        <string>This profile configures your Mac to automatically enable third-party kernel extensions from specified vendors.</string>
+        <key>PayloadVersion</key>
+        <integer>1</integer>
+        <key>PayloadEnabled</key>
+        <true/>
+        <key>PayloadRemovalDisallowed</key>
+        <true/>
+        <key>PayloadScope</key>
+        <string>System</string>
+        <key>PayloadContent</key>
+        <array>
+            <dict>
+                <key>PayloadUUID</key>
+                <string>98D01A7B-ADC1-43C8-AB8E-8BDC25FCA3C9</string>
+                <key>PayloadType</key>
+                <string>com.apple.syspolicy.kernel-extension-policy</string>
+                <key>PayloadOrganization</key>
+                <string>ETH Zürich</string>
+                <key>PayloadIdentifier</key>
+                <string>98D01A7B-ADC1-43C8-AB8E-8BDC25FCA3C9</string>
+                <key>PayloadDisplayName</key>
+                <string>Approved Kernel Extensions</string>
+                <key>PayloadDescription</key>
+                <string/>
+                <key>PayloadVersion</key>
+                <integer>1</integer>
+                <key>PayloadEnabled</key>
+                <true/>
+                <key>AllowUserOverrides</key>
+                <true/>
+                <key>AllowedTeamIdentifiers</key>
+                <array>
+                    <string>2H5GFH3774</string>
+                    <string>DE8Y96K9QP</string>
+                    <string>KBVSJ83SS9</string>
+                    <string>4C6364ACXT</string>
+                    <string>EG7KH642X6</string>
+                    <string>94DN422U8R</string>
+                    <string>6HB5Y2QTA3</string>
+                </array>
+            </dict>
+        </array>
+    </dict>
+</plist>
