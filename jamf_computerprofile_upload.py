@@ -178,7 +178,7 @@ def upload_mobileconfig(
         r = nscurl.request(method, url, enc_creds, verbosity, template_xml)
         # check HTTP response
         if (
-            nscurl.status_check(r, "Configuration Profile", computergroup_name)
+            nscurl.status_check(r, "Configuration Profile", mobileconfig_name)
             == "break"
         ):
             break
@@ -204,6 +204,9 @@ def get_args():
     )
     parser.add_argument(
         "--payload", default="", help="Path to Configuration Profile plist payload",
+    )
+    parser.add_argument(
+        "--mobileconfig", default="", help="Path to Configuration Profile mobileconfig",
     )
     parser.add_argument(
         "--identifier", default="", help="Path to Configuration Profile plist payload",
@@ -280,20 +283,37 @@ def main():
     # grab values from a prefs file if supplied
     jamf_url, _, _, enc_creds = api_connect.get_creds_from_args(args)
 
-    if not args.name:
-        name = input("Enter the name of the configuration profile to upload: ")
-        args.name = name
-    if not args.payload:
-        payload = input("Enter the full path to the payload plist to upload: ")
-        args.payload = payload
-    if not args.identifier:
-        identifier = input("Enter the identifier of the custom payload to upload: ")
-        args.identifier = identifier
-    if not args.template:
-        template = input("Enter the full path to the template XML to upload: ")
-        args.template = template
-
-    mobileconfig_name = args.name
+    # if an unsigned mobileconfig file is supplied we can get the name from it
+    if args.mobileconfig:
+        print("mobileconfig file supplied: {}".format(args.mobileconfig))
+        # import mobileconfig
+        with open(args.mobileconfig, "rb") as file:
+            mobileconfig_contents = plistlib.load(file)
+        with open(args.mobileconfig, "rb") as file:
+            mobileconfig_plist = file.read()
+        try:
+            mobileconfig_name = mobileconfig_contents["PayloadDisplayName"]
+            print("Configuration Profile name: {}".format(mobileconfig_name))
+            if verbosity > 2:
+                print("\nMobileconfig contents:")
+                print(mobileconfig_plist.decode("UTF-8"))
+        except KeyError:
+            exit("ERROR: Invalid mobileconfig file supplied - cannot import")
+    # otherwise we are dealing with a payload plist and we need a few other bits of info
+    else:
+        if not args.name:
+            name = input("Enter the name of the configuration profile to upload: ")
+            args.name = name
+        if not args.payload:
+            payload = input("Enter the full path to the payload plist to upload: ")
+            args.payload = payload
+        if not args.identifier:
+            identifier = input("Enter the identifier of the custom payload to upload: ")
+            args.identifier = identifier
+        if not args.template:
+            template = input("Enter the full path to the template XML to upload: ")
+            args.template = template
+        mobileconfig_name = args.name
 
     # import profile template
     with open(args.template, "r") as file:
@@ -314,16 +334,17 @@ def main():
             # grab existing UUID from profile as it MUST match on the destination
             existing_uuid = get_existing_uuid(jamf_url, obj_id, enc_creds, verbosity)
 
-            # generate the mobileconfig from the supplied payload
-            mobileconfig_plist = make_mobileconfig_from_payload(
-                args.payload,
-                args.identifier,
-                mobileconfig_name,
-                args.organization,
-                args.description,
-                existing_uuid,
-                verbosity,
-            )
+            if not args.mobileconfig:
+                # generate the mobileconfig from the supplied payload
+                mobileconfig_plist = make_mobileconfig_from_payload(
+                    args.payload,
+                    args.identifier,
+                    mobileconfig_name,
+                    args.organization,
+                    args.description,
+                    existing_uuid,
+                    verbosity,
+                )
 
             # now upload the mobileconfig by generating an XML template
             upload_mobileconfig(
@@ -351,16 +372,17 @@ def main():
         )
         new_uuid = generate_uuid()
 
-        # generate the mobileconfig from the supplied payload
-        mobileconfig_plist = make_mobileconfig_from_payload(
-            args.payload,
-            args.identifier,
-            mobileconfig_name,
-            args.organization,
-            args.description,
-            new_uuid,
-            verbosity,
-        )
+        if not args.mobileconfig:
+            # generate the mobileconfig from the supplied payload
+            mobileconfig_plist = make_mobileconfig_from_payload(
+                args.payload,
+                args.identifier,
+                mobileconfig_name,
+                args.organization,
+                args.description,
+                new_uuid,
+                verbosity,
+            )
 
         # now upload the mobileconfig by generating an XML template
         upload_mobileconfig(

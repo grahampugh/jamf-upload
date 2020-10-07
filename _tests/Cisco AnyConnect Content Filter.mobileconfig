@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>PayloadContent</key>
+	<array>
+		<dict>
+			<key>FilterDataProviderBundleIdentifier</key>
+			<string>com.cisco.anyconnect.macos.acsock</string>
+			<key>FilterDataProviderDesignatedRequirement</key>
+			<string>anchor apple generic and identifier "com.cisco.anyconnect.macos.acsock" and (certificate leaf[field.1.2.840.113635.100.6.1.9] /* exists */ or certificate 1[field.1.2.840.113635.100.6.2.6] /* exists */ and certificate leaf[field.1.2.840.113635.100.6.1.13] /* exists */ and certificate leaf[subject.OU] = DE8Y96K9QP)</string>
+			<key>FilterGrade</key>
+			<string>firewall</string>
+			<key>FilterSockets</key>
+			<true/>
+			<key>FilterType</key>
+			<string>Plugin</string>
+			<key>PayloadDisplayName</key>
+			<string>Web Content Filter</string>
+			<key>PayloadIdentifier</key>
+			<string>.com.apple.webcontent-filter.B31C21C1-0752-4D07-84A2-CFAF8694FEED</string>
+			<key>PayloadOrganization</key>
+			<string></string>
+			<key>PayloadType</key>
+			<string>com.apple.webcontent-filter</string>
+			<key>PayloadUUID</key>
+			<string>B31C21C1-0752-4D07-84A2-CFAF8694FEED</string>
+			<key>PayloadVersion</key>
+			<integer>1</integer>
+			<key>PluginBundleID</key>
+			<string>com.cisco.anyconnect.macos.acsock</string>
+			<key>UserDefinedName</key>
+			<string>Web Content Filter</string>
+		</dict>
+	</array>
+	<key>PayloadDisplayName</key>
+	<string>Cisco AnyConnect Content Filter</string>
+	<key>PayloadIdentifier</key>
+	<string>B179F8FB-609F-42E6-AC32-24906C4CC565</string>
+	<key>PayloadOrganization</key>
+	<string>ETH Zurich</string>
+	<key>PayloadScope</key>
+	<string>System</string>
+	<key>PayloadType</key>
+	<string>Configuration</string>
+	<key>PayloadUUID</key>
+	<string>B179F8FB-609F-42E6-AC32-24906C4CC565</string>
+	<key>PayloadVersion</key>
+	<integer>1</integer>
+</dict>
+</plist>
