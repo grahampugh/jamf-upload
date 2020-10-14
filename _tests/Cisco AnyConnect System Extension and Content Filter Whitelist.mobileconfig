@@ -1,0 +1,92 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+	<dict>
+		<key>PayloadContent</key>
+		<array>
+			<dict>
+				<key>AllowUserOverrides</key>
+				<true/>
+				<key>AllowedSystemExtensions</key>
+				<dict>
+					<key>DE8Y96K9QP</key>
+					<array>
+						<string>com.cisco.anyconnect.macos.acsockext</string>
+					</array>
+				</dict>
+				<key>PayloadDescription</key>
+				<string></string>
+				<key>PayloadDisplayName</key>
+				<string>AnyConnect System Extension</string>
+				<key>PayloadEnabled</key>
+				<true/>
+				<key>PayloadIdentifier</key>
+				<string>A8364220-5D8D-40A9-Af66-1Fbfef94E116</string>
+				<key>PayloadOrganization</key>
+				<string>Cisco Systems, Inc.</string>
+				<key>PayloadType</key>
+				<string>com.apple.system-extension-policy</string>
+				<key>PayloadUUID</key>
+				<string>A8364220-5D8D-40A9-Af66-1Fbfef94E116</string>
+				<key>PayloadVersion</key>
+				<integer>1</integer>
+			</dict>
+			<dict>
+				<key>Enabled</key>
+				<true/>
+				<key>AutoFilterEnabled</key>
+				<false/>
+				<key>FilterBrowsers</key>
+				<false/>
+				<key>FilterSockets</key>
+				<true/>
+				<key>FilterPackets</key>
+				<false/>
+				<key>FilterType</key>
+				<string>Plugin</string>
+				<key>FilterGrade</key>
+				<string>firewall</string>
+				<key>PayloadDescription</key>
+				<string></string>
+				<key>PayloadDisplayName</key>
+				<string>Cisco AnyConnect Content Filter</string>
+				<key>PayloadIdentifier</key>
+				<string>com.apple.webcontent-filter.339Ec532-9Ada-480A-Bf3D-A535F0F0B665</string>
+				<key>PayloadType</key>
+				<string>com.apple.webcontent-filter</string>
+				<key>PayloadUUID</key>
+				<string>339Ec532-9Ada-480A-Bf3D-A535F0F0B665</string>
+				<key>PayloadVersion</key>
+				<integer>1</integer>
+				<key>FilterDataProviderBundleIdentifier</key>
+				<string>com.cisco.anyconnect.macos.acsockext</string>
+				<key>FilterDataProviderDesignatedRequirement</key>
+				<string>anchor apple generic and identifier "com.cisco.anyconnect.macos.acsockext" and (certificate leaf[field.1.2.840.113635.100.6.1.9] /* exists */ or certificate 1[field.1.2.840.113635.100.6.2.6] /* exists */ and certificate leaf[field.1.2.840.113635.100.6.1.13] /* exists */ and certificate leaf[subject.OU] = DE8Y96K9QP)</string>
+				<key>PluginBundleID</key>
+				<string>com.cisco.anyconnect.macos.acsock</string>
+				<key>UserDefinedName</key>
+				<string>Cisco AnyConnect Content Filter</string>
+			</dict>
+		</array>
+		<key>PayloadDescription</key>
+		<string></string>
+		<key>PayloadDisplayName</key>
+		<string>Approved Cisco AnyConnect System Extensions</string>
+		<key>PayloadEnabled</key>
+		<true/>
+		<key>PayloadIdentifier</key>
+		<string>A401Bdc2-4Ab1-4406-A143-11F077Baf52B</string>
+		<key>PayloadOrganization</key>
+		<string>Cisco Systems, Inc.</string>
+		<key>PayloadRemovalDisallowed</key>
+		<true/>
+		<key>PayloadScope</key>
+		<string>System</string>
+		<key>PayloadType</key>
+		<string>Configuration</string>
+		<key>PayloadUUID</key>
+		<string>A401Bdc2-4Ab1-4406-A143-11F077Baf52B</string>
+		<key>PayloadVersion</key>
+		<integer>1</integer>
+	</dict>
+</plist>

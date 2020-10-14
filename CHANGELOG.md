@@ -14,6 +14,8 @@ I intend to add such functionality if changes are made to the Jamf Pro API so th
 
 ## [Unreleased] - TBD
 
+- Moved `jamf_upload.py` to `jamf_pkg_upload.py` since we now have multiple scripts.
+
 - Added the `jamf_script_upload.py` script. This is used for uploading scripts to Jamf Pro. The option to include variables as in AutoPkg (`%VARIABLE%`) has been included.
 
 - Added the `jamf_category_upload.py` script. This is used for creating or uploading categories in Jamf Pro.
@@ -22,9 +24,11 @@ I intend to add such functionality if changes are made to the Jamf Pro API so th
 
 - Added the `jamf_ea_upload.py` script. This is used for uploading script-based extension attributes to Jamf Pro. The option to include variables as in AutoPkg (`%VARIABLE%`) has been included. Other types of EA will be included in due course.
 
-- Added the `jamf_policy_upload.py` script. This is used for creating or uploading policy in Jamf Pro. The option to include variables as in AutoPkg (`%VARIABLE%`) has been included.
+- Added the `jamf_policy_upload.py` script. This is used for creating or uploading a policy in Jamf Pro. The option to include variables as in AutoPkg (`%VARIABLE%`) has been included.
 
-- Moved `jamf_upload.py` to `jamf_pkg_upload.py` since we now have multiple scripts.
+- Added the `jamf_computerprofile_upload.py` script. This is used for creating or uploading configuration profiles in Jamf Pro. Profiles can be supplied as either a payload plist or a complete mobileconfig file.
+
+- Added the `jamf_computerprofile_sign.py` script. This can be used for signing profiles.
 
 - Common functions have been moved into the `jamf_upload_lib` folder and included in each script to avoid too much repetition.
 

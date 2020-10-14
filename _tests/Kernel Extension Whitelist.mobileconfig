@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
-<plist version="1">
+<plist version="1.0">
     <dict>
         <key>PayloadUUID</key>
         <string>40C19D5B-76D7-4C1C-BC9D-2F7EB29CFF4D</string>
@@ -19,7 +19,7 @@
         <key>PayloadEnabled</key>
         <true/>
         <key>PayloadRemovalDisallowed</key>
-        <true/>
+        <false/>
         <key>PayloadScope</key>
         <string>System</string>
         <key>PayloadContent</key>
@@ -42,7 +42,7 @@
                 <key>PayloadEnabled</key>
                 <true/>
                 <key>AllowUserOverrides</key>
-                <true/>
+                <false/>
                 <key>AllowedTeamIdentifiers</key>
                 <array>
                     <string>2H5GFH3774</string>

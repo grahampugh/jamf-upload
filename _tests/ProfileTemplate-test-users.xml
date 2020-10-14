@@ -10,7 +10,7 @@
         <user_removable>false</user_removable>
         <level>computer</level>
         <uuid>%uuid%</uuid>
-        <redeploy_on_update>Newly Assigned</redeploy_on_update>
+        <redeploy_on_update>All</redeploy_on_update>
         <payloads>%payload%</payloads>
     </general>
     <scope>

@@ -139,6 +139,34 @@ def generate_uuid():
     return str(uuid.uuid4())
 
 
+def unsign_signed_mobileconfig(mobileconfig_plist, verbosity):
+    """checks if profile is signed. This is necessary because Jamf cannot upload a 
+    signed profile, so we either need to unsign it, or bail """
+    output_path = os.path.join("/tmp", str(uuid.uuid4()))
+    cmd = [
+        "/usr/bin/security",
+        "cms",
+        "-D",
+        "-i",
+        mobileconfig_plist,
+        "-o",
+        output_path,
+    ]
+    if verbosity:
+        print(cmd)
+        print()
+    proc = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    _, err = proc.communicate()
+    if os.path.exists(output_path):
+        print(f"Profile is signed. Unsigned profile at {output_path}")
+        return output_path
+    elif err:
+        print("Profile is not signed.")
+        if verbosity > 2:
+            print(err)
+            print()
+
+
 def upload_mobileconfig(
     jamf_url,
     enc_creds,
@@ -255,6 +283,11 @@ def get_args():
         action="store_true",
     )
     parser.add_argument(
+        "--unsign",
+        help="Unsign a mobileconfig file prior to uploading if it is signed",
+        action="store_true",
+    )
+    parser.add_argument(
         "--url", default="", help="the Jamf Pro Server URL",
     )
     parser.add_argument(
@@ -304,13 +337,24 @@ def main():
     # grab values from a prefs file if supplied
     jamf_url, _, _, enc_creds = api_connect.get_creds_from_args(args)
 
-    # if an unsigned mobileconfig file is supplied we can get the name from it
+    # if an unsigned mobileconfig file is supplied we can get the name, organization and description from it
     if args.mobileconfig:
         print("mobileconfig file supplied: {}".format(args.mobileconfig))
+        # check if the file is signed
+        mobileconfig_file = unsign_signed_mobileconfig(args.mobileconfig, verbosity)
+        # quit if we get an unsigned profile back and we didn't select --unsign
+        if mobileconfig_file and not args.unsign:
+            print(
+                "Signed profiles cannot be uploaded to Jamf Pro via the API. "
+                "Use the GUI to upload the signed profile, or use --unsign to upload "
+                "the profile with the signature removed."
+            )
+            exit()
+
         # import mobileconfig
-        with open(args.mobileconfig, "rb") as file:
+        with open(mobileconfig_file, "rb") as file:
             mobileconfig_contents = plistlib.load(file)
-        with open(args.mobileconfig, "rb") as file:
+        with open(mobileconfig_file, "rb") as file:
             mobileconfig_plist = file.read()
         try:
             mobileconfig_name = mobileconfig_contents["PayloadDisplayName"]
@@ -320,6 +364,14 @@ def main():
                 print(mobileconfig_plist.decode("UTF-8"))
         except KeyError:
             exit("ERROR: Invalid mobileconfig file supplied - cannot import")
+        try:
+            description = mobileconfig_contents["PayloadDescription"]
+        except KeyError:
+            description = ""
+        try:
+            organization = mobileconfig_contents["PayloadOrganization"]
+        except KeyError:
+            organization = ""
     # otherwise we are dealing with a payload plist and we need a few other bits of info
     else:
         if not args.name:
@@ -331,10 +383,26 @@ def main():
         if not args.identifier:
             identifier = input("Enter the identifier of the custom payload to upload: ")
             args.identifier = identifier
-        if not args.template:
-            template = input("Enter the full path to the template XML to upload: ")
-            args.template = template
         mobileconfig_name = args.name
+
+    # we provide a default template which has no category or scope
+    if not args.template:
+        # template = input("Enter the full path to the template XML to upload: ")
+        args.template = "Jamf_Templates_and_Scripts/ProfileTemplate-default.xml"
+
+    # automatically provide a description and organisation if not provided in the options
+    if not args.description:
+        if description:
+            args.description = description
+        else:
+            description = input("Enter the description of the profile to upload: ")
+            args.description = description
+    if not args.organization:
+        if organization:
+            args.organization = organization
+        else:
+            organization = input("Enter the organization of the profile to upload: ")
+            args.organization = organization
 
     # import profile template
     with open(args.template, "r") as file:
