@@ -34,7 +34,7 @@ I intend to add such functionality if changes are made to the Jamf Pro API so th
 
 - Examples in the `_tests` folder have been used for testing each script.
 
-- Added AutoPkg processors, `JamfScriptUploader.py`, `JamfCategorytUploader.py`, `JamfComputerGroupUploader.py`, `JamfExtensionAttributeUploader.py`, `JamfPackageUploader.py` and `JamfPolicyUploader.py`, which perform the same tasks as the standalone scripts. Unlike the standalone scripts, these are not designed to upoload multiple packages/policies etc in one process, but they can be called multiple times from withing an AutoPkg recipe to upload multiple objects in a single AutoPkg run. Due to the limitations of AutoPkg, these do not share common modules from this repo - instead, the functions are repeated in each Processor. This allows each Processor to be called independently without installing any dependencies.
+- Added AutoPkg processors, `JamfScriptUploader.py`, `JamfCategoryUploader.py`, `JamfComputerGroupUploader.py`, `JamfExtensionAttributeUploader.py`, `JamfPackageUploader.py` and `JamfPolicyUploader.py`, which perform the same tasks as the standalone scripts. Unlike the standalone scripts, these are not designed to upoload multiple packages/policies etc in one process, but they can be called multiple times from withing an AutoPkg recipe to upload multiple objects in a single AutoPkg run. Due to the limitations of AutoPkg, these do not share common modules from this repo - instead, the functions are repeated in each Processor. This allows each Processor to be called independently without installing any dependencies.
 
 - Added various working `.jamf` recipes, and associated templates and Self Service icons.
 
