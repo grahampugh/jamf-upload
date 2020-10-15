@@ -23,7 +23,7 @@ import uuid
 from time import sleep
 from xml.sax.saxutils import escape, unescape
 
-from jamf_upload_lib import actions, api_connect, api_get, nscurl
+from jamf_upload_lib import actions, api_connect, api_get, curl
 
 
 def pretty_print_xml(xml):
@@ -216,7 +216,7 @@ def upload_mobileconfig(
 
     print("Uploading Configuration Profile..")
     # write the template to temp file
-    template_xml = nscurl.write_temp_file(template_contents)
+    template_xml = curl.write_temp_file(template_contents)
 
     count = 0
     while True:
@@ -224,12 +224,9 @@ def upload_mobileconfig(
         if verbosity > 1:
             print("Configuration Profile upload attempt {}".format(count))
         method = "PUT" if obj_id else "POST"
-        r = nscurl.request(method, url, enc_creds, verbosity, template_xml)
+        r = curl.request(method, url, enc_creds, verbosity, template_xml)
         # check HTTP response
-        if (
-            nscurl.status_check(r, "Configuration Profile", mobileconfig_name)
-            == "break"
-        ):
+        if curl.status_check(r, "Configuration Profile", mobileconfig_name) == "break":
             break
         if count > 5:
             print(

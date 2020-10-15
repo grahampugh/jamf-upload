@@ -4,7 +4,7 @@ import json
 import subprocess
 import sys  # temp
 
-from . import nscurl
+from . import curl
 
 
 def object_types(object_type):
@@ -41,7 +41,7 @@ def get_uapi_obj_id_from_name(jamf_url, object_type, object_name, token, verbosi
 
     url = "{}/uapi/v1/{}".format(jamf_url, object_type)
 
-    r = nscurl.request("GET", url, token, verbosity)
+    r = curl.request("GET", url, token, verbosity)
 
     if r.status_code == 200:
         obj_id = 0
@@ -60,7 +60,7 @@ def check_api_obj_id_from_name(
     """check if a Classic API object with the same name exists on the server"""
 
     url = "{}/JSSResource/{}".format(jamf_url, object_types(object_type))
-    r = nscurl.request("GET", url, enc_creds, verbosity)
+    r = curl.request("GET", url, enc_creds, verbosity)
 
     if r.status_code == 200:
         object_list = json.loads(r.output)
@@ -85,7 +85,7 @@ def get_api_obj_value_from_id(
     """get the value of an item in a Classic API object"""
 
     url = "{}/JSSResource/{}/id/{}".format(jamf_url, object_types(object_type), obj_id)
-    r = nscurl.request("GET", url, enc_creds, verbosity)
+    r = curl.request("GET", url, enc_creds, verbosity)
     if r.status_code == 200:
         obj_content = json.loads(r.output)
         if verbosity > 2:

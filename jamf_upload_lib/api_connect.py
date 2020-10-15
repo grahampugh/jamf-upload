@@ -6,7 +6,7 @@ import plistlib
 import six
 from base64 import b64encode
 
-from . import nscurl
+from . import curl
 
 
 def get_credentials(prefs_file):
@@ -70,7 +70,7 @@ def encode_creds(jamf_user, jamf_password):
 def get_uapi_token(jamf_url, enc_creds, verbosity):
     """get a token for the Jamf Pro API"""
     url = "{}/uapi/auth/tokens".format(jamf_url)
-    r = nscurl.request("POST", url, enc_creds, verbosity)
+    r = curl.request("POST", url, enc_creds, verbosity)
     if r.status_code == 200:
         try:
             token = str(r.output["token"])

@@ -21,7 +21,7 @@ import re
 from time import sleep
 from xml.sax.saxutils import escape
 
-from jamf_upload_lib import actions, api_connect, api_get, nscurl
+from jamf_upload_lib import actions, api_connect, api_get, curl
 
 
 def upload_ea(
@@ -73,7 +73,7 @@ def upload_ea(
     print("Uploading Extension Attribute..")
 
     #  write the template to temp file
-    template_xml = nscurl.write_temp_file(ea_data)
+    template_xml = curl.write_temp_file(ea_data)
 
     count = 0
     while True:
@@ -81,9 +81,9 @@ def upload_ea(
         if verbosity > 1:
             print("Extension Attribute upload attempt {}".format(count))
         method = "PUT" if obj_id else "POST"
-        r = nscurl.request(method, url, enc_creds, verbosity, template_xml)
+        r = curl.request(method, url, enc_creds, verbosity, template_xml)
         # check HTTP response
-        if nscurl.status_check(r, "Extension Attribute", ea_name) == "break":
+        if curl.status_check(r, "Extension Attribute", ea_name) == "break":
             break
         if count > 5:
             print("ERROR: Extension Attribute upload did not succeed after 5 attempts")

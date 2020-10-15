@@ -37,7 +37,7 @@ from time import sleep
 from urllib.parse import quote
 from shutil import copyfile
 
-from jamf_upload_lib import api_connect, api_get, actions, nscurl
+from jamf_upload_lib import api_connect, api_get, actions, nscurl, curl
 
 if six.PY2:
     input = raw_input  # pylint: disable=E0602
@@ -133,7 +133,7 @@ def check_pkg(pkg_name, jamf_url, enc_creds, verbosity):
     note that it is possible to have more than one with the same name
     which could mess things up"""
     url = "{}/JSSResource/packages/name/{}".format(jamf_url, quote(pkg_name))
-    r = nscurl.request("GET", url, enc_creds, verbosity)
+    r = curl.request("GET", url, enc_creds, verbosity)
     if r.status_code == 200:
         obj = json.loads(r.output)
         try:
@@ -166,21 +166,30 @@ def post_pkg(pkg_name, pkg_path, jamf_url, enc_creds, obj_id, r_timeout, verbosi
     }
     url = "{}/dbfileupload".format(jamf_url)
 
-    http = requests.Session()
+    # look for existing session
+    headers_file = "/tmp/curl_headers_from_jamf_upload.txt"
+    try:
+        with open(headers_file, "r") as file:
+            headers = file.readlines()
+        existing_headers = [x.strip() for x in headers]
+        for header in existing_headers:
+            if "APBALANCEID" in header:
+                cookie = header.split()[1].rstrip(";")
+                print("Existing cookie found: {}".format(cookie))
+                cookies = cookie.split("=")
+    except IOError:
+        print("No existing cookie found - starting new session")
 
-    r = http.post(url, data=files, headers=headers, timeout=r_timeout)
+    r = requests.post(
+        url, data=files, headers=headers, cookies=cookies, timeout=r_timeout
+    )
     return r
 
 
 def curl_pkg(pkg_name, pkg_path, jamf_url, enc_creds, obj_id, r_timeout, verbosity):
     """uploads the package using curl"""
     url = "{}/dbfileupload".format(jamf_url)
-    curl_cmd = [
-        "/usr/bin/curl",
-        "-X",
-        "POST",
-        "--header",
-        "authorization: Basic {}".format(enc_creds),
+    additional_headers = [
         "--header",
         "DESTINATION: 0",
         "--header",
@@ -189,19 +198,15 @@ def curl_pkg(pkg_name, pkg_path, jamf_url, enc_creds, obj_id, r_timeout, verbosi
         "FILE_TYPE: 0",
         "--header",
         "FILE_NAME: {}".format(pkg_name),
-        "--upload-file",
-        pkg_path,
         "--connect-timeout",
         str("60"),
         "--max-time",
         str(r_timeout),
-        url,
     ]
+    r = curl.request("POST", url, enc_creds, verbosity, pkg_path, additional_headers)
     if verbosity:
-        print(curl_cmd)
-
-    r = subprocess.check_output(curl_cmd)
-    return r
+        print("HTTP response: {}".format(r.status_code))
+    return r.output
 
 
 def nscurl_pkg(pkg_name, pkg_path, jamf_url, enc_creds, obj_id, r_timeout, verbosity):
@@ -259,10 +264,10 @@ def update_pkg_metadata(
         if verbosity > 1:
             print("Package update attempt {}".format(count))
 
-        pkg_xml = nscurl.write_temp_file(pkg_data)
-        r = nscurl.request("PUT", url, enc_creds, verbosity, pkg_xml)
+        pkg_xml = curl.write_temp_file(pkg_data)
+        r = curl.request("PUT", url, enc_creds, verbosity, pkg_xml)
         # check HTTP response
-        if nscurl.status_check(r, "Package", pkg_name) == "break":
+        if curl.status_check(r, "Package", pkg_name) == "break":
             break
         if count > 5:
             print("WARNING: Package metadata update did not succeed after 5 attempts")
@@ -435,10 +440,10 @@ def get_args():
         "--replace", help="overwrite an existing uploaded package", action="store_true",
     )
     parser.add_argument(
-        "--curl", help="use curl instead of nscurl", action="store_true",
+        "--nscurl", help="use curl instead of curl", action="store_true",
     )
     parser.add_argument(
-        "--requests", help="use requests instead of nscurl", action="store_true",
+        "--requests", help="use requests instead of curl", action="store_true",
     )
     parser.add_argument(
         "--direct",
@@ -644,8 +649,8 @@ def main():
                             verbosity,
                         )
                 # curl -> dbfileupload upload method option
-                elif args.curl:
-                    r = curl_pkg(
+                elif args.nscurl:
+                    r = nscurl_pkg(
                         pkg_name,
                         pkg_path,
                         jamf_url,
@@ -691,9 +696,9 @@ def main():
                         print("\nHTTP POST Response Code: {}".format(r.status_code))
                     if verbosity:
                         api_get.get_headers(r)
-                # nscurl -> dbfileupload upload method option
+                # curl -> dbfileupload upload method option
                 else:
-                    r = nscurl_pkg(
+                    r = curl_pkg(
                         pkg_name,
                         pkg_path,
                         jamf_url,

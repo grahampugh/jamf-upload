@@ -9,17 +9,17 @@ from collections import namedtuple
 
 def request(method, url, auth, verbosity, data="", additional_headers=""):
     """
-    build an nscurl command based on method (GET, PUT, POST, DELETE)
+    build an curl command based on method (GET, PUT, POST, DELETE)
     If the URL contains 'uapi' then token should be passed to the auth variable, 
     otherwise the enc_creds variable should be passed to the auth variable
     """
-    headers_file = "/tmp/nscurl_headers_from_jamf_upload.txt"
-    output_file = "/tmp/nscurl_output_from_jamf_upload.txt"
+    headers_file = "/tmp/curl_headers_from_jamf_upload.txt"
+    output_file = "/tmp/curl_output_from_jamf_upload.txt"
 
-    # build the nscurl command
-    nscurl_cmd = [
-        "/usr/bin/nscurl",
-        "-M",
+    # build the curl command
+    curl_cmd = [
+        "/usr/bin/curl",
+        "-X",
         method,
         "-D",
         headers_file,
@@ -30,21 +30,21 @@ def request(method, url, auth, verbosity, data="", additional_headers=""):
 
     # the authorisation is Basic unless we are using the uapi and already have a token
     if "uapi" in url and "tokens" not in url:
-        nscurl_cmd.extend(["--header", "authorization: Bearer {}".format(auth)])
+        curl_cmd.extend(["--header", "authorization: Bearer {}".format(auth)])
     else:
-        nscurl_cmd.extend(["--header", "authorization: Basic {}".format(auth)])
+        curl_cmd.extend(["--header", "authorization: Basic {}".format(auth)])
 
     # set either Accept or Content-Type depending on method
     if method == "GET" or method == "DELETE":
-        nscurl_cmd.extend(["--header", "Accept: application/json"])
+        curl_cmd.extend(["--header", "Accept: application/json"])
     elif method == "POST" or method == "PUT":
         if data:
-            nscurl_cmd.extend(["--upload", data])
+            curl_cmd.extend(["--upload-file", data])
         # uapi sends json, classic API must send xml
         if "uapi" in url:
-            nscurl_cmd.extend(["--header", "Content-type: application/json"])
+            curl_cmd.extend(["--header", "Content-type: application/json"])
         else:
-            nscurl_cmd.extend(["--header", "Content-type: application/xml"])
+            curl_cmd.extend(["--header", "Content-type: application/xml"])
     else:
         print("WARNING: HTTP method {} not supported".format(method))
 
@@ -53,36 +53,39 @@ def request(method, url, auth, verbosity, data="", additional_headers=""):
         with open(headers_file, "r") as file:
             headers = file.readlines()
         existing_headers = [x.strip() for x in headers]
-        print(existing_headers)  #  TEMP
         for header in existing_headers:
-            if "Set-Cookie" in header:
+            if "APBALANCEID" in header:
                 cookie = header.split()[1].rstrip(";")
                 print("Existing cookie found: {}".format(cookie))
-                nscurl_cmd.extend(["--cookie", cookie])
+                curl_cmd.extend(["--cookie", cookie])
     except IOError:
         print("No existing cookie found - starting new session")
 
     # additional headers for advanced requests
     if additional_headers:
-        nscurl_cmd.extend(additional_headers)
+        curl_cmd.extend(additional_headers)
 
-    # add verbose mode
-    if verbosity > 1:
-        nscurl_cmd.append("-v")
+    # add or remove verbose mode
+    if verbosity < 1:
+        curl_cmd.append("-s")
+    elif verbosity > 1:
+        curl_cmd.append("-v")
 
     if verbosity:
-        print("\nnscurl command:\n{}".format(" ".join(nscurl_cmd)))
+        print("\ncurl command:\n{}".format(" ".join(curl_cmd)))
 
-    # now subprocess the nscurl command and build the r tuple which contains the
+    # now subprocess the curl command and build the r tuple which contains the
     # headers, status code and outputted data
-    subprocess.check_output(nscurl_cmd)
+    subprocess.check_output(curl_cmd)
 
     r = namedtuple("r", ["headers", "status_code", "output"])
     try:
         with open(headers_file, "r") as file:
             headers = file.readlines()
         r.headers = [x.strip() for x in headers]
-        r.status_code = int(r.headers[0].split()[1])
+        for header in r.headers:
+            if "HTTP/1.1" in header and "Continue" not in header:
+                r.status_code = int(header.split()[1])
         with open(output_file, "rb") as file:
             if "uapi" in url:
                 r.output = json.load(file)
