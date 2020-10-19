@@ -352,7 +352,7 @@ class JamfPackageUploader(Processor):
             "FILE_TYPE: 0",
             "--header",
             f"FILE_NAME: {pkg_name}",
-            "--payload-transmission-timeout",
+            "--max-time",
             str("3600"),
         ]
         r = self.curl("POST", url, enc_creds, pkg_path, additional_headers)

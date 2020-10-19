@@ -33,6 +33,8 @@ Process:
       predicate: "%UPDATE_PREDICATE%"
 
   - Processor: com.github.grahampugh.recipes.commonprocessors/VersionRegexGenerator
+    Arguments:
+      version: "%version%"
 
   - Processor: com.github.grahampugh.jamf-upload.processors/JamfComputerGroupUploader
     Arguments:
