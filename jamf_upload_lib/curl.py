@@ -9,12 +9,13 @@ from collections import namedtuple
 
 def request(method, url, auth, verbosity, data="", additional_headers=""):
     """
-    build an curl command based on method (GET, PUT, POST, DELETE)
+    build a curl command based on method (GET, PUT, POST, DELETE)
     If the URL contains 'uapi' then token should be passed to the auth variable, 
     otherwise the enc_creds variable should be passed to the auth variable
     """
     headers_file = "/tmp/curl_headers_from_jamf_upload.txt"
     output_file = "/tmp/curl_output_from_jamf_upload.txt"
+    cookie_jar = "/tmp/curl_cookies_from_jamf_upload.txt"
 
     # build the curl command
     curl_cmd = [
@@ -37,6 +38,10 @@ def request(method, url, auth, verbosity, data="", additional_headers=""):
     # set either Accept or Content-Type depending on method
     if method == "GET" or method == "DELETE":
         curl_cmd.extend(["--header", "Accept: application/json"])
+    # icon upload requires special method
+    elif method == "POST" and "fileuploads" in url:
+        curl_cmd.extend(["--header", "Content-type: multipart/form-data"])
+        curl_cmd.extend(["--form", f"name=@{data}"])
     elif method == "POST" or method == "PUT":
         if data:
             curl_cmd.extend(["--upload-file", data])
@@ -48,9 +53,21 @@ def request(method, url, auth, verbosity, data="", additional_headers=""):
     else:
         print("WARNING: HTTP method {} not supported".format(method))
 
-    # look for existing session
+    # write session
     try:
         with open(headers_file, "r") as file:
+            headers = file.readlines()
+        existing_headers = [x.strip() for x in headers]
+        for header in existing_headers:
+            if "APBALANCEID" in header:
+                with open(cookie_jar, "w") as fp:
+                    fp.write(header)
+    except IOError:
+        pass
+
+    # look for existing session
+    try:
+        with open(cookie_jar, "r") as file:
             headers = file.readlines()
         existing_headers = [x.strip() for x in headers]
         for header in existing_headers:

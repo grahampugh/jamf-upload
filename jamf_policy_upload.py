@@ -73,7 +73,7 @@ def upload_policy(
 
     print("Uploading Policy...")
 
-    #  write the template to temp file
+    # write the template to temp file
     template_xml = curl.write_temp_file(template_contents)
 
     count = 0
@@ -146,18 +146,13 @@ def upload_policy_icon(
         url = "{}/JSSResource/fileuploads/policies/id/{}".format(jamf_url, obj_id)
 
         print("Uploading icon...")
-        #  resource construction grabbed from python-jss / misc_endpoints.py
-        content_type = mimetypes.guess_type(policy_icon_name)[0]
-        resource = {
-            "name": (policy_icon_name, open(policy_icon_path, "rb"), content_type)
-        }
 
         count = 0
         while True:
             count += 1
             if verbosity > 1:
                 print("Icon upload attempt {}".format(count))
-            r = curl.request("POST", url, enc_creds, verbosity, resource)
+            r = curl.request("POST", url, enc_creds, verbosity, policy_icon_path)
             # check HTTP response
             if curl.status_check(r, "Icon", policy_icon_name) == "break":
                 break
@@ -321,7 +316,7 @@ def main():
         if args.icon:
             # get the policy_id returned from the HTTP response
             try:
-                policy_id = ElementTree.fromstring(r.text).findtext("id")
+                policy_id = ElementTree.fromstring(r.output).findtext("id")
                 upload_policy_icon(
                     jamf_url,
                     enc_creds,
