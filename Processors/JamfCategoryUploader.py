@@ -57,19 +57,20 @@ class JamfCategoryUploader(Processor):
         },
     }
 
-    def nscurl(self, method, url, auth, data="", additional_headers=""):
+    def curl(self, method, url, auth, data="", additional_headers=""):
         """
-        build an nscurl command based on method (GET, PUT, POST, DELETE)
+        build a curl command based on method (GET, PUT, POST, DELETE)
         If the URL contains 'uapi' then token should be passed to the auth variable, 
         otherwise the enc_creds variable should be passed to the auth variable
         """
-        headers_file = "/tmp/nscurl_headers_from_jamf_upload.txt"
-        output_file = "/tmp/nscurl_output_from_jamf_upload.txt"
+        headers_file = "/tmp/curl_headers_from_jamf_upload.txt"
+        output_file = "/tmp/curl_output_from_jamf_upload.txt"
+        cookie_jar = "/tmp/curl_cookies_from_jamf_upload.txt"
 
-        # build the nscurl command
-        nscurl_cmd = [
-            "/usr/bin/nscurl",
-            "-M",
+        # build the curl command
+        curl_cmd = [
+            "/usr/bin/curl",
+            "-X",
             method,
             "-D",
             headers_file,
@@ -80,40 +81,73 @@ class JamfCategoryUploader(Processor):
 
         # the authorisation is Basic unless we are using the uapi and already have a token
         if "uapi" in url and "tokens" not in url:
-            nscurl_cmd.extend(["--header", f"authorization: Bearer {auth}"])
+            curl_cmd.extend(["--header", f"authorization: Bearer {auth}"])
         else:
-            nscurl_cmd.extend(["--header", f"authorization: Basic {auth}"])
+            curl_cmd.extend(["--header", f"authorization: Basic {auth}"])
 
         # set either Accept or Content-Type depending on method
         if method == "GET" or method == "DELETE":
-            nscurl_cmd.extend(["--header", "Accept: application/json"])
+            curl_cmd.extend(["--header", "Accept: application/json"])
+        # icon upload requires special method
+        elif method == "POST" and "fileuploads" in url:
+            curl_cmd.extend(["--header", "Content-type: multipart/form-data"])
+            curl_cmd.extend(["--form", f"name=@{data}"])
         elif method == "POST" or method == "PUT":
             if data:
-                nscurl_cmd.extend(["--upload", data])
+                curl_cmd.extend(["--upload-file", data])
             # uapi sends json, classic API must send xml
             if "uapi" in url:
-                nscurl_cmd.extend(["--header", "Content-type: application/json"])
+                curl_cmd.extend(["--header", "Content-type: application/json"])
             else:
-                nscurl_cmd.extend(["--header", "Content-type: application/xml"])
+                curl_cmd.extend(["--header", "Content-type: application/xml"])
         else:
             self.output(f"WARNING: HTTP method {method} not supported")
 
+        # write session
+        try:
+            with open(headers_file, "r") as file:
+                headers = file.readlines()
+            existing_headers = [x.strip() for x in headers]
+            for header in existing_headers:
+                if "APBALANCEID" in header:
+                    with open(cookie_jar, "w") as fp:
+                        fp.write(header)
+        except IOError:
+            pass
+
+        # look for existing session
+        try:
+            with open(cookie_jar, "r") as file:
+                headers = file.readlines()
+            existing_headers = [x.strip() for x in headers]
+            for header in existing_headers:
+                if "APBALANCEID" in header:
+                    cookie = header.split()[1].rstrip(";")
+                    self.output(f"Existing cookie found: {cookie}", verbose_level=1)
+                    curl_cmd.extend(["--cookie", cookie])
+        except IOError:
+            self.output(
+                "No existing cookie found - starting new session", verbose_level=1
+            )
+
         # additional headers for advanced requests
         if additional_headers:
-            nscurl_cmd.extend(additional_headers)
+            curl_cmd.extend(additional_headers)
 
-        self.output(f"nscurl command: {' '.join(nscurl_cmd)}", verbose_level=2)
+        self.output(f"curl command: {' '.join(curl_cmd)}", verbose_level=2)
 
-        # now subprocess the nscurl command and build the r tuple which contains the
+        # now subprocess the curl command and build the r tuple which contains the
         # headers, status code and outputted data
-        subprocess.check_output(nscurl_cmd)
+        subprocess.check_output(curl_cmd)
 
         r = namedtuple("r", ["headers", "status_code", "output"])
         try:
             with open(headers_file, "r") as file:
                 headers = file.readlines()
             r.headers = [x.strip() for x in headers]
-            r.status_code = int(r.headers[0].split()[1])
+            for header in r.headers:
+                if "HTTP/1.1" in header and "Continue" not in header:
+                    r.status_code = int(header.split()[1])
             with open(output_file, "rb") as file:
                 if "uapi" in url:
                     r.output = json.load(file)
@@ -154,7 +188,8 @@ class JamfCategoryUploader(Processor):
     def get_uapi_token(self, jamf_url, enc_creds):
         """get a token for the Jamf Pro API"""
         url = "{}/uapi/auth/tokens".format(jamf_url)
-        r = self.nscurl("POST", url, enc_creds)
+
+        r = self.curl("POST", url, enc_creds)
         if r.status_code == 200:
             try:
                 token = str(r.output["token"])
@@ -171,7 +206,7 @@ class JamfCategoryUploader(Processor):
         """The UAPI doesn't have a name object, so we have to get the list of scripts 
         and parse the name to get the id """
         url = "{}/uapi/v1/{}".format(jamf_url, object_type)
-        r = self.nscurl("GET", url, token)
+        r = self.curl("GET", url, token)
         if r.status_code == 200:
             obj_id = 0
             for obj in r.output["results"]:
@@ -205,7 +240,7 @@ class JamfCategoryUploader(Processor):
                 self.output(
                     f"Category upload attempt {count}", verbose_level=2,
                 )
-                r = self.nscurl("PUT", url, token, category_json_temp)
+                r = self.curl("PUT", url, token, category_json_temp)
                 # check HTTP response
                 if self.status_check(r, "Category", category_name_temp) == "break":
                     break
@@ -225,7 +260,7 @@ class JamfCategoryUploader(Processor):
                 f"Category upload attempt {count}", verbose_level=2,
             )
             method = "PUT" if obj_id else "POST"
-            r = self.nscurl(method, url, token, category_json)
+            r = self.curl(method, url, token, category_json)
             # check HTTP response
             if self.status_check(r, "Category", category_name) == "break":
                 break

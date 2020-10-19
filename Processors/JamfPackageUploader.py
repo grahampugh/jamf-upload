@@ -116,19 +116,20 @@ class JamfPackageUploader(Processor):
 
     description = __doc__
 
-    def nscurl(self, method, url, auth, data="", additional_headers=""):
+    def curl(self, method, url, auth, data="", additional_headers=""):
         """
-        build an nscurl command based on method (GET, PUT, POST, DELETE)
+        build a curl command based on method (GET, PUT, POST, DELETE)
         If the URL contains 'uapi' then token should be passed to the auth variable, 
         otherwise the enc_creds variable should be passed to the auth variable
         """
-        headers_file = "/tmp/nscurl_headers_from_jamf_upload.txt"
-        output_file = "/tmp/nscurl_output_from_jamf_upload.txt"
+        headers_file = "/tmp/curl_headers_from_jamf_upload.txt"
+        output_file = "/tmp/curl_output_from_jamf_upload.txt"
+        cookie_jar = "/tmp/curl_cookies_from_jamf_upload.txt"
 
-        # build the nscurl command
-        nscurl_cmd = [
-            "/usr/bin/nscurl",
-            "-M",
+        # build the curl command
+        curl_cmd = [
+            "/usr/bin/curl",
+            "-X",
             method,
             "-D",
             headers_file,
@@ -139,40 +140,73 @@ class JamfPackageUploader(Processor):
 
         # the authorisation is Basic unless we are using the uapi and already have a token
         if "uapi" in url and "tokens" not in url:
-            nscurl_cmd.extend(["--header", f"authorization: Bearer {auth}"])
+            curl_cmd.extend(["--header", f"authorization: Bearer {auth}"])
         else:
-            nscurl_cmd.extend(["--header", f"authorization: Basic {auth}"])
+            curl_cmd.extend(["--header", f"authorization: Basic {auth}"])
 
         # set either Accept or Content-Type depending on method
         if method == "GET" or method == "DELETE":
-            nscurl_cmd.extend(["--header", "Accept: application/json"])
+            curl_cmd.extend(["--header", "Accept: application/json"])
+        # icon upload requires special method
+        elif method == "POST" and "fileuploads" in url:
+            curl_cmd.extend(["--header", "Content-type: multipart/form-data"])
+            curl_cmd.extend(["--form", f"name=@{data}"])
         elif method == "POST" or method == "PUT":
             if data:
-                nscurl_cmd.extend(["--upload", data])
+                curl_cmd.extend(["--upload-file", data])
             # uapi sends json, classic API must send xml
             if "uapi" in url:
-                nscurl_cmd.extend(["--header", "Content-type: application/json"])
+                curl_cmd.extend(["--header", "Content-type: application/json"])
             else:
-                nscurl_cmd.extend(["--header", "Content-type: application/xml"])
+                curl_cmd.extend(["--header", "Content-type: application/xml"])
         else:
             self.output(f"WARNING: HTTP method {method} not supported")
 
+        # write session
+        try:
+            with open(headers_file, "r") as file:
+                headers = file.readlines()
+            existing_headers = [x.strip() for x in headers]
+            for header in existing_headers:
+                if "APBALANCEID" in header:
+                    with open(cookie_jar, "w") as fp:
+                        fp.write(header)
+        except IOError:
+            pass
+
+        # look for existing session
+        try:
+            with open(cookie_jar, "r") as file:
+                headers = file.readlines()
+            existing_headers = [x.strip() for x in headers]
+            for header in existing_headers:
+                if "APBALANCEID" in header:
+                    cookie = header.split()[1].rstrip(";")
+                    self.output(f"Existing cookie found: {cookie}", verbose_level=1)
+                    curl_cmd.extend(["--cookie", cookie])
+        except IOError:
+            self.output(
+                "No existing cookie found - starting new session", verbose_level=1
+            )
+
         # additional headers for advanced requests
         if additional_headers:
-            nscurl_cmd.extend(additional_headers)
+            curl_cmd.extend(additional_headers)
 
-        self.output(f"nscurl command: {' '.join(nscurl_cmd)}", verbose_level=2)
+        self.output(f"curl command: {' '.join(curl_cmd)}", verbose_level=2)
 
-        # now subprocess the nscurl command and build the r tuple which contains the
+        # now subprocess the curl command and build the r tuple which contains the
         # headers, status code and outputted data
-        subprocess.check_output(nscurl_cmd)
+        subprocess.check_output(curl_cmd)
 
         r = namedtuple("r", ["headers", "status_code", "output"])
         try:
             with open(headers_file, "r") as file:
                 headers = file.readlines()
             r.headers = [x.strip() for x in headers]
-            r.status_code = int(r.headers[0].split()[1])
+            for header in r.headers:
+                if "HTTP/1.1" in header and "Continue" not in header:
+                    r.status_code = int(header.split()[1])
             with open(output_file, "rb") as file:
                 if "uapi" in url:
                     r.output = json.load(file)
@@ -295,7 +329,7 @@ class JamfPackageUploader(Processor):
         note that it is possible to have more than one with the same name
         which could mess things up"""
         url = f"{jamf_url}/JSSResource/packages/name/{quote(pkg_name)}"
-        r = self.nscurl("GET", url, enc_creds)
+        r = self.curl("GET", url, enc_creds)
         if r.status_code == 200:
             obj = json.loads(r.output)
             try:
@@ -306,8 +340,8 @@ class JamfPackageUploader(Processor):
             obj_id = "-1"
         return obj_id
 
-    def nscurl_pkg(self, pkg_name, pkg_path, jamf_url, enc_creds, obj_id):
-        """uploads the package using nscurl"""
+    def curl_pkg(self, pkg_name, pkg_path, jamf_url, enc_creds, obj_id):
+        """uploads the package using curl"""
         url = f"{jamf_url}/dbfileupload"
         additional_headers = [
             "--header",
@@ -321,7 +355,7 @@ class JamfPackageUploader(Processor):
             "--payload-transmission-timeout",
             str("3600"),
         ]
-        r = self.nscurl("POST", url, enc_creds, pkg_path, additional_headers)
+        r = self.curl("POST", url, enc_creds, pkg_path, additional_headers)
         self.output(f"HTTP response: {r.status_code}", verbose_level=2)
         return r.output
 
@@ -356,7 +390,7 @@ class JamfPackageUploader(Processor):
             )
 
             pkg_xml = self.write_temp_file(pkg_data)
-            r = self.nscurl("PUT", url, enc_creds, pkg_xml)
+            r = self.curl("PUT", url, enc_creds, pkg_xml)
             # check HTTP response
             if self.status_check(r, "Package", pkg_name) == "break":
                 break
@@ -457,7 +491,7 @@ class JamfPackageUploader(Processor):
                         verbose_level=1,
                     )
                 # post the package (won't run if the pkg exists and replace is False)
-                r = self.nscurl_pkg(
+                r = self.curl_pkg(
                     self.pkg_name, self.pkg_path, self.jamf_url, enc_creds, obj_id
                 )
                 try:

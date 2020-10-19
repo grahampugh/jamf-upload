@@ -38,7 +38,7 @@ I intend to add such functionality if changes are made to the Jamf Pro API so th
 
 - Added various working `.jamf` recipes, and associated templates and Self Service icons.
 
-- Switched from using Python's `requests` package to using a built-in `nscurl` library for most functions. Only `jamf.pkg_upload.py` retains an option to use `requests` for uploading a package, or using the `--direct` method, both of which require the `requests` package to be present in your python3 environment. The default upload method does not require `requests`.
+- Switched from using Python's `requests` package to using `curl` for most functions. This allows a cookie to be set which should maintain a session throughout all requests in an AutoPkg run. Only `jamf.pkg_upload.py` retains a `--requests` option to use `requests` for uploading a package, and the `--direct` method also currently requires the `requests` package to be present in your python3 environment. The default upload method does not require `requests`.
 
 ## [0.2.0] - 2020-07-24
 
