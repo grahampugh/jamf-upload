@@ -1,0 +1,98 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>Description</key>
+	<string>Uploads a script to the Jamf Pro Server and creates a Self Service Policy and Smart Group.</string>
+	<key>Identifier</key>
+	<string>com.github.grahampugh.recipes.jamf.EnableSudoTouchID</string>
+	<key>Input</key>
+	<dict>
+		<key>GROUP_NAME</key>
+		<string>%NAME%-self-service</string>
+		<key>GROUP_TEMPLATE</key>
+		<string>SmartGroup-script-self-service.xml</string>
+		<key>INSTALL_BUTTON_TEXT</key>
+		<string>Enable Touch ID</string>
+		<key>NAME</key>
+		<string>Enable Touch ID for sudo</string>
+		<key>POLICY_CATEGORY</key>
+		<string>Self-Help</string>
+		<key>POLICY_NAME</key>
+		<string>%NAME%</string>
+		<key>POLICY_TEMPLATE</key>
+		<string>Policy-script-self-service.xml</string>
+		<key>REINSTALL_BUTTON_TEXT</key>
+		<string>Enable Touch ID</string>
+		<key>SCRIPT_NAME</key>
+		<string>Enable-TouchID-sudo.sh</string>
+		<key>SCRIPT_PRIORITY</key>
+		<string>After</string>
+		<key>SELF_SERVICE_DESCRIPTION</key>
+		<string>Enables sudo to be activated via Touch ID. Touch ID must be set up prior to running this item, and may need to be re-run after upgrading macOS.</string>
+		<key>SELF_SERVICE_DISPLAY_NAME</key>
+		<string>Enable Touch ID for sudo</string>
+		<key>SELF_SERVICE_ICON</key>
+		<string>Terminal.png</string>
+		<key>TESTING_GROUP_NAME</key>
+		<string>Testing</string>
+		<key>replace_group</key>
+		<string>False</string>
+		<key>replace_policy</key>
+		<string>True</string>
+		<key>replace_script</key>
+		<string>True</string>
+	</dict>
+	<key>MinimumVersion</key>
+	<string>2.0.0</string>
+	<key>Process</key>
+	<array>
+		<dict>
+			<key>Arguments</key>
+			<dict>
+				<key>category_name</key>
+				<string>%POLICY_CATEGORY%</string>
+			</dict>
+			<key>Processor</key>
+			<string>com.github.grahampugh.jamf-upload.processors/JamfCategoryUploader</string>
+		</dict>
+		<dict>
+			<key>Arguments</key>
+			<dict>
+				<key>script_category</key>
+				<string>%POLICY_CATEGORY%</string>
+				<key>script_path</key>
+				<string>%SCRIPT_NAME%</string>
+				<key>script_priority</key>
+				<string>%SCRIPT_PRIORITY%</string>
+			</dict>
+			<key>Processor</key>
+			<string>com.github.grahampugh.jamf-upload.processors/JamfScriptUploader</string>
+		</dict>
+		<dict>
+			<key>Arguments</key>
+			<dict>
+				<key>computergroup_name</key>
+				<string>%GROUP_NAME%</string>
+				<key>computergroup_template</key>
+				<string>%GROUP_TEMPLATE%</string>
+			</dict>
+			<key>Processor</key>
+			<string>com.github.grahampugh.jamf-upload.processors/JamfComputerGroupUploader</string>
+		</dict>
+		<dict>
+			<key>Arguments</key>
+			<dict>
+				<key>icon</key>
+				<string>%SELF_SERVICE_ICON%</string>
+				<key>policy_name</key>
+				<string>%POLICY_NAME%</string>
+				<key>policy_template</key>
+				<string>%POLICY_TEMPLATE%</string>
+			</dict>
+			<key>Processor</key>
+			<string>com.github.grahampugh.jamf-upload.processors/JamfPolicyUploader</string>
+		</dict>
+	</array>
+</dict>
+</plist>

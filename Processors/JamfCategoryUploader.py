@@ -251,6 +251,9 @@ class JamfCategoryUploader(Processor):
                     self.output(f"\nHTTP POST Response Code: {r.status_code}")
                     raise ProcessorError("ERROR: Category upload failed ")
                 sleep(10)
+            # clean up temp file
+            if os.path.exists(category_json_temp):
+                os.remove(category_json_temp)
 
         # write the category. If updating an existing category, this reverts the name to its original.
         category_json = self.write_json_file(category_data)
@@ -270,10 +273,9 @@ class JamfCategoryUploader(Processor):
                 raise ProcessorError("ERROR: Category upload failed ")
             sleep(10)
 
-        # clean up temp files
-        for file in category_json, category_json_temp:
-            if os.path.exists(file):
-                os.remove(file)
+        # clean up temp file
+        if os.path.exists(category_json):
+            os.remove(category_json)
 
     def main(self):
         """Do the main thing here"""
