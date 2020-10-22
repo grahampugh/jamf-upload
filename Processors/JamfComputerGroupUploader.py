@@ -231,6 +231,7 @@ class JamfComputerGroupUploader(Processor):
 
         # if not found, search RECIPE_SEARCH_DIRS to look for it
         search_dirs = self.env.get("RECIPE_SEARCH_DIRS")
+        matched_filepath = ""
         for d in search_dirs:
             for path in Path(d).rglob(filename):
                 matched_filepath = str(path)
