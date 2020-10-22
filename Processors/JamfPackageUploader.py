@@ -456,6 +456,7 @@ class JamfPackageUploader(Processor):
             self.output(
                 "Package '{}' already exists: ID {}".format(self.pkg_name, obj_id)
             )
+            pkg_id = obj_id  # assign pkg_id for smb runs - JCDS runs get it from the pkg upload
         else:
             pkg_id = ""
 
