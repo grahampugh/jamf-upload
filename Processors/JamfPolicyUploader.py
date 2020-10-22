@@ -324,11 +324,8 @@ class JamfPolicyUploader(Processor):
                 )
             return value
 
-    def upload_policy(
-        self, jamf_url, enc_creds, policy_name, policy_template, obj_id=None
-    ):
-        """Upload computer group"""
-
+    def prepare_policy_template(self, policy_name, policy_template):
+        """prepare the policy contents"""
         # import template from file and replace any keys in the template
         if os.path.exists(policy_template):
             with open(policy_template, "r") as file:
@@ -337,20 +334,30 @@ class JamfPolicyUploader(Processor):
             raise ProcessorError("Template does not exist!")
 
         # substitute user-assignable keys
+        policy_name = self.substitute_assignable_keys(policy_name)
         template_contents = self.substitute_assignable_keys(template_contents)
 
+        self.output("Policy data:", verbose_level=2)
+        self.output(template_contents, verbose_level=2)
+
+        # write the template to temp file
+        template_xml = self.write_temp_file(template_contents)
+        return policy_name, template_xml
+
+    def upload_policy(
+        self, jamf_url, enc_creds, policy_name, policy_template, obj_id=None
+    ):
+        """Upload policy group"""
         # if we find an object ID we put, if not, we post
         if obj_id:
             url = "{}/JSSResource/policies/id/{}".format(jamf_url, obj_id)
         else:
             url = "{}/JSSResource/policies/id/0".format(jamf_url)
 
-        self.output("Policy data:", verbose_level=2)
-        self.output(template_contents, verbose_level=2)
-
+        policy_name, template_xml = self.prepare_policy_template(
+            policy_name, policy_template
+        )
         self.output("Uploading Policy...")
-        # write the template to temp file
-        template_xml = self.write_temp_file(template_contents)
 
         count = 0
         while True:
