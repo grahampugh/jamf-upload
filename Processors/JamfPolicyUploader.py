@@ -524,6 +524,7 @@ class JamfPolicyUploader(Processor):
             )
 
         # now upload the icon to the policy if specified in the args
+        policy_icon_name = ""
         if self.icon:
             # handle files with no path
             if "/" not in self.icon:
