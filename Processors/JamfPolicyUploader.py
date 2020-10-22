@@ -346,7 +346,7 @@ class JamfPolicyUploader(Processor):
         return policy_name, template_xml
 
     def upload_policy(
-        self, jamf_url, enc_creds, policy_name, policy_template, obj_id=None
+        self, jamf_url, enc_creds, policy_name, template_xml, obj_id=None
     ):
         """Upload policy group"""
         # if we find an object ID we put, if not, we post
@@ -355,9 +355,6 @@ class JamfPolicyUploader(Processor):
         else:
             url = "{}/JSSResource/policies/id/0".format(jamf_url)
 
-        policy_name, template_xml = self.prepare_policy_template(
-            policy_name, policy_template
-        )
         self.output("Uploading Policy...")
 
         count = 0
@@ -485,6 +482,12 @@ class JamfPolicyUploader(Processor):
                     f"ERROR: Policy file {self.policy_template} not found"
                 )
 
+        #  we need to substitute the values in the policy name and template now to
+        # account for version strings in the name
+        self.policy_name, template_xml = self.prepare_policy_template(
+            self.policy_name, self.policy_template
+        )
+
         # now start the process of uploading the object
         self.output(f"Checking for existing '{self.policy_name}' on {self.jamf_url}")
 
@@ -506,11 +509,7 @@ class JamfPolicyUploader(Processor):
                     verbose_level=1,
                 )
                 r = self.upload_policy(
-                    self.jamf_url,
-                    enc_creds,
-                    self.policy_name,
-                    self.policy_template,
-                    obj_id,
+                    self.jamf_url, enc_creds, self.policy_name, template_xml, obj_id,
                 )
             else:
                 self.output(
@@ -521,7 +520,7 @@ class JamfPolicyUploader(Processor):
         else:
             # post the item
             r = self.upload_policy(
-                self.jamf_url, enc_creds, self.policy_name, self.policy_template,
+                self.jamf_url, enc_creds, self.policy_name, template_xml,
             )
 
         # now upload the icon to the policy if specified in the args
