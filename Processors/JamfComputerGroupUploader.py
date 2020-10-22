@@ -365,7 +365,9 @@ class JamfComputerGroupUploader(Processor):
             if found_template:
                 self.computergroup_template = found_template
             else:
-                raise ProcessorError("ERROR: Computer Group file not failed ")
+                raise ProcessorError(
+                    f"ERROR: Computer Group file {self.computergroup_template} not found"
+                )
 
         # now start the process of uploading the object
         self.output(

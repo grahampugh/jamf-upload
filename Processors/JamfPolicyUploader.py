@@ -473,7 +473,9 @@ class JamfPolicyUploader(Processor):
             if found_template:
                 self.policy_template = found_template
             else:
-                raise ProcessorError("ERROR: Policy file not failed ")
+                raise ProcessorError(
+                    f"ERROR: Policy file {self.policy_template} not found"
+                )
 
         # now start the process of uploading the object
         self.output(f"Checking for existing '{self.policy_name}' on {self.jamf_url}")
@@ -522,7 +524,9 @@ class JamfPolicyUploader(Processor):
                 if found_icon:
                     self.icon = found_icon
                 else:
-                    raise ProcessorError("ERROR: Policy icon file not failed ")
+                    raise ProcessorError(
+                        f"ERROR: Policy icon file {self.icon} not found"
+                    )
 
             # get the policy_id returned from the HTTP response
             try:

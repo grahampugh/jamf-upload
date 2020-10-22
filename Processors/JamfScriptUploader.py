@@ -485,7 +485,7 @@ class JamfScriptUploader(Processor):
             if found_template:
                 self.script_path = found_template
             else:
-                raise ProcessorError("ERROR: Script file not found")
+                raise ProcessorError(f"ERROR: Script file {self.script_path} not found")
 
         # now start the process of uploading the object
         script_name = os.path.basename(self.script_path)

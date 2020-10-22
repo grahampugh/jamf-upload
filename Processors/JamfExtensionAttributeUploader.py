@@ -378,7 +378,7 @@ class JamfExtensionAttributeUploader(Processor):
             if found_template:
                 self.ea_script_path = found_template
             else:
-                raise ProcessorError("ERROR: EA file not found")
+                raise ProcessorError(f"ERROR: EA file {self.ea_script_path} not found")
 
         # now start the process of uploading the object
         self.output(f"Checking for existing '{self.ea_name}' on {self.jamf_url}")
