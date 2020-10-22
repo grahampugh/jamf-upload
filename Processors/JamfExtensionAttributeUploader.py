@@ -374,7 +374,11 @@ class JamfExtensionAttributeUploader(Processor):
 
         # handle files with no path
         if "/" not in self.ea_script_path:
-            self.ea_script_path = self.get_path_to_file(self.ea_script_path)
+            found_template = self.get_path_to_file(self.ea_script_path)
+            if found_template:
+                self.ea_script_path = found_template
+            else:
+                raise ProcessorError("ERROR: EA file not found")
 
         # now start the process of uploading the object
         self.output(f"Checking for existing '{self.ea_name}' on {self.jamf_url}")

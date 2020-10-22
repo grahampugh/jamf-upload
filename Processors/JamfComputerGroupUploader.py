@@ -361,9 +361,11 @@ class JamfComputerGroupUploader(Processor):
 
         # handle files with no path
         if "/" not in self.computergroup_template:
-            self.computergroup_template = self.get_path_to_file(
-                self.computergroup_template
-            )
+            found_template = self.get_path_to_file(self.computergroup_template)
+            if found_template:
+                self.computergroup_template = found_template
+            else:
+                raise ProcessorError("ERROR: Computer Group file not failed ")
 
         # now start the process of uploading the object
         self.output(

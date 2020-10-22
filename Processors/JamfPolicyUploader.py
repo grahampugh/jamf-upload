@@ -469,7 +469,11 @@ class JamfPolicyUploader(Processor):
 
         # handle files with no path
         if "/" not in self.policy_template:
-            self.policy_template = self.get_path_to_file(self.policy_template)
+            found_template = self.get_path_to_file(self.policy_template)
+            if found_template:
+                self.policy_template = found_template
+            else:
+                raise ProcessorError("ERROR: Policy file not failed ")
 
         # now start the process of uploading the object
         self.output(f"Checking for existing '{self.policy_name}' on {self.jamf_url}")
@@ -514,7 +518,11 @@ class JamfPolicyUploader(Processor):
         if self.icon:
             # handle files with no path
             if "/" not in self.icon:
-                self.icon = self.get_path_to_file(self.icon)
+                found_icon = self.get_path_to_file(self.icon)
+                if found_icon:
+                    self.icon = found_icon
+                else:
+                    raise ProcessorError("ERROR: Policy icon file not failed ")
 
             # get the policy_id returned from the HTTP response
             try:

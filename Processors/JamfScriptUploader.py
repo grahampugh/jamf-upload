@@ -481,7 +481,11 @@ class JamfScriptUploader(Processor):
 
         # handle files with no path
         if "/" not in self.script_path:
-            self.script_path = self.get_path_to_file(self.script_path)
+            found_template = self.get_path_to_file(self.script_path)
+            if found_template:
+                self.script_path = found_template
+            else:
+                raise ProcessorError("ERROR: Script file not found")
 
         # now start the process of uploading the object
         script_name = os.path.basename(self.script_path)
