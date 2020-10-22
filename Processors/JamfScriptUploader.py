@@ -246,13 +246,13 @@ class JamfScriptUploader(Processor):
             self.output(f"{endpoint_type} '{obj_name}' uploaded successfully")
             return "break"
         elif r.status_code == 409:
-            self.output(f"WARNING: {endpoint_type} upload failed due to a conflict")
-            return "break"
+            raise ProcessorError(
+                f"WARNING: {endpoint_type} upload failed due to a conflict"
+            )
         elif r.status_code == 401:
-            self.output(
+            raise ProcessorError(
                 f"ERROR: {endpoint_type} upload failed due to permissions error"
             )
-            return "break"
 
     def get_uapi_token(self, jamf_url, enc_creds):
         """get a token for the Jamf Pro API"""

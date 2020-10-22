@@ -195,13 +195,13 @@ class JamfPolicyUploader(Processor):
             self.output(f"{endpoint_type} '{obj_name}' uploaded successfully")
             return "break"
         elif r.status_code == 409:
-            self.output(f"WARNING: {endpoint_type} upload failed due to a conflict")
-            return "break"
+            raise ProcessorError(
+                f"WARNING: {endpoint_type} upload failed due to a conflict"
+            )
         elif r.status_code == 401:
-            self.output(
+            raise ProcessorError(
                 f"ERROR: {endpoint_type} upload failed due to permissions error"
             )
-            return "break"
 
     def substitute_assignable_keys(self, data):
         """substitutes any key in the inputted text using the %MY_KEY% nomenclature"""
