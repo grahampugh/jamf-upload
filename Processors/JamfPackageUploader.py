@@ -467,6 +467,13 @@ class JamfPackageUploader(Processor):
             # check for existing package
             local_pkg = self.check_local_pkg(self.smb_url, self.pkg_name)
             if not local_pkg or self.replace:
+                if self.replace:
+                    self.output(
+                        "Replacing existing package as 'replace_pkg' is set to {}".format(
+                            self.replace
+                        ),
+                        verbose_level=1,
+                    )
                 # copy the file
                 self.copy_pkg(self.smb_url, self.pkg_path, self.pkg_name)
                 # unmount the share
@@ -527,10 +534,16 @@ class JamfPackageUploader(Processor):
         if self.category or self.smb_url:
             try:
                 pkg_id
+                self.output(
+                    "Updating package metadata for {}".format(pkg_id), verbose_level=1,
+                )
                 self.update_pkg_metadata(
                     self.jamf_url, enc_creds, self.pkg_name, self.category, pkg_id
                 )
             except UnboundLocalError:
+                self.output(
+                    "Creating package metadata", verbose_level=1,
+                )
                 self.update_pkg_metadata(
                     self.jamf_url, enc_creds, self.pkg_name, self.category
                 )
