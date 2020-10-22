@@ -370,14 +370,13 @@ class JamfPackageUploader(Processor):
             + f"<category>{category}</category>"
             + "</package>"
         )
-        # ideally we upload to the package ID but if we didn't get a good response
-        # we fall back to the package name
         if pkg_id:
+            method = "PUT"
             url = f"{jamf_url}/JSSResource/packages/id/{pkg_id}"
         else:
-            url = f"{jamf_url}/JSSResource/packages/name/{pkg_name}"
+            method = "POST"
+            url = f"{jamf_url}/JSSResource/packages/id/0"
 
-        self.output("Updating package metadata...")
         self.output(
             pkg_data, verbose_level=2,
         )
@@ -386,11 +385,11 @@ class JamfPackageUploader(Processor):
         while True:
             count += 1
             self.output(
-                f"Package metadata update attempt {count}", verbose_level=2,
+                f"Package metadata upload attempt {count}", verbose_level=2,
             )
 
             pkg_xml = self.write_temp_file(pkg_data)
-            r = self.curl("PUT", url, enc_creds, pkg_xml)
+            r = self.curl(method, url, enc_creds, pkg_xml)
             # check HTTP response
             if self.status_check(r, "Package", pkg_name) == "break":
                 break
