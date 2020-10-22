@@ -458,7 +458,7 @@ class JamfPackageUploader(Processor):
                 "Package '{}' already exists: ID {}".format(self.pkg_name, obj_id)
             )
         else:
-            pkg_id = None
+            pkg_id = ""
 
         # process for SMB shares if defined
         if self.smb_url:
@@ -532,15 +532,14 @@ class JamfPackageUploader(Processor):
 
         # now process the package metadata if specified
         if self.category or self.smb_url:
-            try:
-                pkg_id
+            if pkg_id:
                 self.output(
                     "Updating package metadata for {}".format(pkg_id), verbose_level=1,
                 )
                 self.update_pkg_metadata(
                     self.jamf_url, enc_creds, self.pkg_name, self.category, pkg_id
                 )
-            except UnboundLocalError:
+            else:
                 self.output(
                     "Creating package metadata", verbose_level=1,
                 )
