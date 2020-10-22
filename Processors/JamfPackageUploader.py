@@ -237,11 +237,11 @@ class JamfPackageUploader(Processor):
             return "break"
         elif r.status_code == 409:
             raise ProcessorError(
-                f"WARNING: {endpoint_type} upload failed due to a conflict"
+                f"WARNING: {endpoint_type} '{obj_name}' upload failed due to a conflict"
             )
         elif r.status_code == 401:
             raise ProcessorError(
-                f"ERROR: {endpoint_type} upload failed due to permissions error"
+                f"ERROR: {endpoint_type} '{obj_name}' upload failed due to permissions error"
             )
 
     def mount_smb(self, mount_share, mount_user, mount_pass):
