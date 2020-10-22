@@ -457,6 +457,8 @@ class JamfPackageUploader(Processor):
             self.output(
                 "Package '{}' already exists: ID {}".format(self.pkg_name, obj_id)
             )
+        else:
+            pkg_id = None
 
         # process for SMB shares if defined
         if self.smb_url:
