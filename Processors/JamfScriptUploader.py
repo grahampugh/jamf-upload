@@ -282,7 +282,7 @@ class JamfScriptUploader(Processor):
         if r.status_code == 200:
             obj_id = 0
             for obj in r.output["results"]:
-                self.output(obj, verbose_level=2)
+                self.output(f"ID: {obj['id']} NAME: {obj['name']}", verbose_level=2)
                 if obj["name"] == object_name:
                     obj_id = obj["id"]
             return obj_id
@@ -290,29 +290,32 @@ class JamfScriptUploader(Processor):
     def substitute_assignable_keys(self, data):
         """substitutes any key in the inputted text using the %MY_KEY% nomenclature"""
         # whenever %MY_KEY% is found in a template, it is replaced with the assigned value of MY_KEY. This did done case-insensitively
+        excluded_keys = [
+            "RECIPE_REPOS",
+            "RECIPE_SEARCH_DIRS",
+            "PARENT_RECIPES",
+            "RECIPE_OVERRIDE_DIRS",
+        ]
         for custom_key in self.env:
-            self.output(
-                (
-                    f"Replacing any instances of '{custom_key}' with",
-                    f"'{str(self.env.get(custom_key))}'",
-                ),
-                verbose_level=3,
-            )
-            try:
-                data = re.sub(
-                    f"%{custom_key}%",
-                    lambda _: str(self.env.get(custom_key)),
-                    data,
-                    flags=re.IGNORECASE,
-                )
-            except re.error:
+            if custom_key not in excluded_keys:
                 self.output(
-                    (
-                        f"WARNING: Could not replace instances of '{custom_key}' with",
-                        f"'{str(self.env.get(custom_key))}'",
-                    ),
-                    verbose_level=2,
+                    f"Replacing any instances of '{custom_key}' with"
+                    f"'{str(self.env.get(custom_key))}'",
+                    verbose_level=3,
                 )
+                try:
+                    data = re.sub(
+                        f"%{custom_key}%",
+                        lambda _: str(self.env.get(custom_key)),
+                        data,
+                        flags=re.IGNORECASE,
+                    )
+                except re.error:
+                    self.output(
+                        f"WARNING: Could not replace instances of '{custom_key}' with"
+                        f"'{str(self.env.get(custom_key))}'",
+                        verbose_level=2,
+                    )
         return data
 
     def get_path_to_file(self, filename):
