@@ -332,7 +332,13 @@ def main():
     verbosity = args.verbose
 
     # grab values from a prefs file if supplied
-    jamf_url, _, _, enc_creds = api_connect.get_creds_from_args(args)
+    jamf_url, jamf_user, jamf_pass, enc_creds = api_connect.get_creds_from_args(args)
+
+    if verbosity > 1:
+        print("URL: {}".format(jamf_url))
+        print("User: {}".format(jamf_user))
+    if verbosity > 2:
+        print("Pass: {}".format(jamf_pass))
 
     # if an unsigned mobileconfig file is supplied we can get the name, organization and description from it
     if args.mobileconfig:
