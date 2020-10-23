@@ -563,7 +563,7 @@ class JamfPackageUploader(Processor):
         self.env["pkg_name"] = self.pkg_name
         self.env["pkg_uploaded"] = True
         self.env["jamfpackageuploader_summary_result"] = {
-            "summary_text": "The following packages were uploaded to Jamf Pro:",
+            "summary_text": "The following packages were uploaded to or updated in Jamf Pro:",
             "report_fields": ["pkg_path", "pkg_name", "version", "category"],
             "data": {
                 "pkg_path": self.pkg_path,
