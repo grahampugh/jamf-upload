@@ -22,8 +22,17 @@
 			<closing_paren>false</closing_paren>
 		</criterion>
 		<criterion>
-			<name>Application Title</name>
+			<name>Application Version</name>
 			<priority>2</priority>
+			<and_or>and</and_or>
+			<search_type>does not match regex</search_type>
+			<value>%version_regex_2%</value>
+			<opening_paren>false</opening_paren>
+			<closing_paren>false</closing_paren>
+		</criterion>
+		<criterion>
+			<name>Application Title</name>
+			<priority>3</priority>
 			<and_or>or</and_or>
 			<search_type>is not</search_type>
 			<value>%JSS_INVENTORY_NAME%</value>
@@ -32,7 +41,7 @@
 		</criterion>
 		<criterion>
 			<name>Computer Group</name>
-			<priority>3</priority>
+			<priority>4</priority>
 			<and_or>and</and_or>
 			<search_type>member of</search_type>
 			<value>%TESTING_GROUP_NAME%</value>

@@ -44,6 +44,10 @@ class JamfScriptUploader(Processor):
             "required": False,
             "description": "Full path to the script to be uploaded",
         },
+        "script_name": {
+            "required": False,
+            "description": "Name of the script in Jamf",
+        },
         "script_category": {
             "required": False,
             "description": "Script category",
@@ -433,6 +437,7 @@ class JamfScriptUploader(Processor):
         self.jamf_user = self.env.get("API_USERNAME")
         self.jamf_password = self.env.get("API_PASSWORD")
         self.script_path = self.env.get("script_path")
+        self.script_name = self.env.get("script_name")
         self.script_category = self.env.get("script_category")
         self.script_priority = self.env.get("script_priority")
         self.osrequirements = self.env.get("osrequirements")
@@ -488,21 +493,24 @@ class JamfScriptUploader(Processor):
                 raise ProcessorError(f"ERROR: Script file {self.script_path} not found")
 
         # now start the process of uploading the object
-        script_name = os.path.basename(self.script_path)
+        if not self.script_name:
+            self.script_name = os.path.basename(self.script_path)
 
         # check for existing script
         self.output(
-            "Checking for existing '{}' on {}".format(script_name, self.jamf_url)
+            "Checking for existing '{}' on {}".format(self.script_name, self.jamf_url)
         )
         self.output(
             "Full path: {}".format(self.script_path), verbose_level=2,
         )
         obj_id = self.get_uapi_obj_id_from_name(
-            self.jamf_url, "scripts", script_name, token
+            self.jamf_url, "scripts", self.script_name, token
         )
 
         if obj_id:
-            self.output("Script '{}' already exists: ID {}".format(script_name, obj_id))
+            self.output(
+                "Script '{}' already exists: ID {}".format(self.script_name, obj_id)
+            )
             if self.replace:
                 self.output(
                     "Replacing existing script as 'replace_script' is set to {}".format(
@@ -520,7 +528,7 @@ class JamfScriptUploader(Processor):
         # post the script
         self.upload_script(
             self.jamf_url,
-            script_name,
+            self.script_name,
             self.script_path,
             category_id,
             self.script_category,
@@ -541,7 +549,7 @@ class JamfScriptUploader(Processor):
         )
 
         # output the summary
-        self.env["script_name"] = script_name
+        self.env["script_name"] = self.script_name
         self.env["jamfscriptuploader_summary_result"] = {
             "summary_text": "The following scripts were created or updated in Jamf Pro:",
             "report_fields": [
@@ -562,7 +570,7 @@ class JamfScriptUploader(Processor):
                 "P11",
             ],
             "data": {
-                "script": script_name,
+                "script": self.script_name,
                 "path": self.script_path,
                 "category": self.script_category,
                 "priority": str(self.script_priority),
