@@ -62,6 +62,12 @@ class JamfPackageUploader(Processor):
             "description": "Overwrite an existing package if True.",
             "default": "False",
         },
+        "replace_pkg_metadata": {
+            "required": False,
+            "description": "Overwrite existing package metadata and continue if True, "
+            "even if the package object is not re-uploaded.",
+            "default": "False",
+        },
         "JSS_URL": {
             "required": True,
             "description": "URL to a Jamf Pro server that the API user has write access "
@@ -427,6 +433,10 @@ class JamfPackageUploader(Processor):
         # handle setting replace in overrides
         if not self.replace or self.replace == "False":
             self.replace = False
+        self.replace_metadata = self.env.get("replace_pkg_metadata")
+        # handle setting replace_metadata in overrides
+        if not self.replace_metadata or self.replace_metadata == "False":
+            self.replace_metadata = False
         self.jamf_url = self.env.get("JSS_URL")
         self.jamf_user = self.env.get("API_USERNAME")
         self.jamf_password = self.env.get("API_PASSWORD")
@@ -484,10 +494,11 @@ class JamfPackageUploader(Processor):
                 )
                 # unmount the share
                 self.umount_smb(self.smb_url)
-                # even if we don't upload a package, we still need to pass it on so that a policy processor can use it
-                self.env["pkg_name"] = self.pkg_name
-                self.env["pkg_uploaded"] = False
-                return
+                if not self.replace_metadata:
+                    # even if we don't upload a package, we still need to pass it on so that a policy processor can use it
+                    self.env["pkg_name"] = self.pkg_name
+                    self.env["pkg_uploaded"] = False
+                    return
 
         # otherwise process for cloud DP
         else:
@@ -525,10 +536,11 @@ class JamfPackageUploader(Processor):
                     ),
                     verbose_level=1,
                 )
-                # even if we don't upload a package, we still need to pass it on so that a policy processor can use it
-                self.env["pkg_name"] = self.pkg_name
-                self.env["pkg_uploaded"] = False
-                return
+                if not self.replace_metadata:
+                    # even if we don't upload a package, we still need to pass it on so that a policy processor can use it
+                    self.env["pkg_name"] = self.pkg_name
+                    self.env["pkg_uploaded"] = False
+                    return
 
         # now process the package metadata if specified
         if self.category or self.smb_url:
