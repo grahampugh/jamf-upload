@@ -6,7 +6,7 @@ JamfScriptUploader processor for uploading items to Jamf Pro using AutoPkg
 
 """
 
-# import variables go here. Do not import unused modules
+import html
 import json
 import re
 import os.path
@@ -277,7 +277,7 @@ class JamfScriptUploader(Processor):
     def get_uapi_obj_id_from_name(self, jamf_url, object_type, object_name, token):
         """Get the UAPI object by name"""
         url = "{}/uapi/v1/{}?page=0&page-size=1000&sort=id&filter=name%3D%3D%22{}%22".format(
-            jamf_url, object_type, object_name
+            jamf_url, object_type, html.escape(object_name)
         )
         r = self.curl("GET", url, token)
         if r.status_code == 200:
