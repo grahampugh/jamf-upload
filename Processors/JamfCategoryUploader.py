@@ -203,14 +203,15 @@ class JamfCategoryUploader(Processor):
             return
 
     def get_uapi_obj_id_from_name(self, jamf_url, object_type, object_name, token):
-        """The UAPI doesn't have a name object, so we have to get the list of scripts 
-        and parse the name to get the id """
-        url = "{}/uapi/v1/{}".format(jamf_url, object_type)
+        """Get the UAPI object by name"""
+        url = "{}/uapi/v1/{}?page=0&page-size=1000&sort=id&filter=name%3D%3D%22{}%22".format(
+            jamf_url, object_type, object_name
+        )
         r = self.curl("GET", url, token)
         if r.status_code == 200:
             obj_id = 0
             for obj in r.output["results"]:
-                self.output(obj, verbose_level=2)
+                self.output(f"ID: {obj['id']} NAME: {obj['name']}", verbose_level=2)
                 if obj["name"] == object_name:
                     obj_id = obj["id"]
             return obj_id

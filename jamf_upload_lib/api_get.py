@@ -36,13 +36,11 @@ def object_list_types(object_type):
 
 
 def get_uapi_obj_id_from_name(jamf_url, object_type, object_name, token, verbosity):
-    """The UAPI doesn't have a name object, so we have to get the list of scripts 
-    and parse the name to get the id """
-
-    url = "{}/uapi/v1/{}".format(jamf_url, object_type)
-
+    """Get the UAPI object by name"""
+    url = "{}/uapi/v1/{}?page=0&page-size=1000&sort=id&filter=name%3D%3D%22{}%22".format(
+        jamf_url, object_type, object_name
+    )
     r = curl.request("GET", url, token, verbosity)
-
     if r.status_code == 200:
         obj_id = 0
         for obj in r.output["results"]:
