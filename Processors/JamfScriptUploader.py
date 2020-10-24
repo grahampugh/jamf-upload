@@ -6,7 +6,6 @@ JamfScriptUploader processor for uploading items to Jamf Pro using AutoPkg
 
 """
 
-import html
 import json
 import re
 import os.path
@@ -16,6 +15,7 @@ from collections import namedtuple
 from pathlib import Path
 from base64 import b64encode
 from time import sleep
+from urllib.parse import quote
 from autopkglib import Processor, ProcessorError  # pylint: disable=import-error
 
 
@@ -276,8 +276,9 @@ class JamfScriptUploader(Processor):
 
     def get_uapi_obj_id_from_name(self, jamf_url, object_type, object_name, token):
         """Get the UAPI object by name"""
-        url = "{}/uapi/v1/{}?page=0&page-size=1000&sort=id&filter=name%3D%3D%22{}%22".format(
-            jamf_url, object_type, html.escape(object_name)
+        url = (
+            f"{jamf_url}/uapi/v1/{object_type}?page=0&page-size=1000&sort=id"
+            f"&filter=name%3D%3D%22{quote(object_name)}%22"
         )
         r = self.curl("GET", url, token)
         if r.status_code == 200:
@@ -290,7 +291,8 @@ class JamfScriptUploader(Processor):
 
     def substitute_assignable_keys(self, data):
         """substitutes any key in the inputted text using the %MY_KEY% nomenclature"""
-        # whenever %MY_KEY% is found in a template, it is replaced with the assigned value of MY_KEY. This did done case-insensitively
+        # whenever %MY_KEY% is found in a template, it is replaced with the assigned
+        # value of MY_KEY. This did done case-insensitively
         excluded_keys = [
             "RECIPE_REPOS",
             "RECIPE_SEARCH_DIRS",

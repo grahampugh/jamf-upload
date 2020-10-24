@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
 
-import html
 import json
 import subprocess
 import sys  # temp
+from urllib.parse import quote
 
 from . import curl
 
@@ -38,8 +38,9 @@ def object_list_types(object_type):
 
 def get_uapi_obj_id_from_name(jamf_url, object_type, object_name, token, verbosity):
     """Get the UAPI object by name"""
-    url = "{}/uapi/v1/{}?page=0&page-size=1000&sort=id&filter=name%3D%3D%22{}%22".format(
-        jamf_url, object_type, html.escape(object_name)
+    url = (
+        f"{jamf_url}/uapi/v1/{object_type}?page=0&page-size=1000&sort=id"
+        f"&filter=name%3D%3D%22{quote(object_name)}%22"
     )
     r = curl.request("GET", url, token, verbosity)
     if r.status_code == 200:
