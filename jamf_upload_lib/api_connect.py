@@ -11,11 +11,16 @@ from . import curl
 
 def get_credentials(prefs_file):
     """get credentials from an existing AutoPkg prefs file"""
-    with open(prefs_file, "rb") as pl:
-        if six.PY2:
-            prefs = plistlib.readPlist(pl)
-        else:
-            prefs = plistlib.load(pl)
+    if prefs_file.endswith('.plist'):
+        with open(prefs_file, "rb") as pl:
+            if six.PY2:
+                prefs = plistlib.readPlist(pl)
+            else:
+                prefs = plistlib.load(pl)
+
+    if prefs_file.endswith('.json'):
+        with open(prefs_file) as js:
+            prefs = json.load(js)
 
     try:
         jamf_url = prefs["JSS_URL"]
