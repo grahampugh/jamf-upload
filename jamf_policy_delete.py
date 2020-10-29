@@ -37,7 +37,7 @@ def delete(id, jamf_url, enc_creds, verbosity):
     r = curl.request("DELETE", url, enc_creds, verbosity)
     if r.status_code == 200:
         obj = json.loads(r)
-        print(str(obj))
+        print('success')
         # try:
         #     obj_id = str(obj["policy"]["id"])
         # except KeyError:
@@ -51,12 +51,12 @@ def get_args():
     parser = argparse.ArgumentParser()
 
     parser.add_argument(
-        "-c",
-        "--check",
+        "-n",
+        "--name",
         action="append",
         dest="names",
         default=[],
-        help=("Policy to check"),
+        help=("Give a policy name to interact with, multiple allowed"),
     )
     parser.add_argument(
         "-d",
