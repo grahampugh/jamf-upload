@@ -63,7 +63,7 @@ def get_args():
     )
     parser.add_argument(
         "-d",
-        "--delete", help="overwrite an existing uploaded package", action="store_true",
+        "--delete", help="actually preform the delete(s) if policy(ies) found", action="store_true",
     )
     parser.add_argument(
         "--url", default="", help="the Jamf Pro Server URL",
