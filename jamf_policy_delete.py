@@ -34,17 +34,26 @@ def delete(id, jamf_url, enc_creds, verbosity):
     note that it is possible to have more than one with the same name
     which could mess things up"""
     url = "{}/JSSResource/policies/id/{}".format(jamf_url, id)
-    r = curl.request("DELETE", url, enc_creds, verbosity)
-    if r.status_code == 200:
-        obj = json.loads(r)
-        print('success')
-        # try:
-        #     obj_id = str(obj["policy"]["id"])
-        # except KeyError:
-        #     obj_id = "-1"
-    else:
-        obj_id = "-1"
-    return obj_id
+
+    count = 0
+    while True:
+        count += 1
+        if verbosity > 1:
+            print("Policy delete attempt {}".format(count))
+        r = curl.request("DELETE", url, enc_creds, verbosity)
+        # check HTTP response
+        if curl.status_check(r, "Policy", id, req_type = "delete") == "break":
+            break
+        if count > 5:
+            print("WARNING: Policy delete did not succeed after 5 attempts")
+            print("\nHTTP POST Response Code: {}".format(r.status_code))
+            break
+        sleep(30)
+
+    if verbosity > 1:
+        api_get.get_headers(r)
+
+    return r
 
 def get_args():
     """Parse any command line arguments"""
@@ -127,17 +136,7 @@ def main():
         if obj_id:
             print("Policy '{}' already exists: ID {}".format(policy_name, obj_id))
             if args.delete:
-                print("we would delete this")
-                delete(obj_id, jamf_url, enc_creds, verbosity)
-                # r = upload_policy(
-                #     jamf_url,
-                #     enc_creds,
-                #     policy_name,
-                #     template_contents,
-                #     cli_custom_keys,
-                #     verbosity,
-                #     obj_id,
-                # )
+                r = delete(obj_id, jamf_url, enc_creds, verbosity)
         else:
             print("Policy '{}' not found".format(policy_name))
 

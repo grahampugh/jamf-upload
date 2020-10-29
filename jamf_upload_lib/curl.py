@@ -113,17 +113,28 @@ def request(method, url, auth, verbosity, data="", additional_headers=""):
         print("WARNING: {} not found".format(headers_file))
 
 
-def status_check(r, endpoint_type, obj_name):
+def status_check(r, endpoint_type, obj_name, req_type="other"):
     """Return a message dependent on the HTTP response"""
-    if r.status_code == 200 or r.status_code == 201:
-        print("{} '{}' uploaded successfully".format(endpoint_type, obj_name))
-        return "break"
-    elif r.status_code == 409:
-        print("WARNING: {} upload failed due to a conflict".format(endpoint_type))
-        return "break"
-    elif r.status_code == 401:
-        print("ERROR: {} upload failed due to permissions error".format(endpoint_type))
-        return "break"
+    if req_type is "delete":
+        if r.status_code == 200 or r.status_code == 201:
+            print("{} '{}' delete successfully".format(endpoint_type, obj_name))
+            return "break"
+        elif r.status_code == 409:
+            print("WARNING: {} delete failed due to a conflict".format(endpoint_type))
+            return "break"
+        elif r.status_code == 401:
+            print("ERROR: {} delete failed due to permissions error".format(endpoint_type))
+            return "break"
+    else:
+        if r.status_code == 200 or r.status_code == 201:
+            print("{} '{}' uploaded successfully".format(endpoint_type, obj_name))
+            return "break"
+        elif r.status_code == 409:
+            print("WARNING: {} upload failed due to a conflict".format(endpoint_type))
+            return "break"
+        elif r.status_code == 401:
+            print("ERROR: {} upload failed due to permissions error".format(endpoint_type))
+            return "break"
 
 
 def write_json_file(data):
