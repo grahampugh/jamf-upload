@@ -1,17 +1,14 @@
 #!/usr/bin/env python3
 
 """
-** Jamf Policy Upload Script
-   by G Pugh
+** Jamf Policy Delete Script
 
 Credentials can be supplied from the command line as arguments, or inputted, or 
 from an existing PLIST containing values for JSS_URL, API_USERNAME and API_PASSWORD, 
 for example an AutoPkg preferences file which has been configured for use with 
 JSSImporter: ~/Library/Preferences/com.github.autopkg
 
-Note that a policy can only be uploaded if the dependencies within are present on the JSS. This includes categories (general and self-service), scripts and computer groups. Your workflow should ensure that these items have been uploaded before running this script.
-
-For usage, run jamf_policy_upload.py --help
+For usage, run jamf_policy_delete.py --help
 """
 
 
