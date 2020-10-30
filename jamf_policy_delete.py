@@ -127,7 +127,7 @@ def main():
         print("categories to check are:\n{}\nTotal: {}".format(categories, len(categories)))
         # now process the list of categories
         for category_name in categories:
-
+            category_name = category_name.replace(" ", "%20")
             # check for existing category
             print("\nChecking '{}' on {}".format(category_name, jamf_url))
             obj = api_get.check_api_category_policies_from_name(
