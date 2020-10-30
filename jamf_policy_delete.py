@@ -23,14 +23,8 @@ from time import sleep
 from jamf_upload_lib import actions, api_connect, api_get, curl
 
 
-def print_policy_name(policy_name, verbosity):
-    """Write policy to template - used when name is supplied in CLI"""
-    api_get.object_types(policy_name)
-    return template_contents
-
-
 def delete(id, jamf_url, enc_creds, verbosity):
-    """check if a package with the same name exists in the repo
+    """check if a policy with the same name exists in the repo
     note that it is possible to have more than one with the same name
     which could mess things up"""
     url = "{}/JSSResource/policies/id/{}".format(jamf_url, id)
@@ -40,9 +34,10 @@ def delete(id, jamf_url, enc_creds, verbosity):
         count += 1
         if verbosity > 1:
             print("Policy delete attempt {}".format(count))
-        r = curl.request("DELETE", url, enc_creds, verbosity)
+        request_type = "DELETE"
+        r = curl.request(request_type, url, enc_creds, verbosity)
         # check HTTP response
-        if curl.status_check(r, "Policy", id, req_type = "delete") == "break":
+        if curl.status_check(r, "Policy", id, request_type) == "break":
             break
         if count > 5:
             print("WARNING: Policy delete did not succeed after 5 attempts")
@@ -53,7 +48,6 @@ def delete(id, jamf_url, enc_creds, verbosity):
     if verbosity > 1:
         api_get.get_headers(r)
 
-    return r
 
 def get_args():
     """Parse any command line arguments"""
@@ -65,24 +59,24 @@ def get_args():
         action="append",
         dest="names",
         default=[],
-        help=("Give a policy name to interact with, multiple allowed"),
+        help=("Give a policy name to interact with. Multiple allowed"),
     )
     parser.add_argument(
         "-d",
-        "--delete", help="actually preform the delete(s) if policy(ies) found", action="store_true",
+        "--delete",
+        help="perform the delete(s) if policy(ies) found. Policies will just be listed without this argument and not deleted.",
+        action="store_true",
     )
     parser.add_argument(
         "--url", default="", help="the Jamf Pro Server URL",
     )
     parser.add_argument(
-        "--user",
-        default="",
-        help="a user with the rights to create and update a policy",
+        "--user", default="", help="a user with the rights to delete a policy",
     )
     parser.add_argument(
         "--password",
         default="",
-        help="password of the user with the rights to create and update a policy",
+        help="password of the user with the rights to delete a policy",
     )
     parser.add_argument(
         "--prefs",
@@ -106,10 +100,11 @@ def get_args():
 
     return args
 
+
 def main():
     """Do the main thing here"""
     print("\n** Jamf policy delete script")
-    print("** Creates a policy in Jamf Pro.")
+    print("** Deletes a policy or policies in Jamf Pro.")
 
     # parse the command line arguments
     args = get_args()
@@ -118,15 +113,13 @@ def main():
     # grab values from a prefs file if supplied
     jamf_url, _, _, enc_creds = api_connect.get_creds_from_args(args)
 
-
     # set a list of names either from the CLI args or from the template if no arg provided
     if args.names:
         names = args.names
-        print(f"policy names to check are {names}, total {len(names)}")
+        print("policy names to check are:\n{}\nTotal: {}".format(names, len(names)))
 
     # now process the list of names
     for policy_name in names:
-
 
         # check for existing policy
         print("\nChecking '{}' on {}".format(policy_name, jamf_url))
@@ -134,12 +127,11 @@ def main():
             jamf_url, "policy", policy_name, enc_creds, verbosity
         )
         if obj_id:
-            print("Policy '{}' already exists: ID {}".format(policy_name, obj_id))
+            print("Policy '{}' exists: ID {}".format(policy_name, obj_id))
             if args.delete:
-                r = delete(obj_id, jamf_url, enc_creds, verbosity)
+                delete(obj_id, jamf_url, enc_creds, verbosity)
         else:
             print("Policy '{}' not found".format(policy_name))
-
 
     print()
 

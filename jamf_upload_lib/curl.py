@@ -113,17 +113,29 @@ def request(method, url, auth, verbosity, data="", additional_headers=""):
         print("WARNING: {} not found".format(headers_file))
 
 
-def status_check(r, endpoint_type, obj_name, req_type="upload"):
+def status_check(r, endpoint_type, obj_name, request_type="upload"):
     """Return a message dependent on the HTTP response"""
 
     if r.status_code == 200 or r.status_code == 201:
-        print("{} '{}' {} successfully".format(endpoint_type, obj_name, req_type))
+        print(
+            "{} '{}' {} was successful".format(
+                endpoint_type, obj_name, request_type.lower()
+            )
+        )
         return "break"
     elif r.status_code == 409:
-        print("WARNING: {} {} failed due to a conflict".format(endpoint_type, req_type))
+        print(
+            "WARNING: {} {} failed due to a conflict".format(
+                endpoint_type, request_type.lower()
+            )
+        )
         return "break"
     elif r.status_code == 401:
-        print("ERROR: {} {} failed due to permissions error".format(endpoint_type, req_type))
+        print(
+            "ERROR: {} {} failed due to permissions error".format(
+                endpoint_type, request_type.lower()
+            )
+        )
         return "break"
 
 
