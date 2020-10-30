@@ -62,6 +62,14 @@ def get_args():
         help=("Give a policy name to interact with. Multiple allowed"),
     )
     parser.add_argument(
+        "-c",
+        "--category",
+        action="append",
+        dest="categories",
+        default=[],
+        help="Provide a category name, policies belonging will just be listed unless delete flag is implicitly passed.",
+    )
+    parser.add_argument(
         "-d",
         "--delete",
         help="perform the delete(s) if policy(ies) found. Policies will just be listed without this argument and not deleted.",
@@ -114,24 +122,47 @@ def main():
     jamf_url, _, _, enc_creds = api_connect.get_creds_from_args(args)
 
     # set a list of names either from the CLI args or from the template if no arg provided
+    if args.categories:
+        categories = args.categories
+        print("categories to check are:\n{}\nTotal: {}".format(categories, len(categories)))
+        # now process the list of categories
+        for category_name in categories:
+
+            # check for existing category
+            print("\nChecking '{}' on {}".format(category_name, jamf_url))
+            obj = api_get.check_api_category_policies_from_name(
+                jamf_url, "category", category_name, enc_creds, verbosity
+            )
+            if obj:
+                print("Category '{}' exists with {} items: To delete them run this command again with the delete flag".format(category_name, len(obj)))
+
+                for obj_item in obj:
+                    print("~^~ {} -~- {}".format(obj_item["id"], obj_item["name"]))
+                    
+                    if args.delete:
+                        delete(obj_item["id"], jamf_url, enc_creds, verbosity)
+            else:
+                print("Category '{}' not found".format(category_name))
+
+    # set a list of names either from the CLI args or from the template if no arg provided
     if args.names:
         names = args.names
         print("policy names to check are:\n{}\nTotal: {}".format(names, len(names)))
 
-    # now process the list of names
-    for policy_name in names:
+        # now process the list of names
+        for policy_name in names:
 
-        # check for existing policy
-        print("\nChecking '{}' on {}".format(policy_name, jamf_url))
-        obj_id = api_get.check_api_obj_id_from_name(
-            jamf_url, "policy", policy_name, enc_creds, verbosity
-        )
-        if obj_id:
-            print("Policy '{}' exists: ID {}".format(policy_name, obj_id))
-            if args.delete:
-                delete(obj_id, jamf_url, enc_creds, verbosity)
-        else:
-            print("Policy '{}' not found".format(policy_name))
+            # check for existing policy
+            print("\nChecking '{}' on {}".format(policy_name, jamf_url))
+            obj_id = api_get.check_api_obj_id_from_name(
+                jamf_url, "policy", policy_name, enc_creds, verbosity
+            )
+            if obj_id:
+                print("Policy '{}' exists: ID {}".format(policy_name, obj_id))
+                if args.delete:
+                    delete(obj_id, jamf_url, enc_creds, verbosity)
+            else:
+                print("Policy '{}' not found".format(policy_name))
 
     print()
 
