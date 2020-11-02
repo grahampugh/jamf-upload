@@ -55,6 +55,26 @@ def get_uapi_obj_id_from_name(jamf_url, object_type, object_name, token, verbosi
                 obj_id = obj["id"]
         return obj_id
 
+def check_api_finds_all_policies(
+    jamf_url, object_type, enc_creds, verbosity
+):
+    """pass this string:policies and it will return all policies"""
+
+    url = "{}/JSSResource/{}".format(jamf_url, object_types(object_type))
+    r = curl.request("GET", url, enc_creds, verbosity)
+
+    if r.status_code == 200:
+        object_list = json.loads(r.output)
+        obj = object_list['policies']        
+        if verbosity > 3:
+            print("\nAPI object raw output:")
+            print(object_list)
+
+        if verbosity > 2:
+            print("\nAPI object list:")
+            print(obj)
+        return obj
+
 def check_api_category_policies_from_name(
     jamf_url, object_type, object_name, enc_creds, verbosity
 ):
