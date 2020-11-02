@@ -88,7 +88,7 @@ def get_args():
     parser.add_argument(
         "-l",
         "--list-policies",
-        help="All Policies will JUST be listed.",
+        help="All Policies will JUST be listed. This is meant for you to quickly check a JSS in the CLI, nothing more.",
         action="store_true",
     )    
     parser.add_argument(
