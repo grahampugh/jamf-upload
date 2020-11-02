@@ -77,7 +77,7 @@ def get_args():
         action="append",
         dest="categories",
         default=[],
-        help="Provide a category name, policies belonging will just be listed unless delete flag is implicitly passed.",
+        help="Provide a category name, the category will NOT be DUMPED unless delete flag is implicitly passed in conjunction.",
     )
     parser.add_argument(
         "-d",
