@@ -16,7 +16,8 @@ def object_types(object_type):
         "package": "packages",
         "computer_group": "computergroups",
         "policy": "policies",
-        "category": "policies/category",
+        "category_all_items": "policies/category",        
+        "category_all": "categories",
         "extension_attribute": "computerextensionattributes",
         "os_x_configuration_profile": "osxconfigurationprofiles",
     }
@@ -31,7 +32,8 @@ def object_list_types(object_type):
         "package": "packages",
         "computer_group": "computer_groups",
         "policy": "policies",
-        "category": "policies/category",        
+        "category_all_items": "policies/category",        
+        "category_all": "categories",        
         "extension_attribute": "computer_extension_attributes",
         "os_x_configuration_profile": "os_x_configuration_profiles",
     }
@@ -55,7 +57,7 @@ def get_uapi_obj_id_from_name(jamf_url, object_type, object_name, token, verbosi
                 obj_id = obj["id"]
         return obj_id
 
-def check_api_finds_all_policies(
+def check_api_finds_all_categories(
     jamf_url, object_type, enc_creds, verbosity
 ):
     """pass this string:policies and it will return all policies"""
@@ -75,6 +77,28 @@ def check_api_finds_all_policies(
             print(obj)
         return obj
 
+# now there's a find all generic
+def check_api_finds_all(
+    jamf_url, object_type, enc_creds, verbosity
+):
+    """pass this string:policies and it will return all policies"""
+
+    url = "{}/JSSResource/{}".format(jamf_url, object_types(object_type))
+    r = curl.request("GET", url, enc_creds, verbosity)
+
+    if r.status_code == 200:
+        object_list = json.loads(r.output)
+        obj = object_list[object_types(object_type)]        
+        if verbosity > 3:
+            print("\nAPI object raw output:")
+            print(object_list)
+
+        if verbosity > 2:
+            print("\nAPI object list:")
+            print(obj)
+        return obj
+
+# todo can refactor to rm
 def check_api_category_policies_from_name(
     jamf_url, object_type, object_name, enc_creds, verbosity
 ):

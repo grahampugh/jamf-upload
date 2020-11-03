@@ -10,7 +10,16 @@ JSSImporter: ~/Library/Preferences/com.github.autopkg
 
 For usage, run jamf_policy_delete.py --help
 """
-
+class bcolors:
+    HEADER = '\033[95m'
+    OKBLUE = '\033[94m'
+    OKCYAN = '\033[96m'
+    OKGREEN = '\033[92m'
+    WARNING = '\033[93m'
+    FAIL = '\033[91m'
+    ENDC = '\033[0m'
+    BOLD = '\033[1m'
+    UNDERLINE = '\033[4m'
 
 import argparse
 import json
@@ -86,8 +95,7 @@ def get_args():
         action="store_true",
     )
     parser.add_argument(
-        "-l",
-        "--list-policies",
+        "-ls",
         help="All Policies will JUST be listed. This is meant for you to quickly check a JSS in the CLI, nothing more.",
         action="store_true",
     )    
@@ -137,29 +145,36 @@ def main():
     # grab values from a prefs file if supplied
     jamf_url, _, _, enc_creds = api_connect.get_creds_from_args(args)
 
-    # QUERY all the policys 
+    # LIST the policys 
     # todo loop in the categories for quick JSS checking easier
-    if args.list_policies:
-        obj = api_get.check_api_finds_all_policies(
-            jamf_url, "policy", enc_creds, verbosity
+    if args.ls:
+        obj = api_get.check_api_finds_all(
+            jamf_url, "category_all", enc_creds, verbosity
         )
 
         if obj:
-            all_policies = []
-            show_msg = ("{} Policies exist(s) on {}: SHOWING THEM ONLY ^^^".format(len(obj), jamf_url))
-                
-            for obj_item in obj:
-                all_policies.append("~^~ {} -~- {}".format(obj_item["id"], obj_item["name"]))
-                # just show them all now that all_policies list is made
-            for policy in all_policies:
-                print(policy)
-            print(show_msg)
-            exit
+            for x in obj:
+                print(bcolors.OKCYAN + "category {} --- {} ---------v".format(x["id"], x["name"]) + bcolors.ENDC)
+                obj = api_get.check_api_category_policies_from_name(
+                jamf_url, 
+                "category_all_items", 
+                x["id"], 
+                enc_creds, 
+                verbosity
+                )
+                if obj:
+                    for x in obj:
+                        print("policy {} --- {}".format(x["id"], x["name"]))
+        else:
+            print("something went wrong: no categories found.")
+
+        print("all policies listed above.. program complete for {}".format(jamf_url))
+        exit
 
     if args.search:
         partials = args.search
 
-        obj = api_get.check_api_finds_all_policies(
+        obj = api_get.check_api_finds_all(
             jamf_url, "policy", enc_creds, verbosity
         )
 
@@ -195,7 +210,7 @@ def main():
             # check for existing category
             print("\nChecking '{}' on {}".format(category_name, jamf_url))
             obj = api_get.check_api_category_policies_from_name(
-                jamf_url, "category", category_name, enc_creds, verbosity
+                jamf_url, "category_all_items", category_name, enc_creds, verbosity
             )
             if obj:
                 print("Category '{}' exists with {} items: To delete them run this command again with the delete flag".format(category_name, len(obj)))
