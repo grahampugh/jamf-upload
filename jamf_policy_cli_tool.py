@@ -1,14 +1,14 @@
 #!/usr/bin/env python3
 
 """
-** Jamf Policy List, Search, Delete Script
+** Jamf Policy Tool. List, Search, Delete 
 
 Credentials can be supplied from the command line as arguments, or inputted, or 
 from an existing PLIST containing values for JSS_URL, API_USERNAME and API_PASSWORD, 
 for example an AutoPkg preferences file which has been configured for use with 
 JSSImporter: ~/Library/Preferences/com.github.autopkg
 
-For usage, run jamf_policy_delete.py --help
+For usage, run jamf_policy_tool.py --help
 """
 class bcolors:
     HEADER = '\033[95m'
@@ -168,7 +168,7 @@ def main():
         else:
             print("something went wrong: no categories found.")
 
-        print("all policies listed above.. program complete for {}".format(jamf_url))
+        print(bcolors.OKGREEN + "all policies listed above.. program complete for {}".format(jamf_url)+ bcolors.ENDC)
         exit
 
     if args.search:
