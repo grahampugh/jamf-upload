@@ -71,10 +71,12 @@ def request(method, url, auth, verbosity, data="", additional_headers=""):
             headers = file.readlines()
         existing_headers = [x.strip() for x in headers]
         for header in existing_headers:
-            if "APBALANCEID" in header and verbosity > 0:
+            if "APBALANCEID" in header:
                 cookie = header.split()[1].rstrip(";")
-                print("Existing cookie found: {}".format(cookie))
+                if verbosity > 0:
+                    print("Existing cookie found: {}".format(cookie))
                 curl_cmd.extend(["--cookie", cookie])
+            
     except IOError:
         print("No existing cookie found - starting new session")
 
