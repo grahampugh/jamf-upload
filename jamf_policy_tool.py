@@ -143,7 +143,6 @@ def main():
     jamf_url, _, _, enc_creds = api_connect.get_creds_from_args(args)
 
     # LIST the policys 
-    # todo loop in the categories for quick JSS checking easier
     if args.all:
         obj = api_get.check_api_finds_all(
             jamf_url, "category_all", enc_creds, verbosity
@@ -236,6 +235,7 @@ def main():
             )
             if obj_id:
                 print("Policy '{}' exists: ID {}".format(policy_name, obj_id))
+                breakpoint()
                 if args.delete:
                     delete(obj_id, jamf_url, enc_creds, verbosity)
             else:
