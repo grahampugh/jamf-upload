@@ -73,27 +73,26 @@ def get_args():
         help=("Give a policy name to delete. Multiple allowed."),
     )
     parser.add_argument(
-        "-s",
         "--search",
         action="append",
         dest="search",
         default=[],
-        help=("Formulate a query of policies to delete. Instantly destructive without --dry-run."),
+        help=("List all policies that start with given query. Delete available in conjunction with --delete."),
     )
     parser.add_argument(
-        "--dump-category",
+        "--category",
         action="append",
-        dest="dump_category",
+        dest="category",
         default=[],
-        help="Dump all policies in given category unless --dry-run flag is passed.",
+        help="List all policies in given category. Delete available in conjunction with --delete.",
     )
     parser.add_argument(
-        "--dry-run",
-        help="Policies will just be listed without this argument and not deleted.",
+        "--delete",
+        help="Must be used with another search argument.",
         action="store_true",
     )
     parser.add_argument(
-        "-ls",
+        "--all",
         help="All Policies will JUST be listed. This is meant for you to smoke test your JSS, nothing more.",
         action="store_true",
     )    
@@ -145,7 +144,7 @@ def main():
 
     # LIST the policys 
     # todo loop in the categories for quick JSS checking easier
-    if args.ls:
+    if args.all:
         obj = api_get.check_api_finds_all(
             jamf_url, "category_all", enc_creds, verbosity
         )
@@ -191,7 +190,7 @@ def main():
                 print("{} total hits".format(len(targets)))
                 for target in targets:
                     print("Alert: match found {}/{}".format(target["id"], target["name"]))                
-                    if not args.dry_run:
+                    if args.delete:
                         delete(target["id"], jamf_url, enc_creds, verbosity)
             else:
                 for partial in partials:
@@ -199,8 +198,8 @@ def main():
 
 
     # set a list of names either from the CLI for Category erase all
-    if args.dump_category:
-        categories = args.dump_category
+    if args.category:
+        categories = args.category
         print("categories to check are:\n{}\nTotal: {}".format(categories, len(categories)))
         # now process the list of categories
         for category_name in categories:
@@ -216,7 +215,7 @@ def main():
                 for obj_item in obj:
                     print("~^~ {} -~- {}".format(obj_item["id"], obj_item["name"]))
                     
-                    if not args.dry_run:
+                    if args.delete:
                         delete(obj_item["id"], jamf_url, enc_creds, verbosity)
             else:
                 print("Category '{}' not found".format(category_name))
@@ -236,7 +235,7 @@ def main():
             )
             if obj_id:
                 print("Policy '{}' exists: ID {}".format(policy_name, obj_id))
-                if not args.dry_run:
+                if args.delete:
                     delete(obj_id, jamf_url, enc_creds, verbosity)
             else:
                 print("Policy '{}' not found".format(policy_name))
