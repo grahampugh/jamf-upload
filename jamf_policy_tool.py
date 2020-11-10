@@ -210,7 +210,8 @@ def main():
                 jamf_url, "category_all_items", category_name, enc_creds, verbosity
             )
             if obj:
-                print("Category '{}' exists with {} items: To delete them run this command again without the --dry-run flag".format(category_name, len(obj)))
+                if not args.delete:
+                    print("Category '{}' exists with {} items: To delete them run this command again with the --delete flag".format(category_name, len(obj)))
 
                 for obj_item in obj:
                     print("~^~ {} -~- {}".format(obj_item["id"], obj_item["name"]))
