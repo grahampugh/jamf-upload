@@ -109,7 +109,6 @@ def check_api_obj_id_from_name(
     r = curl.request("GET", url, enc_creds, verbosity)
 
     if r.status_code == 200:
-        breakpoint()
         object_list = json.loads(r.output)
         if verbosity > 3:
             print("\nAPI object raw output:")

@@ -177,7 +177,7 @@ def main():
         if obj:
             # targets is the new list
             targets = []
-            print("{} Total Policies exist(s) on {}: To delete, obtain a matching query, then run with the delete flag".format(len(obj), jamf_url))
+            print("Searching {} Policies(s) on {}: To delete, obtain a matching query, then run with the delete flag".format(len(obj), jamf_url))
                 
             for partial in partials:
                 for obj_item in obj:
@@ -186,7 +186,7 @@ def main():
                         targets.append(obj_item.copy())
 
             if len(targets) > 0:
-                print("{} total hits".format(len(targets)))
+                print("{} total matches".format(len(targets)))
                 for target in targets:
                     print("Alert: match found {}/{}".format(target["id"], target["name"]))                
                     if args.delete:
