@@ -242,6 +242,7 @@ class JamfPackageUploader(Processor):
             self.output(f"{endpoint_type} '{obj_name}' uploaded successfully")
             return "break"
         elif r.status_code == 409:
+            self.output(r.output, verbose_level=2)
             raise ProcessorError(
                 f"WARNING: {endpoint_type} '{obj_name}' upload failed due to a conflict"
             )
