@@ -235,7 +235,6 @@ def main():
             )
             if obj_id:
                 print("Policy '{}' exists: ID {}".format(policy_name, obj_id))
-                breakpoint()
                 if args.delete:
                     delete(obj_id, jamf_url, enc_creds, verbosity)
             else:
