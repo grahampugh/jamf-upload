@@ -250,6 +250,9 @@ class JamfPackageUploader(Processor):
             raise ProcessorError(
                 f"ERROR: {endpoint_type} '{obj_name}' upload failed due to permissions error"
             )
+        else:
+            self.output(f"WARNING: {endpoint_type} '{obj_name}' upload failed")
+            self.output(r.output, verbose_level=2)
 
     def mount_smb(self, mount_share, mount_user, mount_pass):
         """Mount distribution point."""
