@@ -188,18 +188,18 @@ class JamfPackageUploader(Processor):
             for header in existing_headers:
                 if "APBALANCEID" in header:
                     cookie = header.split()[1].rstrip(";")
-                    self.output(f"Existing cookie found: {cookie}", verbose_level=1)
+                    self.output(f"Existing cookie found: {cookie}", verbose_level=2)
                     curl_cmd.extend(["--cookie", cookie])
         except IOError:
             self.output(
-                "No existing cookie found - starting new session", verbose_level=1
+                "No existing cookie found - starting new session", verbose_level=2
             )
 
         # additional headers for advanced requests
         if additional_headers:
             curl_cmd.extend(additional_headers)
 
-        self.output(f"curl command: {' '.join(curl_cmd)}", verbose_level=2)
+        self.output(f"curl command: {' '.join(curl_cmd)}", verbose_level=3)
 
         # now subprocess the curl command and build the r tuple which contains the
         # headers, status code and outputted data
@@ -362,7 +362,7 @@ class JamfPackageUploader(Processor):
             str("3600"),
         ]
         r = self.curl("POST", url, enc_creds, pkg_path, additional_headers)
-        self.output(f"HTTP response: {r.status_code}", verbose_level=2)
+        self.output(f"HTTP response: {r.status_code}", verbose_level=1)
         return r.output
 
     def update_pkg_metadata(self, jamf_url, enc_creds, pkg_name, category, pkg_id=None):
@@ -404,7 +404,7 @@ class JamfPackageUploader(Processor):
                     "WARNING: Package metadata update did not succeed after 5 attempts"
                 )
                 self.output(
-                    f"HTTP POST Response Code: {r.status_code}", verbose_level=2,
+                    f"HTTP POST Response Code: {r.status_code}", verbose_level=1,
                 )
                 raise ProcessorError("ERROR: Package metadata upload failed ")
             sleep(30)

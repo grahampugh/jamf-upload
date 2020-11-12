@@ -141,18 +141,18 @@ class JamfPolicyUploader(Processor):
             for header in existing_headers:
                 if "APBALANCEID" in header:
                     cookie = header.split()[1].rstrip(";")
-                    self.output(f"Existing cookie found: {cookie}", verbose_level=1)
+                    self.output(f"Existing cookie found: {cookie}", verbose_level=2)
                     curl_cmd.extend(["--cookie", cookie])
         except IOError:
             self.output(
-                "No existing cookie found - starting new session", verbose_level=1
+                "No existing cookie found - starting new session", verbose_level=2
             )
 
         # additional headers for advanced requests
         if additional_headers:
             curl_cmd.extend(additional_headers)
 
-        self.output(f"curl command: {' '.join(curl_cmd)}", verbose_level=2)
+        self.output(f"curl command: {' '.join(curl_cmd)}", verbose_level=3)
 
         # now subprocess the curl command and build the r tuple which contains the
         # headers, status code and outputted data
@@ -204,34 +204,6 @@ class JamfPolicyUploader(Processor):
                 f"ERROR: {endpoint_type} '{obj_name}' upload failed due to permissions error"
             )
 
-    # def substitute_assignable_keys(self, data):
-    #     """substitutes any key in the inputted text using the %MY_KEY% nomenclature"""
-    #     # whenever %MY_KEY% is found in a template, it is replaced with the assigned value of MY_KEY. This did done case-insensitively
-    #     for custom_key in self.env:
-    #         self.output(
-    #             (
-    #                 f"Replacing any instances of '{custom_key}' with",
-    #                 f"'{str(self.env.get(custom_key))}'",
-    #             ),
-    #             verbose_level=2,
-    #         )
-    #         try:
-    #             data = re.sub(
-    #                 f"%{custom_key}%",
-    #                 lambda _: str(self.env.get(custom_key)),
-    #                 data,
-    #                 flags=re.IGNORECASE,
-    #             )
-    #         except re.error:
-    #             self.output(
-    #                 (
-    #                     f"WARNING: Could not replace instances of '{custom_key}' with",
-    #                     f"'{str(self.env.get(custom_key))}'",
-    #                 ),
-    #                 verbose_level=2,
-    #             )
-    #     return data
-
     def substitute_assignable_keys(self, data):
         """substitutes any key in the inputted text using the %MY_KEY% nomenclature"""
         # whenever %MY_KEY% is found in a template, it is replaced with the assigned value of MY_KEY
@@ -254,7 +226,7 @@ class JamfPolicyUploader(Processor):
                     )
                     data = data.replace(f"%{found_key}%", self.env.get(found_key))
                 else:
-                    print(f"WARNING: '{found_key}' has no replacement object!",)
+                    self.output(f"WARNING: '{found_key}' has no replacement object!",)
                     raise ProcessorError("Unsubstituable key in template found")
         return data
 
@@ -280,12 +252,12 @@ class JamfPolicyUploader(Processor):
         if r.status_code == 200:
             object_list = json.loads(r.output)
             self.output(
-                object_list, verbose_level=2,
+                object_list, verbose_level=4,
             )
             obj_id = 0
             for obj in object_list[object_list_types[object_type]]:
                 self.output(
-                    obj, verbose_level=2,
+                    obj, verbose_level=3,
                 )
                 # we need to check for a case-insensitive match
                 if obj["name"].lower() == object_name.lower():
@@ -332,7 +304,7 @@ class JamfPolicyUploader(Processor):
         r = self.curl("GET", url, enc_creds)
         if r.status_code == 200:
             obj_content = json.loads(r.output)
-            self.output(obj_content, verbose_level=2)
+            self.output(obj_content, verbose_level=4)
 
             # convert an xpath to json
             xpath_list = obj_path.split("/")
@@ -341,7 +313,7 @@ class JamfPolicyUploader(Processor):
                 if xpath_list[i]:
                     try:
                         value = value[xpath_list[i]]
-                        self.output(value, verbose_level=2)
+                        self.output(value, verbose_level=3)
                     except KeyError:
                         value = ""
                         break
