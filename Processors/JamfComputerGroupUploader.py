@@ -190,6 +190,9 @@ class JamfComputerGroupUploader(Processor):
             raise ProcessorError(
                 f"ERROR: {endpoint_type} '{obj_name}' upload failed due to permissions error"
             )
+        else:
+            self.output(f"WARNING: {endpoint_type} '{obj_name}' upload failed")
+            self.output(r.output, verbose_level=2)
 
     def substitute_assignable_keys(self, data):
         """substitutes any key in the inputted text using the %MY_KEY% nomenclature"""

@@ -192,6 +192,9 @@ class JamfExtensionAttributeUploader(Processor):
             raise ProcessorError(
                 f"ERROR: {endpoint_type} '{obj_name}' upload failed due to permissions error"
             )
+        else:
+            self.output(f"WARNING: {endpoint_type} '{obj_name}' upload failed")
+            self.output(r.output, verbose_level=2)
 
     def get_path_to_file(self, filename):
         """AutoPkg is not very good at finding dependent files. This function will look 

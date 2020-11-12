@@ -186,6 +186,9 @@ class JamfCategoryUploader(Processor):
             raise ProcessorError(
                 f"ERROR: {endpoint_type} '{obj_name}' upload failed due to permissions error"
             )
+        else:
+            self.output(f"WARNING: {endpoint_type} '{obj_name}' upload failed")
+            self.output(r.output, verbose_level=2)
 
     def get_uapi_token(self, jamf_url, enc_creds):
         """get a token for the Jamf Pro API"""
