@@ -235,20 +235,27 @@ class JamfPolicyUploader(Processor):
     def substitute_assignable_keys(self, data):
         """substitutes any key in the inputted text using the %MY_KEY% nomenclature"""
         # whenever %MY_KEY% is found in a template, it is replaced with the assigned value of MY_KEY
-        found_keys = re.findall(r"\%\w+\%", data)
-        found_keys = [i.replace("%", "") for i in found_keys]
-        for found_key in found_keys:
-            if self.env.get(found_key):
-                self.output(
-                    (
-                        f"Replacing any instances of '{found_key}' with",
-                        f"'{str(self.env.get(found_key))}'",
-                    ),
-                    verbose_level=2,
-                )
-                data = data.replace(f"%{found_key}%", self.env.get(found_key))
-            else:
-                print(f"WARNING: '{found_key}' has no replacement object!",)
+        # do a triple-pass to ensure that all keys are substituted
+        loop = 5
+        while loop > 0:
+            loop = loop - 1
+            found_keys = re.findall(r"\%\w+\%", data)
+            if not found_keys:
+                break
+            found_keys = [i.replace("%", "") for i in found_keys]
+            for found_key in found_keys:
+                if self.env.get(found_key):
+                    self.output(
+                        (
+                            f"Replacing any instances of '{found_key}' with",
+                            f"'{str(self.env.get(found_key))}'",
+                        ),
+                        verbose_level=2,
+                    )
+                    data = data.replace(f"%{found_key}%", self.env.get(found_key))
+                else:
+                    print(f"WARNING: '{found_key}' has no replacement object!",)
+                    raise ProcessorError("Unsubstituable key in template found")
         return data
 
     def check_api_obj_id_from_name(self, jamf_url, object_type, object_name, enc_creds):
