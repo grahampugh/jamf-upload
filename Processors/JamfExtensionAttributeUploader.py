@@ -130,18 +130,18 @@ class JamfExtensionAttributeUploader(Processor):
             for header in existing_headers:
                 if "APBALANCEID" in header:
                     cookie = header.split()[1].rstrip(";")
-                    self.output(f"Existing cookie found: {cookie}", verbose_level=1)
+                    self.output(f"Existing cookie found: {cookie}", verbose_level=2)
                     curl_cmd.extend(["--cookie", cookie])
         except IOError:
             self.output(
-                "No existing cookie found - starting new session", verbose_level=1
+                "No existing cookie found - starting new session", verbose_level=2
             )
 
         # additional headers for advanced requests
         if additional_headers:
             curl_cmd.extend(additional_headers)
 
-        self.output(f"curl command: {' '.join(curl_cmd)}", verbose_level=2)
+        self.output(f"curl command: {' '.join(curl_cmd)}", verbose_level=3)
 
         # now subprocess the curl command and build the r tuple which contains the
         # headers, status code and outputted data
@@ -184,6 +184,7 @@ class JamfExtensionAttributeUploader(Processor):
             self.output(f"{endpoint_type} '{obj_name}' uploaded successfully")
             return "break"
         elif r.status_code == 409:
+            self.output(r.output, verbose_level=2)
             raise ProcessorError(
                 f"WARNING: {endpoint_type} '{obj_name}' upload failed due to a conflict"
             )
@@ -191,6 +192,9 @@ class JamfExtensionAttributeUploader(Processor):
             raise ProcessorError(
                 f"ERROR: {endpoint_type} '{obj_name}' upload failed due to permissions error"
             )
+        else:
+            self.output(f"WARNING: {endpoint_type} '{obj_name}' upload failed")
+            self.output(r.output, verbose_level=2)
 
     def get_path_to_file(self, filename):
         """AutoPkg is not very good at finding dependent files. This function will look 
@@ -236,12 +240,12 @@ class JamfExtensionAttributeUploader(Processor):
         if r.status_code == 200:
             object_list = json.loads(r.output)
             self.output(
-                object_list, verbose_level=2,
+                object_list, verbose_level=4,
             )
             obj_id = 0
             for obj in object_list[object_list_types[object_type]]:
                 self.output(
-                    obj, verbose_level=2,
+                    obj, verbose_level=3,
                 )
                 # we need to check for a case-insensitive match
                 if obj["name"].lower() == object_name.lower():
@@ -250,30 +254,28 @@ class JamfExtensionAttributeUploader(Processor):
 
     def substitute_assignable_keys(self, data):
         """substitutes any key in the inputted text using the %MY_KEY% nomenclature"""
-        # whenever %MY_KEY% is found in a template, it is replaced with the assigned value of MY_KEY. This did done case-insensitively
-        for custom_key in self.env:
-            self.output(
-                (
-                    f"Replacing any instances of '{custom_key}' with",
-                    f"'{str(self.env.get(custom_key))}'",
-                ),
-                verbose_level=2,
-            )
-            try:
-                data = re.sub(
-                    f"%{custom_key}%",
-                    lambda _: str(self.env.get(custom_key)),
-                    data,
-                    flags=re.IGNORECASE,
-                )
-            except re.error:
-                self.output(
-                    (
-                        f"WARNING: Could not replace instances of '{custom_key}' with",
-                        f"'{str(self.env.get(custom_key))}'",
-                    ),
-                    verbose_level=2,
-                )
+        # whenever %MY_KEY% is found in a template, it is replaced with the assigned value of MY_KEY
+        # do a triple-pass to ensure that all keys are substituted
+        loop = 5
+        while loop > 0:
+            loop = loop - 1
+            found_keys = re.findall(r"\%\w+\%", data)
+            if not found_keys:
+                break
+            found_keys = [i.replace("%", "") for i in found_keys]
+            for found_key in found_keys:
+                if self.env.get(found_key):
+                    self.output(
+                        (
+                            f"Replacing any instances of '{found_key}' with",
+                            f"'{str(self.env.get(found_key))}'",
+                        ),
+                        verbose_level=2,
+                    )
+                    data = data.replace(f"%{found_key}%", self.env.get(found_key))
+                else:
+                    self.output(f"WARNING: '{found_key}' has no replacement object!",)
+                    raise ProcessorError("Unsubstituable key in template found")
         return data
 
     def upload_ea(

@@ -16,6 +16,8 @@ def object_types(object_type):
         "package": "packages",
         "computer_group": "computergroups",
         "policy": "policies",
+        "category_all_items": "policies/category",        
+        "category_all": "categories",
         "extension_attribute": "computerextensionattributes",
         "os_x_configuration_profile": "osxconfigurationprofiles",
     }
@@ -30,6 +32,8 @@ def object_list_types(object_type):
         "package": "packages",
         "computer_group": "computer_groups",
         "policy": "policies",
+        "category_all_items": "policies/category",        
+        "category_all": "categories",        
         "extension_attribute": "computer_extension_attributes",
         "os_x_configuration_profile": "os_x_configuration_profiles",
     }
@@ -53,13 +57,55 @@ def get_uapi_obj_id_from_name(jamf_url, object_type, object_name, token, verbosi
                 obj_id = obj["id"]
         return obj_id
 
+# now there's a find all generic
+def check_api_finds_all(
+    jamf_url, object_type, enc_creds, verbosity
+):
+    """pass this string:policies to return all policies, pass string:categories_all for all categories"""
+
+    url = "{}/JSSResource/{}".format(jamf_url, object_types(object_type))
+    r = curl.request("GET", url, enc_creds, verbosity)
+
+    if r.status_code == 200:
+        object_list = json.loads(r.output)
+        obj = object_list[object_types(object_type)]        
+        if verbosity > 3:
+            print("\nAPI object raw output:")
+            print(object_list)
+
+        if verbosity > 2:
+            print("\nAPI object list:")
+            print(obj)
+        return obj
+
+
+def check_api_category_policies_from_name(
+    jamf_url, object_type, object_name, enc_creds, verbosity
+):
+    """check if Classic API objects exist under the category on the server"""
+
+    url = "{}/JSSResource/{}/{}".format(jamf_url, object_types(object_type), object_name)
+    r = curl.request("GET", url, enc_creds, verbosity)
+
+    if r.status_code == 200:
+        object_list = json.loads(r.output)
+        obj = object_list['policies']        
+        if verbosity > 3:
+            print("\nAPI object raw output:")
+            print(object_list)
+
+        if verbosity > 2:
+            print("\nAPI object list:")
+            print(obj)
+        return obj
+
 
 def check_api_obj_id_from_name(
     jamf_url, object_type, object_name, enc_creds, verbosity
 ):
     """check if a Classic API object with the same name exists on the server"""
 
-    url = "{}/JSSResource/{}".format(jamf_url, object_types(object_type))
+    url = "{}/JSSResource/{}".format(jamf_url, object_types(object_type))        
     r = curl.request("GET", url, enc_creds, verbosity)
 
     if r.status_code == 200:
