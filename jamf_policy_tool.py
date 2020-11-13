@@ -233,8 +233,9 @@ def main():
             obj_id = api_get.check_api_obj_id_from_name(
                 jamf_url, "policy", policy_name, enc_creds, verbosity
             )
+            # todo return actual policy name that was queried
             if obj_id:
-                print("Policy '{}' exists: ID {}".format(policy_name, obj_id))
+                print("Your search for '{}' exists in policy ID: {}".format(policy_name, obj_id))
                 if args.delete:
                     delete(obj_id, jamf_url, enc_creds, verbosity)
             else:
