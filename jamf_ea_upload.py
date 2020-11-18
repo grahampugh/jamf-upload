@@ -190,7 +190,7 @@ def main():
     for ea_name in args.names:
         # check for existing Extension Attribute
         print("\nChecking '{}' on {}".format(ea_name, jamf_url))
-        obj_id = api_get.check_api_obj_id_from_name(
+        obj_id = api_get.get_api_obj_id_from_name(
             jamf_url, "extension_attribute", ea_name, enc_creds, verbosity
         )
         if obj_id:

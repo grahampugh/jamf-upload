@@ -203,7 +203,7 @@ def main():
         # now process the list of categories
         for category_name in categories:
             category_name = category_name.replace(" ", "%20")
-            # check for existing category
+            # return all items found in each category
             print("\nChecking '{}' on {}".format(category_name, jamf_url))
             obj = api_get.check_api_category_policies_from_name(
                 jamf_url, "category_all_items", category_name, enc_creds, verbosity
@@ -214,28 +214,39 @@ def main():
 
                 for obj_item in obj:
                     print("~^~ {} -~- {}".format(obj_item["id"], obj_item["name"]))
-                    
+
                     if args.delete:
                         delete(obj_item["id"], jamf_url, enc_creds, verbosity)
             else:
                 print("Category '{}' not found".format(category_name))
 
-    # set a list of names either from the CLI args for policies
+    # process a name or list of names
     if args.names:
         names = args.names
         print("policy names to check are:\n{}\nTotal: {}".format(names, len(names)))
 
-        # now process the list of names
         for policy_name in names:
 
             # check for existing policy
             print("\nChecking '{}' on {}".format(policy_name, jamf_url))
-            obj_id = api_get.check_api_obj_id_from_name(
+            # todo do one api call instead of 3
+            obj_id = api_get.get_api_obj_id_from_name(
                 jamf_url, "policy", policy_name, enc_creds, verbosity
             )
-            # todo return actual policy name that was queried
+            scope = api_get.get_api_obj_value_from_id(
+                jamf_url,
+                "policy",
+                obj_id,
+                "scope/computer_groups",
+                enc_creds,
+                verbosity
+            )
+            matched_name = api_get.get_api_obj_value_from_id(
+                jamf_url, "policy", obj_id, "general/name", enc_creds, verbosity
+            )
+
             if obj_id:
-                print("Your search for '{}' exists in policy ID: {}".format(policy_name, obj_id))
+                print("We found '{}' ID: {} -^ belongs to ^- {}".format(matched_name, obj_id, scope[0]['name']))
                 if args.delete:
                     delete(obj_id, jamf_url, enc_creds, verbosity)
             else:
