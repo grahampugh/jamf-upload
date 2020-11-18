@@ -73,6 +73,15 @@ def get_args():
         help=("Give a policy name to delete. Multiple allowed."),
     )
     parser.add_argument(
+        "-c",
+        "--computer",
+        action="append",
+        dest="computers",
+        default=[],
+        nargs='?',
+        help=("Feed me a computer id or id's please.")
+    )
+    parser.add_argument(
         "--search",
         action="append",
         dest="search",
@@ -141,6 +150,38 @@ def main():
 
     # grab values from a prefs file if supplied
     jamf_url, _, _, enc_creds = api_connect.get_creds_from_args(args)
+
+    if args.computers:
+        if args.all:
+
+            obj = api_get.check_api_finds_all(jamf_url, 'computer', enc_creds, verbosity)
+
+            try:
+                computers = []
+                for x in obj:
+                    computers.append(x['id'])
+            
+            except:
+                computer_id = '404 computer not found'
+
+            print(f"We found {len(computers)} on that JSS: {computers}")
+
+        else:
+            computers = args.computers
+
+        for x in computers:
+            print("checking computer {}".format(x))
+            obj = api_get.get_api_obj_value_from_id(jamf_url, 'computer', x, '', enc_creds, verbosity)
+
+            if obj:
+                try:
+                    macos = obj['hardware']['os_version']
+                except:
+                    macos = 'unknown'
+
+            print(macos)
+
+        exit()
 
     # LIST the policies 
     if args.all:
@@ -276,9 +317,12 @@ def main():
                     enc_creds,
                     verbosity
                 )
-                groups = generic_info['scope']['computer_groups'][0]['name']
                 name = generic_info['general']['name']
-     
+                try:
+                    groups = generic_info['scope']['computer_groups'][0]['name']
+                except:
+                    groups = ''
+
                 print("We found '{}' ID: {} Group: {}".format(name, obj_id, groups))
                 if args.delete:
                     delete(obj_id, jamf_url, enc_creds, verbosity)

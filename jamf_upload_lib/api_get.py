@@ -20,6 +20,7 @@ def object_types(object_type):
         "category_all": "categories",
         "extension_attribute": "computerextensionattributes",
         "os_x_configuration_profile": "osxconfigurationprofiles",
+        "computer": "computers",
     }
     return object_types[object_type]
 
@@ -36,6 +37,7 @@ def object_list_types(object_type):
         "category_all": "categories",        
         "extension_attribute": "computer_extension_attributes",
         "os_x_configuration_profile": "os_x_configuration_profiles",
+        "computer": "computers",
     }
     return object_list_types[object_type]
 
