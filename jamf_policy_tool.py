@@ -142,14 +142,16 @@ def main():
     # grab values from a prefs file if supplied
     jamf_url, _, _, enc_creds = api_connect.get_creds_from_args(args)
 
-    # LIST the policys 
+    # LIST the policies 
     if args.all:
+        # get all the categories
         obj = api_get.check_api_finds_all(
             jamf_url, "category_all", enc_creds, verbosity
         )
 
         if obj:
             for x in obj:
+                # loop all the categories
                 print(bcolors.OKCYAN + "category {} --- {} ---------v".format(x["id"], x["name"]) + bcolors.ENDC)
                 obj = api_get.check_api_category_policies_from_name(
                 jamf_url, 
@@ -160,7 +162,29 @@ def main():
                 )
                 if obj:
                     for x in obj:
-                        print("policy {} --- {}".format(x["id"], x["name"]))
+                        # loop all the policies
+
+                        # gather interesting info for each policy via API
+                        # use a single call
+                        # general/name
+                        # scope/computer_groups  [0]['name']
+                        generic_info = api_get.get_api_obj_value_from_id(
+                            jamf_url,
+                            "policy",
+                            x["id"],
+                            "",
+                            enc_creds,
+                            verbosity
+                        )
+
+                        name = generic_info['general']['name']
+                        try:
+                            groups = generic_info['scope']['computer_groups'][0]['name']
+                        except:
+                            groups = ''
+
+                        # now show all the policies as each category loops
+                        print("policy {} --- {} -------------------->{}".format(x["id"], x["name"], groups))
         else:
             print("something went wrong: no categories found.")
 
@@ -210,6 +234,7 @@ def main():
             )
             if obj:
                 if not args.delete:
+                    
                     print("Category '{}' exists with {} items: To delete them run this command again with the --delete flag".format(category_name, len(obj)))
 
                 for obj_item in obj:
@@ -227,26 +252,34 @@ def main():
 
         for policy_name in names:
 
-            # check for existing policy
             print("\nChecking '{}' on {}".format(policy_name, jamf_url))
-            # todo do one api call instead of 3
+
+            
             obj_id = api_get.get_api_obj_id_from_name(
-                jamf_url, "policy", policy_name, enc_creds, verbosity
-            )
-            scope = api_get.get_api_obj_value_from_id(
-                jamf_url,
-                "policy",
-                obj_id,
-                "scope/computer_groups",
-                enc_creds,
+                jamf_url, 
+                "policy", 
+                policy_name, 
+                enc_creds, 
                 verbosity
-            )
-            matched_name = api_get.get_api_obj_value_from_id(
-                jamf_url, "policy", obj_id, "general/name", enc_creds, verbosity
             )
 
             if obj_id:
-                print("We found '{}' ID: {} -^ belongs to ^- {}".format(matched_name, obj_id, scope[0]['name']))
+                # gather info from interesting parts of the policy API
+                # use a single call
+                # general/name
+                # scope/computer_gropus  [0]['name']
+                generic_info = api_get.get_api_obj_value_from_id(
+                    jamf_url,
+                    "policy",
+                    obj_id,
+                    "",
+                    enc_creds,
+                    verbosity
+                )
+                groups = generic_info['scope']['computer_groups'][0]['name']
+                name = generic_info['general']['name']
+     
+                print("We found '{}' ID: {} Group: {}".format(name, obj_id, groups))
                 if args.delete:
                     delete(obj_id, jamf_url, enc_creds, verbosity)
             else:
