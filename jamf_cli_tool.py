@@ -84,6 +84,10 @@ def get_args():
         help=("Feed me a computer id or id's please.")
     )
     parser.add_argument(
+        "--computerversion",
+        help=("Feed me a computer version please.")
+    )    
+    parser.add_argument(
         "--search",
         action="append",
         dest="search",
@@ -154,6 +158,8 @@ def main():
     jamf_url, _, _, enc_creds = api_connect.get_creds_from_args(args)
 
     if args.computers:
+        recent_computers = 0 # we'll need this later
+
         if args.all:
 
             obj = api_get.check_api_finds_all(jamf_url, 'computer', enc_creds, verbosity)
@@ -172,34 +178,56 @@ def main():
             computers = args.computers
 
         # TODO: get moar info like username, maybe even historical record 
+        target_macos = args.computerversion        
+        if args.computerversion:
+            bad_computers = 0
+
         for x in computers:
+
             print("checking computer {}".format(x))
             obj = api_get.get_api_obj_value_from_id(jamf_url, 'computer', x, '', enc_creds, verbosity)
 
             if obj:
-                # breakpoint()
                 try:
                     macos = obj['hardware']['os_version']
                     name = obj['general']['name']                   
                     dep = obj['general']['management_status']['enrolled_via_dep']
                     seen = obj['general']['last_contact_time']
-                    seen = datetime.strptime(seen, '%Y-%m-%d %H:%M:%S')
 
                 except:
                     macos = 'unknown'
 
+                seen = datetime.strptime(seen, '%Y-%m-%d %H:%M:%S')
                 now = time.strftime('%Y-%m-%d %H:%M:%S', time.gmtime())
                 now = datetime.strptime(now, '%Y-%m-%d %H:%M:%S')
 
                 calc = now - seen
 
-
-
             if now - seen < timedelta(days=10):
-                print(bcolors.OKGREEN + f"{macos} {name} dep:{dep} seen:{calc}" + bcolors.ENDC)
+                recent_computers += 1
+
+                try:
+                    if macos < target_macos:
+                        bad_computers += 1
+                        print(bcolors.WARNING + f"{macos} {name} dep:{dep} seen:{calc}" + bcolors.ENDC)
+                        
+                    else:
+                        print(bcolors.OKGREEN + f"{macos} {name} dep:{dep} seen:{calc}" + bcolors.ENDC)
+
+                except:
+                    print(bcolors.OKGREEN + f"{macos} {name} dep:{dep} seen:{calc}" + bcolors.ENDC)
+
             else:
                 print(bcolors.FAIL + f"{macos} {name} dep:{dep} seen:{calc}" + bcolors.ENDC)
 
+        try:
+            print(bcolors.FAIL + f"query complete: need updating [{bad_computers}]" + bcolors.ENDC)
+            print(bcolors.OKGREEN + f"query complete: recent computers [{recent_computers}]" + bcolors.ENDC)
+            print(bcolors.OKCYAN + f"query complete: recent computers [{len(computers)}]" + bcolors.ENDC)
+       
+        except:
+            print(bcolors.OKCYAN + f"query complete: recent computers >> total: {recent_computers}/{len(computers)}" + bcolors.ENDC)
+        
         exit()
 
     # LIST the policies 
