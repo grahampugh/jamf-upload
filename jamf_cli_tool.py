@@ -27,7 +27,9 @@ import mimetypes
 import os.path
 import re
 import xml.etree.ElementTree as ElementTree
-from time import sleep
+import time
+from time import sleep, gmtime, strftime
+from datetime import datetime, timedelta
 
 from jamf_upload_lib import actions, api_connect, api_get, curl
 
@@ -162,24 +164,41 @@ def main():
                     computers.append(x['id'])
             
             except:
-                computer_id = '404 computer not found'
+                computer_id = '404 computers not found'
 
             print(f"We found {len(computers)} on that JSS: {computers}")
 
         else:
             computers = args.computers
 
+        # TODO: get moar info like username, maybe even historical record 
         for x in computers:
             print("checking computer {}".format(x))
             obj = api_get.get_api_obj_value_from_id(jamf_url, 'computer', x, '', enc_creds, verbosity)
 
             if obj:
+                # breakpoint()
                 try:
                     macos = obj['hardware']['os_version']
+                    name = obj['general']['name']                   
+                    dep = obj['general']['management_status']['enrolled_via_dep']
+                    seen = obj['general']['last_contact_time']
+                    seen = datetime.strptime(seen, '%Y-%m-%d %H:%M:%S')
+
                 except:
                     macos = 'unknown'
 
-            print(macos)
+                now = time.strftime('%Y-%m-%d %H:%M:%S', time.gmtime())
+                now = datetime.strptime(now, '%Y-%m-%d %H:%M:%S')
+
+                calc = now - seen
+
+
+
+            if now - seen < timedelta(days=10):
+                print(bcolors.OKGREEN + f"{macos} {name} dep:{dep} seen:{calc}" + bcolors.ENDC)
+            else:
+                print(bcolors.FAIL + f"{macos} {name} dep:{dep} seen:{calc}" + bcolors.ENDC)
 
         exit()
 
