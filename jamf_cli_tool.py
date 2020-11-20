@@ -158,7 +158,8 @@ def main():
     jamf_url, _, _, enc_creds = api_connect.get_creds_from_args(args)
 
     if args.computers:
-        recent_computers = 0 # we'll need this later
+        recent_computers = [] # we'll need this later
+        old_computers = []
 
         if args.all:
 
@@ -172,15 +173,16 @@ def main():
             except:
                 computer_id = '404 computers not found'
 
-            print(f"We found {len(computers)} on that JSS: {computers}")
+            print(f"We found {len(computers)} on that JSS")
 
         else:
             computers = args.computers
 
-        # TODO: get moar info like username, maybe even historical record 
-        target_macos = args.computerversion        
-        if args.computerversion:
-            bad_computers = 0
+        # TODO: make this work 
+        computerversion = args.computerversion
+
+        if computerversion:
+            bad_computers = []
 
         for x in computers:
 
@@ -193,40 +195,62 @@ def main():
                     name = obj['general']['name']                   
                     dep = obj['general']['management_status']['enrolled_via_dep']
                     seen = obj['general']['last_contact_time']
-
+                    seen = datetime.strptime(seen, '%Y-%m-%d %H:%M:%S')
+                    now = time.strftime('%Y-%m-%d %H:%M:%S', time.gmtime())
+                    now = datetime.strptime(now, '%Y-%m-%d %H:%M:%S')
+                    calc = now - seen
                 except:
                     macos = 'unknown'
+                    name = 'unknown'
+                    dep = 'unknown'
+                    seen = 'unknown'
+                    now = 'unknown'
+                    calc = 'we dunno'
 
-                seen = datetime.strptime(seen, '%Y-%m-%d %H:%M:%S')
-                now = time.strftime('%Y-%m-%d %H:%M:%S', time.gmtime())
-                now = datetime.strptime(now, '%Y-%m-%d %H:%M:%S')
+            try:
+                if now - seen < timedelta(days=10):  # if recent
+                    recent_computers.append(f"{macos} {name} dep:{dep} seen:{calc}")
 
-                calc = now - seen
+                    if computerversion: # still if recent
 
-            if now - seen < timedelta(days=10):
-                recent_computers += 1
+                        try: # make sure calculation runs
+                            if macos < computerversion: # if bad
+                                bad_computers.append(f"{macos} {name} dep:{dep} seen:{calc}")
+                                recent_computers.remove(f"{macos} {name} dep:{dep} seen:{calc}")
 
-                try:
-                    if macos < target_macos:
-                        bad_computers += 1
-                        print(bcolors.WARNING + f"{macos} {name} dep:{dep} seen:{calc}" + bcolors.ENDC)
+                        except:
+                            print('computerversion mode error..')
+
+                else:
+                    old_computers.append(f"{macos} {name} dep:{dep} seen:{calc}")
+
+
                         
-                    else:
-                        print(bcolors.OKGREEN + f"{macos} {name} dep:{dep} seen:{calc}" + bcolors.ENDC)
 
-                except:
-                    print(bcolors.OKGREEN + f"{macos} {name} dep:{dep} seen:{calc}" + bcolors.ENDC)
+            except:
+                print('checkin age error')
 
-            else:
-                print(bcolors.FAIL + f"{macos} {name} dep:{dep} seen:{calc}" + bcolors.ENDC)
+        print(bcolors.OKCYAN + f"computers finished querying ------^ \n summary below -------v "+ bcolors.ENDC)
+        
+        if computerversion:
+            print(f'{len(recent_computers)} are compliant and recent')        
+        else:            
+            print(f'{len(recent_computers)} are recent, try the --computerversion flag to gain more insight')            
+            
+        for x in recent_computers:
+            print(bcolors.OKGREEN + x + bcolors.ENDC)
+
+        print(f'{len(old_computers)} are stale')
+        for x in old_computers:
+            print(bcolors.FAIL + x + bcolors.ENDC)
 
         try:
-            print(bcolors.FAIL + f"query complete: need updating [{bad_computers}]" + bcolors.ENDC)
-            print(bcolors.OKGREEN + f"query complete: recent computers [{recent_computers}]" + bcolors.ENDC)
-            print(bcolors.OKCYAN + f"query complete: recent computers [{len(computers)}]" + bcolors.ENDC)
-       
+            # eventually slack api this number to a channel
+            print(f'{len(bad_computers)} need to be fixed')
+            for x in bad_computers:
+                print(bcolors.WARNING + x + bcolors.ENDC)
         except:
-            print(bcolors.OKCYAN + f"query complete: recent computers >> total: {recent_computers}/{len(computers)}" + bcolors.ENDC)
+            print('hint to filter out by macos version try the --computerversion flag')
         
         exit()
 
