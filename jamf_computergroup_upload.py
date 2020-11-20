@@ -181,7 +181,7 @@ def main():
     verbosity = args.verbose
 
     # grab values from a prefs file if supplied
-    jamf_url, _, _, enc_creds = api_connect.get_creds_from_args(args)
+    jamf_url, _, _, _, enc_creds = api_connect.get_creds_from_args(args)
 
     # import computer group from file and replace any keys in the XML
     with open(args.template, "r") as file:

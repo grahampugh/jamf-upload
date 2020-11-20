@@ -180,7 +180,7 @@ def main():
     verbosity = args.verbose
 
     # grab values from a prefs file if supplied
-    jamf_url, _, _, enc_creds = api_connect.get_creds_from_args(args)
+    jamf_url, _, _, _, enc_creds = api_connect.get_creds_from_args(args)
 
     if not args.script:
         script = input("Enter the full path to the script to upload: ")

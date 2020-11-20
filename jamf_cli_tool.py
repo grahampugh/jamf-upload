@@ -110,6 +110,11 @@ def get_args():
         "--all",
         help="All Policies will JUST be listed. This is meant for you to smoke test your JSS, nothing more.",
         action="store_true",
+    )
+    parser.add_argument(
+        "--slack",
+        help="Do a slack",
+        action="store_true",
     )    
     parser.add_argument(
         "--url", default="", help="the Jamf Pro Server URL",
@@ -147,15 +152,20 @@ def get_args():
 
 def main():
     """Do the main thing here"""
-    print("\n** Jamf policy delete script")
-    print("** Deletes or Shows a policy or policies in Jamf Pro.")
+    print("\n** Jamf CLI Tool")
+    print("** ...for Jamf Pro.")
 
     # parse the command line arguments
     args = get_args()
     verbosity = args.verbose
 
     # grab values from a prefs file if supplied
-    jamf_url, _, _, enc_creds = api_connect.get_creds_from_args(args)
+    jamf_url, _, _, slack_webhook, enc_creds = api_connect.get_creds_from_args(args)
+
+    if args.slack:
+        if not slack_webhook:
+            print(f"slack_webhook value error set it in your prefs file please")
+            exit()
 
     if args.computers:
         recent_computers = [] # we'll need this later
@@ -244,12 +254,26 @@ def main():
         for x in old_computers:
             print(bcolors.FAIL + x + bcolors.ENDC)
 
-        try:
+        if computerversion:
             # eventually slack api this number to a channel
-            print(f'{len(bad_computers)} need to be fixed')
+            score = len(recent_computers) / (len(bad_computers) + len(recent_computers))
+            score = "{:.2%}".format(score)
+            slack_payload = str(f":hospital: update health: {score} - {len(bad_computers)} need to be fixed on {jamf_url} \n")
+            print(slack_payload)
+
+            data = { 'text': slack_payload }
             for x in bad_computers:
                 print(bcolors.WARNING + x + bcolors.ENDC)
-        except:
+                if args.slack: # werk
+                    slack_payload += str(f"{x}\n")
+
+            if args.slack: # send to slack
+                data = { 'text': slack_payload }
+                url = slack_webhook
+                request_type = "POST"
+                r = curl.request(request_type, url, enc_creds, verbosity, data)
+
+        else:
             print('hint to filter out by macos version try the --computerversion flag')
         
         exit()

@@ -10,7 +10,7 @@ from . import curl
 
 
 def get_credentials(prefs_file):
-    """get credentials from an existing AutoPkg prefs file"""
+    """return credentials from a prefs_file"""
     if prefs_file.endswith('.plist'):
         with open(prefs_file, "rb") as pl:
             if six.PY2:
@@ -34,7 +34,11 @@ def get_credentials(prefs_file):
         jamf_password = prefs["API_PASSWORD"]
     except KeyError:
         jamf_password = ""
-    return jamf_url, jamf_user, jamf_password
+    try:
+        slack_webhook = prefs["SLACK_WEBHOOK"]
+    except KeyError:
+        slack_webhook = ""        
+    return jamf_url, jamf_user, jamf_password, slack_webhook
 
 
 def get_smb_credentials(prefs_file):
@@ -90,13 +94,14 @@ def get_uapi_token(jamf_url, enc_creds, verbosity):
 
 
 def get_creds_from_args(args):
-    """pass the args to return the url, user and password"""
+    """call me directly - I return the all the creds and a hash of necesary ones too"""
     if args.prefs:
-        (jamf_url, jamf_user, jamf_password) = get_credentials(args.prefs)
+        (jamf_url, jamf_user, jamf_password, slack_webhook) = get_credentials(args.prefs)
     else:
         jamf_url = ""
         jamf_user = ""
         jamf_password = ""
+        slack_webhook = ""
 
     # CLI arguments override any values from a prefs file
     if args.url:
@@ -119,4 +124,4 @@ def get_creds_from_args(args):
     # encode the username and password into a basic auth b64 encoded string so that we can get the session token
     enc_creds = encode_creds(jamf_user, jamf_password)
 
-    return jamf_url, jamf_user, jamf_password, enc_creds
+    return jamf_url, jamf_user, jamf_password, slack_webhook, enc_creds
