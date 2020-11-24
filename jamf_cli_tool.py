@@ -328,7 +328,7 @@ def main():
         exit
 
     if args.search:
-        partials = args.search
+        query = args.search
 
         obj = api_get.check_api_finds_all(
             jamf_url, "policy", enc_creds, verbosity
@@ -339,10 +339,10 @@ def main():
             targets = []
             print("Searching {} Policies(s) on {}: To delete, obtain a matching query, then run with the delete flag".format(len(obj), jamf_url))
                 
-            for partial in partials:
+            for x in query:
                 for obj_item in obj:
                     # do the actual search
-                    if obj_item["name"].startswith(partial):
+                    if x in obj_item["name"]:
                         targets.append(obj_item.copy())
 
             if len(targets) > 0:
@@ -352,7 +352,7 @@ def main():
                     if args.delete:
                         delete(target["id"], jamf_url, enc_creds, verbosity)
             else:
-                for partial in partials:
+                for partial in query:
                     print("No match found: {}".format(partial))
 
 
