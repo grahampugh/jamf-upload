@@ -248,31 +248,38 @@ def update_pkg_metadata(
     #  ideally we upload to the package ID but if we didn't get a good response
     #  we fall back to the package name
     if pkg_id:
+        method = "PUT"
         url = "{}/JSSResource/packages/id/{}".format(jamf_url, pkg_id)
     else:
+        method = "POST"
         url = "{}/JSSResource/packages/name/{}".format(jamf_url, pkg_name)
 
     if verbosity > 2:
         print("Package data:")
         print(pkg_data)
 
-    print("Updating package metadata...")
-
     count = 0
     while True:
         count += 1
         if verbosity > 1:
-            print("Package update attempt {}".format(count))
+            print(
+                f"Package metadata upload attempt {count}"
+            )
 
         pkg_xml = curl.write_temp_file(pkg_data)
-        r = curl.request("PUT", url, enc_creds, verbosity, pkg_xml)
+        r = curl.request(method, url, enc_creds, verbosity, pkg_xml)
         # check HTTP response
         if curl.status_check(r, "Package", pkg_name) == "break":
             break
         if count > 5:
-            print("WARNING: Package metadata update did not succeed after 5 attempts")
-            print("\nHTTP POST Response Code: {}".format(r.status_code))
-            break
+            print(
+                "WARNING: Package metadata update did not succeed after 5 attempts"
+            )
+            print(
+                f"HTTP POST Response Code: {r.status_code}", verbose_level=1,
+            )
+            print("ERROR: Package metadata upload failed ")
+            exit(-1)
         sleep(30)
 
     if verbosity:
@@ -287,7 +294,7 @@ def login(
     jamf_url, jamf_user, jamf_password, verbosity
 ):  # type: (str, str, str, int) -> any
     """For creating a web UI Session, which is required to scrape JCDS information."""
-    import requests
+    import requests  # pylint: disable=import-error
 
     http = requests.Session()
     r = http.post(jamf_url, data={"username": jamf_user, "password": jamf_password})
@@ -346,7 +353,7 @@ def post_pkg_chunks(
 ):
     """sends the package in chunks"""
 
-    import requests
+    import requests   # pylint: disable=import-error
 
     jcds_chunk_size = int(jcds_chunk_mb) * 1048576  # 1mb is the default
     file_size = os.stat(pkg_path).st_size
@@ -598,6 +605,13 @@ def main():
             print("Full path: {}".format(pkg_path))
         replace_pkg = True if args.replace else False
         obj_id = check_pkg(pkg_name, jamf_url, enc_creds, verbosity)
+        if obj_id != "-1":
+            print(
+                "Package '{}' already exists: ID {}".format(pkg_name, obj_id)
+            )
+            pkg_id = obj_id  # assign pkg_id for smb runs - JCDS runs get it from the pkg upload
+        else:
+            pkg_id = ""
 
         # post the package (won't run if the pkg exists and replace_pkg is False)
         # process for SMB shares if defined
@@ -727,12 +741,15 @@ def main():
         # now process the package metadata if a category is supplied,
         # or if we are dealing with an SMB share
         if (args.category or smb_url) and not args.direct:
-            try:
-                pkg_id
+            if pkg_id:
+                if verbosity:
+                    print("Updating package metadata for {}".format(pkg_id))
                 update_pkg_metadata(
                     jamf_url, enc_creds, pkg_name, args.category, verbosity, pkg_id
                 )
-            except UnboundLocalError:
+            else:
+                if verbosity:
+                    print("Creating package metadata")
                 update_pkg_metadata(
                     jamf_url, enc_creds, pkg_name, args.category, verbosity
                 )
