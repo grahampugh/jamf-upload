@@ -18,7 +18,8 @@ def get_credentials(prefs_file):
             else:
                 prefs = plistlib.load(pl)
 
-    if prefs_file.endswith('.json'):
+    read_as_json = ( '.json', '.env' )
+    if list(filter(prefs_file.endswith, read_as_json)) != []:
         with open(prefs_file) as js:
             prefs = json.load(js)
 

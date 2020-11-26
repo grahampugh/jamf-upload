@@ -312,17 +312,20 @@ def main():
                         )
 
                         name = generic_info['general']['name']
+
+                        breakpoint()
+
                         try:
                             groups = generic_info['scope']['computer_groups'][0]['name']
                         except:
-                            groups = ''
+                            groups = 'no scope assoc'
                         try:
-                            pkg = generic_info['package_configuration']['packages']['package']['name']
+                            pkg = generic_info['package_configuration']['packages'][0]['name']
                         except:
                             pkg = 'no pkg. assoc'
 
                         # now show all the policies as each category loops
-                        print("policy {} --- {} -------------------->{}".format(x["id"], x["name"], groups))
+                        print("policy {} --- {} ---- {} --------------->{}".format(x["id"], x["name"], pkg, groups))
         else:
             print("something went wrong: no categories found.")
 
