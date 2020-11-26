@@ -35,9 +35,7 @@ from jamf_upload_lib import actions, api_connect, api_get, curl
 
 
 def delete(id, jamf_url, enc_creds, verbosity):
-    """check if a policy with the same name exists in the repo
-    note that it is possible to have more than one with the same name
-    which could mess things up"""
+    """deletes a policy by obtained or set id"""
     url = "{}/JSSResource/policies/id/{}".format(jamf_url, id)
 
     count = 0
@@ -66,6 +64,12 @@ def get_args():
     """Parse any command line arguments"""
     parser = argparse.ArgumentParser()
 
+    group = parser.add_mutually_exclusive_group(required=True)
+    group.add_argument('--computer', action='store_false', dest='computers', default=[])
+    group.add_argument('--policy', action='store_true')
+    group.add_argument('--group', action='store_false')
+    group.add_argument('--ea', action='store_false')
+   
     parser.add_argument(
         "-n",
         "--name",
@@ -75,18 +79,9 @@ def get_args():
         help=("Give a policy name to delete. Multiple allowed."),
     )
     parser.add_argument(
-        "-c",
-        "--computer",
-        action="append",
-        dest="computers",
-        default=[],
-        nargs='?',
-        help=("Feed me a computer id or id's please.")
-    )
-    parser.add_argument(
         "--computerversion",
-        help=("Feed me a computer version please.")
-    )    
+        help=("Feed me a computer version please. Requires --computer")
+    )
     parser.add_argument(
         "--search",
         action="append",
@@ -168,6 +163,10 @@ def main():
             exit()
 
     if args.computers:
+        # TODO: make this feature
+        if search:
+            pass
+
         recent_computers = [] # we'll need this later
         old_computers = []
 
@@ -188,7 +187,6 @@ def main():
         else:
             computers = args.computers
 
-        # TODO: make this work 
         computerversion = args.computerversion
 
         if computerversion:
@@ -255,7 +253,7 @@ def main():
             print(bcolors.FAIL + x + bcolors.ENDC)
 
         if computerversion:
-            # eventually slack api this number to a channel
+            # you can slack api this number to a channel
             score = len(recent_computers) / (len(bad_computers) + len(recent_computers))
             score = "{:.2%}".format(score)
             slack_payload = str(f":hospital: update health: {score} - {len(bad_computers)} need to be fixed on {jamf_url} \n")
@@ -318,6 +316,10 @@ def main():
                             groups = generic_info['scope']['computer_groups'][0]['name']
                         except:
                             groups = ''
+                        try:
+                            pkg = generic_info['package_configuration']['packages']['package']['name']
+                        except:
+                            pkg = 'no pkg. assoc'
 
                         # now show all the policies as each category loops
                         print("policy {} --- {} -------------------->{}".format(x["id"], x["name"], groups))
