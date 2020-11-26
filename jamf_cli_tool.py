@@ -65,10 +65,10 @@ def get_args():
     parser = argparse.ArgumentParser()
 
     group = parser.add_mutually_exclusive_group(required=True)
-    group.add_argument('--computer', action='store_false', dest='computers', default=[])
-    group.add_argument('--policy', action='store_true')
-    group.add_argument('--group', action='store_false')
-    group.add_argument('--ea', action='store_false')
+    group.add_argument('--computers', action='store_true', dest='computer', default=[])
+    group.add_argument('--policies', action='store_true')
+    # TODO: group.add_argument('--group', action='store_false')
+    # TODO: group.add_argument('--ea', action='store_false')
    
     parser.add_argument(
         "-n",
@@ -162,10 +162,12 @@ def main():
             print(f"slack_webhook value error set it in your prefs file please")
             exit()
 
-    if args.computers:
+    if args.computer:
+        if not args.all:
+            exit('which computers? did you mean to add --all')
         # TODO: make this feature
-        if search:
-            pass
+        #if search:
+        #    pass
 
         recent_computers = [] # we'll need this later
         old_computers = []
@@ -276,90 +278,95 @@ def main():
         
         exit()
 
-    # LIST the policies 
-    if args.all:
-        # get all the categories
-        obj = api_get.check_api_finds_all(
-            jamf_url, "category_all", enc_creds, verbosity
-        )
+    # LIST the policies
+    if args.policies:
+        if args.search and args.all:
+            exit('syntax error use --search or --all not both')
+        if args.search:
+                query = args.search
 
-        if obj:
-            for x in obj:
-                # loop all the categories
-                print(bcolors.OKCYAN + "category {} --- {} ---------v".format(x["id"], x["name"]) + bcolors.ENDC)
-                obj = api_get.check_api_category_policies_from_name(
-                jamf_url, 
-                "category_all_items", 
-                x["id"], 
-                enc_creds, 
-                verbosity
+                obj = api_get.check_api_finds_all(
+                    jamf_url, "policy", enc_creds, verbosity
                 )
+
                 if obj:
-                    for x in obj:
-                        # loop all the policies
+                    # targets is the new list
+                    targets = []
+                    print("Searching {} Policies(s) on {}: To delete, obtain a matching query, then run with the delete flag".format(len(obj), jamf_url))
+                        
+                    for x in query:
+                        for obj_item in obj:
+                            # do the actual search
+                            if x in obj_item["name"]:
+                                targets.append(obj_item.copy())
 
-                        # gather interesting info for each policy via API
-                        # use a single call
-                        # general/name
-                        # scope/computer_groups  [0]['name']
-                        generic_info = api_get.get_api_obj_value_from_id(
-                            jamf_url,
-                            "policy",
-                            x["id"],
-                            "",
-                            enc_creds,
-                            verbosity
-                        )
+                    if len(targets) > 0:
+                        print("{} total matches".format(len(targets)))
+                        for target in targets:
+                            print("Alert: match found {}/{}".format(target["id"], target["name"]))                
+                            if args.delete:
+                                delete(target["id"], jamf_url, enc_creds, verbosity)
+                    else:
+                        for partial in query:
+                            print("No match found: {}".format(partial))
 
-                        name = generic_info['general']['name']
+        elif args.all:
+            # assumes --policy flag due to prior exit on another style
+            obj = api_get.check_api_finds_all(
+                jamf_url, "category_all", enc_creds, verbosity
+            )
 
-                        breakpoint()
+            if obj:
+                for x in obj:
+                    # loop all the categories
+                    print(bcolors.OKCYAN + "category {} --- {} ---------v".format(x["id"], x["name"]) + bcolors.ENDC)
+                    obj = api_get.check_api_category_policies_from_name(
+                    jamf_url, 
+                    "category_all_items", 
+                    x["id"], 
+                    enc_creds, 
+                    verbosity
+                    )
+                    if obj:
+                        for x in obj:
+                            # loop all the policies
 
-                        try:
-                            groups = generic_info['scope']['computer_groups'][0]['name']
-                        except:
-                            groups = 'no scope assoc'
-                        try:
-                            pkg = generic_info['package_configuration']['packages'][0]['name']
-                        except:
-                            pkg = 'no pkg. assoc'
+                            # gather interesting info for each policy via API
+                            # use a single call
+                            # general/name
+                            # scope/computer_groups  [0]['name']
+                            generic_info = api_get.get_api_obj_value_from_id(
+                                jamf_url,
+                                "policy",
+                                x["id"],
+                                "",
+                                enc_creds,
+                                verbosity
+                            )
 
-                        # now show all the policies as each category loops
-                        print("policy {} --- {} ---- {} --------------->{}".format(x["id"], x["name"], pkg, groups))
-        else:
-            print("something went wrong: no categories found.")
+                            name = generic_info['general']['name']
 
-        print(bcolors.OKGREEN + "all policies listed above.. program complete for {}".format(jamf_url)+ bcolors.ENDC)
-        exit
 
-    if args.search:
-        query = args.search
+                            try:
+                                groups = generic_info['scope']['computer_groups'][0]['name']
+                            except:
+                                groups = 'no scope assoc'
+                            try:
+                                pkg = generic_info['package_configuration']['packages'][0]['name']
+                            except:
+                                pkg = 'no pkg. assoc'
 
-        obj = api_get.check_api_finds_all(
-            jamf_url, "policy", enc_creds, verbosity
-        )
-
-        if obj:
-            # targets is the new list
-            targets = []
-            print("Searching {} Policies(s) on {}: To delete, obtain a matching query, then run with the delete flag".format(len(obj), jamf_url))
-                
-            for x in query:
-                for obj_item in obj:
-                    # do the actual search
-                    if x in obj_item["name"]:
-                        targets.append(obj_item.copy())
-
-            if len(targets) > 0:
-                print("{} total matches".format(len(targets)))
-                for target in targets:
-                    print("Alert: match found {}/{}".format(target["id"], target["name"]))                
-                    if args.delete:
-                        delete(target["id"], jamf_url, enc_creds, verbosity)
+                            # now show all the policies as each category loops
+                            print("policy {} --- {} ---- {} --------------->{}".format(x["id"], x["name"], pkg, groups))
             else:
-                for partial in query:
-                    print("No match found: {}".format(partial))
+                print("something went wrong: no categories found.")
 
+            print(bcolors.OKGREEN + "all policies listed above.. program complete for {}".format(jamf_url)+ bcolors.ENDC)
+            exit
+
+        else:
+            exit('syntax error: use --search or --all.')
+    
 
     # set a list of names either from the CLI for Category erase all
     if args.category:
