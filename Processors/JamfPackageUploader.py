@@ -544,7 +544,6 @@ class JamfPackageUploader(Processor):
                     # even if we don't upload a package, we still need to pass it on so that a policy processor can use it
                     self.env["pkg_name"] = self.pkg_name
                     self.env["pkg_uploaded"] = False
-                    return
 
         # now process the package metadata if specified
         if self.category or self.smb_url:
