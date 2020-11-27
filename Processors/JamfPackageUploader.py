@@ -52,7 +52,7 @@ class JamfPackageUploader(Processor):
             "previous pkg recipe/processor.",
             "default": "",
         },
-        "category": {
+        "pkg_category": {
             "required": False,
             "description": "Package category",
             "default": "",
@@ -369,7 +369,7 @@ class JamfPackageUploader(Processor):
         self.output(f"HTTP response: {r.status_code}", verbose_level=1)
         return r.output
 
-    def update_pkg_metadata(self, jamf_url, enc_creds, pkg_name, category, pkg_id=None):
+    def update_pkg_metadata(self, jamf_url, enc_creds, pkg_name, pkg_category, pkg_id=None):
         """Update package metadata. Currently only serves category"""
 
         # build the package record XML
@@ -377,7 +377,7 @@ class JamfPackageUploader(Processor):
             "<package>"
             + f"<name>{pkg_name}</name>"
             + f"<filename>{pkg_name}</filename>"
-            + f"<category>{category}</category>"
+            + f"<category>{pkg_category}</category>"
             + "</package>"
         )
         if pkg_id:
@@ -432,7 +432,7 @@ class JamfPackageUploader(Processor):
         if not self.pkg_name:
             self.pkg_name = os.path.basename(self.pkg_path)
         self.version = self.env.get("version")
-        self.category = self.env.get("category")
+        self.pkg_category = self.env.get("pkg_category")
         self.replace = self.env.get("replace_pkg")
         # handle setting replace in overrides
         if not self.replace or self.replace == "False":
@@ -545,20 +545,20 @@ class JamfPackageUploader(Processor):
                     self.env["pkg_uploaded"] = False
 
         # now process the package metadata if specified
-        if self.category or self.smb_url:
+        if self.pkg_category or self.smb_url:
             if pkg_id:
                 self.output(
                     "Updating package metadata for {}".format(pkg_id), verbose_level=1,
                 )
                 self.update_pkg_metadata(
-                    self.jamf_url, enc_creds, self.pkg_name, self.category, pkg_id
+                    self.jamf_url, enc_creds, self.pkg_name, self.pkg_category, pkg_id
                 )
             else:
                 self.output(
                     "Creating package metadata", verbose_level=1,
                 )
                 self.update_pkg_metadata(
-                    self.jamf_url, enc_creds, self.pkg_name, self.category
+                    self.jamf_url, enc_creds, self.pkg_name, self.pkg_category
                 )
         else:
             self.output(
@@ -575,7 +575,7 @@ class JamfPackageUploader(Processor):
                 "pkg_path": self.pkg_path,
                 "pkg_name": self.pkg_name,
                 "version": self.version,
-                "category": self.category,
+                "category": self.pkg_category,
             },
         }
 
