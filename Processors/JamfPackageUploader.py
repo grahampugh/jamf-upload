@@ -561,6 +561,10 @@ class JamfPackageUploader(Processor):
                 self.update_pkg_metadata(
                     self.jamf_url, enc_creds, self.pkg_name, self.category
                 )
+        else:
+            self.output(
+                "Not updating package metadata", verbose_level=1,
+            )
 
         # output the summary
         self.env["pkg_name"] = self.pkg_name
