@@ -401,7 +401,7 @@ class JamfPackageUploader(Processor):
             pkg_xml = self.write_temp_file(pkg_data)
             r = self.curl(method, url, enc_creds, pkg_xml)
             # check HTTP response
-            if self.status_check(r, "Package", pkg_name) == "break":
+            if self.status_check(r, "Package metadata", pkg_name) == "break":
                 break
             if count > 5:
                 self.output(
