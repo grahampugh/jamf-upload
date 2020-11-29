@@ -21,6 +21,7 @@ For usage, run jamf_pkg_upload.py --help
 import argparse
 import getpass
 import sys
+import hashlib
 import os
 import json
 import re
@@ -175,10 +176,12 @@ def post_pkg(pkg_name, pkg_path, jamf_url, enc_creds, obj_id, r_timeout, verbosi
         for header in existing_headers:
             if "APBALANCEID" in header:
                 cookie = header.split()[1].rstrip(";")
-                print("Existing cookie found: {}".format(cookie))
+                if verbosity > 1:
+                    print("Existing cookie found: {}".format(cookie))
                 cookies = cookie.split("=")
     except IOError:
-        print("No existing cookie found - starting new session")
+        if verbosity > 1:
+            print("No existing cookie found - starting new session")
 
     r = requests.post(
         url, data=files, headers=headers, cookies=cookies, timeout=r_timeout
@@ -231,17 +234,30 @@ def nscurl_pkg(pkg_name, pkg_path, jamf_url, enc_creds, obj_id, r_timeout, verbo
 
 
 def update_pkg_metadata(
-    jamf_url, enc_creds, pkg_name, category, verbosity, pkg_id=None
+    jamf_url, enc_creds, pkg_name, pkg_metadata, hash_value, verbosity, pkg_id=None
 ):
     """Update package metadata. Currently only serves category"""
 
+    if hash_value:
+        hash_type = 'SHA_512'
+    else:
+        hash_type = 'MD5'
+
     # build the package record XML
-    #  TODO add other package options
     pkg_data = (
         "<package>"
-        + "<name>{}</name>".format(pkg_name)
-        + "<filename>{}</filename>".format(pkg_name)
-        + "<category>{}</category>".format(category)
+        + f"<name>{pkg_name}</name>"
+        + f"<filename>{pkg_name}</filename>"
+        + f"<category>{pkg_metadata['category']}</category>"
+        + f"<info>{pkg_metadata['info']}</info>"
+        + f"<notes>{pkg_metadata['notes']}</notes>"
+        + f"<priority>{pkg_metadata['priority']}</priority>"
+        + f"<reboot_required>{pkg_metadata['reboot_required']}</reboot_required>"
+        + f"<required_processor>{pkg_metadata['required_processor']}</required_processor>"
+        + f"<os_requirement>{pkg_metadata['os_requirement']}</os_requirement>"
+        + f"<hash_type>{hash_type}</hash_type>"
+        + f"<hash_value>{hash_value}</hash_value>"
+        + f"<send_notification>{pkg_metadata['send_notification']}</send_notification>"
         + "</package>"
     )
 
@@ -391,12 +407,14 @@ def update_pkg_by_form(
     pkg_name,
     pkg_path,
     obj_id,
-    category_id="-1",
+    pkg_metadata,
     verbosity=0,
 ):
     """save the package using the web form, which should force JCDS into pending state."""
     # Create Package URL
     url = "{}/legacy/packages.html?id={}&o=c".format(jamf_url, str(obj_id))
+    # TODO - not all metadata fields are represented here - need to find out if 
+    # they can be added and if we can add the hash. Also if we could upload a manifest file.
     r = session.post(
         url,
         data={
@@ -406,15 +424,15 @@ def update_pkg_by_form(
             "lastSubTab": "null",
             "lastSubTabSet": "null",
             "name": pkg_name,
-            "categoryID": str(category_id),
+            "categoryID": str(pkg_metadata['category_id']),
             "fileName": pkg_name,
             "resetFIELD_MANIFEST_INPUT": "",
-            "info": "",
-            "notes": "",
-            "priority": "10",
+            "info": pkg_metadata['info'],
+            "notes": pkg_metadata['notes'],
+            "priority": pkg_metadata['priority'],
             "uninstall_disabled": "true",
-            "osRequirements": "",
-            "requiredProcessor": "None",
+            "osRequirements": pkg_metadata['os_requirement'],
+            "requiredProcessor": pkg_metadata['required_processor'],
             "switchWithPackageID": "-1",
             "action": "Save",
         },
@@ -469,7 +487,7 @@ def get_args():
         help="password of the user with the rights to upload a package",
     )
     parser.add_argument(
-        "--share",
+        "--smb_url",
         default="",
         help=(
             "Path to an SMB FileShare Distribution Point, in the form "
@@ -477,7 +495,7 @@ def get_args():
         ),
     )
     parser.add_argument(
-        "--shareuser",
+        "--smb_user",
         default="",
         help=(
             "a user with the rights to upload a package to the SMB FileShare "
@@ -485,7 +503,7 @@ def get_args():
         ),
     )
     parser.add_argument(
-        "--sharepass",
+        "--smb_pass",
         default="",
         help=(
             "password of the user with the rights to upload a package to the SMB "
@@ -493,10 +511,8 @@ def get_args():
         ),
     )
     parser.add_argument(
-        "--category", default="", help="a category to assign to the package",
-    )
-    parser.add_argument(
         "--timeout",
+        type=int,
         default="3600",
         help="set timeout in seconds for HTTP request for problematic packages",
     )
@@ -521,8 +537,51 @@ def get_args():
         default=0,
         help="print verbose output headers",
     )
+    # the following are for the package metadata
+    parser.add_argument(
+        "--category", default="", help="a category to assign to the package",
+    )
+    parser.add_argument(
+        "--info", default="", help="an info string to assign to the package",
+    )
+    parser.add_argument(
+        "--notes", default="", help="a notes string to assign to the package",
+    )
+    parser.add_argument(
+        "--reboot_required", help="Set if the package requires a restart", action="store_true",
+    )
+    parser.add_argument(
+        "--priority", type=int, choices=range(1, 21), default=10, help="a priority to assign to the package (default=10)",
+    )
+    parser.add_argument(
+        "--os_requirement", default="", help="an OS requirements string to assign to the package",
+    )
+    parser.add_argument(
+        "--required_processor", default="None", choices=['x86', 'None'], help="a required processor to assign to the package. Acceptable values are 'x86' or 'None'",
+    )
+    parser.add_argument(
+        "--send_notification", help="set to send a notification when the package is installed", action="store_true",
+    )
     args = parser.parse_args()
+    
+    if args.required_processor and args.required_processor != "x86" and args.required_processor != "None":
+        args.required_processor = "None"
+    if args.priority and args.priority < 1 or args.priority > 20:
+        parser.error("Acceptable priority range is 1-20")
+
     return args
+
+
+def sha512sum(filename):
+    """calculate the SHA512 hash of the package 
+    (see https://stackoverflow.com/a/44873382)"""
+    h = hashlib.sha512()
+    b = bytearray(128*1024)
+    mv = memoryview(b)
+    with open(filename, 'rb', buffering=0) as f:
+        for n in iter(lambda : f.readinto(mv), 0):
+            h.update(mv[:n])
+    return h.hexdigest()
 
 
 def main():
@@ -534,34 +593,46 @@ def main():
     args = get_args()
     verbosity = args.verbose
 
+    # create a dictionary of package metadata from the args
+    pkg_metadata = {
+        "category": args.category,
+        "info": args.info,
+        "notes": args.notes,
+        "reboot_required": args.reboot_required,
+        "priority": args.priority,
+        "os_requirement": args.os_requirement,
+        "required_processor": args.required_processor,
+        "send_notification": args.send_notification,
+    }
+
     # grab values from a prefs file if supplied
     jamf_url, jamf_user, jamf_password, enc_creds = api_connect.get_creds_from_args(
         args
     )
 
     if args.prefs:
-        smb_url, smb_user, smb_password = api_connect.get_smb_credentials(args.prefs)
+        smb_url, smb_user, smb_pass = api_connect.get_smb_credentials(args.prefs)
     else:
         smb_url = ""
         smb_user = ""
-        smb_password = ""
+        smb_pass = ""
 
     # repeat for optional SMB share (but must supply a share path to invoke this)
-    if args.share:
-        smb_url = args.share
-    if smb_url:
-        if args.shareuser:
-            smb_user = args.shareuser
-        elif not smb_user:
+    if args.smb_url:
+        smb_url = args.smb_url
+        if args.smb_user:
+            smb_user = args.smb_user
+        if not smb_user:
             smb_user = input(
                 "Enter a user with read/write permissions to {} : ".format(smb_url)
             )
-        if args.sharepass:
-            smb_password = args.sharepass
-        elif not smb_password:
-            smb_password = getpass.getpass(
-                "Enter the password for '{}' : ".format(smb_user)
-            )
+        if args.smb_pass:
+            smb_pass = args.smb_pass
+        if not smb_pass:
+            if not smb_pass:
+                smb_pass = getpass.getpass(
+                    "Enter the password for '{}' : ".format(smb_user)
+                )
 
     # get HTTP request timeout
     r_timeout = float(args.timeout)
@@ -589,6 +660,8 @@ def main():
         if not category_id:
             print("WARNING: Category not found!")
             category_id = "-1"
+        # add to the pkg_metadata dictionary
+        pkg_metadata['category_id'] = category_id
 
     # now process the list of packages
     for pkg_path in args.pkg:
@@ -598,6 +671,9 @@ def main():
         if os.path.isdir(pkg_path):
             pkg_path = zip_pkg_path(pkg_path)
             pkg_name += ".zip"
+
+        # calculate the SHA-512 hash of the package
+        sha512string = sha512sum(pkg_path)
 
         # check for existing package
         print("\nChecking '{}' on {}".format(pkg_name, jamf_url))
@@ -615,16 +691,16 @@ def main():
 
         # post the package (won't run if the pkg exists and replace_pkg is False)
         # process for SMB shares if defined
-        if smb_url:
+        if args.smb_url:
             # mount the share
-            mount_smb(smb_url, smb_user, smb_password, verbosity)
-            #  check for existing package
-            local_pkg = check_local_pkg(args.share, pkg_name, verbosity)
+            mount_smb(args.smb_url, args.smb_user, args.smb_pass, verbosity)
+            # check for existing package
+            local_pkg = check_local_pkg(args.smb_url, pkg_name, verbosity)
             if not local_pkg or replace_pkg:
                 # copy the file
-                copy_pkg(smb_url, pkg_path, pkg_name)
+                copy_pkg(args.smb_url, pkg_path, pkg_name)
             # unmount the share
-            umount_smb(smb_url)
+            umount_smb(args.smb_url)
 
         # otherwise process for cloud DP
         else:
@@ -659,7 +735,7 @@ def main():
                             pkg_name,
                             pkg_path,
                             obj_id,
-                            category_id,
+                            pkg_metadata,
                             verbosity,
                         )
                 # curl -> dbfileupload upload method option
@@ -740,18 +816,18 @@ def main():
 
         # now process the package metadata if a category is supplied,
         # or if we are dealing with an SMB share
-        if (args.category or smb_url) and not args.direct:
+        if not args.direct:
             if pkg_id:
                 if verbosity:
                     print("Updating package metadata for {}".format(pkg_id))
                 update_pkg_metadata(
-                    jamf_url, enc_creds, pkg_name, args.category, verbosity, pkg_id
+                    jamf_url, enc_creds, pkg_name, pkg_metadata, sha512string, verbosity, pkg_id
                 )
             else:
                 if verbosity:
                     print("Creating package metadata")
                 update_pkg_metadata(
-                    jamf_url, enc_creds, pkg_name, args.category, verbosity
+                    jamf_url, enc_creds, pkg_name, pkg_metadata, sha512string, verbosity
                 )
 
     print()

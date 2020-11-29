@@ -6,15 +6,16 @@ JamfComputerGroupUploader processor for uploading items to Jamf Pro using AutoPk
 
 """
 
-# import variables go here. Do not import unused modules
 import json
 import re
-import os.path
+import os
 import subprocess
 import uuid
+
 from collections import namedtuple
 from base64 import b64encode
 from pathlib import Path
+from shutil import rmtree
 from time import sleep
 from autopkglib import Processor, ProcessorError  # pylint: disable=import-error
 
@@ -62,15 +63,44 @@ class JamfComputerGroupUploader(Processor):
         },
     }
 
+    def write_json_file(self, data, tmp_dir="/tmp/jamf_upload"):
+        """dump some json to a temporary file"""
+        self.make_tmp_dir(tmp_dir)
+        tf = os.path.join(tmp_dir, f"jamf_upload_{str(uuid.uuid4())}.json")
+        with open(tf, "w") as fp:
+            json.dump(data, fp)
+        return tf
+
+    def write_temp_file(self, data, tmp_dir="/tmp/jamf_upload"):
+        """dump some text to a temporary file"""
+        self.make_tmp_dir(tmp_dir)
+        tf = os.path.join(tmp_dir, f"jamf_upload_{str(uuid.uuid4())}.txt")
+        with open(tf, "w") as fp:
+            fp.write(data)
+        return tf
+
+    def make_tmp_dir(self, tmp_dir="/tmp/jamf_upload"):
+        """make the tmp directory"""
+        if not os.path.exists(tmp_dir):
+            os.mkdir(tmp_dir)
+        return tmp_dir
+
+    def clear_tmp_dir(self, tmp_dir="/tmp/jamf_upload"):
+        """remove the tmp directory"""
+        if os.path.exists(tmp_dir):
+            rmtree(tmp_dir)
+        return tmp_dir
+
     def curl(self, method, url, auth, data="", additional_headers=""):
         """
         build a curl command based on method (GET, PUT, POST, DELETE)
         If the URL contains 'uapi' then token should be passed to the auth variable, 
         otherwise the enc_creds variable should be passed to the auth variable
         """
-        headers_file = "/tmp/curl_headers_from_jamf_upload.txt"
-        output_file = "/tmp/curl_output_from_jamf_upload.txt"
-        cookie_jar = "/tmp/curl_cookies_from_jamf_upload.txt"
+        tmp_dir = self.make_tmp_dir()
+        headers_file = os.path.join(tmp_dir, "curl_headers_from_jamf_upload.txt")
+        output_file = os.path.join(tmp_dir, "curl_output_from_jamf_upload.txt")
+        cookie_jar = os.path.join(tmp_dir, "curl_cookies_from_jamf_upload.txt")
 
         # build the curl command
         curl_cmd = [
@@ -161,20 +191,6 @@ class JamfComputerGroupUploader(Processor):
             return r
         except IOError:
             raise ProcessorError(f"WARNING: {headers_file} not found")
-
-    def write_json_file(self, data):
-        """dump some json to a temporary file"""
-        tf = os.path.join("/tmp", str(uuid.uuid4()))
-        with open(tf, "w") as fp:
-            json.dump(data, fp)
-        return tf
-
-    def write_temp_file(self, data):
-        """dump some text to a temporary file"""
-        tf = os.path.join("/tmp", str(uuid.uuid4()))
-        with open(tf, "w") as fp:
-            fp.write(data)
-        return tf
 
     def status_check(self, r, endpoint_type, obj_name):
         """Return a message dependent on the HTTP response"""
@@ -337,8 +353,7 @@ class JamfComputerGroupUploader(Processor):
             sleep(30)
 
         # clean up temp files
-        if os.path.exists(template_xml):
-            os.remove(template_xml)
+        self.clear_tmp_dir()
 
     def main(self):
         """Do the main thing here"""

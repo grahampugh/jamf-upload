@@ -11,9 +11,9 @@ Developed from an idea posted at
 
 import sys
 import os
+import hashlib
 import json
 import base64
-import os.path
 import subprocess
 import uuid
 import plistlib
@@ -22,7 +22,7 @@ import xml.etree.ElementTree as ElementTree
 from collections import namedtuple
 from time import sleep
 from zipfile import ZipFile, ZIP_DEFLATED
-from shutil import copyfile
+from shutil import copyfile, rmtree
 from urllib.parse import urlparse, quote
 from autopkglib import Processor, ProcessorError  # pylint: disable=import-error
 
@@ -55,6 +55,41 @@ class JamfPackageUploader(Processor):
         "pkg_category": {
             "required": False,
             "description": "Package category",
+            "default": "",
+        },
+        "pkg_info": {
+            "required": False,
+            "description": "Package info field",
+            "default": "",
+        },
+        "pkg_notes": {
+            "required": False,
+            "description": "Package notes field",
+            "default": "",
+        },
+        "pkg_priority": {
+            "required": False,
+            "description": "Package priority. Default=10",
+            "default": "10",
+        },
+        "reboot_required": {
+            "required": False,
+            "description": "Whether a package requires a reboot after installation. Default='False'",
+            "default": "",
+        },
+        "os_requirement": {
+            "required": False,
+            "description": "Package OS requirement",
+            "default": "",
+        },
+        "required_processor": {
+            "required": False,
+            "description": "Package required processor. Acceptable values are 'x86' or 'None'",
+            "default": "None",
+        },
+        "send_notification": {
+            "required": False,
+            "description": "Whether to send a notification when a package is installed. Default='False'",
             "default": "",
         },
         "replace_pkg": {
@@ -122,15 +157,44 @@ class JamfPackageUploader(Processor):
 
     description = __doc__
 
+    def write_json_file(self, data, tmp_dir="/tmp/jamf_upload"):
+        """dump some json to a temporary file"""
+        self.make_tmp_dir(tmp_dir)
+        tf = os.path.join(tmp_dir, f"jamf_upload_{str(uuid.uuid4())}.json")
+        with open(tf, "w") as fp:
+            json.dump(data, fp)
+        return tf
+
+    def write_temp_file(self, data, tmp_dir="/tmp/jamf_upload"):
+        """dump some text to a temporary file"""
+        self.make_tmp_dir(tmp_dir)
+        tf = os.path.join(tmp_dir, f"jamf_upload_{str(uuid.uuid4())}.txt")
+        with open(tf, "w") as fp:
+            fp.write(data)
+        return tf
+
+    def make_tmp_dir(self, tmp_dir="/tmp/jamf_upload"):
+        """make the tmp directory"""
+        if not os.path.exists(tmp_dir):
+            os.mkdir(tmp_dir)
+        return tmp_dir
+
+    def clear_tmp_dir(self, tmp_dir="/tmp/jamf_upload"):
+        """remove the tmp directory"""
+        if os.path.exists(tmp_dir):
+            rmtree(tmp_dir)
+        return tmp_dir
+
     def curl(self, method, url, auth, data="", additional_headers=""):
         """
         build a curl command based on method (GET, PUT, POST, DELETE)
         If the URL contains 'uapi' then token should be passed to the auth variable, 
         otherwise the enc_creds variable should be passed to the auth variable
         """
-        headers_file = "/tmp/curl_headers_from_jamf_upload.txt"
-        output_file = "/tmp/curl_output_from_jamf_upload.txt"
-        cookie_jar = "/tmp/curl_cookies_from_jamf_upload.txt"
+        tmp_dir = self.make_tmp_dir()
+        headers_file = os.path.join(tmp_dir, "curl_headers_from_jamf_upload.txt")
+        output_file = os.path.join(tmp_dir, "curl_output_from_jamf_upload.txt")
+        cookie_jar = os.path.join(tmp_dir, "curl_cookies_from_jamf_upload.txt")
 
         # build the curl command
         curl_cmd = [
@@ -222,19 +286,16 @@ class JamfPackageUploader(Processor):
         except IOError:
             raise ProcessorError(f"WARNING: {headers_file} not found")
 
-    def write_json_file(self, data):
-        """dump some json to a temporary file"""
-        tf = os.path.join("/tmp", str(uuid.uuid4()))
-        with open(tf, "w") as fp:
-            json.dump(data, fp)
-        return tf
-
-    def write_temp_file(self, data):
-        """dump some text to a temporary file"""
-        tf = os.path.join("/tmp", str(uuid.uuid4()))
-        with open(tf, "w") as fp:
-            fp.write(data)
-        return tf
+    def sha512sum(self, filename):
+        """calculate the SHA512 hash of the package 
+        (see https://stackoverflow.com/a/44873382)"""
+        h = hashlib.sha512()
+        b = bytearray(128*1024)
+        mv = memoryview(b)
+        with open(filename, 'rb', buffering=0) as f:
+            for n in iter(lambda : f.readinto(mv), 0):
+                h.update(mv[:n])
+        return h.hexdigest()
 
     def status_check(self, r, endpoint_type, obj_name):
         """Return a message dependent on the HTTP response"""
@@ -369,17 +430,32 @@ class JamfPackageUploader(Processor):
         self.output(f"HTTP response: {r.status_code}", verbose_level=1)
         return r.output
 
-    def update_pkg_metadata(self, jamf_url, enc_creds, pkg_name, pkg_category, pkg_id=None):
+    def update_pkg_metadata(self, jamf_url, enc_creds, pkg_name, pkg_metadata, hash_value, pkg_id=None):
         """Update package metadata. Currently only serves category"""
+
+        if hash_value:
+            hash_type = 'SHA_512'
+        else:
+            hash_type = 'MD5'
 
         # build the package record XML
         pkg_data = (
             "<package>"
             + f"<name>{pkg_name}</name>"
             + f"<filename>{pkg_name}</filename>"
-            + f"<category>{pkg_category}</category>"
+            + f"<category>{pkg_metadata['category']}</category>"
+            + f"<info>{pkg_metadata['info']}</info>"
+            + f"<notes>{pkg_metadata['notes']}</notes>"
+            + f"<priority>{pkg_metadata['priority']}</priority>"
+            + f"<reboot_required>{pkg_metadata['reboot_required']}</reboot_required>"
+            + f"<required_processor>{pkg_metadata['required_processor']}</required_processor>"
+            + f"<os_requirement>{pkg_metadata['os_requirement']}</os_requirement>"
+            + f"<hash_type>{hash_type}</hash_type>"
+            + f"<hash_value>{hash_value}</hash_value>"
+            + f"<send_notification>{pkg_metadata['send_notification']}</send_notification>"
             + "</package>"
         )
+
         if pkg_id:
             method = "PUT"
             url = f"{jamf_url}/JSSResource/packages/id/{pkg_id}"
@@ -414,8 +490,7 @@ class JamfPackageUploader(Processor):
             sleep(30)
 
         # clean up temp files
-        if os.path.exists(pkg_xml):
-            os.remove(pkg_xml)
+        self.clear_tmp_dir()
 
     def main(self):
         """Do the main thing here"""
@@ -432,7 +507,6 @@ class JamfPackageUploader(Processor):
         if not self.pkg_name:
             self.pkg_name = os.path.basename(self.pkg_path)
         self.version = self.env.get("version")
-        self.pkg_category = self.env.get("pkg_category")
         self.replace = self.env.get("replace_pkg")
         # handle setting replace in overrides
         if not self.replace or self.replace == "False":
@@ -447,6 +521,27 @@ class JamfPackageUploader(Processor):
         self.smb_url = self.env.get("SMB_URL")
         self.smb_user = self.env.get("SMB_USERNAME")
         self.smb_password = self.env.get("SMB_PASSWORD")
+
+        # create a dictionary of package metadata from the inputs
+        self.pkg_category = self.env.get("pkg_category")
+        self.reboot_required = self.env.get("reboot_required")
+        if not self.reboot_required or self.reboot_required == "False":
+            self.reboot_required = False
+        self.send_notification = self.env.get("send_notification")
+        if not self.send_notification or self.send_notification == "False":
+            self.send_notification = False
+
+        self.pkg_metadata = {
+            "category": self.env.get("pkg_category"),
+            "info": self.env.get("pkg_info"),
+            "notes": self.env.get("pkg_notes"),
+            "reboot_required": self.reboot_required,
+            "priority": self.env.get("pkg_priority"),
+            "os_requirement": self.env.get("os_requirement"),
+            "required_processor": self.env.get("required_processor"),
+            "send_notification": self.send_notification,
+        }
+
         # clear any pre-existing summary result
         if "jamfpackageuploader_summary_result" in self.env:
             del self.env["jamfpackageuploader_summary_result"]
@@ -460,6 +555,9 @@ class JamfPackageUploader(Processor):
         if os.path.isdir(self.pkg_path):
             self.pkg_path = self.zip_pkg_path(self.pkg_path)
             self.pkg_name += ".zip"
+
+        # calculate the SHA-512 hash of the package
+        self.sha512string = self.sha512sum(self.pkg_path)
 
         # now start the process of uploading the package
         self.output(f"Checking for existing '{self.pkg_name}' on {self.jamf_url}")
@@ -558,7 +656,7 @@ class JamfPackageUploader(Processor):
                     "Creating package metadata", verbose_level=1,
                 )
                 self.update_pkg_metadata(
-                    self.jamf_url, enc_creds, self.pkg_name, self.pkg_category
+                    self.jamf_url, enc_creds, self.pkg_name, self.pkg_metadata, self.sha512string
                 )
         else:
             self.output(
@@ -575,7 +673,7 @@ class JamfPackageUploader(Processor):
                 "pkg_path": self.pkg_path,
                 "pkg_name": self.pkg_name,
                 "version": self.version,
-                "category": self.pkg_category,
+                "category": self.pkg_metadata['pkg_category'],
             },
         }
 
