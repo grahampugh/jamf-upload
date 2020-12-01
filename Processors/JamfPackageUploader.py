@@ -649,7 +649,7 @@ class JamfPackageUploader(Processor):
                     "Updating package metadata for {}".format(pkg_id), verbose_level=1,
                 )
                 self.update_pkg_metadata(
-                    self.jamf_url, enc_creds, self.pkg_name, self.pkg_metadata, pkg_id
+                    self.jamf_url, enc_creds, self.pkg_name, self.pkg_metadata, self.sha512string, pkg_id
                 )
             else:
                 self.output(
