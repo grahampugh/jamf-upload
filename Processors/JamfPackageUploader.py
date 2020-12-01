@@ -674,7 +674,7 @@ class JamfPackageUploader(Processor):
                 "pkg_path": self.pkg_path,
                 "pkg_name": self.pkg_name,
                 "version": self.version,
-                "category": self.pkg_metadata['pkg_category'],
+                "category": self.pkg_category,
             },
         }
 
