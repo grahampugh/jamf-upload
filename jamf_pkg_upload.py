@@ -36,6 +36,7 @@ from base64 import b64encode
 from zipfile import ZipFile, ZIP_DEFLATED
 from time import sleep
 from urllib.parse import quote
+from xml.sax.saxutils import escape
 from shutil import copyfile
 
 from jamf_upload_lib import api_connect, api_get, actions, nscurl, curl
@@ -248,9 +249,9 @@ def update_pkg_metadata(
         "<package>"
         + f"<name>{pkg_name}</name>"
         + f"<filename>{pkg_name}</filename>"
-        + f"<category>{pkg_metadata['category']}</category>"
-        + f"<info>{pkg_metadata['info']}</info>"
-        + f"<notes>{pkg_metadata['notes']}</notes>"
+        + f"<category>{escape(pkg_metadata['category'])}</category>"
+        + f"<info>{escape(pkg_metadata['info'])}</info>"
+        + f"<notes>{escape(pkg_metadata['notes'])}</notes>"
         + f"<priority>{pkg_metadata['priority']}</priority>"
         + f"<reboot_required>{pkg_metadata['reboot_required']}</reboot_required>"
         + f"<required_processor>{pkg_metadata['required_processor']}</required_processor>"

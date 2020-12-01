@@ -24,6 +24,7 @@ from time import sleep
 from zipfile import ZipFile, ZIP_DEFLATED
 from shutil import copyfile, rmtree
 from urllib.parse import urlparse, quote
+from xml.sax.saxutils import escape
 from autopkglib import Processor, ProcessorError  # pylint: disable=import-error
 
 
@@ -443,9 +444,9 @@ class JamfPackageUploader(Processor):
             "<package>"
             + f"<name>{pkg_name}</name>"
             + f"<filename>{pkg_name}</filename>"
-            + f"<category>{pkg_metadata['category']}</category>"
-            + f"<info>{pkg_metadata['info']}</info>"
-            + f"<notes>{pkg_metadata['notes']}</notes>"
+            + f"<category>{escape(pkg_metadata['category'])}</category>"
+            + f"<info>{escape(pkg_metadata['info'])}</info>"
+            + f"<notes>{escape(pkg_metadata['notes'])}</notes>"
             + f"<priority>{pkg_metadata['priority']}</priority>"
             + f"<reboot_required>{pkg_metadata['reboot_required']}</reboot_required>"
             + f"<required_processor>{pkg_metadata['required_processor']}</required_processor>"
