@@ -3,7 +3,7 @@
 import re
 
 
-def substitute_assignable_keys(self, data, cli_custom_keys, verbosity):
+def substitute_assignable_keys(data, cli_custom_keys, verbosity):
     """substitutes any key in the inputted text using the %MY_KEY% nomenclature"""
     # whenever %MY_KEY% is found in a template, it is replaced with the assigned value of MY_KEY
     # do a triple-pass to ensure that all keys are substituted
