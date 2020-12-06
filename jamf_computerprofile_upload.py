@@ -4,24 +4,21 @@
 ** Jamf Computer Configuration Profile Upload Script
    by G Pugh
 
-Credentials can be supplied from the command line as arguments, or inputted, or 
-from an existing PLIST containing values for JSS_URL, API_USERNAME and API_PASSWORD, 
-for example an AutoPkg preferences file which has been configured for use with 
+Credentials can be supplied from the command line as arguments, or inputted, or
+from an existing PLIST containing values for JSS_URL, API_USERNAME and API_PASSWORD,
+for example an AutoPkg preferences file which has been configured for use with
 JSSImporter: ~/Library/Preferences/com.github.autopkg
 
 For usage, run jamf_computerprofile_upload.py --help
 """
 
 import argparse
-import json
 import os.path
 import plistlib
-import re
 import subprocess
-import sys
 import uuid
 from time import sleep
-from xml.sax.saxutils import escape, unescape
+from xml.sax.saxutils import escape
 
 from jamf_upload_lib import actions, api_connect, api_get, curl
 
@@ -140,8 +137,8 @@ def generate_uuid():
 
 
 def unsign_signed_mobileconfig(mobileconfig_plist, verbosity):
-    """checks if profile is signed. This is necessary because Jamf cannot upload a 
-    signed profile, so we either need to unsign it, or bail """
+    """checks if profile is signed. This is necessary because Jamf cannot
+    upload a signed profile, so we either need to unsign it, or bail """
     output_path = os.path.join("/tmp", str(uuid.uuid4()))
     cmd = [
         "/usr/bin/security",
@@ -206,6 +203,8 @@ def upload_mobileconfig(
         "uuid": "com.github.grahampugh.jamf-upload.{}".format(profile_uuid),
     }
 
+    # pylint is incorrectly stating that 'verbosity' has no value. So...
+    # pylint: disable=no-value-for-parameter
     template_contents = actions.substitute_assignable_keys(
         template_contents, replaceable_keys, verbosity
     )
@@ -340,7 +339,8 @@ def main():
     if verbosity > 2:
         print("Pass: {}".format(jamf_pass))
 
-    # if an unsigned mobileconfig file is supplied we can get the name, organization and description from it
+    # if an unsigned mobileconfig file is supplied we can get the name, organization and
+    # description from it
     if args.mobileconfig:
         print("mobileconfig file supplied: {}".format(args.mobileconfig))
         # check if the file is signed

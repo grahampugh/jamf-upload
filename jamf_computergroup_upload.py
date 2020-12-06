@@ -4,12 +4,12 @@
 ** Jamf Computer Group Upload Script
    by G Pugh
 
-Credentials can be supplied from the command line as arguments, or inputted, or 
-from an existing PLIST containing values for JSS_URL, API_USERNAME and API_PASSWORD, 
-for example an AutoPkg preferences file which has been configured for use with 
+Credentials can be supplied from the command line as arguments, or inputted, or
+from an existing PLIST containing values for JSS_URL, API_USERNAME and API_PASSWORD,
+for example an AutoPkg preferences file which has been configured for use with
 JSSImporter: ~/Library/Preferences/com.github.autopkg
 
-Note that criteria containing dependent computer groups can only be set if those groups 
+Note that criteria containing dependent computer groups can only be set if those groups
 already exist. This script will not create them. Ensure you script in a logical order
 to build up the dependencies in turn.
 
@@ -18,7 +18,6 @@ For usage, run jamf_computergroup_upload.py --help
 
 
 import argparse
-import json
 import os
 import re
 from time import sleep
@@ -188,6 +187,8 @@ def main():
         template_contents = file.read()
 
     # substitute user-assignable keys
+    # pylint is incorrectly stating that 'verbosity' has no value. So...
+    # pylint: disable=no-value-for-parameter
     template_contents = actions.substitute_assignable_keys(
         template_contents, cli_custom_keys, verbosity
     )

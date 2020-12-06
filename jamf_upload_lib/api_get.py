@@ -1,8 +1,6 @@
 #!/usr/bin/env python3
 
 import json
-import subprocess
-import sys  # temp
 from urllib.parse import quote
 
 from . import curl
@@ -16,7 +14,7 @@ def object_types(object_type):
         "package": "packages",
         "computer_group": "computergroups",
         "policy": "policies",
-        "category_all_items": "policies/category",        
+        "category_all_items": "policies/category",
         "category_all": "categories",
         "extension_attribute": "computerextensionattributes",
         "os_x_configuration_profile": "osxconfigurationprofiles",
@@ -27,14 +25,14 @@ def object_types(object_type):
 
 def object_list_types(object_type):
     """return a dictionary of jamf API objects and their corresponding URI names"""
-    # define the relationship between the object types and the xml key in a GET request of all objects
-    # we could make this shorter with some regex but I think this way is clearer
+    # define the relationship between the object types and the xml key in a GET request
+    # of all objects we could make this shorter with some regex but I think this way is clearer
     object_list_types = {
         "package": "packages",
         "computer_group": "computer_groups",
         "policy": "policies",
-        "category_all_items": "policies/category",        
-        "category_all": "categories",        
+        "category_all_items": "policies/category",
+        "category_all": "categories",
         "extension_attribute": "computer_extension_attributes",
         "os_x_configuration_profile": "os_x_configuration_profiles",
         "computer": "computers",
@@ -59,18 +57,16 @@ def get_uapi_obj_id_from_name(jamf_url, object_type, object_name, token, verbosi
                 obj_id = obj["id"]
         return obj_id
 
-# now there's a find all generic
-def check_api_finds_all(
-    jamf_url, object_type, enc_creds, verbosity
-):
-    """pass this string:policies to return all policies, pass string:categories_all for all categories"""
+
+def check_api_finds_all(jamf_url, object_type, enc_creds, verbosity):
+    """pass 'policies' to return all policies, pass 'categories_all' for all categories"""
 
     url = "{}/JSSResource/{}".format(jamf_url, object_types(object_type))
     r = curl.request("GET", url, enc_creds, verbosity)
 
     if r.status_code == 200:
         object_list = json.loads(r.output)
-        obj = object_list[object_types(object_type)]        
+        obj = object_list[object_types(object_type)]
         if verbosity > 3:
             print("\nAPI object raw output:")
             print(object_list)
@@ -81,17 +77,17 @@ def check_api_finds_all(
         return obj
 
 
-def check_api_category_policies_from_name(
-    jamf_url, object_type, object_name, enc_creds, verbosity
-):
+def get_policies_in_category(jamf_url, object_type, object_name, enc_creds, verbosity):
     """return all policies in a category"""
 
-    url = "{}/JSSResource/{}/{}".format(jamf_url, object_types(object_type), object_name)
+    url = "{}/JSSResource/{}/{}".format(
+        jamf_url, object_types(object_type), object_name
+    )
     r = curl.request("GET", url, enc_creds, verbosity)
 
     if r.status_code == 200:
         object_list = json.loads(r.output)
-        obj = object_list['policies']        
+        obj = object_list["policies"]
         if verbosity > 3:
             print("\nAPI object raw output:")
             print(object_list)
@@ -102,12 +98,10 @@ def check_api_category_policies_from_name(
         return obj
 
 
-def get_api_obj_id_from_name(
-    jamf_url, object_type, object_name, enc_creds, verbosity
-):
-    """returns an ID of a policy if it exists"""
+def get_api_obj_id_from_name(jamf_url, object_type, object_name, enc_creds, verbosity):
+    """returns an ID of an API object if it exists"""
 
-    url = "{}/JSSResource/{}".format(jamf_url, object_types(object_type))        
+    url = "{}/JSSResource/{}".format(jamf_url, object_types(object_type))
     r = curl.request("GET", url, enc_creds, verbosity)
 
     if r.status_code == 200:

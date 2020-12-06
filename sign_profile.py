@@ -4,19 +4,21 @@
 ** Jamf Computer Configuration Profile Signing Script
    by G Pugh
 
-This script can be used to sign a computer profile. It will look for a valid Apple Developer ID Application identity in the current keychain, or you can supply one via the command line.
+This script can be used to sign a computer profile. It will look for a valid
+Apple Developer ID Application identity in the current keychain,
+or you can supply one via the command line.
 
-If no output path is supplied, the outputted file will have the same name as the input file, but with .signed.mobileconfig as the suffix instead of .mobileconfig
+If no output path is supplied, the outputted file will have the same name as the input file,
+but with .signed.mobileconfig as the suffix instead of .mobileconfig.
 
-Note that signed profiles cannot be uploaded via the Jamf API. Signed profiles must therefore be manually uploaded using the Jamf Pro GUI Admin Console
+Note that signed profiles cannot be uploaded via the Jamf API. Signed profiles must
+therefore be manually uploaded using the Jamf Pro GUI Admin Console.
 
 For usage, run jamf_computerprofile_sign.py --help
 """
 
 import argparse
-import os.path
 import subprocess
-import uuid
 
 
 def find_developer_id(verbosity):

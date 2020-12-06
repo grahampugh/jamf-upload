@@ -44,4 +44,3 @@ def status_check(r, endpoint_type, obj_name):
         print(
             f"WARNING: {endpoint_type} '{obj_name}' upload failed with status code {r.status_code}"
         )
-

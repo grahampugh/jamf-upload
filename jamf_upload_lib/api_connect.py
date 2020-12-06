@@ -11,14 +11,14 @@ from . import curl
 
 def get_credentials(prefs_file):
     """return credentials from a prefs_file"""
-    if prefs_file.endswith('.plist'):
+    if prefs_file.endswith(".plist"):
         with open(prefs_file, "rb") as pl:
             if six.PY2:
                 prefs = plistlib.readPlist(pl)
             else:
                 prefs = plistlib.load(pl)
 
-    read_as_json = ( '.json', '.env' )
+    read_as_json = (".json", ".env")
     if list(filter(prefs_file.endswith, read_as_json)) != []:
         with open(prefs_file) as js:
             prefs = json.load(js)
@@ -38,7 +38,7 @@ def get_credentials(prefs_file):
     try:
         slack_webhook = prefs["SLACK_WEBHOOK"]
     except KeyError:
-        slack_webhook = ""        
+        slack_webhook = ""
     return jamf_url, jamf_user, jamf_password, slack_webhook
 
 
@@ -66,7 +66,8 @@ def get_smb_credentials(prefs_file):
 
 
 def encode_creds(jamf_user, jamf_password):
-    """encode the username and password into a basic auth b64 encoded string so that we can get the session token"""
+    """encode the username and password into a basic auth b64 encoded string so that we can
+    get the session token"""
     credentials = "{}:{}".format(jamf_user, jamf_password)
     if six.PY2:
         enc_creds = b64encode(credentials)
@@ -97,7 +98,9 @@ def get_uapi_token(jamf_url, enc_creds, verbosity):
 def get_creds_from_args(args):
     """call me directly - I return the all the creds and a hash of necesary ones too"""
     if args.prefs:
-        (jamf_url, jamf_user, jamf_password, slack_webhook) = get_credentials(args.prefs)
+        (jamf_url, jamf_user, jamf_password, slack_webhook) = get_credentials(
+            args.prefs
+        )
     else:
         jamf_url = ""
         jamf_user = ""
@@ -122,7 +125,8 @@ def get_creds_from_args(args):
             "Enter the password for '{}' : ".format(jamf_user)
         )
 
-    # encode the username and password into a basic auth b64 encoded string so that we can get the session token
+    # encode the username and password into a basic auth b64 encoded string so that we can
+    # get the session token
     enc_creds = encode_creds(jamf_user, jamf_password)
 
     return jamf_url, jamf_user, jamf_password, slack_webhook, enc_creds

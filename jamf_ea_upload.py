@@ -4,9 +4,9 @@
 ** Jamf Extension Attribute Upload Script
    by G Pugh
 
-Credentials can be supplied from the command line as arguments, or inputted, or 
-from an existing PLIST containing values for JSS_URL, API_USERNAME and API_PASSWORD, 
-for example an AutoPkg preferences file which has been configured for use with 
+Credentials can be supplied from the command line as arguments, or inputted, or
+from an existing PLIST containing values for JSS_URL, API_USERNAME and API_PASSWORD,
+for example an AutoPkg preferences file which has been configured for use with
 JSSImporter: ~/Library/Preferences/com.github.autopkg
 
 Note: this currently will only upload a script-based Extension Attribute
@@ -15,9 +15,7 @@ For usage, run jamf_ea_upload.py --help
 """
 
 import argparse
-import json
 import os
-import re
 from time import sleep
 from xml.sax.saxutils import escape
 
@@ -34,6 +32,8 @@ def upload_ea(
         script_contents = file.read()
 
     # substitute user-assignable keys
+    # pylint is incorrectly stating that 'verbosity' has no value. So...
+    # pylint: disable=no-value-for-parameter
     script_contents = actions.substitute_assignable_keys(
         script_contents, cli_custom_keys, verbosity
     )

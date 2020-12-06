@@ -9,9 +9,9 @@ https://www.jamf.com/jamf-nation/discussions/27869#responseChild166021
 
 Incorporates a method for uploading packages using the web UI's method thanks to @mosen
 
-Credentials can be supplied from the command line as arguments, or inputted, or 
-from an existing PLIST containing values for JSS_URL, API_USERNAME and API_PASSWORD, 
-for example an AutoPkg preferences file which has been configured for use with 
+Credentials can be supplied from the command line as arguments, or inputted, or
+from an existing PLIST containing values for JSS_URL, API_USERNAME and API_PASSWORD,
+for example an AutoPkg preferences file which has been configured for use with
 JSSImporter: ~/Library/Preferences/com.github.autopkg
 
 For usage, run jamf_pkg_upload.py --help
@@ -26,21 +26,19 @@ import json
 import re
 import math
 import io
-import plistlib
 import six
 import subprocess
 import xml.etree.ElementTree as ElementTree
 
-from base64 import b64encode
 from zipfile import ZipFile, ZIP_DEFLATED
 from time import sleep
 from urllib.parse import quote
 from shutil import copyfile
 
-from jamf_upload_lib import api_connect, api_get, actions, nscurl, curl
+from jamf_upload_lib import api_connect, api_get, nscurl, curl
 
 if six.PY2:
-    input = raw_input  # pylint: disable=E0602
+    input = raw_input  # pylint: disable=E0602  # noqa: F821
     from urlparse import urlparse  # pylint: disable=F0401
     from HTMLParser import HTMLParser  # pylint: disable=F0401
 
@@ -294,10 +292,9 @@ def login(
     return r, http
 
 
-def scrape_upload_token(
-    session, jamf_url, verbosity
-):  # type: (requests.Session, str, int) -> any
-    """Retrieve the packages page from the web UI session to scrape the JCDS endpoint and data upload token for this session. Note that the JCDS endpoint varies by region."""
+def scrape_upload_token(session, jamf_url, verbosity):
+    """Retrieve the packages page from the web UI session to scrape the JCDS endpoint
+    and data upload token for this session. Note that the JCDS endpoint varies by region."""
     url = "{}/legacy/packages.html?id=-1&o=c".format(jamf_url)
     r = session.get(url)
     if six.PY2:
@@ -447,7 +444,10 @@ def get_args():
     )
     parser.add_argument(
         "--direct",
-        help="use direct upload to JCDS (experimental, will not work if JCDS is not primary distribution point)",
+        help=(
+            "use direct upload to JCDS (experimental, will not work if JCDS is not "
+            "primary distribution point)"
+        ),
         action="store_true",
     )
     parser.add_argument(

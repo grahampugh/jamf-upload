@@ -10,7 +10,7 @@ from collections import namedtuple
 def request(method, url, auth, verbosity, data="", additional_headers=""):
     """
     build an nscurl command based on method (GET, PUT, POST, DELETE)
-    If the URL contains 'uapi' then token should be passed to the auth variable, 
+    If the URL contains 'uapi' then token should be passed to the auth variable,
     otherwise the enc_creds variable should be passed to the auth variable
     """
     headers_file = "/tmp/nscurl_headers_from_jamf_upload.txt"
@@ -120,4 +120,3 @@ def write_temp_file(data):
     with open(tf, "w") as fp:
         fp.write(data)
     return tf
-
