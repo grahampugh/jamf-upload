@@ -118,7 +118,7 @@ def upload_policy_icon(
     if not obj_id:
         # check for existing policy
         print("\nChecking '{}' on {}".format(policy_name, jamf_url))
-        obj_id = api_get.check_api_obj_id_from_name(
+        obj_id = api_get.get_api_obj_id_from_name(
             jamf_url, "policy", policy_name, enc_creds, verbosity
         )
         if not obj_id:
@@ -257,7 +257,7 @@ def main():
     verbosity = args.verbose
 
     # grab values from a prefs file if supplied
-    jamf_url, _, _, enc_creds = api_connect.get_creds_from_args(args)
+    jamf_url, _, _, _, enc_creds = api_connect.get_creds_from_args(args)
 
     # import policy template and replace any keys in the XML
     with open(args.template, "r") as file:
@@ -284,7 +284,7 @@ def main():
 
         # check for existing policy
         print("\nChecking '{}' on {}".format(policy_name, jamf_url))
-        obj_id = api_get.check_api_obj_id_from_name(
+        obj_id = api_get.get_api_obj_id_from_name(
             jamf_url, "policy", policy_name, enc_creds, verbosity
         )
         if obj_id:

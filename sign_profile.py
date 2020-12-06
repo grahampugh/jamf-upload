@@ -133,7 +133,7 @@ def main():
                     ".mobileconfig", f".{n}.mobileconfig"
                 )
 
-            # write the template to temp file
+            # sign the profile
             signed_profile = sign_profile(
                 profile_path, args.developer, args.output_path, verbosity
             )

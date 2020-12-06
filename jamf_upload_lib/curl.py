@@ -35,9 +35,24 @@ def request(method, url, auth, verbosity, data="", additional_headers=""):
     else:
         curl_cmd.extend(["--header", "authorization: Basic {}".format(auth)])
 
+
+
     # set either Accept or Content-Type depending on method
     if method == "GET" or method == "DELETE":
         curl_cmd.extend(["--header", "Accept: application/json"])
+    # build a Slack(tm) centric curl command create a webhook url on slack.com set variable to SLACK_WEBHOOK in your prefs file
+    elif method == "POST" and "hooks.slack.com" in url:
+
+        curl_cmd = [
+            "/usr/bin/curl",
+            "-X",
+            method,
+            "-H",
+            "Content-type: application/json",
+            "--data",
+            json.dumps(data),
+            url,
+        ]        
     # icon upload requires special method
     elif method == "POST" and "fileuploads" in url:
         curl_cmd.extend(["--header", "Content-type: multipart/form-data"])

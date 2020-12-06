@@ -181,7 +181,7 @@ def main():
     verbosity = args.verbose
 
     # grab values from a prefs file if supplied
-    jamf_url, _, _, enc_creds = api_connect.get_creds_from_args(args)
+    jamf_url, _, _, _, enc_creds = api_connect.get_creds_from_args(args)
 
     # import computer group from file and replace any keys in the XML
     with open(args.template, "r") as file:
@@ -208,7 +208,7 @@ def main():
 
         # check for existing group
         print("\nChecking '{}' on {}".format(computergroup_name, jamf_url))
-        obj_id = api_get.check_api_obj_id_from_name(
+        obj_id = api_get.get_api_obj_id_from_name(
             jamf_url, "computer_group", computergroup_name, enc_creds, verbosity
         )
         if obj_id:

@@ -149,7 +149,7 @@ def main():
     verbosity = args.verbose
 
     # grab values from a prefs file if supplied
-    jamf_url, _, _, enc_creds = api_connect.get_creds_from_args(args)
+    jamf_url, _, _, _, enc_creds = api_connect.get_creds_from_args(args)
 
     # now get the session token
     token = api_connect.get_uapi_token(jamf_url, enc_creds, verbosity)

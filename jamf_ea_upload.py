@@ -180,7 +180,7 @@ def main():
     verbosity = args.verbose
 
     # grab values from a prefs file if supplied
-    jamf_url, _, _, enc_creds = api_connect.get_creds_from_args(args)
+    jamf_url, _, _, _, enc_creds = api_connect.get_creds_from_args(args)
 
     if not args.script:
         script = input("Enter the full path to the script to upload: ")
@@ -190,7 +190,7 @@ def main():
     for ea_name in args.names:
         # check for existing Extension Attribute
         print("\nChecking '{}' on {}".format(ea_name, jamf_url))
-        obj_id = api_get.check_api_obj_id_from_name(
+        obj_id = api_get.get_api_obj_id_from_name(
             jamf_url, "extension_attribute", ea_name, enc_creds, verbosity
         )
         if obj_id:

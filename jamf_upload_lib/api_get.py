@@ -20,6 +20,7 @@ def object_types(object_type):
         "category_all": "categories",
         "extension_attribute": "computerextensionattributes",
         "os_x_configuration_profile": "osxconfigurationprofiles",
+        "computer": "computers",
     }
     return object_types[object_type]
 
@@ -36,6 +37,7 @@ def object_list_types(object_type):
         "category_all": "categories",        
         "extension_attribute": "computer_extension_attributes",
         "os_x_configuration_profile": "os_x_configuration_profiles",
+        "computer": "computers",
     }
     return object_list_types[object_type]
 
@@ -82,7 +84,7 @@ def check_api_finds_all(
 def check_api_category_policies_from_name(
     jamf_url, object_type, object_name, enc_creds, verbosity
 ):
-    """check if Classic API objects exist under the category on the server"""
+    """return all policies in a category"""
 
     url = "{}/JSSResource/{}/{}".format(jamf_url, object_types(object_type), object_name)
     r = curl.request("GET", url, enc_creds, verbosity)
@@ -100,10 +102,10 @@ def check_api_category_policies_from_name(
         return obj
 
 
-def check_api_obj_id_from_name(
+def get_api_obj_id_from_name(
     jamf_url, object_type, object_name, enc_creds, verbosity
 ):
-    """check if a Classic API object with the same name exists on the server"""
+    """returns an ID of a policy if it exists"""
 
     url = "{}/JSSResource/{}".format(jamf_url, object_types(object_type))        
     r = curl.request("GET", url, enc_creds, verbosity)
@@ -141,6 +143,7 @@ def get_api_obj_value_from_id(
         # convert an xpath to json
         xpath_list = obj_path.split("/")
         value = obj_content[object_type]
+
         for i in range(0, len(xpath_list)):
             if xpath_list[i]:
                 try:

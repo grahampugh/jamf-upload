@@ -413,7 +413,7 @@ def main():
 
     # check for existing Configuration Profile
     print("\nChecking '{}' on {}".format(mobileconfig_name, jamf_url))
-    obj_id = api_get.check_api_obj_id_from_name(
+    obj_id = api_get.get_api_obj_id_from_name(
         jamf_url, "os_x_configuration_profile", mobileconfig_name, enc_creds, verbosity
     )
     if obj_id:
