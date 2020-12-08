@@ -1,12 +1,18 @@
 #!/usr/bin/env python3
 
 import re
+from xml.sax.saxutils import escape
 
 
-def substitute_assignable_keys(self, data, cli_custom_keys, verbosity):
-    """substitutes any key in the inputted text using the %MY_KEY% nomenclature"""
-    # whenever %MY_KEY% is found in a template, it is replaced with the assigned value of MY_KEY
-    # do a triple-pass to ensure that all keys are substituted
+def substitute_assignable_keys(
+    self, data, cli_custom_keys, verbosity, xml_escape=False
+):
+    """substitutes any key in the inputted text using the %MY_KEY% nomenclature.
+    Whenever %MY_KEY% is found in the provided data, it is replaced with the assigned
+    value of MY_KEY. A five-times passa through is done to ensure that all keys are substituted.
+
+    Optionally, if the xml_escape key is set, the value is escaped for XML special characters.
+    This is designed primarily to account for ampersands in the substituted strings."""
     loop = 5
     while loop > 0:
         loop = loop - 1
@@ -18,12 +24,14 @@ def substitute_assignable_keys(self, data, cli_custom_keys, verbosity):
             if cli_custom_keys[found_key]:
                 if verbosity:
                     print(
-                        (
-                            f"Replacing any instances of '{found_key}' with",
-                            f"'{str(cli_custom_keys[found_key])}'",
-                        ),
+                        f"Replacing any instances of '{found_key}' with",
+                        f"'{str(cli_custom_keys[found_key])}'",
                     )
-                data = data.replace(f"%{found_key}%", cli_custom_keys[found_key])
+                if xml_escape:
+                    replacement_key = escape(cli_custom_keys[found_key])
+                else:
+                    replacement_key = cli_custom_keys[found_key]
+                data = data.replace(f"%{found_key}%", replacement_key)
             else:
                 print(f"WARNING: '{found_key}' has no replacement object!",)
     return data

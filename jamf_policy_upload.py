@@ -21,7 +21,9 @@ import argparse
 import os.path
 import re
 import xml.etree.ElementTree as ElementTree
+
 from time import sleep
+from xml.sax.saxutils import escape
 
 from jamf_upload_lib import actions, api_connect, api_get, curl
 
@@ -267,7 +269,7 @@ def main():
     # pylint is incorrectly stating that 'verbosity' has no value. So...
     # pylint: disable=no-value-for-parameter
     template_contents = actions.substitute_assignable_keys(
-        template_contents, cli_custom_keys, verbosity
+        template_contents, cli_custom_keys, verbosity, xml_escape=True
     )
 
     # set a list of names either from the CLI args or from the template if no arg provided
@@ -283,6 +285,9 @@ def main():
             template_contents = replace_policy_name(
                 policy_name, template_contents, verbosity
             )
+
+        #  all template processing has now been done so escape it for xml special characters
+        template_contents = escape(template_contents)
 
         # check for existing policy
         print("\nChecking '{}' on {}".format(policy_name, jamf_url))

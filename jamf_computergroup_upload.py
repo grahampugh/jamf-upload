@@ -190,7 +190,7 @@ def main():
     # pylint is incorrectly stating that 'verbosity' has no value. So...
     # pylint: disable=no-value-for-parameter
     template_contents = actions.substitute_assignable_keys(
-        template_contents, cli_custom_keys, verbosity
+        template_contents, cli_custom_keys, verbosity, xml_escape=True
     )
 
     #  set a list of names either from the CLI args or from the template if no arg provided
