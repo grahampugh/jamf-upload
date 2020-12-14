@@ -29,11 +29,11 @@ def find_developer_id(verbosity):
         if verbosity:
             print(output)
             print()
-        identities = output.splitlines()
+        identities = output.split(b'\n')
         developer = ""
         for identity in identities:
             if b"Developer ID Installer" in identity:
-                developer = output.split(b'"')[1].decode("utf-8")
+                developer = identity.split(b'"')[1].decode("utf-8")
                 break
         return developer
     if error:

@@ -133,7 +133,7 @@ dmypy.json
 .DS_Store
 
 # Visual Studio Code settings
-.vscode
+.vscode/*
 
 # temporary ignore for prospective projects
 jamf_signed_computerprofile_upload.py
