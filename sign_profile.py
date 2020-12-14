@@ -4,19 +4,21 @@
 ** Jamf Computer Configuration Profile Signing Script
    by G Pugh
 
-This script can be used to sign a computer profile. It will look for a valid Apple Developer ID Application identity in the current keychain, or you can supply one via the command line.
+This script can be used to sign a computer profile. It will look for a valid
+Apple Developer ID Application identity in the current keychain,
+or you can supply one via the command line.
 
-If no output path is supplied, the outputted file will have the same name as the input file, but with .signed.mobileconfig as the suffix instead of .mobileconfig
+If no output path is supplied, the outputted file will have the same name as the input file,
+but with .signed.mobileconfig as the suffix instead of .mobileconfig.
 
-Note that signed profiles cannot be uploaded via the Jamf API. Signed profiles must therefore be manually uploaded using the Jamf Pro GUI Admin Console
+Note that signed profiles cannot be uploaded via the Jamf API. Signed profiles must
+therefore be manually uploaded using the Jamf Pro GUI Admin Console.
 
 For usage, run jamf_computerprofile_sign.py --help
 """
 
 import argparse
-import os.path
 import subprocess
-import uuid
 
 
 def find_developer_id(verbosity):
@@ -72,6 +74,42 @@ def sign_profile(unsigned_profile, developer_id, output_path, verbosity):
     return output_path
 
 
+def unsign_profile(signed_profile, output_path, verbosity):
+    """Unsign a profile."""
+    if not output_path:
+        if ".signed.mobileconfig" in signed_profile:
+            output_path = signed_profile.replace(
+                ".signed.mobileconfig", ".unsigned.mobileconfig"
+            )
+        else:
+            output_path = signed_profile.replace(
+                ".mobileconfig", ".unsigned.mobileconfig"
+            )
+    cmd = [
+        "/usr/bin/security",
+        "cms",
+        "-D",
+        "-i",
+        signed_profile,
+        "-o",
+        output_path,
+    ]
+    if verbosity:
+        print(cmd)
+        print()
+    proc = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    sout, serr = proc.communicate()
+    if verbosity:
+        if sout:
+            print(f"Output of signing command: {sout}")
+            print()
+        elif serr:
+            print("Error: Profile was not signed:")
+            print(serr)
+            print()
+    return output_path
+
+
 def get_args():
     """Parse any command line arguments"""
     parser = argparse.ArgumentParser()
@@ -80,6 +118,9 @@ def get_args():
     )
     parser.add_argument(
         "--output_path", default="", help="Output path for signed mobileconfig",
+    )
+    parser.add_argument(
+        "--unsign", help="Unsign cert instead of signing", action="store_true",
     )
     parser.add_argument(
         "--developer",
@@ -108,13 +149,28 @@ def main():
     )
     print(
         "The first run of this script in a session will most likely trigger "
-        "a keychain prompt.",
+        "a keychain prompt (except when using the --unsign option).",
         "\n",
     )
 
     # parse the command line arguments
     args = get_args()
     verbosity = args.verbose
+
+    # if the unsign flag is selected, we don't need to know about a developer.
+    if args.unsign:
+        n = 1
+        for profile_path in args.mobileconfig:
+            if n > 1 and args.output_path:
+                args.output_path = args.output_path.replace(
+                    ".mobileconfig", f".{n}.mobileconfig"
+                )
+
+            # unsign the profile
+            unsigned_profile = unsign_profile(profile_path, args.output_path, verbosity)
+            print(f"Path to unsigned profile {n}: {unsigned_profile}")
+            n = n + 1
+        return
 
     developer = find_developer_id(verbosity)
 

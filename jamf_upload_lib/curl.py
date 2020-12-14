@@ -11,7 +11,7 @@ from collections import namedtuple
 def request(method, url, auth, verbosity, data="", additional_headers=""):
     """
     build a curl command based on method (GET, PUT, POST, DELETE)
-    If the URL contains 'uapi' then token should be passed to the auth variable, 
+    If the URL contains 'uapi' then token should be passed to the auth variable,
     otherwise the enc_creds variable should be passed to the auth variable
     """
     tmp_dir = make_tmp_dir()
@@ -40,6 +40,19 @@ def request(method, url, auth, verbosity, data="", additional_headers=""):
     # set either Accept or Content-Type depending on method
     if method == "GET" or method == "DELETE":
         curl_cmd.extend(["--header", "Accept: application/json"])
+    elif method == "POST" and "hooks.slack.com" in url:
+        # build a Slack-centric curl command - create a webhook url on slack.com
+        # and set variable to SLACK_WEBHOOK in your prefs file
+        curl_cmd = [
+            "/usr/bin/curl",
+            "-X",
+            method,
+            "-H",
+            "Content-type: application/json",
+            "--data",
+            json.dumps(data),
+            url,
+        ]
     # icon upload requires special method
     elif method == "POST" and "fileuploads" in url:
         curl_cmd.extend(["--header", "Content-type: multipart/form-data"])
@@ -78,7 +91,7 @@ def request(method, url, auth, verbosity, data="", additional_headers=""):
                 if verbosity > 0:
                     print("Existing cookie found: {}".format(cookie))
                 curl_cmd.extend(["--cookie", cookie])
-            
+
     except IOError:
         print("No existing cookie found - starting new session")
 

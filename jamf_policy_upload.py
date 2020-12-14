@@ -4,24 +4,26 @@
 ** Jamf Policy Upload Script
    by G Pugh
 
-Credentials can be supplied from the command line as arguments, or inputted, or 
-from an existing PLIST containing values for JSS_URL, API_USERNAME and API_PASSWORD, 
-for example an AutoPkg preferences file which has been configured for use with 
+Credentials can be supplied from the command line as arguments, or inputted, or
+from an existing PLIST containing values for JSS_URL, API_USERNAME and API_PASSWORD,
+for example an AutoPkg preferences file which has been configured for use with
 JSSImporter: ~/Library/Preferences/com.github.autopkg
 
-Note that a policy can only be uploaded if the dependencies within are present on the JSS. This includes categories (general and self-service), scripts and computer groups. Your workflow should ensure that these items have been uploaded before running this script.
+Note that a policy can only be uploaded if the dependencies within are present on the JSS.
+This includes categories (general and self-service), scripts and computer groups.
+Your workflow should ensure that these items have been uploaded before running this script.
 
 For usage, run jamf_policy_upload.py --help
 """
 
 
 import argparse
-import json
-import mimetypes
 import os.path
 import re
 import xml.etree.ElementTree as ElementTree
+
 from time import sleep
+from xml.sax.saxutils import escape
 
 from jamf_upload_lib import actions, api_connect, api_get, curl
 
@@ -118,7 +120,7 @@ def upload_policy_icon(
     if not obj_id:
         # check for existing policy
         print("\nChecking '{}' on {}".format(policy_name, jamf_url))
-        obj_id = api_get.check_api_obj_id_from_name(
+        obj_id = api_get.get_api_obj_id_from_name(
             jamf_url, "policy", policy_name, enc_creds, verbosity
         )
         if not obj_id:
@@ -257,15 +259,17 @@ def main():
     verbosity = args.verbose
 
     # grab values from a prefs file if supplied
-    jamf_url, _, _, enc_creds = api_connect.get_creds_from_args(args)
+    jamf_url, _, _, _, enc_creds = api_connect.get_creds_from_args(args)
 
     # import policy template and replace any keys in the XML
     with open(args.template, "r") as file:
         template_contents = file.read()
 
     # substitute user-assignable keys
+    # pylint is incorrectly stating that 'verbosity' has no value. So...
+    # pylint: disable=no-value-for-parameter
     template_contents = actions.substitute_assignable_keys(
-        template_contents, cli_custom_keys, verbosity
+        template_contents, cli_custom_keys, verbosity, xml_escape=True
     )
 
     # set a list of names either from the CLI args or from the template if no arg provided
@@ -282,9 +286,12 @@ def main():
                 policy_name, template_contents, verbosity
             )
 
+        #  all template processing has now been done so escape it for xml special characters
+        template_contents = escape(template_contents)
+
         # check for existing policy
         print("\nChecking '{}' on {}".format(policy_name, jamf_url))
-        obj_id = api_get.check_api_obj_id_from_name(
+        obj_id = api_get.get_api_obj_id_from_name(
             jamf_url, "policy", policy_name, enc_creds, verbosity
         )
         if obj_id:

@@ -4,9 +4,9 @@
 ** Jamf Category Upload Script
    by G Pugh
 
-Credentials can be supplied from the command line as arguments, or inputted, or 
-from an existing PLIST containing values for JSS_URL, API_USERNAME and API_PASSWORD, 
-for example an AutoPkg preferences file which has been configured for use with 
+Credentials can be supplied from the command line as arguments, or inputted, or
+from an existing PLIST containing values for JSS_URL, API_USERNAME and API_PASSWORD,
+for example an AutoPkg preferences file which has been configured for use with
 JSSImporter: ~/Library/Preferences/com.github.autopkg
 
 For usage, run jamf_category_upload.py --help
@@ -15,10 +15,9 @@ For usage, run jamf_category_upload.py --help
 
 import argparse
 import os
-import json
 from time import sleep
 
-from jamf_upload_lib import api_connect, api_get, actions, curl
+from jamf_upload_lib import api_connect, api_get, curl
 
 
 def upload_category(jamf_url, category_name, priority, verbosity, token, obj_id=0):
@@ -149,7 +148,7 @@ def main():
     verbosity = args.verbose
 
     # grab values from a prefs file if supplied
-    jamf_url, _, _, enc_creds = api_connect.get_creds_from_args(args)
+    jamf_url, _, _, _, enc_creds = api_connect.get_creds_from_args(args)
 
     # now get the session token
     token = api_connect.get_uapi_token(jamf_url, enc_creds, verbosity)

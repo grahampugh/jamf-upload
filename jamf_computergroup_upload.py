@@ -4,12 +4,12 @@
 ** Jamf Computer Group Upload Script
    by G Pugh
 
-Credentials can be supplied from the command line as arguments, or inputted, or 
-from an existing PLIST containing values for JSS_URL, API_USERNAME and API_PASSWORD, 
-for example an AutoPkg preferences file which has been configured for use with 
+Credentials can be supplied from the command line as arguments, or inputted, or
+from an existing PLIST containing values for JSS_URL, API_USERNAME and API_PASSWORD,
+for example an AutoPkg preferences file which has been configured for use with
 JSSImporter: ~/Library/Preferences/com.github.autopkg
 
-Note that criteria containing dependent computer groups can only be set if those groups 
+Note that criteria containing dependent computer groups can only be set if those groups
 already exist. This script will not create them. Ensure you script in a logical order
 to build up the dependencies in turn.
 
@@ -18,7 +18,6 @@ For usage, run jamf_computergroup_upload.py --help
 
 
 import argparse
-import json
 import os
 import re
 from time import sleep
@@ -181,15 +180,17 @@ def main():
     verbosity = args.verbose
 
     # grab values from a prefs file if supplied
-    jamf_url, _, _, enc_creds = api_connect.get_creds_from_args(args)
+    jamf_url, _, _, _, enc_creds = api_connect.get_creds_from_args(args)
 
     # import computer group from file and replace any keys in the XML
     with open(args.template, "r") as file:
         template_contents = file.read()
 
     # substitute user-assignable keys
+    # pylint is incorrectly stating that 'verbosity' has no value. So...
+    # pylint: disable=no-value-for-parameter
     template_contents = actions.substitute_assignable_keys(
-        template_contents, cli_custom_keys, verbosity
+        template_contents, cli_custom_keys, verbosity, xml_escape=True
     )
 
     #  set a list of names either from the CLI args or from the template if no arg provided
@@ -208,7 +209,7 @@ def main():
 
         # check for existing group
         print("\nChecking '{}' on {}".format(computergroup_name, jamf_url))
-        obj_id = api_get.check_api_obj_id_from_name(
+        obj_id = api_get.get_api_obj_id_from_name(
             jamf_url, "computer_group", computergroup_name, enc_creds, verbosity
         )
         if obj_id:
