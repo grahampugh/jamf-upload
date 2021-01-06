@@ -331,7 +331,7 @@ def main():
     verbosity = args.verbose
 
     # grab values from a prefs file if supplied
-    jamf_url, jamf_user, jamf_pass, enc_creds = api_connect.get_creds_from_args(args)
+    jamf_url, jamf_user, jamf_pass, _, enc_creds = api_connect.get_creds_from_args(args)
 
     if verbosity > 1:
         print("URL: {}".format(jamf_url))
