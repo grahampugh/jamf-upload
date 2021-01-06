@@ -187,8 +187,6 @@ def main():
         template_contents = file.read()
 
     # substitute user-assignable keys
-    # pylint is incorrectly stating that 'verbosity' has no value. So...
-    # pylint: disable=no-value-for-parameter
     template_contents = actions.substitute_assignable_keys(
         template_contents, cli_custom_keys, verbosity, xml_escape=True
     )

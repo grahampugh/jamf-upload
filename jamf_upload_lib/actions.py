@@ -4,9 +4,7 @@ import re
 from xml.sax.saxutils import escape
 
 
-def substitute_assignable_keys(
-    self, data, cli_custom_keys, verbosity, xml_escape=False
-):
+def substitute_assignable_keys(data, cli_custom_keys, verbosity, xml_escape=False):
     """substitutes any key in the inputted text using the %MY_KEY% nomenclature.
     Whenever %MY_KEY% is found in the provided data, it is replaced with the assigned
     value of MY_KEY. A five-times passa through is done to ensure that all keys are substituted.

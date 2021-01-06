@@ -209,7 +209,7 @@ def upload_mobileconfig(
 
     # substitute user-assignable keys
     template_contents = actions.substitute_assignable_keys(
-        data=template_contents, cli_custom_keys=replaceable_keys, verbosity=verbosity
+        template_contents, replaceable_keys, verbosity
     )
 
     if verbosity > 2:
