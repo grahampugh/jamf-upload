@@ -375,6 +375,7 @@ def main():
             organization = mobileconfig_contents["PayloadOrganization"]
         except KeyError:
             organization = ""
+
     # otherwise we are dealing with a payload plist and we need a few other bits of info
     else:
         if not args.name:
@@ -387,6 +388,8 @@ def main():
             identifier = input("Enter the identifier of the custom payload to upload: ")
             args.identifier = identifier
         mobileconfig_name = args.name
+        description = ""
+        organization = ""
 
     # we provide a default template which has no category or scope
     if not args.template:
@@ -439,19 +442,22 @@ def main():
                 )
 
             # now upload the mobileconfig by generating an XML template
-            upload_mobileconfig(
-                jamf_url,
-                enc_creds,
-                mobileconfig_name,
-                args.description,
-                args.category,
-                mobileconfig_plist,
-                args.computergroup_name,
-                template_contents,
-                existing_uuid,
-                verbosity,
-                obj_id,
-            )
+            if mobileconfig_plist:
+                upload_mobileconfig(
+                    jamf_url,
+                    enc_creds,
+                    mobileconfig_name,
+                    args.description,
+                    args.category,
+                    mobileconfig_plist,
+                    args.computergroup_name,
+                    template_contents,
+                    existing_uuid,
+                    verbosity,
+                    obj_id,
+                )
+            else:
+                print("A mobileconfig was not generated so cannot upload.")
         else:
             print(
                 "Not replacing existing Configuration Profile. Use --replace to enforce."
@@ -477,18 +483,21 @@ def main():
             )
 
         # now upload the mobileconfig by generating an XML template
-        upload_mobileconfig(
-            jamf_url,
-            enc_creds,
-            mobileconfig_name,
-            args.description,
-            args.category,
-            mobileconfig_plist,
-            args.computergroup_name,
-            template_contents,
-            new_uuid,
-            verbosity,
-        )
+        if mobileconfig_plist:
+            upload_mobileconfig(
+                jamf_url,
+                enc_creds,
+                mobileconfig_name,
+                args.description,
+                args.category,
+                mobileconfig_plist,
+                args.computergroup_name,
+                template_contents,
+                new_uuid,
+                verbosity,
+            )
+        else:
+            print("A mobileconfig was not generated so cannot upload.")
 
     print()
 
