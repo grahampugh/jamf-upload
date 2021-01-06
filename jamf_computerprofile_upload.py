@@ -206,7 +206,7 @@ def upload_mobileconfig(
     # pylint is incorrectly stating that 'verbosity' has no value. So...
     # pylint: disable=no-value-for-parameter
     template_contents = actions.substitute_assignable_keys(
-        template_contents, replaceable_keys, verbosity
+        template_contents, replaceable_keys, verbosity, xml_escape=True
     )
 
     if verbosity > 2:
