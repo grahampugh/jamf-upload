@@ -207,10 +207,9 @@ def upload_mobileconfig(
         print("Replacing the following keys in the profile template:")
         print(replaceable_keys)
 
-    # pylint is incorrectly stating that 'verbosity' has no value. So...
-    # pylint: disable=no-value-for-parameter
+    # substitute user-assignable keys
     template_contents = actions.substitute_assignable_keys(
-        template_contents, replaceable_keys, verbosity, xml_escape=True
+        template_contents, replaceable_keys, verbosity=verbosity
     )
 
     if verbosity > 2:
