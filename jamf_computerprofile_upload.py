@@ -203,6 +203,10 @@ def upload_mobileconfig(
         "uuid": "com.github.grahampugh.jamf-upload.{}".format(profile_uuid),
     }
 
+    if verbosity > 2:
+        print("Replacing the following keys in the profile template:")
+        print(replaceable_keys)
+
     # pylint is incorrectly stating that 'verbosity' has no value. So...
     # pylint: disable=no-value-for-parameter
     template_contents = actions.substitute_assignable_keys(
