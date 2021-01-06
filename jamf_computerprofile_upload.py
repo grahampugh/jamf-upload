@@ -18,7 +18,6 @@ import plistlib
 import subprocess
 import uuid
 from time import sleep
-from xml.sax.saxutils import escape
 
 from jamf_upload_lib import actions, api_connect, api_get, curl
 
@@ -191,25 +190,20 @@ def upload_mobileconfig(
     mobileconfig_list = [x.strip("\t") for x in mobileconfig_list]
     mobileconfig_list = [x.strip(" ") for x in mobileconfig_list]
     mobileconfig = "".join(mobileconfig_list)
-    mobileconfig_plist_escaped = escape(mobileconfig)
 
     # substitute user-assignable keys
     replaceable_keys = {
         "mobileconfig_name": mobileconfig_name,
         "description": description,
         "category": category,
-        "payload": mobileconfig_plist_escaped,
+        "payload": mobileconfig,
         "computergroup_name": computergroup_name,
         "uuid": "com.github.grahampugh.jamf-upload.{}".format(profile_uuid),
     }
 
-    if verbosity > 2:
-        print("Replacing the following keys in the profile template:")
-        print(replaceable_keys)
-
-    # substitute user-assignable keys
+    # substitute user-assignable keys (escaping for XML)
     template_contents = actions.substitute_assignable_keys(
-        template_contents, replaceable_keys, verbosity
+        template_contents, replaceable_keys, verbosity, xml_escape=True
     )
 
     if verbosity > 2:
