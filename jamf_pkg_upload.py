@@ -607,7 +607,7 @@ def main():
     }
 
     # grab values from a prefs file if supplied
-    jamf_url, jamf_user, jamf_password, enc_creds = api_connect.get_creds_from_args(
+    jamf_url, jamf_user, jamf_password, slack_webhook, enc_creds = api_connect.get_creds_from_args(
         args
     )
 
