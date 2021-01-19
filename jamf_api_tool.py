@@ -17,7 +17,7 @@ import json
 
 from datetime import datetime
 
-from jamf_upload_lib import api_connect, api_get, api_delete, curl
+from jamf_upload_lib import api_connect, api_get, api_delete, curl, actions
 
 
 class bcolors:
@@ -116,6 +116,33 @@ def get_packages_in_patch_titles(jamf_url, enc_creds, verbosity):
             except IndexError:
                 pass
         return packages_in_titles
+
+
+def get_packages_in_prestages(jamf_url, enc_creds, token, verbosity):
+    """get a list of all packages in all PreStage Enrollments"""
+
+    # get all prestages
+    prestages = api_get.get_uapi_obj_list(
+        jamf_url, "computer-prestages", token, verbosity
+    )
+
+    # get all package objects from prestages and add to a list
+    if prestages:
+        packages_in_prestages = []
+        print(
+            "Please wait while we gather a list of all packages in all PreStage Enrollments "
+            f"(total {len(prestages)})..."
+        )
+        for x in range(len(prestages)):
+            pkg_ids = prestages[x]["customPackageIds"]
+            if len(pkg_ids) > 0:
+                for pkg_id in pkg_ids:
+                    pkg = api_get.get_api_obj_value_from_id(
+                        jamf_url, "package", pkg_id, "name", enc_creds, verbosity,
+                    )
+                    if pkg:
+                        packages_in_prestages.append(pkg)
+        return packages_in_prestages
 
 
 def get_args():
@@ -220,12 +247,6 @@ def get_args():
     return args
 
 
-def days_between(d1, d2):
-    d1 = datetime.strptime(d1, "%Y-%m-%d")
-    d2 = datetime.strptime(d2, "%Y-%m-%d")
-    return abs((d2 - d1).days)
-
-
 def main():
     """Do the main thing here"""
     print("\n** Jamf API Tool for Jamf Pro.\n")
@@ -236,6 +257,9 @@ def main():
 
     # grab values from a prefs file if supplied
     jamf_url, _, _, slack_webhook, enc_creds = api_connect.get_creds_from_args(args)
+
+    # now get the session token
+    token = api_connect.get_uapi_token(jamf_url, enc_creds, verbosity)
 
     if args.slack:
         if not slack_webhook:
@@ -406,11 +430,6 @@ def main():
                     if policies:
                         for policy in policies:
                             # loop all the policies
-
-                            # gather interesting info for each policy via API
-                            # use a single call
-                            # general/name
-                            # scope/computer_groups  [0]['name']
                             generic_info = api_get.get_api_obj_value_from_id(
                                 jamf_url,
                                 "policy",
@@ -500,25 +519,35 @@ def main():
 
     # packages block #####
     if args.packages:
-        unused_packages = []
-        used_packages = []
+        unused_packages = {}
+        used_packages = {}
         if args.unused:
             # get a list of packages
+            packages_in_prestages = get_packages_in_prestages(
+                jamf_url, enc_creds, token, verbosity
+            )
+            if verbosity > 1:
+                print("\nPackages in PreStage Enrollments:")
+                print(packages_in_prestages)
+
             packages_in_titles = get_packages_in_patch_titles(
                 jamf_url, enc_creds, verbosity
             )
-            if verbosity >= 1:
+            if verbosity > 1:
                 print("\nPackages in Patch Software Titles:")
                 print(packages_in_titles)
+
             packages_in_policies = get_packages_in_policies(
                 jamf_url, enc_creds, verbosity
             )
-            if verbosity >= 1:
+            if verbosity > 1:
                 print("\nPackages in Policies:")
                 print(packages_in_policies)
+
         else:
             packages_in_policies = []
             packages_in_titles = []
+            packages_in_prestages = []
 
         if args.all:
             packages = api_get.get_api_obj_list(
@@ -527,53 +556,87 @@ def main():
             if packages:
                 for package in packages:
                     # loop all the packages
-                    print(
-                        bcolors.WARNING
-                        + f"  package {package['id']}\n"
-                        + f"      name     : {package['name']}"
-                        + bcolors.ENDC
-                    )
-                    if args.details:
-                        # gather interesting info for each package via API
-                        generic_info = api_get.get_api_obj_value_from_id(
-                            jamf_url, "package", package["id"], "", enc_creds, verbosity
-                        )
-
-                        filename = generic_info["filename"]
-                        print(f"      filename : {filename}")
-                        category = generic_info["category"]
-                        if category and "No category assigned" not in category:
-                            print(f"      category : {category}")
-                        info = generic_info["info"]
-                        if info:
-                            print(f"      info     : {info}")
-                        notes = generic_info["notes"]
-                        if notes:
-                            print(f"      notes    : {notes}")
-                    elif args.unused:
+                    if args.unused:
                         # see if the package is in any policies
                         if (
                             package["name"] not in packages_in_policies
                             and package["name"] not in packages_in_titles
-                            and package["name"] not in unused_packages
+                            and package["name"] not in packages_in_prestages
                         ):
-                            unused_packages.append(package["name"])
+                            unused_packages[package["id"]] = package["name"]
                         elif package["name"] not in used_packages:
-                            used_packages.append(package["name"])
+                            used_packages[package["id"]] = package["name"]
+                    else:
+                        print(
+                            bcolors.WARNING
+                            + f"  package {package['id']}\n"
+                            + f"      name     : {package['name']}"
+                            + bcolors.ENDC
+                        )
+                        if args.details:
+                            # gather interesting info for each package via API
+                            generic_info = api_get.get_api_obj_value_from_id(
+                                jamf_url,
+                                "package",
+                                package["id"],
+                                "",
+                                enc_creds,
+                                verbosity,
+                            )
+
+                            filename = generic_info["filename"]
+                            print(f"      filename : {filename}")
+                            category = generic_info["category"]
+                            if category and "No category assigned" not in category:
+                                print(f"      category : {category}")
+                            info = generic_info["info"]
+                            if info:
+                                print(f"      info     : {info}")
+                            notes = generic_info["notes"]
+                            if notes:
+                                print(f"      notes    : {notes}")
                 if args.unused:
                     print(
-                        "\nThe following packages are found in at least one policy "
-                        "and/or patch title:\n"
+                        "\nThe following packages are found in at least one policy, "
+                        "PreStage Enrollment, and/or patch title:\n"
                     )
-                    for package in used_packages:
-                        print(bcolors.OKGREEN + package + bcolors.ENDC)
+                    for pkg_name in used_packages.values():
+                        print(bcolors.OKGREEN + pkg_name + bcolors.ENDC)
 
                     print(
-                        "\nThe following packages are not used in any policies "
-                        "or patch titles:\n"
+                        "\nThe following packages are not used in any policies, "
+                        "PreStage Enrollments, or patch titles:\n"
                     )
-                    for package in unused_packages:
-                        print(bcolors.FAIL + package + bcolors.ENDC)
+                    for pkg_name in unused_packages.values():
+                        print(bcolors.FAIL + pkg_name + bcolors.ENDC)
+
+                    if args.delete:
+                        print("\nconfirm to delete items:")
+                        if actions.confirm(
+                            prompt=(
+                                "Delete all unused policies"
+                                "\n(press n to go on to confirm individually)?"
+                            ),
+                            default=False,
+                        ):
+                            delete_all = True
+                        else:
+                            delete_all = False
+                        for pkg_id, pkg_name in unused_packages.items():
+                            # prompt to delete each package in turn
+                            if delete_all or actions.confirm(
+                                prompt=(
+                                    bcolors.OKBLUE
+                                    + f"Delete {pkg_name} (id={pkg_id})?"
+                                    + bcolors.ENDC
+                                ),
+                                default=False,
+                            ):
+                                print(f"Deleting {pkg_name}...")
+                                api_delete.delete(
+                                    jamf_url, "package", pkg_id, enc_creds, verbosity,
+                                )
+                                # TODO : delete package from SMB share too!
 
     # set a list of names either from the CLI for Category erase all
     if args.category:

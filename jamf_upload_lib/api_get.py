@@ -7,10 +7,27 @@ import xml.etree.ElementTree as ET
 from . import curl, api_objects
 
 
+def get_uapi_obj_list(jamf_url, object_type, token, verbosity):
+    """Return all items of a UAPI object"""
+    api_obj_version = api_objects.uapi_object_versions(object_type)
+    url = (
+        f"{jamf_url}/uapi/{api_obj_version}/{object_type}?page=0&page-size=1000&sort=id"
+        "%3Adesc"
+    )
+    r = curl.request("GET", url, token, verbosity)
+    if r.status_code == 200:
+        obj = r.output["results"]
+        if verbosity > 2:
+            print("\nAPI object list:")
+            print(obj)
+        return obj
+
+
 def get_uapi_obj_id_from_name(jamf_url, object_type, object_name, token, verbosity):
     """Get the UAPI object by name"""
+    api_obj_version = api_objects.uapi_object_versions(object_type)
     url = (
-        f"{jamf_url}/uapi/v1/{object_type}?page=0&page-size=1000&sort=id"
+        f"{jamf_url}/uapi/{api_obj_version}/{object_type}?page=0&page-size=1000&sort=id"
         f"&filter=name%3D%3D%22{quote(object_name)}%22"
     )
     r = curl.request("GET", url, token, verbosity)
@@ -26,7 +43,7 @@ def get_uapi_obj_id_from_name(jamf_url, object_type, object_name, token, verbosi
 
 
 def get_api_obj_list(jamf_url, object_type, enc_creds, verbosity):
-    """Return all items of an API object. Pass 'category_all' for all categories"""
+    """Return all items of an API object"""
 
     url = f"{jamf_url}/JSSResource/{api_objects.object_types(object_type)}"
     r = curl.request("GET", url, enc_creds, verbosity)

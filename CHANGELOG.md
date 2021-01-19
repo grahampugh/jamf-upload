@@ -34,11 +34,15 @@ I intend to add such functionality if changes are made to the Jamf Pro API so th
 
 - Examples in the `_tests` folder have been used for testing each script.
 
-- Added AutoPkg processors, `JamfScriptUploader.py`, `JamfCategoryUploader.py`, `JamfComputerGroupUploader.py`, `JamfExtensionAttributeUploader.py`, `JamfPackageUploader.py` and `JamfPolicyUploader.py`, which perform the same tasks as the standalone scripts. Unlike the standalone scripts, these are not designed to upoload multiple packages/policies etc in one process, but they can be called multiple times from withing an AutoPkg recipe to upload multiple objects in a single AutoPkg run. Due to the limitations of AutoPkg, these do not share common modules from this repo - instead, the functions are repeated in each Processor. This allows each Processor to be called independently without installing any dependencies.
-
 - Added various working `.jamf` recipes, and associated templates and Self Service icons.
 
 - Switched from using Python's `requests` package to using `curl` for most functions. This allows a cookie to be set which should maintain a session throughout all requests in an AutoPkg run. Only `jamf.pkg_upload.py` retains a `--requests` option to use `requests` for uploading a package, and the `--direct` method also currently requires the `requests` package to be present in your python3 environment. The default upload method does not require `requests`.
+
+- Added `jamf_api_tool.py` for performing bulk search and delete tasks on API objects. This includes a Spruce-like function for deleting unused packages.
+
+- Added `sign_pkg.py` which will sign a package.
+
+- Added `sign_profile.py` which will sign a mobileconfig file.
 
 ## [0.2.0] - 2020-07-24
 

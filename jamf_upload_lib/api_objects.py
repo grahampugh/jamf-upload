@@ -33,3 +33,15 @@ def object_list_types(object_type):
         "patch_software_title": "patch_software_titles",
     }
     return object_list_types[object_type]
+
+
+def uapi_object_versions(object_type):
+    """Return the version for a Jamf UAPI object"""
+    # UAPI objects go through different versions, this needs to be known to construct
+    # a URL
+    object_versions = {
+        "categories": "v1",
+        "computer-prestages": "v2",
+        "scripts": "v1",
+    }
+    return object_versions[object_type]
