@@ -8,7 +8,7 @@ from shutil import rmtree
 from collections import namedtuple
 
 
-def request(method, url, auth, verbosity, data="", additional_headers=""):
+def request(method, url, auth, verbosity, data="", additional_headers="", xml=False):
     """
     build a curl command based on method (GET, PUT, POST, DELETE)
     If the URL contains 'uapi' then token should be passed to the auth variable,
@@ -39,7 +39,10 @@ def request(method, url, auth, verbosity, data="", additional_headers=""):
 
     # set either Accept or Content-Type depending on method
     if method == "GET" or method == "DELETE":
-        curl_cmd.extend(["--header", "Accept: application/json"])
+        if xml:
+            curl_cmd.extend(["--header", "Accept: application/xml"])
+        else:
+            curl_cmd.extend(["--header", "Accept: application/json"])
     elif method == "POST" and "hooks.slack.com" in url:
         # build a Slack-centric curl command - create a webhook url on slack.com
         # and set variable to SLACK_WEBHOOK in your prefs file

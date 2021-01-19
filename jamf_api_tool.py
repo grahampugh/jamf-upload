@@ -13,11 +13,11 @@ For usage, run jamf_api_tool.py --help
 
 
 import argparse
+import json
 
-from time import sleep
 from datetime import datetime
 
-from jamf_upload_lib import api_connect, api_get, curl
+from jamf_upload_lib import api_connect, api_get, api_delete, curl
 
 
 class bcolors:
@@ -32,32 +32,90 @@ class bcolors:
     UNDERLINE = "\033[4m"
 
 
-def delete(id, jamf_url, enc_creds, verbosity):
-    """deletes a policy by obtained or set id"""
-    url = "{}/JSSResource/policies/id/{}".format(jamf_url, id)
+def get_policies_in_category(jamf_url, object_name, enc_creds, verbosity):
+    """return all policies in a category"""
 
-    count = 0
-    while True:
-        count += 1
-        if verbosity > 1:
-            print("Policy delete attempt {}".format(count))
-        request_type = "DELETE"
-        r = curl.request(request_type, url, enc_creds, verbosity)
-        # check HTTP response
-        if curl.status_check(r, "Policy", id, request_type) == "break":
-            break
-        if count > 5:
-            print("WARNING: Policy delete did not succeed after 5 attempts")
-            print("\nHTTP POST Response Code: {}".format(r.status_code))
-            break
-        sleep(30)
+    url = f"{jamf_url}/JSSResource/policies/category/{object_name}"
+    r = curl.request("GET", url, enc_creds, verbosity)
 
-    if verbosity > 1:
-        api_get.get_headers(r)
+    if r.status_code == 200:
+        object_list = json.loads(r.output)
+        obj = object_list["policies"]
+        if verbosity > 3:
+            print("\nAPI object raw output:")
+            print(object_list)
+
+        if verbosity > 2:
+            print("\nAPI object list:")
+            print(obj)
+        return obj
 
 
-def for_partial():
-    pass
+def get_packages_in_policies(jamf_url, enc_creds, verbosity):
+    """get a list of all packages in all policies"""
+
+    # get all policies
+    policies = api_get.get_api_obj_list(jamf_url, "policy", enc_creds, verbosity)
+
+    # get all package objects from policies and add to a list
+    if policies:
+        # define a new list
+        packages_in_policies = []
+        print(
+            "Please wait while we gather a list of all packages in all policies "
+            f"(total {len(policies)})..."
+        )
+        for policy in policies:
+            generic_info = api_get.get_api_obj_value_from_id(
+                jamf_url, "policy", policy["id"], "", enc_creds, verbosity
+            )
+            try:
+                pkgs = generic_info["package_configuration"]["packages"]
+                for x in pkgs:
+                    pkg = x["name"]
+                    packages_in_policies.append(pkg)
+            except IndexError:
+                pass
+        return packages_in_policies
+
+
+def get_packages_in_patch_titles(jamf_url, enc_creds, verbosity):
+    """get a list of all packages in all patch software titles"""
+
+    # get all patch software titles
+    titles = api_get.get_api_obj_list(
+        jamf_url, "patch_software_title", enc_creds, verbosity
+    )
+
+    # get all package objects from patch titles and add to a list
+    if titles:
+        # define a new list
+        packages_in_titles = []
+        print(
+            "Please wait while we gather a list of all packages in all patch titles "
+            f"(total {len(titles)})..."
+        )
+        for title in titles:
+            versions = api_get.get_api_obj_value_from_id(
+                jamf_url,
+                "patch_software_title",
+                title["id"],
+                "versions",
+                enc_creds,
+                verbosity,
+            )
+            try:
+                if len(versions) > 0:
+                    for x in range(len(versions)):
+                        try:
+                            pkg = versions[x]["package"]["name"]
+                            if pkg and pkg != "None":
+                                packages_in_titles.append(pkg)
+                        except IndexError:
+                            pass
+            except IndexError:
+                pass
+        return packages_in_titles
 
 
 def get_args():
@@ -67,6 +125,7 @@ def get_args():
     group = parser.add_mutually_exclusive_group(required=True)
     group.add_argument("--computers", action="store_true", dest="computer", default=[])
     group.add_argument("--policies", action="store_true")
+    group.add_argument("--packages", action="store_true")
     # TODO: group.add_argument('--group', action='store_false')
     # TODO: group.add_argument('--ea', action='store_false')
 
@@ -100,6 +159,16 @@ def get_args():
             "List all policies in given category. Delete available in "
             "conjunction with --delete."
         ),
+    )
+    parser.add_argument(
+        "--details",
+        help="Must be used with another search argument.",
+        action="store_true",
+    )
+    parser.add_argument(
+        "--unused",
+        help="Must be used with another search argument.",
+        action="store_true",
     )
     parser.add_argument(
         "--delete",
@@ -187,9 +256,7 @@ def main():
 
         if args.all:
             """ fill up computers []"""
-            obj = api_get.check_api_finds_all(
-                jamf_url, "computer", enc_creds, verbosity
-            )
+            obj = api_get.get_api_obj_list(jamf_url, "computer", enc_creds, verbosity)
 
             try:
                 computers = []
@@ -294,7 +361,7 @@ def main():
         if args.slack:
             # end a slack api webhook with this number
             score = len(recent_computers) / (len(old_computers) + len(recent_computers))
-            score = "{:.2%}".format(score)
+            score = f"{score:.2%}"
             slack_payload = str(
                 f":hospital: update health: {score} - {len(old_computers)} "
                 f"need to be fixed on {jamf_url}\n"
@@ -317,63 +384,27 @@ def main():
 
     # policy block #####
     if args.policies:
-        if args.search and args.all:
-            exit("syntax error: use --search or --all not both")
-        if args.search:
-            query = args.search
-
-            obj = api_get.check_api_finds_all(jamf_url, "policy", enc_creds, verbosity)
-
-            if obj:
-                # targets is the new list
-                targets = []
-                print(
-                    f"Searching {len(obj)} policy/ies on {jamf_url}:\n"
-                    "To delete policies, obtain a matching query, then run with the "
-                    "--delete argument"
-                )
-
-                for x in query:
-                    for obj_item in obj:
-                        # do the actual search
-                        if x in obj_item["name"]:
-                            targets.append(obj_item.copy())
-
-                if len(targets) > 0:
-                    print("Policies found:")
-                    for target in targets:
-                        print(
-                            bcolors.WARNING
-                            + f"- policy {target['id']}"
-                            + f"\tname  : {target['name']}"
-                            + bcolors.ENDC
-                        )
-                        if args.delete:
-                            delete(target["id"], jamf_url, enc_creds, verbosity)
-                    print("{} total matches".format(len(targets)))
-                else:
-                    for partial in query:
-                        print("No match found: {}".format(partial))
-
-        elif args.all:
-            # assumes --policy flag due to prior exit on another style
-            obj = api_get.check_api_finds_all(
-                jamf_url, "category_all", enc_creds, verbosity
+        if args.all:
+            categories = api_get.get_api_obj_list(
+                jamf_url, "category", enc_creds, verbosity
             )
-
-            if obj:
-                for x in obj:
+            if categories:
+                for category in categories:
                     # loop all the categories
                     print(
                         bcolors.OKCYAN
-                        + f"category {x['id']}\t{x['name']}"
+                        + f"category {category['id']}\t{category['name']}"
                         + bcolors.ENDC
                     )
-                    obj = api_get.get_policies_in_category(
-                        jamf_url, "category_all_items", x["id"], enc_creds, verbosity
+                    policies = api_get.get_policies_in_category(
+                        jamf_url,
+                        "policies_in_category",
+                        category["id"],
+                        enc_creds,
+                        verbosity,
                     )
-                    if obj:
-                        for x in obj:
+                    if policies:
+                        for policy in policies:
                             # loop all the policies
 
                             # gather interesting info for each policy via API
@@ -381,7 +412,12 @@ def main():
                             # general/name
                             # scope/computer_groups  [0]['name']
                             generic_info = api_get.get_api_obj_value_from_id(
-                                jamf_url, "policy", x["id"], "", enc_creds, verbosity
+                                jamf_url,
+                                "policy",
+                                policy["id"],
+                                "",
+                                enc_creds,
+                                verbosity,
                             )
 
                             name = generic_info["general"]["name"]
@@ -402,8 +438,8 @@ def main():
                             # now show all the policies as each category loops
                             print(
                                 bcolors.WARNING
-                                + f"  policy {x['id']}"
-                                + f"\tname  : {x['name']}\n"
+                                + f"  policy {policy['id']}"
+                                + f"\tname  : {policy['name']}\n"
                                 + bcolors.ENDC
                                 + f"\t\tpkg   : {pkg}\n"
                                 + f"\t\tscope : {groups}"
@@ -414,54 +450,168 @@ def main():
             print(
                 "\n"
                 + bcolors.OKGREEN
-                + "All policies listed above.. program complete for {}".format(jamf_url)
+                + f"All policies listed above... program complete for {jamf_url}"
                 + bcolors.ENDC
             )
             exit
 
+        elif args.search:
+            query = args.search
+
+            policies = api_get.get_api_obj_list(
+                jamf_url, "policy", enc_creds, verbosity
+            )
+
+            if policies:
+                # targets is the new list
+                targets = []
+                print(
+                    f"Searching {len(policies)} policy/ies on {jamf_url}:\n"
+                    "To delete policies, obtain a matching query, then run with the "
+                    "--delete argument"
+                )
+
+                for x in query:
+                    for policy in policies:
+                        # do the actual search
+                        if x in policy["name"]:
+                            targets.append(policy.copy())
+
+                if len(targets) > 0:
+                    print("Policies found:")
+                    for target in targets:
+                        print(
+                            bcolors.WARNING
+                            + f"- policy {target['id']}"
+                            + f"\tname  : {target['name']}"
+                            + bcolors.ENDC
+                        )
+                        if args.delete:
+                            api_delete.delete(
+                                jamf_url, "policy", target["id"], enc_creds, verbosity
+                            )
+                    print(f"{len(targets)} total matches")
+                else:
+                    for partial in query:
+                        print(f"No match found: {partial}")
+
         else:
-            exit("syntax error: with --policies use --search or --all.")
+            exit("syntax error: with --policies you must supply --search or --all.")
+
+    # packages block #####
+    if args.packages:
+        unused_packages = []
+        used_packages = []
+        if args.unused:
+            # get a list of packages
+            packages_in_titles = get_packages_in_patch_titles(
+                jamf_url, enc_creds, verbosity
+            )
+            if verbosity >= 1:
+                print("\nPackages in Patch Software Titles:")
+                print(packages_in_titles)
+            packages_in_policies = get_packages_in_policies(
+                jamf_url, enc_creds, verbosity
+            )
+            if verbosity >= 1:
+                print("\nPackages in Policies:")
+                print(packages_in_policies)
+        else:
+            packages_in_policies = []
+            packages_in_titles = []
+
+        if args.all:
+            packages = api_get.get_api_obj_list(
+                jamf_url, "package", enc_creds, verbosity
+            )
+            if packages:
+                for package in packages:
+                    # loop all the packages
+                    print(
+                        bcolors.WARNING
+                        + f"  package {package['id']}\n"
+                        + f"      name     : {package['name']}"
+                        + bcolors.ENDC
+                    )
+                    if args.details:
+                        # gather interesting info for each package via API
+                        generic_info = api_get.get_api_obj_value_from_id(
+                            jamf_url, "package", package["id"], "", enc_creds, verbosity
+                        )
+
+                        filename = generic_info["filename"]
+                        print(f"      filename : {filename}")
+                        category = generic_info["category"]
+                        if category and "No category assigned" not in category:
+                            print(f"      category : {category}")
+                        info = generic_info["info"]
+                        if info:
+                            print(f"      info     : {info}")
+                        notes = generic_info["notes"]
+                        if notes:
+                            print(f"      notes    : {notes}")
+                    elif args.unused:
+                        # see if the package is in any policies
+                        if (
+                            package["name"] not in packages_in_policies
+                            and package["name"] not in packages_in_titles
+                            and package["name"] not in unused_packages
+                        ):
+                            unused_packages.append(package["name"])
+                        elif package["name"] not in used_packages:
+                            used_packages.append(package["name"])
+                if args.unused:
+                    print(
+                        "\nThe following packages are found in at least one policy "
+                        "and/or patch title:\n"
+                    )
+                    for package in used_packages:
+                        print(bcolors.OKGREEN + package + bcolors.ENDC)
+
+                    print(
+                        "\nThe following packages are not used in any policies "
+                        "or patch titles:\n"
+                    )
+                    for package in unused_packages:
+                        print(bcolors.FAIL + package + bcolors.ENDC)
 
     # set a list of names either from the CLI for Category erase all
     if args.category:
         categories = args.category
-        print(
-            "categories to check are:\n{}\nTotal: {}".format(
-                categories, len(categories)
-            )
-        )
+        print(f"categories to check are:\n{categories}\nTotal: {len(categories)}")
         # now process the list of categories
-        for category_name in categories:
-            category_name = category_name.replace(" ", "%20")
+        for category in categories:
+            category = category.replace(" ", "%20")
             # return all items found in each category
-            print("\nChecking '{}' on {}".format(category_name, jamf_url))
+            print(f"\nChecking '{category}' on {jamf_url}")
             obj = api_get.get_policies_in_category(
-                jamf_url, "category_all_items", category_name, enc_creds, verbosity
+                jamf_url, "policies_in_category", category, enc_creds, verbosity
             )
             if obj:
                 if not args.delete:
 
                     print(
-                        f"Category '{category_name}' exists with {len(obj)} items: "
+                        f"Category '{category}' exists with {len(obj)} items: "
                         "To delete them run this command again with the --delete flag."
                     )
 
                 for obj_item in obj:
-                    print("~^~ {} -~- {}".format(obj_item["id"], obj_item["name"]))
+                    print(f"~^~ {obj_item['id']} -~- {obj_item['name']}")
 
                     if args.delete:
-                        delete(obj_item["id"], jamf_url, enc_creds, verbosity)
+                        api_delete.delete(
+                            jamf_url, "policy", obj_item["id"], enc_creds, verbosity
+                        )
             else:
-                print("Category '{}' not found".format(category_name))
+                print(f"Category '{category}' not found")
 
     # process a name or list of names
     if args.names:
-        names = args.names
-        print("policy names to check are:\n{}\nTotal: {}".format(names, len(names)))
+        policy_names = args.names
+        print(f"policy names to check are:\n{policy_names}\nTotal: {len(policy_names)}")
 
-        for policy_name in names:
-
-            print("\nChecking '{}' on {}".format(policy_name, jamf_url))
+        for policy_name in policy_names:
+            print(f"\nChecking '{policy_name}' on {jamf_url}")
 
             obj_id = api_get.get_api_obj_id_from_name(
                 jamf_url, "policy", policy_name, enc_creds, verbosity
@@ -481,11 +631,11 @@ def main():
                 except IndexError:
                     groups = ""
 
-                print("Match found: '{}' ID: {} Group: {}".format(name, obj_id, groups))
+                print(f"Match found: '{name}' ID: {obj_id} Group: {groups}")
                 if args.delete:
-                    delete(obj_id, jamf_url, enc_creds, verbosity)
+                    api_delete.delete(jamf_url, "policy", obj_id, enc_creds, verbosity)
             else:
-                print("Policy '{}' not found".format(policy_name))
+                print(f"Policy '{policy_name}' not found")
 
     print()
 

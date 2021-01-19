@@ -238,9 +238,9 @@ def update_pkg_metadata(
     """Update package metadata. Currently only serves category"""
 
     if hash_value:
-        hash_type = 'SHA_512'
+        hash_type = "SHA_512"
     else:
-        hash_type = 'MD5'
+        hash_type = "MD5"
 
     # build the package record XML
     pkg_data = (
@@ -277,9 +277,7 @@ def update_pkg_metadata(
     while True:
         count += 1
         if verbosity > 1:
-            print(
-                f"Package metadata upload attempt {count}"
-            )
+            print(f"Package metadata upload attempt {count}")
 
         pkg_xml = curl.write_temp_file(pkg_data)
         r = curl.request(method, url, enc_creds, verbosity, pkg_xml)
@@ -287,9 +285,7 @@ def update_pkg_metadata(
         if curl.status_check(r, "Package", pkg_name) == "break":
             break
         if count > 5:
-            print(
-                "WARNING: Package metadata update did not succeed after 5 attempts"
-            )
+            print("WARNING: Package metadata update did not succeed after 5 attempts")
             print(
                 f"HTTP POST Response Code: {r.status_code}", verbose_level=1,
             )
@@ -367,7 +363,7 @@ def post_pkg_chunks(
 ):
     """sends the package in chunks"""
 
-    import requests   # pylint: disable=import-error
+    import requests  # pylint: disable=import-error
 
     jcds_chunk_size = int(jcds_chunk_mb) * 1048576  # 1mb is the default
     file_size = os.stat(pkg_path).st_size
@@ -411,7 +407,7 @@ def update_pkg_by_form(
     """save the package using the web form, which should force JCDS into pending state."""
     # Create Package URL
     url = "{}/legacy/packages.html?id={}&o=c".format(jamf_url, str(obj_id))
-    # TODO - not all metadata fields are represented here - need to find out if 
+    # TODO - not all metadata fields are represented here - need to find out if
     # they can be added and if we can add the hash. Also if we could upload a manifest file.
     r = session.post(
         url,
@@ -422,15 +418,15 @@ def update_pkg_by_form(
             "lastSubTab": "null",
             "lastSubTabSet": "null",
             "name": pkg_name,
-            "categoryID": str(pkg_metadata['category_id']),
+            "categoryID": str(pkg_metadata["category_id"]),
             "fileName": pkg_name,
             "resetFIELD_MANIFEST_INPUT": "",
-            "info": pkg_metadata['info'],
-            "notes": pkg_metadata['notes'],
-            "priority": pkg_metadata['priority'],
+            "info": pkg_metadata["info"],
+            "notes": pkg_metadata["notes"],
+            "priority": pkg_metadata["priority"],
             "uninstall_disabled": "true",
-            "osRequirements": pkg_metadata['os_requirement'],
-            "requiredProcessor": pkg_metadata['required_processor'],
+            "osRequirements": pkg_metadata["os_requirement"],
+            "requiredProcessor": pkg_metadata["required_processor"],
             "switchWithPackageID": "-1",
             "action": "Save",
         },
@@ -549,23 +545,40 @@ def get_args():
         "--notes", default="", help="a notes string to assign to the package",
     )
     parser.add_argument(
-        "--reboot_required", help="Set if the package requires a restart", action="store_true",
+        "--reboot_required",
+        help="Set if the package requires a restart",
+        action="store_true",
     )
     parser.add_argument(
-        "--priority", type=int, choices=range(1, 21), default=10, help="a priority to assign to the package (default=10)",
+        "--priority",
+        type=int,
+        choices=range(1, 21),
+        default=10,
+        help="a priority to assign to the package (default=10)",
     )
     parser.add_argument(
-        "--os_requirement", default="", help="an OS requirements string to assign to the package",
+        "--os_requirement",
+        default="",
+        help="an OS requirements string to assign to the package",
     )
     parser.add_argument(
-        "--required_processor", default="None", choices=['x86', 'None'], help="a required processor to assign to the package. Acceptable values are 'x86' or 'None'",
+        "--required_processor",
+        default="None",
+        choices=["x86", "None"],
+        help="a required processor to assign to the package. Acceptable values are 'x86' or 'None'",
     )
     parser.add_argument(
-        "--send_notification", help="set to send a notification when the package is installed", action="store_true",
+        "--send_notification",
+        help="set to send a notification when the package is installed",
+        action="store_true",
     )
     args = parser.parse_args()
-    
-    if args.required_processor and args.required_processor != "x86" and args.required_processor != "None":
+
+    if (
+        args.required_processor
+        and args.required_processor != "x86"
+        and args.required_processor != "None"
+    ):
         args.required_processor = "None"
     if args.priority and args.priority < 1 or args.priority > 20:
         parser.error("Acceptable priority range is 1-20")
@@ -574,13 +587,13 @@ def get_args():
 
 
 def sha512sum(filename):
-    """calculate the SHA512 hash of the package 
+    """calculate the SHA512 hash of the package
     (see https://stackoverflow.com/a/44873382)"""
     h = hashlib.sha512()
-    b = bytearray(128*1024)
+    b = bytearray(128 * 1024)
     mv = memoryview(b)
-    with open(filename, 'rb', buffering=0) as f:
-        for n in iter(lambda : f.readinto(mv), 0):
+    with open(filename, "rb", buffering=0) as f:
+        for n in iter(lambda: f.readinto(mv), 0):
             h.update(mv[:n])
     return h.hexdigest()
 
@@ -594,7 +607,7 @@ def main():
     args = get_args()
     verbosity = args.verbose
 
-    # create a dictionary of package metadata from the args
+    #  create a dictionary of package metadata from the args
     pkg_metadata = {
         "category": args.category,
         "info": args.info,
@@ -607,9 +620,13 @@ def main():
     }
 
     # grab values from a prefs file if supplied
-    jamf_url, jamf_user, jamf_password, slack_webhook, enc_creds = api_connect.get_creds_from_args(
-        args
-    )
+    (
+        jamf_url,
+        jamf_user,
+        jamf_password,
+        slack_webhook,
+        enc_creds,
+    ) = api_connect.get_creds_from_args(args)
 
     if args.prefs:
         smb_url, smb_user, smb_pass = api_connect.get_smb_credentials(args.prefs)
@@ -662,7 +679,7 @@ def main():
             print("WARNING: Category not found!")
             category_id = "-1"
         # add to the pkg_metadata dictionary
-        pkg_metadata['category_id'] = category_id
+        pkg_metadata["category_id"] = category_id
 
     # now process the list of packages
     for pkg_path in args.pkg:
@@ -673,7 +690,7 @@ def main():
             pkg_path = zip_pkg_path(pkg_path)
             pkg_name += ".zip"
 
-        # calculate the SHA-512 hash of the package
+        #  calculate the SHA-512 hash of the package
         sha512string = sha512sum(pkg_path)
 
         # check for existing package
@@ -683,9 +700,7 @@ def main():
         replace_pkg = True if args.replace else False
         obj_id = check_pkg(pkg_name, jamf_url, enc_creds, verbosity)
         if obj_id != "-1":
-            print(
-                "Package '{}' already exists: ID {}".format(pkg_name, obj_id)
-            )
+            print("Package '{}' already exists: ID {}".format(pkg_name, obj_id))
             pkg_id = obj_id  # assign pkg_id for smb runs - JCDS runs get it from the pkg upload
         else:
             pkg_id = ""
@@ -822,7 +837,13 @@ def main():
                 if verbosity:
                     print("Updating package metadata for {}".format(pkg_id))
                 update_pkg_metadata(
-                    jamf_url, enc_creds, pkg_name, pkg_metadata, sha512string, verbosity, pkg_id
+                    jamf_url,
+                    enc_creds,
+                    pkg_name,
+                    pkg_metadata,
+                    sha512string,
+                    verbosity,
+                    pkg_id,
                 )
             else:
                 if verbosity:
