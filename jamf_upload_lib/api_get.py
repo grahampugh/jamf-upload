@@ -176,6 +176,6 @@ def get_headers(r):
     print(r.headers)
     print("\nResponse:\n")
     if r.output:
-        print(r.output.decode("UTF-8"))
+        print(r.output)
     else:
         print("None")

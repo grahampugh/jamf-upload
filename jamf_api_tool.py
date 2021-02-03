@@ -685,13 +685,12 @@ def main():
                         "PreStage Enrollments, or patch titles:\n"
                     )
                     for pkg_name in unused_packages.values():
-                        print(bcolors.FAIL + pkg_name + bcolors.ENDC)
+                        print(bcolors.FAIL + f"[{pkg_id}]" + pkg_name + bcolors.ENDC)
 
                     if args.delete:
-                        print("\nconfirm to delete items:")
                         if actions.confirm(
                             prompt=(
-                                "Delete all unused packages"
+                                "\nDelete all unused packages?"
                                 "\n(press n to go on to confirm individually)?"
                             ),
                             default=False,
@@ -704,7 +703,7 @@ def main():
                             if delete_all or actions.confirm(
                                 prompt=(
                                     bcolors.OKBLUE
-                                    + f"Delete {pkg_name} (id={pkg_id})?"
+                                    + f"Delete [{pkg_id}] {pkg_name}?"
                                     + bcolors.ENDC
                                 ),
                                 default=False,
@@ -793,10 +792,9 @@ def main():
                         print(bcolors.FAIL + script + bcolors.ENDC)
 
                     if args.delete:
-                        print("\nconfirm to delete items:")
                         if actions.confirm(
                             prompt=(
-                                "Delete all unused scripts"
+                                "\nDelete all unused scripts?"
                                 "\n(press n to go on to confirm individually)?"
                             ),
                             default=False,
