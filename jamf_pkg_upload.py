@@ -28,16 +28,14 @@ import re
 import math
 import io
 import six
-import subprocess
 import xml.etree.ElementTree as ElementTree
 
 from zipfile import ZipFile, ZIP_DEFLATED
 from time import sleep
 from urllib.parse import quote
 from xml.sax.saxutils import escape
-from shutil import copyfile
 
-from jamf_upload_lib import api_connect, api_get, nscurl, curl
+from jamf_upload_lib import api_connect, api_get, nscurl, curl, smb_actions
 
 if six.PY2:
     input = raw_input  # pylint: disable=E0602  # noqa: F821
@@ -48,33 +46,6 @@ if six.PY2:
 else:
     from urllib.parse import urlparse
     import html
-
-
-def mount_smb(mount_share, mount_user, mount_pass, verbosity):
-    """Mount distribution point."""
-    mount_cmd = [
-        "/usr/bin/osascript",
-        "-e",
-        'mount volume "{}" as user name "{}" with password "{}"'.format(
-            mount_share, mount_user, mount_pass
-        ),
-    ]
-    if verbosity > 1:
-        print("Mount command:\n{}".format(mount_cmd))
-
-    r = subprocess.check_output(mount_cmd)
-    if verbosity > 1:
-        print("Mount command response:\n{}".format(r.decode("UTF-8")))
-
-
-def umount_smb(mount_share):
-    """Unmount distribution point."""
-    path = "/Volumes{}".format(urlparse(mount_share).path)
-    cmd = ["/usr/sbin/diskutil", "unmount", path]
-    try:
-        subprocess.check_call(cmd)
-    except subprocess.CalledProcessError:
-        print("WARNING! Unmount failed.")
 
 
 def check_local_pkg(mount_share, pkg_name, verbosity):
@@ -90,19 +61,6 @@ def check_local_pkg(mount_share, pkg_name, verbosity):
                 print("Expected path: {}".format(existing_pkg_path))
     else:
         print("Expected path not found!: {}".format(path))
-
-
-def copy_pkg(mount_share, pkg_path, pkg_name):
-    """Copy package from AutoPkg Cache to local or mounted Distribution Point"""
-    if os.path.isfile(pkg_path):
-        path = "/Volumes{}".format(urlparse(mount_share).path)
-        destination_pkg_path = os.path.join(path, "Packages", pkg_name)
-        print("Copying {} to {}".format(pkg_name, destination_pkg_path))
-        copyfile(pkg_path, destination_pkg_path)
-    if os.path.isfile(destination_pkg_path):
-        print("Package copy successful")
-    else:
-        print("Package copy failed")
 
 
 def zip_pkg_path(path):
@@ -524,7 +482,7 @@ def get_args():
             "JSS URL, API_USERNAME and API_PASSWORD, "
             "for example an AutoPkg preferences file which has been configured "
             "for use with JSSImporter (~/Library/Preferences/com.github.autopkg.plist) "
-            "or a separate plist anywhere (e.g. ~/.com.company.jcds_upload.plist)"
+            "or a separate plist anywhere (e.g. ~/.com.company.jamf_upload.plist)"
         ),
     )
     parser.add_argument(
@@ -709,14 +667,14 @@ def main():
         # process for SMB shares if defined
         if args.smb_url:
             # mount the share
-            mount_smb(args.smb_url, args.smb_user, args.smb_pass, verbosity)
+            smb_actions.mount_smb(args.smb_url, args.smb_user, args.smb_pass, verbosity)
             # check for existing package
             local_pkg = check_local_pkg(args.smb_url, pkg_name, verbosity)
             if not local_pkg or replace_pkg:
                 # copy the file
-                copy_pkg(args.smb_url, pkg_path, pkg_name)
+                smb_actions.copy_pkg(args.smb_url, pkg_path, pkg_name)
             # unmount the share
-            umount_smb(args.smb_url)
+            smb_actions.umount_smb(args.smb_url)
 
         # otherwise process for cloud DP
         else:

@@ -23,6 +23,21 @@ def get_uapi_obj_list(jamf_url, object_type, token, verbosity):
         return obj
 
 
+def get_uapi_obj_from_id(jamf_url, object_type, obj_id, token, verbosity):
+    """Return a UAPI object by ID"""
+    api_obj_version = api_objects.uapi_object_versions(object_type)
+    url = (
+        f"{jamf_url}/uapi/{api_obj_version}/{object_type}/{obj_id}"
+    )
+    r = curl.request("GET", url, token, verbosity)
+    if r.status_code == 200:
+        obj = r.output["results"]
+        if verbosity > 2:
+            print("\nAPI object list:")
+            print(obj)
+        return obj
+
+
 def get_uapi_obj_id_from_name(jamf_url, object_type, object_name, token, verbosity):
     """Get the UAPI object by name"""
     api_obj_version = api_objects.uapi_object_versions(object_type)
@@ -112,7 +127,7 @@ def get_api_obj_value_from_id(
             print(obj_content)
 
         if xml:
-            # for patchsoftwaretitles use ElementTree
+            # for patchsoftwaretitles use ElementTree (so for packages only)
             if obj_path == "versions":
                 value = {}
                 record_id = 0

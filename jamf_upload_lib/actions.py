@@ -1,7 +1,18 @@
 #!/usr/bin/env python3
 
 import re
+import six
+import subprocess
+
 from xml.sax.saxutils import escape
+
+if six.PY2:
+    input = raw_input  # pylint: disable=E0602  # noqa: F821
+    from urlparse import urlparse  # pylint: disable=F0401
+else:
+    from urllib.parse import urlparse
+
+
 
 
 def substitute_assignable_keys(data, cli_custom_keys, verbosity, xml_escape=False):
@@ -102,3 +113,32 @@ def confirm(prompt=None, default=False):
 #     d1 = datetime.strptime(d1, "%Y-%m-%d")
 #     d2 = datetime.strptime(d2, "%Y-%m-%d")
 #     return abs((d2 - d1).days)
+
+
+def mount_smb(mount_share, mount_user, mount_pass, verbosity):
+    """Mount distribution point."""
+    mount_cmd = [
+        "/usr/bin/osascript",
+        "-e",
+        'mount volume "{}" as user name "{}" with password "{}"'.format(
+            mount_share, mount_user, mount_pass
+        ),
+    ]
+    if verbosity > 1:
+        print("Mount command:\n{}".format(mount_cmd))
+
+    r = subprocess.check_output(mount_cmd)
+    if verbosity > 1:
+        print("Mount command response:\n{}".format(r.decode("UTF-8")))
+
+
+def umount_smb(mount_share):
+    """Unmount distribution point."""
+    path = "/Volumes{}".format(urlparse(mount_share).path)
+    cmd = ["/usr/sbin/diskutil", "unmount", path]
+    try:
+        subprocess.check_call(cmd)
+    except subprocess.CalledProcessError:
+        print("WARNING! Unmount failed.")
+
+
