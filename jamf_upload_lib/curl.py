@@ -108,8 +108,9 @@ def request(method, url, auth, verbosity, data="", additional_headers="", xml=Fa
     elif verbosity > 1:
         curl_cmd.append("-v")
 
-    if verbosity:
+    if verbosity > 1:
         print("\ncurl command:\n{}".format(" ".join(curl_cmd)))
+        print("(note this may omit essential quotation marks - do not copy-and-paste!")
 
     # now subprocess the curl command and build the r tuple which contains the
     # headers, status code and outputted data
