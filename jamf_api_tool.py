@@ -13,11 +13,12 @@ For usage, run jamf_api_tool.py --help
 
 
 import argparse
+import getpass
 import json
 
 from datetime import datetime
 
-from jamf_upload_lib import api_connect, api_get, api_delete, curl, actions
+from jamf_upload_lib import api_connect, api_get, api_delete, curl, actions, smb_actions
 
 
 class bcolors:
@@ -145,6 +146,34 @@ def get_packages_in_prestages(jamf_url, enc_creds, token, verbosity):
         return packages_in_prestages
 
 
+def get_scripts_in_policies(jamf_url, enc_creds, verbosity):
+    """get a list of all scripts in all policies"""
+
+    # get all policies
+    policies = api_get.get_api_obj_list(jamf_url, "policy", enc_creds, verbosity)
+
+    # get all package objects from policies and add to a list
+    if policies:
+        # define a new list
+        scripts_in_policies = []
+        print(
+            "Please wait while we gather a list of all scripts in all policies "
+            f"(total {len(policies)})..."
+        )
+        for policy in policies:
+            generic_info = api_get.get_api_obj_value_from_id(
+                jamf_url, "policy", policy["id"], "", enc_creds, verbosity
+            )
+            try:
+                scripts = generic_info["scripts"]
+                for x in scripts:
+                    script = x["name"]
+                    scripts_in_policies.append(script)
+            except IndexError:
+                pass
+        return scripts_in_policies
+
+
 def get_args():
     """Parse any command line arguments"""
     parser = argparse.ArgumentParser()
@@ -153,7 +182,8 @@ def get_args():
     group.add_argument("--computers", action="store_true", dest="computer", default=[])
     group.add_argument("--policies", action="store_true")
     group.add_argument("--packages", action="store_true")
-    # TODO: group.add_argument('--group', action='store_false')
+    group.add_argument('--scripts', action='store_true')
+    # TODO: group.add_argument('--groups', action='store_false')
     # TODO: group.add_argument('--ea', action='store_false')
 
     parser.add_argument(
@@ -225,6 +255,30 @@ def get_args():
         help="password of the user with the rights to delete a policy",
     )
     parser.add_argument(
+        "--smb_url",
+        default="",
+        help=(
+            "Path to an SMB FileShare Distribution Point, in the form "
+            "smb://server/mountpoint"
+        ),
+    )
+    parser.add_argument(
+        "--smb_user",
+        default="",
+        help=(
+            "a user with the rights to upload a package to the SMB FileShare "
+            "Distribution Point"
+        ),
+    )
+    parser.add_argument(
+        "--smb_pass",
+        default="",
+        help=(
+            "password of the user with the rights to upload a package to the SMB "
+            "FileShare Distribution Point"
+        ),
+    )
+    parser.add_argument(
         "--prefs",
         default="",
         help=(
@@ -257,6 +311,30 @@ def main():
 
     # grab values from a prefs file if supplied
     jamf_url, _, _, slack_webhook, enc_creds = api_connect.get_creds_from_args(args)
+
+    if args.prefs:
+        smb_url, smb_user, smb_pass = api_connect.get_smb_credentials(args.prefs)
+    else:
+        smb_url = ""
+        smb_user = ""
+        smb_pass = ""
+
+    # repeat for optional SMB share (but must supply a share path to invoke this)
+    if args.smb_url:
+        smb_url = args.smb_url
+        if args.smb_user:
+            smb_user = args.smb_user
+        if not smb_user:
+            smb_user = input(
+                "Enter a user with read/write permissions to {} : ".format(smb_url)
+            )
+        if args.smb_pass:
+            smb_pass = args.smb_pass
+        if not smb_pass:
+            if not smb_pass:
+                smb_pass = getpass.getpass(
+                    "Enter the password for '{}' : ".format(smb_user)
+                )
 
     # now get the session token
     token = api_connect.get_uapi_token(jamf_url, enc_creds, verbosity)
@@ -420,9 +498,8 @@ def main():
                         + f"category {category['id']}\t{category['name']}"
                         + bcolors.ENDC
                     )
-                    policies = api_get.get_policies_in_category(
+                    policies = get_policies_in_category(
                         jamf_url,
-                        "policies_in_category",
                         category["id"],
                         enc_creds,
                         verbosity,
@@ -506,7 +583,7 @@ def main():
                             + bcolors.ENDC
                         )
                         if args.delete:
-                            api_delete.delete(
+                            api_delete.delete_api_object(
                                 jamf_url, "policy", target["id"], enc_creds, verbosity
                             )
                     print(f"{len(targets)} total matches")
@@ -608,13 +685,12 @@ def main():
                         "PreStage Enrollments, or patch titles:\n"
                     )
                     for pkg_name in unused_packages.values():
-                        print(bcolors.FAIL + pkg_name + bcolors.ENDC)
+                        print(bcolors.FAIL + f"[{pkg_id}]" + pkg_name + bcolors.ENDC)
 
                     if args.delete:
-                        print("\nconfirm to delete items:")
                         if actions.confirm(
                             prompt=(
-                                "Delete all unused policies"
+                                "\nDelete all unused packages?"
                                 "\n(press n to go on to confirm individually)?"
                             ),
                             default=False,
@@ -627,16 +703,121 @@ def main():
                             if delete_all or actions.confirm(
                                 prompt=(
                                     bcolors.OKBLUE
-                                    + f"Delete {pkg_name} (id={pkg_id})?"
+                                    + f"Delete [{pkg_id}] {pkg_name}?"
                                     + bcolors.ENDC
                                 ),
                                 default=False,
                             ):
                                 print(f"Deleting {pkg_name}...")
-                                api_delete.delete(
+                                api_delete.delete_api_object(
                                     jamf_url, "package", pkg_id, enc_creds, verbosity,
                                 )
-                                # TODO : delete package from SMB share too!
+                                # process for SMB shares if defined
+                                if args.smb_url:
+                                    # mount the share
+                                    smb_actions.mount_smb(args.smb_url, args.smb_user, args.smb_pass, verbosity)
+                                    # delete the file from the share
+                                    smb_actions.delete_pkg(args.smb_url, pkg_name)
+                                    # unmount the share
+                                    smb_actions.umount_smb(args.smb_url)
+
+    # scripts block #####
+    if args.scripts:
+        unused_scripts = {}
+        used_scripts = {}
+        if args.unused:
+            scripts_in_policies = get_scripts_in_policies(
+                jamf_url, enc_creds, verbosity
+            )
+            if verbosity > 1:
+                print("\nScripts in Policies:")
+
+        else:
+            scripts_in_policies = []
+
+        if args.all:
+            scripts = api_get.get_uapi_obj_list(
+                jamf_url, "scripts", token, verbosity
+            )
+            if scripts:
+                for script in scripts:
+                    # loop all the scripts
+                    if args.unused:
+                        # see if the script is in any policies
+                        if (
+                            script["name"] not in scripts_in_policies
+                        ):
+                            unused_scripts[script["id"]] = script["name"]
+                        elif script["name"] not in used_scripts:
+                            used_scripts[script["id"]] = script["name"]
+                    else:
+                        print(
+                            bcolors.WARNING
+                            + f"  script {script['id']}\n"
+                            + f"      name     : {script['name']}"
+                            + bcolors.ENDC
+                        )
+                        if args.details:
+                            # gather interesting info for each script via API
+                            generic_info = api_get.get_uapi_obj_from_id(
+                                jamf_url,
+                                "script",
+                                script["id"],
+                                token,
+                                verbosity,
+                            )
+
+                            category = generic_info["categoryName"]
+                            if category and "No category assigned" not in category:
+                                print(f"      category : {category}")
+                            info = generic_info["info"]
+                            if info:
+                                print(f"      info     : {info}")
+                            notes = generic_info["notes"]
+                            if notes:
+                                print(f"      notes    : {notes}")
+                            priority = generic_info["priority"]
+                            print(f"      priority  : {priority}")
+                if args.unused:
+                    print(
+                        "\nThe following scripts are found in at least one policy:\n"
+                    )
+                    for script in used_scripts.values():
+                        print(bcolors.OKGREEN + script + bcolors.ENDC)
+
+                    print(
+                        "\nThe following scripts are not used in any policies:\n"
+                    )
+                    for script in unused_scripts.values():
+                        print(bcolors.FAIL + script + bcolors.ENDC)
+
+                    if args.delete:
+                        if actions.confirm(
+                            prompt=(
+                                "\nDelete all unused scripts?"
+                                "\n(press n to go on to confirm individually)?"
+                            ),
+                            default=False,
+                        ):
+                            delete_all = True
+                        else:
+                            delete_all = False
+                        for script_id, script_name in unused_scripts.items():
+                            # prompt to delete each script in turn
+                            if delete_all or actions.confirm(
+                                prompt=(
+                                    bcolors.OKBLUE
+                                    + f"Delete {script_name} (id={script_id})?"
+                                    + bcolors.ENDC
+                                ),
+                                default=False,
+                            ):
+                                print(f"Deleting {script_name}...")
+                                api_delete.delete_uapi_object(
+                                    jamf_url, "script", script_id, token, verbosity,
+                                )
+            else:
+                print("\nNo scripts found")
 
     # set a list of names either from the CLI for Category erase all
     if args.category:
@@ -647,8 +828,8 @@ def main():
             category = category.replace(" ", "%20")
             # return all items found in each category
             print(f"\nChecking '{category}' on {jamf_url}")
-            obj = api_get.get_policies_in_category(
-                jamf_url, "policies_in_category", category, enc_creds, verbosity
+            obj = get_policies_in_category(
+                jamf_url, category, enc_creds, verbosity
             )
             if obj:
                 if not args.delete:
@@ -662,7 +843,7 @@ def main():
                     print(f"~^~ {obj_item['id']} -~- {obj_item['name']}")
 
                     if args.delete:
-                        api_delete.delete(
+                        api_delete.delete_api_object(
                             jamf_url, "policy", obj_item["id"], enc_creds, verbosity
                         )
             else:
@@ -696,7 +877,7 @@ def main():
 
                 print(f"Match found: '{name}' ID: {obj_id} Group: {groups}")
                 if args.delete:
-                    api_delete.delete(jamf_url, "policy", obj_id, enc_creds, verbosity)
+                    api_delete.delete_api_object(jamf_url, "policy", obj_id, enc_creds, verbosity)
             else:
                 print(f"Policy '{policy_name}' not found")
 

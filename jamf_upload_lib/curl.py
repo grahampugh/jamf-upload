@@ -124,20 +124,23 @@ def request(method, url, auth, verbosity, data="", additional_headers="", xml=Fa
         for header in r.headers:
             if "HTTP/1.1" in header and "Continue" not in header:
                 r.status_code = int(header.split()[1])
+    except IOError:
+        print("WARNING: {} not found".format(headers_file))
+    if os.path.exists(output_file) and os.path.getsize(output_file) > 0:
         with open(output_file, "rb") as file:
             if "uapi" in url:
                 r.output = json.load(file)
             else:
                 r.output = file.read()
-        return r
-    except IOError:
-        print("WARNING: {} not found".format(headers_file))
+    else:
+        print(f"No output from request ({output_file} not found or empty)")
+    return r
 
 
 def status_check(r, endpoint_type, obj_name, request_type="upload"):
     """Return a message dependent on the HTTP response"""
 
-    if r.status_code == 200 or r.status_code == 201:
+    if r.status_code == 200 or r.status_code == 201 or r.status_code == 204:
         print(
             "{} '{}' {} was successful".format(
                 endpoint_type, obj_name, request_type.lower()
