@@ -638,16 +638,22 @@ def main():
                         if packages_in_policies:
                             if package["name"] not in packages_in_policies:
                                 unused_in_policies = 1
+                        else:
+                            unused_in_policies = 1
                         if packages_in_titles:
                             if package["name"] not in packages_in_titles:
                                 unused_in_titles = 1
+                        else:
+                            unused_in_titles = 1
                         if packages_in_prestages:
                             if package["name"] not in packages_in_prestages:
                                 unused_in_prestages = 1
+                        else:
+                            unused_in_prestages = 1
                         if (
-                            unused_in_policies
-                            and unused_in_titles
-                            and unused_in_prestages
+                            unused_in_policies == 1
+                            and unused_in_titles == 1
+                            and unused_in_prestages == 1
                         ):
                             unused_packages[package["id"]] = package["name"]
                         elif package["name"] not in used_packages:
@@ -694,7 +700,7 @@ def main():
                         "PreStage Enrollments, or patch titles:\n"
                     )
                     for pkg_id, pkg_name in unused_packages.items():
-                        print(bcolors.FAIL + f"[{pkg_id}]" + pkg_name + bcolors.ENDC)
+                        print(bcolors.FAIL + f"[{pkg_id}] " + pkg_name + bcolors.ENDC)
 
                     if args.delete:
                         if actions.confirm(
@@ -756,11 +762,13 @@ def main():
                     # loop all the scripts
                     if args.unused:
                         # see if the script is in any policies
-                        unused_in_scripts = 0
+                        unused_in_policies = 0
                         if scripts_in_policies:
                             if script["name"] not in scripts_in_policies:
-                                unused_in_scripts = 1
-                        if unused_in_scripts:
+                                unused_in_policies = 1
+                        else:
+                            unused_in_policies = 1
+                        if unused_in_policies == 1:
                             unused_scripts[script["id"]] = script["name"]
                         elif script["name"] not in used_scripts:
                             used_scripts[script["id"]] = script["name"]
@@ -796,7 +804,10 @@ def main():
                     print("\nThe following scripts are not used in any policies:\n")
                     for script_id, script_name in unused_scripts.items():
                         print(
-                            bcolors.FAIL + f"[{script_id}]" + script_name + bcolors.ENDC
+                            bcolors.FAIL
+                            + f"[{script_id}] "
+                            + script_name
+                            + bcolors.ENDC
                         )
 
                     if args.delete:
