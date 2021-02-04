@@ -152,7 +152,7 @@ def get_scripts_in_policies(jamf_url, enc_creds, verbosity):
     # get all policies
     policies = api_get.get_api_obj_list(jamf_url, "policy", enc_creds, verbosity)
 
-    # get all package objects from policies and add to a list
+    # get all script objects from policies and add to a list
     if policies:
         # define a new list
         scripts_in_policies = []
@@ -172,6 +172,76 @@ def get_scripts_in_policies(jamf_url, enc_creds, verbosity):
             except IndexError:
                 pass
         return scripts_in_policies
+
+
+def get_eas_in_computer_groups(jamf_url, enc_creds, verbosity):
+    """get a list of all EAs in all smart groups"""
+
+    # get all smart groups
+    computer_groups = api_get.get_api_obj_list(
+        jamf_url, "computer_group", enc_creds, verbosity
+    )
+
+    # get all EA objects from computer groups and add to a list
+    if computer_groups:
+        # define a new list
+        eas_in_computer_groups = []
+        print(
+            "Please wait while we gather a list of all EAs in all computer groups "
+            f"(total {len(computer_groups)})..."
+        )
+        for computer_group in computer_groups:
+            generic_info = api_get.get_api_obj_value_from_id(
+                jamf_url,
+                "computer_group",
+                computer_group["id"],
+                "",
+                enc_creds,
+                verbosity,
+            )
+            try:
+                criteria = generic_info["criteria"]
+                for x in criteria:
+                    ea = x["name"]
+                    eas_in_computer_groups.append(ea)
+            except IndexError:
+                pass
+        return eas_in_computer_groups
+
+
+def get_eas_in_advanced_searches(jamf_url, enc_creds, verbosity):
+    """get a list of all EAs in all advanced searches"""
+
+    # get all advanced searches
+    computer_groups = api_get.get_api_obj_list(
+        jamf_url, "computer_group", enc_creds, verbosity
+    )
+
+    # get all EA objects from computer groups and add to a list
+    if computer_groups:
+        # define a new list
+        eas_in_computer_groups = []
+        print(
+            "Please wait while we gather a list of all EAs in all computer groups "
+            f"(total {len(computer_groups)})..."
+        )
+        for computer_group in computer_groups:
+            generic_info = api_get.get_api_obj_value_from_id(
+                jamf_url,
+                "computer_group",
+                computer_group["id"],
+                "",
+                enc_creds,
+                verbosity,
+            )
+            try:
+                criteria = generic_info["criteria"]
+                for x in criteria:
+                    ea = x["name"]
+                    eas_in_computer_groups.append(ea)
+            except IndexError:
+                pass
+        return eas_in_computer_groups
 
 
 def get_args():
@@ -602,21 +672,21 @@ def main():
             )
             if verbosity > 1:
                 print("\nPackages in PreStage Enrollments:")
-                print(packages_in_prestages)
+                print(packages_in_prestages)  # TEMP
 
             packages_in_titles = get_packages_in_patch_titles(
                 jamf_url, enc_creds, verbosity
             )
             if verbosity > 1:
                 print("\nPackages in Patch Software Titles:")
-                print(packages_in_titles)
+                print(packages_in_titles)  # TEMP
 
             packages_in_policies = get_packages_in_policies(
                 jamf_url, enc_creds, verbosity
             )
             if verbosity > 1:
                 print("\nPackages in Policies:")
-                print(packages_in_policies)
+                print(packages_in_policies)  # TEMP
 
         else:
             packages_in_policies = []
@@ -750,7 +820,8 @@ def main():
                 jamf_url, enc_creds, verbosity
             )
             if verbosity > 1:
-                print("\nScripts in Policies:")
+                print("\nScripts in Policies:")  # TEMP
+                print(scripts_in_policies)  # TEMP
 
         else:
             scripts_in_policies = []
@@ -834,6 +905,125 @@ def main():
                                 print(f"Deleting {script_name}...")
                                 api_delete.delete_uapi_object(
                                     jamf_url, "script", script_id, token, verbosity,
+                                )
+            else:
+                print("\nNo scripts found")
+
+    # extension attributes block #####
+    if args.ea:
+        unused_eas = {}
+        used_eas = {}
+        if args.unused:
+            eas_in_computer_groups = get_eas_in_computer_groups(
+                jamf_url, enc_creds, verbosity
+            )
+            if verbosity > 1:
+                print("\nExtension Attributes in Smart Groups:")  # TEMP
+                print(eas_in_computer_groups)  # TEMP
+            eas_in_advanced_searches = get_eas_in_advanced_searches(
+                jamf_url, enc_creds, verbosity
+            )
+            if verbosity > 1:
+                print("\nExtension Attributes in Smart Groups:")  # TEMP
+                print(eas_in_computer_groups)  # TEMP
+
+        else:
+            eas_in_computer_groups = []
+            eas_in_advanced_searches = []
+
+        if args.all or args.unused:
+            eas = api_get.get_api_obj_list(
+                jamf_url, "extension_attribute", enc_creds, verbosity
+            )
+            if eas:
+                for ea in eas:
+                    # loop all the eas
+                    if args.unused:
+                        # see if the eas is in any policies
+                        unused_in_computer_groups = 0
+                        unused_in_advanced_searches = 0
+                        if eas_in_computer_groups:
+                            if ea["name"] not in eas_in_computer_groups:
+                                unused_in_computer_groups = 1
+                        else:
+                            unused_in_computer_groups = 1
+                        if eas_in_advanced_searches:
+                            if ea["name"] not in eas_in_advanced_searches:
+                                unused_in_advanced_searches = 1
+                        else:
+                            unused_in_advanced_searches = 1
+                        if (
+                            unused_in_computer_groups == 1
+                            and unused_in_advanced_searches == 1
+                        ):
+                            unused_eas[ea["id"]] = ea["name"]
+                        elif ea["name"] not in used_eas:
+                            used_eas[ea["id"]] = ea["name"]
+                    else:
+                        print(
+                            bcolors.WARNING
+                            + f"  script {ea['id']}\n"
+                            + f"      name     : {ea['name']}"
+                            + bcolors.ENDC
+                        )
+                        if args.details:
+                            # gather interesting info for each script via API
+                            generic_info = api_get.get_api_obj_from_id(
+                                jamf_url,
+                                "extension_attribute",
+                                ea["id"],
+                                enc_creds,
+                                verbosity,
+                            )
+
+                            category = generic_info["categoryName"]
+                            if category and "No category assigned" not in category:
+                                print(f"      category : {category}")
+                            info = generic_info["info"]
+                            if info:
+                                print(f"      info     : {info}")
+                            notes = generic_info["notes"]
+                            if notes:
+                                print(f"      notes    : {notes}")
+                            priority = generic_info["priority"]
+                            print(f"      priority  : {priority}")
+                if args.unused:
+                    print("\nThe following scripts are found in at least one policy:\n")
+                    for ea_name in used_eas.values():
+                        print(bcolors.OKGREEN + ea_name + bcolors.ENDC)
+
+                    print("\nThe following scripts are not used in any policies:\n")
+                    for ea_id, ea_name in unused_eas.items():
+                        print(bcolors.FAIL + f"[{ea_id}] " + ea_name + bcolors.ENDC)
+
+                    if args.delete:
+                        if actions.confirm(
+                            prompt=(
+                                "\nDelete all unused eas?"
+                                "\n(press n to go on to confirm individually)?"
+                            ),
+                            default=False,
+                        ):
+                            delete_all = True
+                        else:
+                            delete_all = False
+                        for ea_id, ea_name in unused_eas.items():
+                            # prompt to delete each script in turn
+                            if delete_all or actions.confirm(
+                                prompt=(
+                                    bcolors.OKBLUE
+                                    + f"Delete {ea_name} (id={ea_id})?"
+                                    + bcolors.ENDC
+                                ),
+                                default=False,
+                            ):
+                                print(f"Deleting {ea_name}...")
+                                api_delete.delete_api_object(
+                                    jamf_url,
+                                    "extension_attribute",
+                                    ea_id,
+                                    enc_creds,
+                                    verbosity,
                                 )
             else:
                 print("\nNo scripts found")
