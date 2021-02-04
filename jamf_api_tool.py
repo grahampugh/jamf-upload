@@ -755,7 +755,7 @@ def main():
         else:
             scripts_in_policies = []
 
-        if args.all:
+        if args.all or args.unused:
             scripts = api_get.get_uapi_obj_list(jamf_url, "scripts", token, verbosity)
             if scripts:
                 for script in scripts:
