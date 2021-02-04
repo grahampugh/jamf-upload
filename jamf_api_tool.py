@@ -549,7 +549,7 @@ def main():
             packages_in_titles = []
             packages_in_prestages = []
 
-        if args.all:
+        if args.all or args.unused:
             packages = api_get.get_api_obj_list(
                 jamf_url, "package", enc_creds, verbosity
             )
