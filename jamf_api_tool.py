@@ -182,7 +182,7 @@ def get_args():
     group.add_argument("--computers", action="store_true", dest="computer", default=[])
     group.add_argument("--policies", action="store_true")
     group.add_argument("--packages", action="store_true")
-    group.add_argument('--scripts', action='store_true')
+    group.add_argument("--scripts", action="store_true")
     # TODO: group.add_argument('--groups', action='store_false')
     # TODO: group.add_argument('--ea', action='store_false')
 
@@ -499,10 +499,7 @@ def main():
                         + bcolors.ENDC
                     )
                     policies = get_policies_in_category(
-                        jamf_url,
-                        category["id"],
-                        enc_creds,
-                        verbosity,
+                        jamf_url, category["id"], enc_creds, verbosity,
                     )
                     if policies:
                         for policy in policies:
@@ -636,9 +633,18 @@ def main():
                     if args.unused:
                         # see if the package is in any policies
                         if (
-                            package["name"] not in packages_in_policies
-                            and package["name"] not in packages_in_titles
-                            and package["name"] not in packages_in_prestages
+                            (
+                                package["name"] not in packages_in_policies
+                                or not packages_in_policies
+                            )
+                            and (
+                                package["name"] not in packages_in_titles
+                                or not packages_in_titles
+                            )
+                            and (
+                                package["name"] not in packages_in_prestages
+                                or not packages_in_prestages
+                            )
                         ):
                             unused_packages[package["id"]] = package["name"]
                         elif package["name"] not in used_packages:
@@ -684,7 +690,7 @@ def main():
                         "\nThe following packages are not used in any policies, "
                         "PreStage Enrollments, or patch titles:\n"
                     )
-                    for pkg_name in unused_packages.values():
+                    for pkg_id, pkg_name in unused_packages.items():
                         print(bcolors.FAIL + f"[{pkg_id}]" + pkg_name + bcolors.ENDC)
 
                     if args.delete:
@@ -715,7 +721,12 @@ def main():
                                 # process for SMB shares if defined
                                 if args.smb_url:
                                     # mount the share
-                                    smb_actions.mount_smb(args.smb_url, args.smb_user, args.smb_pass, verbosity)
+                                    smb_actions.mount_smb(
+                                        args.smb_url,
+                                        args.smb_user,
+                                        args.smb_pass,
+                                        verbosity,
+                                    )
                                     # delete the file from the share
                                     smb_actions.delete_pkg(args.smb_url, pkg_name)
                                     # unmount the share
@@ -736,17 +747,13 @@ def main():
             scripts_in_policies = []
 
         if args.all:
-            scripts = api_get.get_uapi_obj_list(
-                jamf_url, "scripts", token, verbosity
-            )
+            scripts = api_get.get_uapi_obj_list(jamf_url, "scripts", token, verbosity)
             if scripts:
                 for script in scripts:
                     # loop all the scripts
                     if args.unused:
                         # see if the script is in any policies
-                        if (
-                            script["name"] not in scripts_in_policies
-                        ):
+                        if script["name"] not in scripts_in_policies:
                             unused_scripts[script["id"]] = script["name"]
                         elif script["name"] not in used_scripts:
                             used_scripts[script["id"]] = script["name"]
@@ -760,11 +767,7 @@ def main():
                         if args.details:
                             # gather interesting info for each script via API
                             generic_info = api_get.get_uapi_obj_from_id(
-                                jamf_url,
-                                "script",
-                                script["id"],
-                                token,
-                                verbosity,
+                                jamf_url, "script", script["id"], token, verbosity,
                             )
 
                             category = generic_info["categoryName"]
@@ -779,17 +782,15 @@ def main():
                             priority = generic_info["priority"]
                             print(f"      priority  : {priority}")
                 if args.unused:
-                    print(
-                        "\nThe following scripts are found in at least one policy:\n"
-                    )
-                    for script in used_scripts.values():
-                        print(bcolors.OKGREEN + script + bcolors.ENDC)
+                    print("\nThe following scripts are found in at least one policy:\n")
+                    for script_name in used_scripts.values():
+                        print(bcolors.OKGREEN + script_name + bcolors.ENDC)
 
-                    print(
-                        "\nThe following scripts are not used in any policies:\n"
-                    )
-                    for script in unused_scripts.values():
-                        print(bcolors.FAIL + script + bcolors.ENDC)
+                    print("\nThe following scripts are not used in any policies:\n")
+                    for script_id, script_name in unused_scripts.items():
+                        print(
+                            bcolors.FAIL + f"[{script_id}]" + script_name + bcolors.ENDC
+                        )
 
                     if args.delete:
                         if actions.confirm(
@@ -828,9 +829,7 @@ def main():
             category = category.replace(" ", "%20")
             # return all items found in each category
             print(f"\nChecking '{category}' on {jamf_url}")
-            obj = get_policies_in_category(
-                jamf_url, category, enc_creds, verbosity
-            )
+            obj = get_policies_in_category(jamf_url, category, enc_creds, verbosity)
             if obj:
                 if not args.delete:
 
@@ -877,7 +876,9 @@ def main():
 
                 print(f"Match found: '{name}' ID: {obj_id} Group: {groups}")
                 if args.delete:
-                    api_delete.delete_api_object(jamf_url, "policy", obj_id, enc_creds, verbosity)
+                    api_delete.delete_api_object(
+                        jamf_url, "policy", obj_id, enc_creds, verbosity
+                    )
             else:
                 print(f"Policy '{policy_name}' not found")
 
