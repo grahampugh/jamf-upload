@@ -244,9 +244,7 @@ def update_pkg_metadata(
             break
         if count > 5:
             print("WARNING: Package metadata update did not succeed after 5 attempts")
-            print(
-                f"HTTP POST Response Code: {r.status_code}", verbose_level=1,
-            )
+            print(f"HTTP POST Response Code: {r.status_code}")
             print("ERROR: Package metadata upload failed ")
             exit(-1)
         sleep(30)
@@ -328,10 +326,7 @@ def post_pkg_chunks(
     total_chunks = int(math.ceil(file_size / jcds_chunk_size))
     resource = open(pkg_path, "rb")
 
-    headers = {
-        "X-Auth-Token": jcds_upload_token,
-        "content-type": "application/xml",
-    }
+    headers = {"X-Auth-Token": jcds_upload_token, "content-type": "application/xml"}
     http = requests.Session()
 
     for chunk in range(0, total_chunks):
@@ -410,17 +405,15 @@ def update_pkg_by_form(
 def get_args():
     """Parse any command line arguments"""
     parser = argparse.ArgumentParser()
+    parser.add_argument("pkg", nargs="+", help="Full path to the package(s) to upload")
     parser.add_argument(
-        "pkg", nargs="+", help="Full path to the package(s) to upload",
+        "--replace", help="overwrite an existing uploaded package", action="store_true"
     )
     parser.add_argument(
-        "--replace", help="overwrite an existing uploaded package", action="store_true",
+        "--nscurl", help="use curl instead of curl", action="store_true"
     )
     parser.add_argument(
-        "--nscurl", help="use curl instead of curl", action="store_true",
-    )
-    parser.add_argument(
-        "--requests", help="use requests instead of curl", action="store_true",
+        "--requests", help="use requests instead of curl", action="store_true"
     )
     parser.add_argument(
         "--direct",
@@ -430,11 +423,9 @@ def get_args():
         ),
         action="store_true",
     )
+    parser.add_argument("--url", default="", help="the Jamf Pro Server URL")
     parser.add_argument(
-        "--url", default="", help="the Jamf Pro Server URL",
-    )
-    parser.add_argument(
-        "--user", default="", help="a user with the rights to upload a package",
+        "--user", default="", help="a user with the rights to upload a package"
     )
     parser.add_argument(
         "--password",
@@ -471,9 +462,7 @@ def get_args():
         default="3600",
         help="set timeout in seconds for HTTP request for problematic packages",
     )
-    parser.add_argument(
-        "--chunksize", default="1", help="set chunk size in megabytes",
-    )
+    parser.add_argument("--chunksize", default="1", help="set chunk size in megabytes")
     parser.add_argument(
         "--prefs",
         default="",
@@ -494,13 +483,13 @@ def get_args():
     )
     # the following are for the package metadata
     parser.add_argument(
-        "--category", default="", help="a category to assign to the package",
+        "--category", default="", help="a category to assign to the package"
     )
     parser.add_argument(
-        "--info", default="", help="an info string to assign to the package",
+        "--info", default="", help="an info string to assign to the package"
     )
     parser.add_argument(
-        "--notes", default="", help="a notes string to assign to the package",
+        "--notes", default="", help="a notes string to assign to the package"
     )
     parser.add_argument(
         "--reboot_required",
