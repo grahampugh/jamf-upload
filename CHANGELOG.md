@@ -14,6 +14,10 @@ I intend to add such functionality if changes are made to the Jamf Pro API so th
 
 ## [Unreleased] - TBD
 
+Commits beyond the current tag will appear here.
+
+## [0.3.0] - 2021-02-21
+
 - Moved `jamf_upload.py` to `jamf_pkg_upload.py` since we now have multiple scripts.
 
 - Added the `jamf_script_upload.py` script. This is used for uploading scripts to Jamf Pro. The option to include variables as in AutoPkg (`%VARIABLE%`) has been included.
@@ -32,13 +36,13 @@ I intend to add such functionality if changes are made to the Jamf Pro API so th
 
 - Common functions have been moved into the `jamf_upload_lib` folder and included in each script to avoid too much repetition.
 
-- Examples in the `_tests` folder have been used for testing each script.
+- Examples in the `_tests` folder have been used for testing each of the upload scripts.
 
 - Added various working `.jamf` recipes, and associated templates and Self Service icons.
 
 - Switched from using Python's `requests` package to using `curl` for most functions. This allows a cookie to be set which should maintain a session throughout all requests in an AutoPkg run. Only `jamf.pkg_upload.py` retains a `--requests` option to use `requests` for uploading a package, and the `--direct` method also currently requires the `requests` package to be present in your python3 environment. The default upload method does not require `requests`.
 
-- Added `jamf_api_tool.py` for performing bulk search and delete tasks on API objects. This includes a Spruce-like function for deleting unused packages.
+- Added `jamf_api_tool.py` for performing bulk search and delete tasks on API objects. This includes a Spruce-like function for deleting unused packages, smart groups, EAs and scripts. To use this, use `./jamf-api-tool.py --prefs /path/to/prefs --unused` together with either `--eas`, `--groups`, `--scripts` or `--packages`. To delete the unused items, use the `--delete` parameter. This is currently interactive only. You can decide to delete all the unused items in one go, or go through each item in turn and get a `y/n` prompt.
 
 - Added `sign_pkg.py` which will sign a package.
 
@@ -66,6 +70,7 @@ This is developing into a testing script to accompany the AutoPkg processor `Jam
 
 Initial commit. Formerly a GitHub gist.
 
-[unreleased]: https://github.com/grahampugh/JSSImporter/compare/v0.2.0...HEAD
+[unreleased]: https://github.com/grahampugh/JSSImporter/compare/v0.3.0...HEAD
+[0.3.0]: https://github.com/grahampugh/JSSImporter/compare/v0.2.0...v0.3.0
 [0.2.0]: https://github.com/grahampugh/JSSImporter/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/grahampugh/JSSImporter/compare/v0.0.1...v0.1.0
