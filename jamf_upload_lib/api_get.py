@@ -26,9 +26,7 @@ def get_uapi_obj_list(jamf_url, object_type, token, verbosity):
 def get_uapi_obj_from_id(jamf_url, object_type, obj_id, token, verbosity):
     """Return a UAPI object by ID"""
     api_obj_version = api_objects.uapi_object_versions(object_type)
-    url = (
-        f"{jamf_url}/uapi/{api_obj_version}/{object_type}/{obj_id}"
-    )
+    url = f"{jamf_url}/uapi/{api_obj_version}/{object_type}/{obj_id}"
     r = curl.request("GET", url, token, verbosity)
     if r.status_code == 200:
         obj = r.output["results"]
@@ -99,73 +97,91 @@ def get_api_obj_id_from_name(jamf_url, object_type, object_name, enc_creds, verb
         return obj_id
 
 
-def get_api_obj_value_from_id(
+def get_patch_obj_value_from_id(
     jamf_url, object_type, obj_id, obj_path, enc_creds, verbosity
 ):
     """get the value of an item in a Classic API object"""
-    if object_type == "patch_software_title":
-        # the json returned from patchsoftwaretitles is broken so we need to get the xml
-        xml = True
-    else:
-        xml = False
     url = f"{jamf_url}/JSSResource/{api_objects.object_types(object_type)}/id/{obj_id}"
-    r = curl.request("GET", url, enc_creds, verbosity, xml=xml)
-
+    r = curl.request("GET", url, enc_creds, verbosity, xml="xml")
     if r.status_code == 200:
-        if xml:
-            # handle xml for patchsoftwaretitles
-            # TODO : Convert xml to python array. The problem is the version keys
-            if verbosity > 2:
-                print("\nXML output:")
-                print(r.output)
-            obj_content = ET.fromstring(r.output)
-        else:
-            # handle json for everything else
-            obj_content = json.loads(r.output)
+        # handle xml for patch items
+        # TODO : Convert xml to python array. The problem is the version keys
+        if verbosity > 2:
+            print("\nXML output:")
+            print(r.output)
+        obj_content = ET.fromstring(r.output)
         if verbosity > 2:
             print("\nAPI object content:")
             print(obj_content)
 
-        if xml:
-            # for patchsoftwaretitles use ElementTree (so for packages only)
-            if obj_path == "versions":
-                value = {}
-                record_id = 0
-                for record in obj_content.findall("versions/version"):
-                    software_version = record.findtext("software_version")
-                    if verbosity > 2:  # TEMP
-                        print("\nsoftware_version:")  # TEMP
-                        print(software_version)  # TEMP
-                    package = {}
-                    package["id"] = record.findtext("package/id")
-                    if verbosity > 2:  # TEMP
-                        print("\npackage id:")  # TEMP
-                        print(package["id"])  # TEMP
-                    package["name"] = record.findtext("package/name")
-                    if verbosity > 2:  # TEMP
-                        print("\npackage name:")  # TEMP
-                        print(package["name"])  # TEMP
-                    value[record_id] = {}
-                    value[record_id]["software_version"] = software_version
-                    value[record_id]["package"] = package
-                    record_id = record_id + 1
-            else:
-                value = obj_content.findtext(obj_path)
+        # for patch items use ElementTree
+        # section to get packages from patch software titles:
+        if obj_path == "versions":
+            value = {}
+            record_id = 0
+            for record in obj_content.findall("versions/version"):
+                software_version = record.findtext("software_version")
+                package = {}
+                package["id"] = record.findtext("package/id")
+                package["name"] = record.findtext("package/name")
+                value[record_id] = {}
+                value[record_id]["software_version"] = software_version
+                value[record_id]["package"] = package
+                record_id = record_id + 1
+        # section to get groups from patch policies:
+        elif obj_path == "scope":
+            value = {}
+            record_id = 0
+            for record in obj_content.findall("scope/computer_groups/computer_group"):
+                group = {}
+                group["id"] = record.findtext("id")
+                group["name"] = record.findtext("name")
+                value[record_id] = {}
+                value[record_id]["computer_group"] = group
+                record_id = record_id + 1
+            for record in obj_content.findall(
+                "scope/exclusions/computer_groups/computer_group"
+            ):
+                ex_group = {}
+                ex_group["id"] = record.findtext("id")
+                ex_group["name"] = record.findtext("name")
+                value[record_id] = {}
+                value[record_id]["computer_group"] = ex_group
+                record_id = record_id + 1
         else:
-            # for everything else, convert an xpath to json
-            xpath_list = obj_path.split("/")
-            value = obj_content[object_type]
+            value = obj_content.findtext(obj_path)
+        if value and verbosity > 2:
+            print(f"\nValue of '{obj_path}':\n{value}")
+        return value
 
-            for i in range(0, len(xpath_list)):
-                if xpath_list[i]:
-                    try:
-                        value = value[xpath_list[i]]
-                        if verbosity > 2:
-                            print("\nAPI object value:")
-                            print(value)
-                    except KeyError:
-                        value = ""
-                        break
+
+def get_api_obj_value_from_id(
+    jamf_url, object_type, obj_id, obj_path, enc_creds, verbosity
+):
+    """get the value of an item in a Classic API object"""
+    url = f"{jamf_url}/JSSResource/{api_objects.object_types(object_type)}/id/{obj_id}"
+    r = curl.request("GET", url, enc_creds, verbosity)
+
+    if r.status_code == 200:
+        obj_content = json.loads(r.output)
+        if verbosity > 2:
+            print("\nAPI object content:")
+            print(obj_content)
+
+        # for everything else, convert an xpath to json
+        xpath_list = obj_path.split("/")
+        value = obj_content[object_type]
+
+        for i in range(0, len(xpath_list)):
+            if xpath_list[i]:
+                try:
+                    value = value[xpath_list[i]]
+                    if verbosity > 2:
+                        print("\nAPI object value:")
+                        print(value)
+                except KeyError:
+                    value = ""
+                    break
         if value and verbosity > 2:
             print(f"\nValue of '{obj_path}':\n{value}")
         return value
@@ -223,9 +239,7 @@ def get_packages_in_patch_titles(jamf_url, enc_creds, verbosity):
     """get a list of all packages in all patch software titles"""
 
     # get all patch software titles
-    titles = get_api_obj_list(
-        jamf_url, "patch_software_title", enc_creds, verbosity
-    )
+    titles = get_api_obj_list(jamf_url, "patch_software_title", enc_creds, verbosity)
 
     # get all package objects from patch titles and add to a list
     if titles:
@@ -263,9 +277,7 @@ def get_packages_in_prestages(jamf_url, enc_creds, token, verbosity):
     """get a list of all packages in all PreStage Enrollments"""
 
     # get all prestages
-    prestages = get_uapi_obj_list(
-        jamf_url, "computer-prestages", token, verbosity
-    )
+    prestages = get_uapi_obj_list(jamf_url, "computer-prestages", token, verbosity)
 
     # get all package objects from prestages and add to a list
     if prestages:
@@ -279,7 +291,7 @@ def get_packages_in_prestages(jamf_url, enc_creds, token, verbosity):
             if len(pkg_ids) > 0:
                 for pkg_id in pkg_ids:
                     pkg = get_api_obj_value_from_id(
-                        jamf_url, "package", pkg_id, "name", enc_creds, verbosity,
+                        jamf_url, "package", pkg_id, "name", enc_creds, verbosity
                     )
                     if pkg:
                         if pkg not in packages_in_prestages:
@@ -317,19 +329,17 @@ def get_scripts_in_policies(jamf_url, enc_creds, verbosity):
 
 
 def get_criteria_in_computer_groups(jamf_url, enc_creds, verbosity):
-    """get a list of all EAs in all smart groups"""
+    """get a list of all criteria in all smart groups"""
 
     # get all smart groups
-    computer_groups = get_api_obj_list(
-        jamf_url, "computer_group", enc_creds, verbosity
-    )
+    computer_groups = get_api_obj_list(jamf_url, "computer_group", enc_creds, verbosity)
 
     # get all EA objects from computer groups and add to a list
     if computer_groups:
         # define a new list
         criteria_in_computer_groups = []
         print(
-            "Please wait while we gather a list of all EAs in all computer groups "
+            "Please wait while we gather a list of all criteria in all computer groups "
             f"(total {len(computer_groups)})..."
         )
         for computer_group in computer_groups:
@@ -366,7 +376,7 @@ def get_names_in_advanced_searches(jamf_url, enc_creds, verbosity):
         # define a new list
         names_in_advanced_searches = []
         print(
-            "Please wait while we gather a list of all EAs in all computer groups "
+            "Please wait while we gather a list of all criteria in all computer groups "
             f"(total {len(advanced_searches)})..."
         )
         for advanced_search in advanced_searches:
@@ -395,6 +405,73 @@ def get_names_in_advanced_searches(jamf_url, enc_creds, verbosity):
             except IndexError:
                 pass
         return names_in_advanced_searches
+
+
+def get_groups_in_patch_policies(jamf_url, enc_creds, verbosity):
+    """get a list of all groups in all patch policies (targets or exclusions)."""
+
+    # get all objects
+    api_objects = get_api_obj_list(jamf_url, "patch_policy", enc_creds, verbosity)
+
+    # get all groups from policies and add to a list
+    if api_objects:
+        # define a new list
+        groups_in_api_objects = []
+        print(
+            f"Please wait while we gather a list of all groups in patch policies "
+            f"(total {len(api_objects)})..."
+        )
+        for obj in api_objects:
+            groups = get_patch_obj_value_from_id(
+                jamf_url, "patch_policy", obj["id"], "scope", enc_creds, verbosity
+            )
+            for x in groups:
+                group = groups[x]["computer_group"]["name"]
+                if group not in groups_in_api_objects:
+                    groups_in_api_objects.append(group)
+        return groups_in_api_objects
+
+
+def get_groups_in_api_objs(jamf_url, enc_creds, obj_type, verbosity):
+    """get a list of all groups in all of a particular object type (targets or exclusions).
+    Valid object types are: mac_application, os_x_configuration_profile,
+    policy, restricted_software"""
+
+    # get all objects
+    api_objects = get_api_obj_list(jamf_url, obj_type, enc_creds, verbosity)
+
+    # get all groups from policies and add to a list
+    if api_objects:
+        # define a new list
+        groups_in_api_objects = []
+        print(
+            f"Please wait while we gather a list of all groups in {obj_type} objects "
+            f"(total {len(api_objects)})..."
+        )
+        for obj in api_objects:
+            generic_info = get_api_obj_value_from_id(
+                jamf_url, obj_type, obj["id"], "", enc_creds, verbosity
+            )
+            if generic_info["scope"]["all_computers"] != "true":
+                try:
+                    # targetted groups
+                    groups = generic_info["scope"]["computer_groups"]
+                    for x in groups:
+                        group = x["name"]
+                        if group not in groups_in_api_objects:
+                            groups_in_api_objects.append(group)
+                except IndexError:
+                    pass
+                try:
+                    # excluded groups
+                    groups = generic_info["scope"]["exclusions"]["computer_groups"]
+                    for x in groups:
+                        group = x["name"]
+                        if group not in groups_in_api_objects:
+                            groups_in_api_objects.append(group)
+                except IndexError:
+                    pass
+        return groups_in_api_objects
 
 
 def get_headers(r):

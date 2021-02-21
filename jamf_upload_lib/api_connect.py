@@ -85,7 +85,8 @@ def get_uapi_token(jamf_url, enc_creds, verbosity):
     if r.status_code == 200:
         try:
             token = str(r.output["token"])
-            print("Session token received")
+            if verbosity:
+                print("Session token received")
             return token
         except KeyError:
             print("ERROR: No token received")

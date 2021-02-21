@@ -32,7 +32,7 @@ class bcolors:
     UNDERLINE = "\033[4m"
 
 
-def handle_computers(jamf_url, enc_creds, args, verbosity):
+def handle_computers(jamf_url, enc_creds, args, slack_webhook, verbosity):
     if args.search and args.all:
         exit("syntax error: use either --search or --all, but not both")
     if not args.all:
@@ -184,32 +184,23 @@ def handle_policies(jamf_url, enc_creds, args, verbosity):
                     + bcolors.ENDC
                 )
                 policies = api_get.get_policies_in_category(
-                    jamf_url, category["id"], enc_creds, verbosity,
+                    jamf_url, category["id"], enc_creds, verbosity
                 )
                 if policies:
                     for policy in policies:
                         # loop all the policies
                         generic_info = api_get.get_api_obj_value_from_id(
-                            jamf_url,
-                            "policy",
-                            policy["id"],
-                            "",
-                            enc_creds,
-                            verbosity,
+                            jamf_url, "policy", policy["id"], "", enc_creds, verbosity
                         )
 
-                        name = generic_info["general"]["name"]
-
                         try:
-                            groups = generic_info["scope"]["computer_groups"][0][
-                                "name"
-                            ]
+                            groups = generic_info["scope"]["computer_groups"][0]["name"]
                         except IndexError:
                             groups = "none"
                         try:
-                            pkg = generic_info["package_configuration"]["packages"][
-                                0
-                            ]["name"]
+                            pkg = generic_info["package_configuration"]["packages"][0][
+                                "name"
+                            ]
                         except IndexError:
                             pkg = "none"
 
@@ -236,9 +227,7 @@ def handle_policies(jamf_url, enc_creds, args, verbosity):
     elif args.search:
         query = args.search
 
-        policies = api_get.get_api_obj_list(
-            jamf_url, "policy", enc_creds, verbosity
-        )
+        policies = api_get.get_api_obj_list(jamf_url, "policy", enc_creds, verbosity)
 
         if policies:
             # targets is the new list
@@ -342,37 +331,25 @@ def handle_packages(jamf_url, enc_creds, token, args, verbosity):
     unused_packages = {}
     used_packages = {}
     if args.unused:
-        # get a list of packages
+        # get a list of packages in prestage enrollments
         packages_in_prestages = api_get.get_packages_in_prestages(
             jamf_url, enc_creds, token, verbosity
         )
-        if verbosity > 1:
-            print("\nPackages in PreStage Enrollments:")
-            print(packages_in_prestages)  # TEMP
-
+        # get a list of packages in patch software titles
         packages_in_titles = api_get.get_packages_in_patch_titles(
             jamf_url, enc_creds, verbosity
         )
-        if verbosity > 1:
-            print("\nPackages in Patch Software Titles:")
-            print(packages_in_titles)  # TEMP
-
+        # get a list of packages in policies
         packages_in_policies = api_get.get_packages_in_policies(
             jamf_url, enc_creds, verbosity
         )
-        if verbosity > 1:
-            print("\nPackages in Policies:")
-            print(packages_in_policies)  # TEMP
-
     else:
         packages_in_policies = []
         packages_in_titles = []
         packages_in_prestages = []
 
     if args.all or args.unused:
-        packages = api_get.get_api_obj_list(
-            jamf_url, "package", enc_creds, verbosity
-        )
+        packages = api_get.get_api_obj_list(jamf_url, "package", enc_creds, verbosity)
         if packages:
             for package in packages:
                 # loop all the packages
@@ -414,12 +391,7 @@ def handle_packages(jamf_url, enc_creds, token, args, verbosity):
                     if args.details:
                         # gather interesting info for each package via API
                         generic_info = api_get.get_api_obj_value_from_id(
-                            jamf_url,
-                            "package",
-                            package["id"],
-                            "",
-                            enc_creds,
-                            verbosity,
+                            jamf_url, "package", package["id"], "", enc_creds, verbosity
                         )
 
                         filename = generic_info["filename"]
@@ -471,7 +443,7 @@ def handle_packages(jamf_url, enc_creds, token, args, verbosity):
                         ):
                             print(f"Deleting {pkg_name}...")
                             api_delete.delete_api_object(
-                                jamf_url, "package", pkg_id, enc_creds, verbosity,
+                                jamf_url, "package", pkg_id, enc_creds, verbosity
                             )
                             # process for SMB shares if defined
                             if args.smb_url:
@@ -492,12 +464,10 @@ def handle_scripts(jamf_url, enc_creds, token, args, verbosity):
     unused_scripts = {}
     used_scripts = {}
     if args.unused:
+        #  get a list of scripts in policies
         scripts_in_policies = api_get.get_scripts_in_policies(
             jamf_url, enc_creds, verbosity
         )
-        if verbosity > 1:
-            print("\nScripts in Policies:")  # TEMP
-            print(scripts_in_policies)  # TEMP
 
     else:
         scripts_in_policies = []
@@ -508,7 +478,7 @@ def handle_scripts(jamf_url, enc_creds, token, args, verbosity):
             for script in scripts:
                 # loop all the scripts
                 if args.unused:
-                    # see if the script is in any policies
+                    # see if the script is in any smart groups
                     unused_in_policies = 0
                     if scripts_in_policies:
                         if script["name"] not in scripts_in_policies:
@@ -529,7 +499,7 @@ def handle_scripts(jamf_url, enc_creds, token, args, verbosity):
                     if args.details:
                         # gather interesting info for each script via API
                         generic_info = api_get.get_uapi_obj_from_id(
-                            jamf_url, "script", script["id"], token, verbosity,
+                            jamf_url, "script", script["id"], token, verbosity
                         )
 
                         category = generic_info["categoryName"]
@@ -551,12 +521,7 @@ def handle_scripts(jamf_url, enc_creds, token, args, verbosity):
 
                 print("\nThe following scripts are not used in any policies:\n")
                 for script_id, script_name in unused_scripts.items():
-                    print(
-                        bcolors.FAIL
-                        + f"[{script_id}] "
-                        + script_name
-                        + bcolors.ENDC
-                    )
+                    print(bcolors.FAIL + f"[{script_id}] " + script_name + bcolors.ENDC)
 
                 if args.delete:
                     if actions.confirm(
@@ -581,7 +546,7 @@ def handle_scripts(jamf_url, enc_creds, token, args, verbosity):
                         ):
                             print(f"Deleting {script_name}...")
                             api_delete.delete_uapi_object(
-                                jamf_url, "script", script_id, token, verbosity,
+                                jamf_url, "script", script_id, token, verbosity
                             )
         else:
             print("\nNo scripts found")
@@ -594,15 +559,10 @@ def handle_eas(jamf_url, enc_creds, args, verbosity):
         criteria_in_computer_groups = api_get.get_criteria_in_computer_groups(
             jamf_url, enc_creds, verbosity
         )
-        if verbosity > 1:
-            print("\nExtension Attributes in Smart Groups:")  # TEMP
-            print(criteria_in_computer_groups)  # TEMP
         names_in_advanced_searches = api_get.get_names_in_advanced_searches(
             jamf_url, enc_creds, verbosity
         )
-        if verbosity > 1:
-            print("\nExtension Attributes in Advanced Searches:")  # TEMP
-            print(names_in_advanced_searches)  # TEMP
+        # TODO EAs in Patch policies?
 
     else:
         criteria_in_computer_groups = []
@@ -663,13 +623,17 @@ def handle_eas(jamf_url, enc_creds, args, verbosity):
                         print(f"      inventory_display  : {inventory_display}")
 
             if args.unused:
-                print("\nThe following EAs are found in at least one smart group "
-                        "or advanced search:\n")
+                print(
+                    "\nThe following EAs are found in at least one smart group "
+                    "or advanced search:\n"
+                )
                 for ea_name in used_eas.values():
                     print(bcolors.OKGREEN + ea_name + bcolors.ENDC)
 
-                print("\nThe following EAs are not used in any smart groups "
-                        "or advanced searches:\n")
+                print(
+                    "\nThe following EAs are not used in any smart groups "
+                    "or advanced searches:\n"
+                )
                 for ea_id, ea_name in unused_eas.items():
                     print(bcolors.FAIL + f"[{ea_id}] " + ea_name + bcolors.ENDC)
 
@@ -706,6 +670,191 @@ def handle_eas(jamf_url, enc_creds, args, verbosity):
             print("\nNo EAs found")
 
 
+def handle_groups(jamf_url, enc_creds, args, verbosity):
+    unused_groups = {}
+    used_groups = {}
+    if args.unused:
+        # look in computer groups for computer groups in the criteria
+        criteria_in_computer_groups = api_get.get_criteria_in_computer_groups(
+            jamf_url, enc_creds, verbosity
+        )
+        # look in advanced searches for computer groups in the criteria
+        names_in_advanced_searches = api_get.get_names_in_advanced_searches(
+            jamf_url, enc_creds, verbosity
+        )
+        # look in the scope of policies
+        groups_in_policies = api_get.get_groups_in_api_objs(
+            jamf_url, enc_creds, "policy", verbosity
+        )
+        # look in the scope of Mac App Store apps
+        groups_in_mas_apps = api_get.get_groups_in_api_objs(
+            jamf_url, enc_creds, "mac_application", verbosity
+        )
+        # look in the scope of configurator profiles
+        groups_in_config_profiles = api_get.get_groups_in_api_objs(
+            jamf_url, enc_creds, "os_x_configuration_profile", verbosity
+        )
+        # look in the scope of patch policies
+        groups_in_patch_policies = api_get.get_groups_in_patch_policies(
+            jamf_url, enc_creds, verbosity
+        )
+        #  look in the scope of restricted software
+        groups_in_restricted_software = api_get.get_groups_in_api_objs(
+            jamf_url, enc_creds, "restricted_software", verbosity
+        )
+
+    else:
+        criteria_in_computer_groups = []
+        names_in_advanced_searches = []
+        groups_in_policies = []
+        groups_in_mas_apps = []
+        groups_in_config_profiles = []
+        groups_in_patch_policies = []
+        groups_in_restricted_software = []
+
+    if args.all or args.unused:
+        groups = api_get.get_api_obj_list(
+            jamf_url, "computer_group", enc_creds, verbosity
+        )
+        if groups:
+            for group in groups:
+                # loop all the groups
+                if args.unused:
+                    # see if the groups is in any smart groups
+                    unused_in_computer_groups = 0
+                    unused_in_advanced_searches = 0
+                    unused_in_policies = 0
+                    unused_in_mas_apps = 0
+                    unused_in_config_profiles = 0
+                    unused_in_patch_policies = 0
+                    unused_in_restricted_software = 0
+
+                    if criteria_in_computer_groups:
+                        if group["name"] not in criteria_in_computer_groups:
+                            unused_in_computer_groups = 1
+                    else:
+                        unused_in_computer_groups = 1
+
+                    if names_in_advanced_searches:
+                        if group["name"] not in names_in_advanced_searches:
+                            unused_in_advanced_searches = 1
+                    else:
+                        unused_in_advanced_searches = 1
+
+                    if groups_in_policies:
+                        if group["name"] not in groups_in_policies:
+                            unused_in_policies = 1
+                    else:
+                        unused_in_policies = 1
+
+                    if groups_in_mas_apps:
+                        if group["name"] not in groups_in_mas_apps:
+                            unused_in_mas_apps = 1
+                    else:
+                        unused_in_mas_apps = 1
+
+                    if groups_in_config_profiles:
+                        if group["name"] not in groups_in_config_profiles:
+                            unused_in_config_profiles = 1
+                    else:
+                        unused_in_config_profiles = 1
+
+                    if groups_in_patch_policies:
+                        if group["name"] not in groups_in_patch_policies:
+                            unused_in_patch_policies = 1
+                    else:
+                        unused_in_patch_policies = 1
+
+                    if groups_in_restricted_software:
+                        if group["name"] not in groups_in_restricted_software:
+                            unused_in_restricted_software = 1
+                    else:
+                        unused_in_restricted_software = 1
+
+                    if (
+                        unused_in_computer_groups == 1
+                        and unused_in_advanced_searches == 1
+                        and unused_in_policies == 1
+                        and unused_in_mas_apps == 1
+                        and unused_in_config_profiles == 1
+                        and unused_in_patch_policies == 1
+                        and unused_in_restricted_software == 1
+                    ):
+                        unused_groups[group["id"]] = group["name"]
+                    elif group["name"] not in used_groups:
+                        used_groups[group["id"]] = group["name"]
+                else:
+                    print(
+                        bcolors.WARNING
+                        + f"  script {group['id']}\n"
+                        + f"      name     : {group['name']}"
+                        + bcolors.ENDC
+                    )
+                    if args.details:
+                        # gather interesting info for each group via API
+                        generic_info = api_get.get_api_obj_from_id(
+                            jamf_url,
+                            "computer_group",
+                            group["id"],
+                            enc_creds,
+                            verbosity,
+                        )
+
+                        is_smart = generic_info["is_smart"]
+                        print(f"      is smart            : {is_smart}")
+
+            if args.unused:
+                print(
+                    "\nThe following groups are criteria in at least one smart group or "
+                    "advanced search,\n"
+                    "and/or are scoped or excluded in at least one "
+                    "policy, patch policy, Mac App Store app,\n"
+                    "configuration profile or restricted software:\n"
+                )
+                for group_name in used_groups.values():
+                    print(bcolors.OKGREEN + group_name + bcolors.ENDC)
+
+                print(
+                    "\nThe following groups are not found in any smart groups, advanced searches\n"
+                    "policies, patch policies, Mac App Store apps, "
+                    "configuration profiles or restricted software:\n"
+                )
+                for group_id, group_name in unused_groups.items():
+                    print(bcolors.FAIL + f"[{group_id}] " + group_name + bcolors.ENDC)
+
+                if args.delete:
+                    if actions.confirm(
+                        prompt=(
+                            "\nDelete all unused groups?"
+                            "\n(press n to go on to confirm individually)?"
+                        ),
+                        default=False,
+                    ):
+                        delete_all = True
+                    else:
+                        delete_all = False
+                    for group_id, group_name in unused_groups.items():
+                        # prompt to delete each group in turn
+                        if delete_all or actions.confirm(
+                            prompt=(
+                                bcolors.OKBLUE
+                                + f"Delete {group_name} (id={group_id})?"
+                                + bcolors.ENDC
+                            ),
+                            default=False,
+                        ):
+                            print(f"Deleting {group_name}...")
+                            api_delete.delete_api_object(
+                                jamf_url,
+                                "computer_group",
+                                group_id,
+                                enc_creds,
+                                verbosity,
+                            )
+        else:
+            print("\nNo groups found")
+
+
 def get_args():
     """Parse any command line arguments"""
     parser = argparse.ArgumentParser()
@@ -715,8 +864,8 @@ def get_args():
     group.add_argument("--policies", action="store_true")
     group.add_argument("--packages", action="store_true")
     group.add_argument("--scripts", action="store_true")
-    group.add_argument('--ea', action='store_true')
-    # TODO: group.add_argument('--groups', action='store_false')
+    group.add_argument("--ea", action="store_true")
+    group.add_argument("--groups", action="store_true")
 
     parser.add_argument(
         "-n",
@@ -727,7 +876,7 @@ def get_args():
         help=("Give a policy name to delete. Multiple allowed."),
     )
     parser.add_argument(
-        "--os", help=("Restrict computer search to an OS version. Requires --computer"),
+        "--os", help=("Restrict computer search to an OS version. Requires --computer")
     )
     parser.add_argument(
         "--search",
@@ -772,14 +921,10 @@ def get_args():
         ),
         action="store_true",
     )
+    parser.add_argument("--slack", help="Post a slack webhook", action="store_true")
+    parser.add_argument("--url", default="", help="the Jamf Pro Server URL")
     parser.add_argument(
-        "--slack", help="Post a slack webhook", action="store_true",
-    )
-    parser.add_argument(
-        "--url", default="", help="the Jamf Pro Server URL",
-    )
-    parser.add_argument(
-        "--user", default="", help="a user with the rights to delete a policy",
+        "--user", default="", help="a user with the rights to delete a policy"
     )
     parser.add_argument(
         "--password",
@@ -878,7 +1023,7 @@ def main():
 
     # computers
     if args.computer:
-        handle_computers(jamf_url, enc_creds, args, verbosity)
+        handle_computers(jamf_url, enc_creds, args, slack_webhook, verbosity)
 
     # policies
     if args.policies:
@@ -891,7 +1036,7 @@ def main():
     # packages
     if args.packages:
         handle_packages(jamf_url, enc_creds, token, args, verbosity)
-    
+
     # scripts
     if args.scripts:
         handle_scripts(jamf_url, enc_creds, token, args, verbosity)
@@ -899,6 +1044,10 @@ def main():
     # extension attributes
     if args.ea:
         handle_eas(jamf_url, enc_creds, args, verbosity)
+
+    # extension attributes
+    if args.groups:
+        handle_groups(jamf_url, enc_creds, args, verbosity)
 
     # process a name or list of names
     if args.names:
