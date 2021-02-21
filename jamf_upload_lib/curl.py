@@ -8,7 +8,7 @@ from shutil import rmtree
 from collections import namedtuple
 
 
-def request(method, url, auth, verbosity, data="", additional_headers=""):
+def request(method, url, auth, verbosity, data="", additional_headers="", xml=False):
     """
     build a curl command based on method (GET, PUT, POST, DELETE)
     If the URL contains 'uapi' then token should be passed to the auth variable,
@@ -39,7 +39,10 @@ def request(method, url, auth, verbosity, data="", additional_headers=""):
 
     # set either Accept or Content-Type depending on method
     if method == "GET" or method == "DELETE":
-        curl_cmd.extend(["--header", "Accept: application/json"])
+        if xml:
+            curl_cmd.extend(["--header", "Accept: application/xml"])
+        else:
+            curl_cmd.extend(["--header", "Accept: application/json"])
     elif method == "POST" and "hooks.slack.com" in url:
         # build a Slack-centric curl command - create a webhook url on slack.com
         # and set variable to SLACK_WEBHOOK in your prefs file
@@ -88,12 +91,13 @@ def request(method, url, auth, verbosity, data="", additional_headers=""):
         for header in existing_headers:
             if "APBALANCEID" in header:
                 cookie = header.split()[1].rstrip(";")
-                if verbosity > 0:
+                if verbosity > 1:
                     print("Existing cookie found: {}".format(cookie))
                 curl_cmd.extend(["--cookie", cookie])
 
     except IOError:
-        print("No existing cookie found - starting new session")
+        if verbosity > 1:
+            print("No existing cookie found - starting new session")
 
     # additional headers for advanced requests
     if additional_headers:
@@ -105,8 +109,9 @@ def request(method, url, auth, verbosity, data="", additional_headers=""):
     elif verbosity > 1:
         curl_cmd.append("-v")
 
-    if verbosity:
+    if verbosity > 1:
         print("\ncurl command:\n{}".format(" ".join(curl_cmd)))
+        print("(note this may omit essential quotation marks - do not copy-and-paste!")
 
     # now subprocess the curl command and build the r tuple which contains the
     # headers, status code and outputted data
@@ -120,20 +125,23 @@ def request(method, url, auth, verbosity, data="", additional_headers=""):
         for header in r.headers:
             if "HTTP/1.1" in header and "Continue" not in header:
                 r.status_code = int(header.split()[1])
+    except IOError:
+        print("WARNING: {} not found".format(headers_file))
+    if os.path.exists(output_file) and os.path.getsize(output_file) > 0:
         with open(output_file, "rb") as file:
             if "uapi" in url:
                 r.output = json.load(file)
             else:
                 r.output = file.read()
-        return r
-    except IOError:
-        print("WARNING: {} not found".format(headers_file))
+    else:
+        print(f"No output from request ({output_file} not found or empty)")
+    return r
 
 
 def status_check(r, endpoint_type, obj_name, request_type="upload"):
     """Return a message dependent on the HTTP response"""
 
-    if r.status_code == 200 or r.status_code == 201:
+    if r.status_code == 200 or r.status_code == 201 or r.status_code == 204:
         print(
             "{} '{}' {} was successful".format(
                 endpoint_type, obj_name, request_type.lower()
