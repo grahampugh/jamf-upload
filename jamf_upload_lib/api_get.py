@@ -120,10 +120,14 @@ def get_patch_obj_value_from_id(
             value = {}
             record_id = 0
             for record in obj_content.findall("versions/version"):
-                software_version = record.findtext("software_version")
                 package = {}
-                package["id"] = record.findtext("package/id")
-                package["name"] = record.findtext("package/name")
+                try:
+                    package["id"] = record.findtext("package/id")
+                    package["name"] = record.findtext("package/name")
+                except KeyError:
+                    package["id"] = ""
+                    package["name"] = ""
+                software_version = record.findtext("software_version")
                 value[record_id] = {}
                 value[record_id]["software_version"] = software_version
                 value[record_id]["package"] = package
@@ -250,7 +254,7 @@ def get_packages_in_patch_titles(jamf_url, enc_creds, verbosity):
             f"(total {len(titles)})..."
         )
         for title in titles:
-            versions = get_api_obj_value_from_id(
+            versions = get_patch_obj_value_from_id(
                 jamf_url,
                 "patch_software_title",
                 title["id"],
@@ -267,6 +271,8 @@ def get_packages_in_patch_titles(jamf_url, enc_creds, verbosity):
                                 if pkg != "None" and pkg not in packages_in_titles:
                                     packages_in_titles.append(pkg)
                         except IndexError:
+                            pass
+                        except KeyError:
                             pass
             except IndexError:
                 pass
