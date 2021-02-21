@@ -1,6 +1,6 @@
 # jamf-upload
 
-A set of scripts designed to allow easy interaction with the Jamf Pro APIs, in particular for the upload of packages, categories, computer groups, scripts, extension attributes and policies to Jamf Pro, but also for managing their deletion. 
+A set of scripts designed to allow easy interaction with the Jamf Pro APIs, in particular for the upload of packages, categories, computer groups, scripts, extension attributes and policies to Jamf Pro, but also for managing their deletion.
 
 The standalone scripts require a python 3 installation.
 
