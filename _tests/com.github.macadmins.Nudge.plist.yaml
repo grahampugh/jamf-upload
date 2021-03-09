@@ -1,0 +1,18 @@
+PayloadContent:
+  - osVersionRequirements:
+      - aboutUpdateURLs:
+          - _language: en
+            aboutUpdateURL: https://support.apple.com/en-us/HT211896#macos1121
+        majorUpgradeAppPath: /Applications/Install macOS Big Sur.app
+        requiredInstallationDate: 2021-02-28 00:00:00
+        requiredMinimumOSVersion: 11.2.2
+        targetedOSVersions:
+          - "11.0"
+          - 11.0.1
+          - "11.1"
+          - "11.2"
+          - "11.2.1"
+    userInterface:
+      simpleMode: true
+    optionalFeatures:
+      enforceMinorUpdates: true
