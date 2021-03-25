@@ -2,6 +2,7 @@
 
 import json
 import os
+import re
 import subprocess
 import uuid
 from shutil import rmtree
@@ -117,13 +118,17 @@ def request(method, url, auth, verbosity, data="", additional_headers="", xml=Fa
     # headers, status code and outputted data
     subprocess.check_output(curl_cmd)
 
-    r = namedtuple("r", ["headers", "status_code", "output"])
+    r = namedtuple(
+        "r",
+        ["headers", "status_code", "output"],
+        defaults=(None, None, None)
+    )
     try:
         with open(headers_file, "r") as file:
             headers = file.readlines()
         r.headers = [x.strip() for x in headers]
         for header in r.headers:
-            if "HTTP/1.1" in header and "Continue" not in header:
+            if re.match(r"HTTP/(1.1|2)", header) and "Continue" not in header:
                 r.status_code = int(header.split()[1])
     except IOError:
         print("WARNING: {} not found".format(headers_file))
@@ -135,7 +140,7 @@ def request(method, url, auth, verbosity, data="", additional_headers="", xml=Fa
                 r.output = file.read()
     else:
         print(f"No output from request ({output_file} not found or empty)")
-    return r
+    return r()
 
 
 def status_check(r, endpoint_type, obj_name, request_type="upload"):
