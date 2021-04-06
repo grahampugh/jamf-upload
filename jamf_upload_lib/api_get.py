@@ -74,6 +74,18 @@ def get_api_obj_list(jamf_url, object_type, enc_creds, verbosity):
         return obj
 
 
+def get_api_obj_from_id(jamf_url, object_type, obj_id, enc_creds, verbosity):
+    """Return an API object by ID"""
+    url = f"{jamf_url}/JSSResource/{api_objects.object_types(object_type)}/id/{obj_id}"
+    r = curl.request("GET", url, enc_creds, verbosity)
+    if r.status_code == 200:
+        obj = r.output["results"]
+        if verbosity > 2:
+            print("\nAPI object list:")
+            print(obj)
+        return obj
+
+
 def get_api_obj_id_from_name(jamf_url, object_type, object_name, enc_creds, verbosity):
     """returns an ID of an API object if it exists"""
 
