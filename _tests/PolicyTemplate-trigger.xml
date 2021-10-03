@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <policy>
     <general>
-        <name>Install %POLICY_NAME%</name>
+        <name>%POLICY_NAME%</name>
         <enabled>true</enabled>
         <trigger>EVENT</trigger>
         <trigger_checkin>false</trigger_checkin>
@@ -21,16 +21,16 @@
     </scope>
     <package_configuration>
         <packages>
-        <size>1</size>
-        <package>
-            <name>%PKG_NAME%</name>
-            <action>Install</action>
-        </package>
+            <size>1</size>
+            <package>
+                <name>%pkg_name%</name>
+                <action>Install</action>
+            </package>
         </packages>
     </package_configuration>
-	<scripts>
+    <scripts>
         <size>0</size>
-	</scripts>
+    </scripts>
     <self_service>
         <use_for_self_service>false</use_for_self_service>
     </self_service>

@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<policy>
+  <general>
+    <name>Install latest Firefox</name>
+    <enabled>true</enabled>
+    <frequency>Ongoing</frequency>
+    <category>
+      <name>Browsers</name>
+    </category>
+  </general>
+  <scope>
+    <computer_groups>
+      <computer_group>
+        <name>Firefox testers</name>
+      </computer_group>
+    </computer_groups>
+    <exclusions>
+      <computers/>
+      <computer_groups>
+        <computer_group>
+          <name>Firefox latest version installed</name>
+        </computer_group>
+      </computer_groups>
+    </exclusions>
+  </scope>
+  <package_configuration>
+    <packages>
+      <size>1</size>
+      <package>
+        <name>%pkg_name%</name>
+        <action>Install</action>
+      </package>
+    </packages>
+  </package_configuration>
+  <scripts>
+    <size>0</size>
+  </scripts>
+  <self_service>
+    <use_for_self_service>true</use_for_self_service>
+    <install_button_text>Install</install_button_text>
+    <reinstall_button_text>Reinstall</reinstall_button_text>
+    <self_service_display_name>Install latest Firefox</self_service_display_name>
+    <self_service_description>Firefox is a web browser from the Mozilla foundation.</self_service_description>
+  </self_service>
+  <maintenance>
+    <recon>true</recon>
+  </maintenance>
+</policy>

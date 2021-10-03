@@ -137,7 +137,7 @@ def generate_uuid():
 
 def unsign_signed_mobileconfig(mobileconfig_plist, verbosity):
     """checks if profile is signed. This is necessary because Jamf cannot
-    upload a signed profile, so we either need to unsign it, or bail """
+    upload a signed profile, so we either need to unsign it, or bail"""
     output_path = os.path.join("/tmp", str(uuid.uuid4()))
     cmd = [
         "/usr/bin/security",
@@ -170,7 +170,7 @@ def upload_mobileconfig(
     description,
     category,
     mobileconfig_plist,
-    computergroup_name,
+    computergroup,
     template_contents,
     profile_uuid,
     verbosity,
@@ -197,7 +197,7 @@ def upload_mobileconfig(
         "description": description,
         "category": category,
         "payload": mobileconfig,
-        "computergroup_name": computergroup_name,
+        "computergroup": computergroup,
         "uuid": "com.github.grahampugh.jamf-upload.{}".format(profile_uuid),
     }
 
@@ -242,31 +242,47 @@ def get_args():
     """Parse any command line arguments"""
     parser = argparse.ArgumentParser()
     parser.add_argument(
-        "--name", default="", help="Configuration Profile to create or update",
+        "--name",
+        default="",
+        help="Configuration Profile to create or update",
     )
     parser.add_argument(
-        "--payload", default="", help="Path to Configuration Profile plist payload",
+        "--payload",
+        default="",
+        help="Path to Configuration Profile plist payload",
     )
     parser.add_argument(
-        "--mobileconfig", default="", help="Path to Configuration Profile mobileconfig",
+        "--mobileconfig",
+        default="",
+        help="Path to Configuration Profile mobileconfig",
     )
     parser.add_argument(
-        "--identifier", default="", help="Configuration Profile payload identifier",
+        "--identifier",
+        default="",
+        help="Configuration Profile payload identifier",
     )
     parser.add_argument(
-        "--template", default="", help="Path to Configuration Profile XML template",
+        "--template",
+        default="",
+        help="Path to Configuration Profile XML template",
     )
     parser.add_argument(
-        "--category", default="", help="a category to assign to the profile",
+        "--category",
+        default="",
+        help="a category to assign to the profile",
     )
     parser.add_argument(
-        "--organization", default="", help="Organization to assign to the profile",
+        "--organization",
+        default="",
+        help="Organization to assign to the profile",
     )
     parser.add_argument(
-        "--description", default="", help="a description to assign to the profile",
+        "--description",
+        default="",
+        help="a description to assign to the profile",
     )
     parser.add_argument(
-        "--computergroup_name",
+        "--computergroup",
         default="",
         help="a computer group which will be scoped to the profile",
     )
@@ -281,7 +297,9 @@ def get_args():
         action="store_true",
     )
     parser.add_argument(
-        "--url", default="", help="the Jamf Pro Server URL",
+        "--url",
+        default="",
+        help="the Jamf Pro Server URL",
     )
     parser.add_argument(
         "--user",
@@ -289,7 +307,9 @@ def get_args():
         help="a user with the rights to create and update an Configuration Profile",
     )
     parser.add_argument(
-        "--password", default="", help="password of the user",
+        "--password",
+        default="",
+        help="password of the user",
     )
     parser.add_argument(
         "--prefs",
@@ -447,7 +467,7 @@ def main():
                     args.description,
                     args.category,
                     mobileconfig_plist,
-                    args.computergroup_name,
+                    args.computergroup,
                     template_contents,
                     existing_uuid,
                     verbosity,
@@ -488,7 +508,7 @@ def main():
                 args.description,
                 args.category,
                 mobileconfig_plist,
-                args.computergroup_name,
+                args.computergroup,
                 template_contents,
                 new_uuid,
                 verbosity,

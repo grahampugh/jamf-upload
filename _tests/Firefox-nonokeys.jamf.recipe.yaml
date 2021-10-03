@@ -1,0 +1,26 @@
+Description: |
+  Downloads the latest version of Firefox and makes a pkg. Then, uploads the package to the Jamf Pro Server and creates a Self Service Policy and Smart Group.
+Identifier: com.github.grahampugh.recipes.jamf.Firefox
+MinimumVersion: "2.3"
+ParentRecipe: com.github.autopkg.pkg.Firefox_EN
+
+Input:
+  NAME: Firefox
+
+Process:
+  - Processor: com.github.grahampugh.jamf-upload.processors/JamfCategoryUploader
+    Arguments:
+      category_name: Productivity
+
+  - Processor: com.github.grahampugh.jamf-upload.processors/JamfPackageUploader
+
+  - Processor: com.github.grahampugh.jamf-upload.processors/JamfComputerGroupUploader
+    Arguments:
+      computergroup_template: SmartGroupTemplate-Firefox-update-smart.xml
+      computergroup_name: Firefox-update-smart
+
+  - Processor: com.github.grahampugh.jamf-upload.processors/JamfPolicyUploader
+    Arguments:
+      policy_template: PolicyTemplate-Install-Latest-Firefox.xml
+      policy_name: Install Latest Firefox
+      icon: Firefox.png
