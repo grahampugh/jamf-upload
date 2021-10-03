@@ -101,6 +101,7 @@ class JamfComputerProfileUploader(Processor):
         },
     }
 
+    # do not edit directly - copy from template
     def write_json_file(self, data, tmp_dir="/tmp/jamf_upload"):
         """dump some json to a temporary file"""
         self.make_tmp_dir(tmp_dir)
@@ -109,6 +110,7 @@ class JamfComputerProfileUploader(Processor):
             json.dump(data, fp)
         return tf
 
+    # do not edit directly - copy from template
     def write_temp_file(self, data, tmp_dir="/tmp/jamf_upload"):
         """dump some text to a temporary file"""
         self.make_tmp_dir(tmp_dir)
@@ -117,18 +119,21 @@ class JamfComputerProfileUploader(Processor):
             fp.write(data)
         return tf
 
+    # do not edit directly - copy from template
     def make_tmp_dir(self, tmp_dir="/tmp/jamf_upload"):
         """make the tmp directory"""
         if not os.path.exists(tmp_dir):
             os.mkdir(tmp_dir)
         return tmp_dir
 
+    # do not edit directly - copy from template
     def clear_tmp_dir(self, tmp_dir="/tmp/jamf_upload"):
         """remove the tmp directory"""
         if os.path.exists(tmp_dir):
             rmtree(tmp_dir)
         return tmp_dir
 
+    # do not edit directly - copy from template
     def curl(self, method, url, auth, data="", additional_headers=""):
         """
         build a curl command based on method (GET, PUT, POST, DELETE)
@@ -143,6 +148,8 @@ class JamfComputerProfileUploader(Processor):
         # build the curl command
         curl_cmd = [
             "/usr/bin/curl",
+            "--silent",
+            "--show-error",
             "-X",
             method,
             "-D",
@@ -235,6 +242,7 @@ class JamfComputerProfileUploader(Processor):
             self.output(f"No output from request ({output_file} not found or empty)")
         return r()
 
+    # do not edit directly - copy from template
     def status_check(self, r, endpoint_type, obj_name):
         """Return a message dependent on the HTTP response"""
         if r.status_code == 200 or r.status_code == 201:
@@ -252,9 +260,10 @@ class JamfComputerProfileUploader(Processor):
         else:
             raise ProcessorError(f"ERROR: {endpoint_type} '{obj_name}' upload failed")
 
+    # do not edit directly - copy from template
     def get_path_to_file(self, filename):
         """AutoPkg is not very good at finding dependent files. This function
-        will look inside the search directories for any supplied file """
+        will look inside the search directories for any supplied file"""
         # if the supplied file is not a path, use the override directory or
         # recipe dir if no override
         recipe_dir = self.env.get("RECIPE_DIR")
@@ -283,6 +292,7 @@ class JamfComputerProfileUploader(Processor):
                 self.output(f"File found at: {matched_filepath}")
                 return matched_filepath
 
+    # do not edit directly - copy from template
     def get_api_obj_id_from_name(self, jamf_url, object_name, enc_creds):
         """check if a Classic API object with the same name exists on the server"""
         # define the relationship between the object types and their URL
@@ -292,18 +302,21 @@ class JamfComputerProfileUploader(Processor):
         if r.status_code == 200:
             object_list = json.loads(r.output)
             self.output(
-                object_list, verbose_level=4,
+                object_list,
+                verbose_level=4,
             )
             obj_id = 0
             for obj in object_list["os_x_configuration_profiles"]:
                 self.output(
-                    obj, verbose_level=3,
+                    obj,
+                    verbose_level=3,
                 )
                 # we need to check for a case-insensitive match
                 if obj["name"].lower() == object_name.lower():
                     obj_id = obj["id"]
             return obj_id
 
+    # do not edit directly - copy from template
     def get_api_obj_value_from_id(
         self, jamf_url, object_type, obj_id, obj_path, enc_creds
     ):
@@ -333,13 +346,10 @@ class JamfComputerProfileUploader(Processor):
                 self.output(f"\nValue of '{obj_path}':\n{value}", verbose_level=2)
             return value
 
-    def substitute_assignable_keys(self, data, cli_custom_keys, xml_escape=False):
-        """substitutes any key in the inputted text using the %MY_KEY% nomenclature.
-        Whenever %MY_KEY% is found in the provided data, it is replaced with the assigned
-        value of MY_KEY. A five-times passa through is done to ensure that all keys are substituted.
-
-        Optionally, if the xml_escape key is set, the value is escaped for XML special characters.
-        This is designed primarily to account for ampersands in the substituted strings."""
+    # do not edit directly - copy from template
+    def substitute_assignable_keys(self, data, xml_escape=False):
+        """substitutes any key in the inputted text using the %MY_KEY% nomenclature"""
+        # do a four-pass to ensure that all keys are substituted
         loop = 5
         while loop > 0:
             loop = loop - 1
@@ -348,19 +358,24 @@ class JamfComputerProfileUploader(Processor):
                 break
             found_keys = [i.replace("%", "") for i in found_keys]
             for found_key in found_keys:
-                if cli_custom_keys[found_key]:
+                if self.env.get(found_key):
                     self.output(
-                        f"Replacing any instances of '{found_key}' with "
-                        f"'{str(cli_custom_keys[found_key])}'",
+                        (
+                            f"Replacing any instances of '{found_key}' with",
+                            f"'{str(self.env.get(found_key))}'",
+                        ),
                         verbose_level=2,
                     )
                     if xml_escape:
-                        replacement_key = escape(cli_custom_keys[found_key])
+                        replacement_key = escape(self.env.get(found_key))
                     else:
-                        replacement_key = cli_custom_keys[found_key]
+                        replacement_key = self.env.get(found_key)
                     data = data.replace(f"%{found_key}%", replacement_key)
                 else:
-                    self.output(f"WARNING: '{found_key}' has no replacement object!",)
+                    self.output(
+                        f"WARNING: '{found_key}' has no replacement object!",
+                    )
+                    raise ProcessorError("Unsubstitutable key in template found")
         return data
 
     def pretty_print_xml(self, xml):
@@ -470,7 +485,7 @@ class JamfComputerProfileUploader(Processor):
 
     def unsign_signed_mobileconfig(self, mobileconfig_plist):
         """checks if profile is signed. This is necessary because Jamf cannot
-        upload a signed profile, so we either need to unsign it, or bail """
+        upload a signed profile, so we either need to unsign it, or bail"""
         output_path = os.path.join("/tmp", str(uuid.uuid4()))
         cmd = [
             "/usr/bin/security",

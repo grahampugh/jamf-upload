@@ -218,8 +218,8 @@ def update_pkg_metadata(
         + "</package>"
     )
 
-    #  ideally we upload to the package ID but if we didn't get a good response
-    #  we fall back to the package name
+    # ideally we upload to the package ID but if we didn't get a good response
+    # we fall back to the package name
     if pkg_id:
         method = "PUT"
         url = "{}/JSSResource/packages/id/{}".format(jamf_url, pkg_id)
@@ -550,11 +550,11 @@ def main():
     print("\n** Jamf package upload script")
     print("** Uploads packages to Jamf Cloud or SMB Distribution Points.")
 
-    #  parse the command line arguments
+    # parse the command line arguments
     args = get_args()
     verbosity = args.verbose
 
-    #  create a dictionary of package metadata from the args
+    # create a dictionary of package metadata from the args
     pkg_metadata = {
         "category": args.category,
         "info": args.info,
@@ -637,7 +637,7 @@ def main():
             pkg_path = zip_pkg_path(pkg_path)
             pkg_name += ".zip"
 
-        #  calculate the SHA-512 hash of the package
+        # calculate the SHA-512 hash of the package
         sha512string = sha512sum(pkg_path)
 
         # check for existing package
@@ -679,7 +679,7 @@ def main():
                             print("JCDS Upload token: {}".format(jcds_token))
                             print("Session token: {}".format(session_token))
 
-                        #  post the package as chunks
+                        # post the package as chunks
                         post_pkg_chunks(
                             pkg_name,
                             pkg_path,
@@ -690,7 +690,7 @@ def main():
                             verbosity,
                         )
 
-                        #  now create the package object and get the pkg ID
+                        # now create the package object and get the pkg ID
                         pkg_id = update_pkg_by_form(
                             login_session,
                             session_token,

@@ -511,17 +511,21 @@ fi
 # this folder
 DIR=$(dirname "$0")
 
-# Run the custom processor
-/Library/AutoPkg/Python3/Python.framework/Versions/Current/bin/python3 "$DIR/JamfUploaderProcessors/$processor.py" < "$temp_processor_plist" > "$temp_receipt"
+if [[ $verbosity -le 1 ]]; then
+    # Run the custom processor and output to file
+    /Library/AutoPkg/Python3/Python.framework/Versions/Current/bin/python3 "$DIR/JamfUploaderProcessors/$processor.py" < "$temp_processor_plist" > "$temp_receipt"
+    echo
+    echo "Output:"
+    grep "^$processor" "$temp_receipt" 
 
-# fake output 
-echo
-echo "Output:"
-grep "^$processor" "$temp_receipt" 
+    # remove fake output from temp_receipt
+    sed -i '' -e "/^$processor/d" "$temp_receipt" 
 
-# remove fake output from temp_receipt
-sed -i '' -e "/^$processor*$/d" "$temp_receipt" 
-
-echo
-echo "Receipt written to: $temp_receipt"
-echo
+    echo
+    echo "Receipt written to: $temp_receipt"
+    echo
+else
+    echo 
+    # Run the custom processor and output to stdout
+    /Library/AutoPkg/Python3/Python.framework/Versions/Current/bin/python3 "$DIR/JamfUploaderProcessors/$processor.py" < "$temp_processor_plist"
+fi

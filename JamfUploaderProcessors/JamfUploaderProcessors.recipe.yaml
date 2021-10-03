@@ -1,5 +1,0 @@
-Description: Recipe stub for any Processors in this directory.
-Identifier: com.github.grahampugh.jamf-upload-test.processors
-Input: {}
-MinimumVersion: "2.3"
-Process: []
