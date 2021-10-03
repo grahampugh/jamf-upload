@@ -13,8 +13,6 @@ else:
     from urllib.parse import urlparse
 
 
-
-
 def substitute_assignable_keys(data, cli_custom_keys, verbosity, xml_escape=False):
     """substitutes any key in the inputted text using the %MY_KEY% nomenclature.
     Whenever %MY_KEY% is found in the provided data, it is replaced with the assigned
@@ -140,5 +138,3 @@ def umount_smb(mount_share):
         subprocess.check_call(cmd)
     except subprocess.CalledProcessError:
         print("WARNING! Unmount failed.")
-
-

@@ -251,7 +251,7 @@ def get_args():
         "--mobileconfig", default="", help="Path to Configuration Profile mobileconfig",
     )
     parser.add_argument(
-        "--identifier", default="", help="Path to Configuration Profile plist payload",
+        "--identifier", default="", help="Configuration Profile payload identifier",
     )
     parser.add_argument(
         "--template", default="", help="Path to Configuration Profile XML template",
