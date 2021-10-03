@@ -52,8 +52,7 @@ class JamfUploaderSlacker(Processor):
             "description": ("Untested product name from a jamf recipe."),
         },
         "NAME": {"required": False, "description": ("Generic product name.")},
-        "version": {"required": True, "description": ("Product version.")},
-        "pkg_name": {"required": True, "description": ("Package in policy.")},
+        "pkg_name": {"required": False, "description": ("Package in policy.")},
         "jamfpackageuploader_summary_result": {
             "required": False,
             "description": ("Summary results of package processors."),

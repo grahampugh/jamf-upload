@@ -352,7 +352,7 @@ class JamfExtensionAttributeUploader(Processor):
         # substitute user-assignable keys
         script_contents = self.substitute_assignable_keys(script_contents)
 
-        #  XML-escape the script
+        # XML-escape the script
         script_contents_escaped = escape(script_contents)
 
         # build the object
