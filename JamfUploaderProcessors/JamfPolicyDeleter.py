@@ -97,7 +97,7 @@ class JamfPolicyDeleter(Processor):
         if "uapi" in url and "tokens" not in url:
             curl_cmd.extend(["--header", f"authorization: Bearer {auth}"])
         # basic auth to obtain a token, or for classic API
-        elif "uapi" in url or "JSSResource" in url:
+        elif "uapi" in url or "JSSResource" in url or "dbfileupload" in url:
             curl_cmd.extend(["--header", f"authorization: Basic {auth}"])
 
         # set either Accept or Content-Type depending on method
@@ -109,7 +109,7 @@ class JamfPolicyDeleter(Processor):
             curl_cmd.extend(["--form", f"name=@{data}"])
         elif method == "POST" or method == "PUT":
             if data:
-                if "uapi" in url or "JSSResource" in url:
+                if "uapi" in url or "JSSResource" in url or "dbfileupload" in url:
                     # jamf data upload requires upload-file argument
                     curl_cmd.extend(["--upload-file", data])
                 else:
@@ -124,7 +124,7 @@ class JamfPolicyDeleter(Processor):
             self.output(f"WARNING: HTTP method {method} not supported")
 
         # write session for jamf requests
-        if "uapi" in url or "JSSResource" in url:
+        if "uapi" in url or "JSSResource" in url or "dbfileupload" in url:
             try:
                 with open(headers_file, "r") as file:
                     headers = file.readlines()
@@ -225,14 +225,12 @@ class JamfPolicyDeleter(Processor):
         if r.status_code == 200:
             object_list = json.loads(r.output)
             self.output(
-                object_list,
-                verbose_level=4,
+                object_list, verbose_level=4,
             )
             obj_id = 0
             for obj in object_list[object_list_types[object_type]]:
                 self.output(
-                    obj,
-                    verbose_level=3,
+                    obj, verbose_level=3,
                 )
                 # we need to check for a case-insensitive match
                 if obj["name"].lower() == object_name.lower():
@@ -293,13 +291,10 @@ class JamfPolicyDeleter(Processor):
         if obj_id:
             self.output(f"Policy '{self.policy_name}' exists: ID {obj_id}")
             self.output(
-                "Deleting existing policy",
-                verbose_level=1,
+                "Deleting existing policy", verbose_level=1,
             )
             self.delete_policy(
-                self.jamf_url,
-                enc_creds,
-                obj_id,
+                self.jamf_url, enc_creds, obj_id,
             )
         else:
             self.output(

@@ -159,10 +159,12 @@ class JamfComputerProfileUploader(Processor):
             url,
         ]
 
-        # the authorisation is Basic unless we are using the uapi and already have a token
+        # authorisation if using Jamf Pro API or Classic API
+        # if using uapi and we already have a token then we use the token for authorization
         if "uapi" in url and "tokens" not in url:
             curl_cmd.extend(["--header", f"authorization: Bearer {auth}"])
-        else:
+        # basic auth to obtain a token, or for classic API
+        elif "uapi" in url or "JSSResource" in url or "dbfileupload" in url:
             curl_cmd.extend(["--header", f"authorization: Basic {auth}"])
 
         # set either Accept or Content-Type depending on method
@@ -174,41 +176,47 @@ class JamfComputerProfileUploader(Processor):
             curl_cmd.extend(["--form", f"name=@{data}"])
         elif method == "POST" or method == "PUT":
             if data:
-                curl_cmd.extend(["--upload-file", data])
-            # uapi sends json, classic API must send xml
-            if "uapi" in url:
-                curl_cmd.extend(["--header", "Content-type: application/json"])
-            else:
+                if "uapi" in url or "JSSResource" in url or "dbfileupload" in url:
+                    # jamf data upload requires upload-file argument
+                    curl_cmd.extend(["--upload-file", data])
+                else:
+                    # slack requires data argument
+                    curl_cmd.extend(["--data", data])
+            # uapi and slack accepts json, classic API only accepts xml
+            if "JSSResource" in url:
                 curl_cmd.extend(["--header", "Content-type: application/xml"])
+            else:
+                curl_cmd.extend(["--header", "Content-type: application/json"])
         else:
             self.output(f"WARNING: HTTP method {method} not supported")
 
-        # write session
-        try:
-            with open(headers_file, "r") as file:
-                headers = file.readlines()
-            existing_headers = [x.strip() for x in headers]
-            for header in existing_headers:
-                if "APBALANCEID" in header or "AWSALB" in header:
-                    with open(cookie_jar, "w") as fp:
-                        fp.write(header)
-        except IOError:
-            pass
+        # write session for jamf requests
+        if "uapi" in url or "JSSResource" in url or "dbfileupload" in url:
+            try:
+                with open(headers_file, "r") as file:
+                    headers = file.readlines()
+                existing_headers = [x.strip() for x in headers]
+                for header in existing_headers:
+                    if "APBALANCEID" in header or "AWSALB" in header:
+                        with open(cookie_jar, "w") as fp:
+                            fp.write(header)
+            except IOError:
+                pass
 
-        # look for existing session
-        try:
-            with open(cookie_jar, "r") as file:
-                headers = file.readlines()
-            existing_headers = [x.strip() for x in headers]
-            for header in existing_headers:
-                if "APBALANCEID" in header or "AWSALB" in header:
-                    cookie = header.split()[1].rstrip(";")
-                    self.output(f"Existing cookie found: {cookie}", verbose_level=2)
-                    curl_cmd.extend(["--cookie", cookie])
-        except IOError:
-            self.output(
-                "No existing cookie found - starting new session", verbose_level=2
-            )
+            # look for existing session
+            try:
+                with open(cookie_jar, "r") as file:
+                    headers = file.readlines()
+                existing_headers = [x.strip() for x in headers]
+                for header in existing_headers:
+                    if "APBALANCEID" in header or "AWSALB" in header:
+                        cookie = header.split()[1].rstrip(";")
+                        self.output(f"Existing cookie found: {cookie}", verbose_level=2)
+                        curl_cmd.extend(["--cookie", cookie])
+            except IOError:
+                self.output(
+                    "No existing cookie found - starting new session", verbose_level=2
+                )
 
         # additional headers for advanced requests
         if additional_headers:
@@ -302,14 +310,12 @@ class JamfComputerProfileUploader(Processor):
         if r.status_code == 200:
             object_list = json.loads(r.output)
             self.output(
-                object_list,
-                verbose_level=4,
+                object_list, verbose_level=4,
             )
             obj_id = 0
             for obj in object_list["os_x_configuration_profiles"]:
                 self.output(
-                    obj,
-                    verbose_level=3,
+                    obj, verbose_level=3,
                 )
                 # we need to check for a case-insensitive match
                 if obj["name"].lower() == object_name.lower():
@@ -346,10 +352,15 @@ class JamfComputerProfileUploader(Processor):
                 self.output(f"\nValue of '{obj_path}':\n{value}", verbose_level=2)
             return value
 
-    # do not edit directly - copy from template
-    def substitute_assignable_keys(self, data, xml_escape=False):
-        """substitutes any key in the inputted text using the %MY_KEY% nomenclature"""
-        # do a four-pass to ensure that all keys are substituted
+    def substitute_limited_assignable_keys(
+        self, data, cli_custom_keys, xml_escape=False
+    ):
+        """substitutes any key in the inputted text using the %MY_KEY% nomenclature.
+        Whenever %MY_KEY% is found in the provided data, it is replaced with the assigned
+        value of MY_KEY. A five-times passa through is done to ensure that all keys are substituted.
+
+        Optionally, if the xml_escape key is set, the value is escaped for XML special characters.
+        This is designed primarily to account for ampersands in the substituted strings."""
         loop = 5
         while loop > 0:
             loop = loop - 1
@@ -358,24 +369,19 @@ class JamfComputerProfileUploader(Processor):
                 break
             found_keys = [i.replace("%", "") for i in found_keys]
             for found_key in found_keys:
-                if self.env.get(found_key):
+                if cli_custom_keys[found_key]:
                     self.output(
-                        (
-                            f"Replacing any instances of '{found_key}' with",
-                            f"'{str(self.env.get(found_key))}'",
-                        ),
+                        f"Replacing any instances of '{found_key}' with "
+                        f"'{str(cli_custom_keys[found_key])}'",
                         verbose_level=2,
                     )
                     if xml_escape:
-                        replacement_key = escape(self.env.get(found_key))
+                        replacement_key = escape(cli_custom_keys[found_key])
                     else:
-                        replacement_key = self.env.get(found_key)
+                        replacement_key = cli_custom_keys[found_key]
                     data = data.replace(f"%{found_key}%", replacement_key)
                 else:
-                    self.output(
-                        f"WARNING: '{found_key}' has no replacement object!",
-                    )
-                    raise ProcessorError("Unsubstitutable key in template found")
+                    self.output(f"WARNING: '{found_key}' has no replacement object!",)
         return data
 
     def pretty_print_xml(self, xml):
@@ -549,7 +555,7 @@ class JamfComputerProfileUploader(Processor):
         #     self.output(f"TEMP: {replaceable_keys[key]}")
 
         # substitute user-assignable keys (escaping for XML)
-        template_contents = self.substitute_assignable_keys(
+        template_contents = self.substitute_limited_assignable_keys(
             template_contents, replaceable_keys, xml_escape=True
         )
 

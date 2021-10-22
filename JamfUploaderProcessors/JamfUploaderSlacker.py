@@ -100,7 +100,7 @@ class JamfUploaderSlacker(Processor):
         return tmp_dir
 
     # do not edit directly - copy from template
-    def curl(self, method, url, auth="", data="", additional_headers=""):
+    def curl(self, method, url, auth, data="", additional_headers=""):
         """
         build a curl command based on method (GET, PUT, POST, DELETE)
         If the URL contains 'uapi' then token should be passed to the auth variable,
@@ -130,7 +130,7 @@ class JamfUploaderSlacker(Processor):
         if "uapi" in url and "tokens" not in url:
             curl_cmd.extend(["--header", f"authorization: Bearer {auth}"])
         # basic auth to obtain a token, or for classic API
-        elif "uapi" in url or "JSSResource" in url:
+        elif "uapi" in url or "JSSResource" in url or "dbfileupload" in url:
             curl_cmd.extend(["--header", f"authorization: Basic {auth}"])
 
         # set either Accept or Content-Type depending on method
@@ -142,7 +142,7 @@ class JamfUploaderSlacker(Processor):
             curl_cmd.extend(["--form", f"name=@{data}"])
         elif method == "POST" or method == "PUT":
             if data:
-                if "uapi" in url or "JSSResource" in url:
+                if "uapi" in url or "JSSResource" in url or "dbfileupload" in url:
                     # jamf data upload requires upload-file argument
                     curl_cmd.extend(["--upload-file", data])
                 else:
@@ -157,7 +157,7 @@ class JamfUploaderSlacker(Processor):
             self.output(f"WARNING: HTTP method {method} not supported")
 
         # write session for jamf requests
-        if "uapi" in url or "JSSResource" in url:
+        if "uapi" in url or "JSSResource" in url or "dbfileupload" in url:
             try:
                 with open(headers_file, "r") as file:
                     headers = file.readlines()
@@ -304,8 +304,7 @@ class JamfUploaderSlacker(Processor):
         while True:
             count += 1
             self.output(
-                "Slack webhook post attempt {}".format(count),
-                verbose_level=2,
+                "Slack webhook post attempt {}".format(count), verbose_level=2,
             )
             r = self.curl(method="POST", url=slack_webhook_url, data=slack_json)
             # check HTTP response

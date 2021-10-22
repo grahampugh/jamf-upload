@@ -226,7 +226,7 @@ class JamfPackageUploader(Processor):
         if "uapi" in url and "tokens" not in url:
             curl_cmd.extend(["--header", f"authorization: Bearer {auth}"])
         # basic auth to obtain a token, or for classic API
-        elif "uapi" in url or "JSSResource" in url:
+        elif "uapi" in url or "JSSResource" in url or "dbfileupload" in url:
             curl_cmd.extend(["--header", f"authorization: Basic {auth}"])
 
         # set either Accept or Content-Type depending on method
@@ -238,7 +238,7 @@ class JamfPackageUploader(Processor):
             curl_cmd.extend(["--form", f"name=@{data}"])
         elif method == "POST" or method == "PUT":
             if data:
-                if "uapi" in url or "JSSResource" in url:
+                if "uapi" in url or "JSSResource" in url or "dbfileupload" in url:
                     # jamf data upload requires upload-file argument
                     curl_cmd.extend(["--upload-file", data])
                 else:
@@ -253,7 +253,7 @@ class JamfPackageUploader(Processor):
             self.output(f"WARNING: HTTP method {method} not supported")
 
         # write session for jamf requests
-        if "uapi" in url or "JSSResource" in url:
+        if "uapi" in url or "JSSResource" in url or "dbfileupload" in url:
             try:
                 with open(headers_file, "r") as file:
                     headers = file.readlines()
@@ -353,8 +353,7 @@ class JamfPackageUploader(Processor):
             ),
         ]
         self.output(
-            f"Mount command: {' '.join(mount_cmd)}",
-            verbose_level=3,
+            f"Mount command: {' '.join(mount_cmd)}", verbose_level=3,
         )
 
         r = subprocess.check_output(mount_cmd)
@@ -371,8 +370,7 @@ class JamfPackageUploader(Processor):
         try:
             r = subprocess.check_output(cmd)
             self.output(
-                r.decode("ascii"),
-                verbose_level=2,
+                r.decode("ascii"), verbose_level=2,
             )
         except subprocess.CalledProcessError:
             self.output("WARNING! Unmount failed.")
@@ -388,13 +386,11 @@ class JamfPackageUploader(Processor):
             else:
                 self.output("No existing package found")
                 self.output(
-                    f"Expected path: {existing_pkg_path}",
-                    verbose_level=2,
+                    f"Expected path: {existing_pkg_path}", verbose_level=2,
                 )
         else:
             self.output(
-                f"Expected path not found!: {dirname}",
-                verbose_level=2,
+                f"Expected path not found!: {dirname}", verbose_level=2,
             )
 
     def copy_pkg(self, mount_share, pkg_path, pkg_name):
@@ -430,8 +426,7 @@ class JamfPackageUploader(Processor):
                 for member in files:
                     zip_handle.write(os.path.join(root, member))
             self.output(
-                f"Closing: {zip_name}",
-                verbose_level=2,
+                f"Closing: {zip_name}", verbose_level=2,
             )
         return zip_name
 
@@ -506,16 +501,14 @@ class JamfPackageUploader(Processor):
             url = f"{jamf_url}/JSSResource/packages/id/0"
 
         self.output(
-            pkg_data,
-            verbose_level=2,
+            pkg_data, verbose_level=2,
         )
 
         count = 0
         while True:
             count += 1
             self.output(
-                f"Package metadata upload attempt {count}",
-                verbose_level=2,
+                f"Package metadata upload attempt {count}", verbose_level=2,
             )
 
             pkg_xml = self.write_temp_file(pkg_data)
@@ -528,8 +521,7 @@ class JamfPackageUploader(Processor):
                     "WARNING: Package metadata update did not succeed after 5 attempts"
                 )
                 self.output(
-                    f"HTTP POST Response Code: {r.status_code}",
-                    verbose_level=1,
+                    f"HTTP POST Response Code: {r.status_code}", verbose_level=1,
                 )
                 raise ProcessorError("ERROR: Package metadata upload failed ")
             sleep(30)
@@ -700,8 +692,7 @@ class JamfPackageUploader(Processor):
         # now process the package metadata if specified
         if pkg_id and (self.pkg_uploaded or self.replace_metadata):
             self.output(
-                "Updating package metadata for {}".format(pkg_id),
-                verbose_level=1,
+                "Updating package metadata for {}".format(pkg_id), verbose_level=1,
             )
             self.update_pkg_metadata(
                 self.jamf_url,
@@ -714,8 +705,7 @@ class JamfPackageUploader(Processor):
             self.pkg_metadata_updated = True
         elif self.smb_url and not pkg_id:
             self.output(
-                "Creating package metadata",
-                verbose_level=1,
+                "Creating package metadata", verbose_level=1,
             )
             self.update_pkg_metadata(
                 self.jamf_url,
@@ -727,8 +717,7 @@ class JamfPackageUploader(Processor):
             self.pkg_metadata_updated = True
         else:
             self.output(
-                "Not updating package metadata",
-                verbose_level=1,
+                "Not updating package metadata", verbose_level=1,
             )
             self.pkg_metadata_updated = False
 

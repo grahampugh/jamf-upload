@@ -123,7 +123,7 @@ class JamfCategoryUploader(Processor):
         if "uapi" in url and "tokens" not in url:
             curl_cmd.extend(["--header", f"authorization: Bearer {auth}"])
         # basic auth to obtain a token, or for classic API
-        elif "uapi" in url or "JSSResource" in url:
+        elif "uapi" in url or "JSSResource" in url or "dbfileupload" in url:
             curl_cmd.extend(["--header", f"authorization: Basic {auth}"])
 
         # set either Accept or Content-Type depending on method
@@ -135,7 +135,7 @@ class JamfCategoryUploader(Processor):
             curl_cmd.extend(["--form", f"name=@{data}"])
         elif method == "POST" or method == "PUT":
             if data:
-                if "uapi" in url or "JSSResource" in url:
+                if "uapi" in url or "JSSResource" in url or "dbfileupload" in url:
                     # jamf data upload requires upload-file argument
                     curl_cmd.extend(["--upload-file", data])
                 else:
@@ -150,7 +150,7 @@ class JamfCategoryUploader(Processor):
             self.output(f"WARNING: HTTP method {method} not supported")
 
         # write session for jamf requests
-        if "uapi" in url or "JSSResource" in url:
+        if "uapi" in url or "JSSResource" in url or "dbfileupload" in url:
             try:
                 with open(headers_file, "r") as file:
                     headers = file.readlines()
@@ -285,8 +285,7 @@ class JamfCategoryUploader(Processor):
             while True:
                 count += 1
                 self.output(
-                    f"Category upload attempt {count}",
-                    verbose_level=2,
+                    f"Category upload attempt {count}", verbose_level=2,
                 )
                 r = self.curl("PUT", url, token, category_json_temp)
                 # check HTTP response
@@ -306,8 +305,7 @@ class JamfCategoryUploader(Processor):
         while True:
             count += 1
             self.output(
-                f"Category upload attempt {count}",
-                verbose_level=2,
+                f"Category upload attempt {count}", verbose_level=2,
             )
             method = "PUT" if obj_id else "POST"
             r = self.curl(method, url, token, category_json)

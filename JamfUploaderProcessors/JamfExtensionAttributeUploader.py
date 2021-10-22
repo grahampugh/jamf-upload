@@ -127,7 +127,7 @@ class JamfExtensionAttributeUploader(Processor):
         if "uapi" in url and "tokens" not in url:
             curl_cmd.extend(["--header", f"authorization: Bearer {auth}"])
         # basic auth to obtain a token, or for classic API
-        elif "uapi" in url or "JSSResource" in url:
+        elif "uapi" in url or "JSSResource" in url or "dbfileupload" in url:
             curl_cmd.extend(["--header", f"authorization: Basic {auth}"])
 
         # set either Accept or Content-Type depending on method
@@ -139,7 +139,7 @@ class JamfExtensionAttributeUploader(Processor):
             curl_cmd.extend(["--form", f"name=@{data}"])
         elif method == "POST" or method == "PUT":
             if data:
-                if "uapi" in url or "JSSResource" in url:
+                if "uapi" in url or "JSSResource" in url or "dbfileupload" in url:
                     # jamf data upload requires upload-file argument
                     curl_cmd.extend(["--upload-file", data])
                 else:
@@ -154,7 +154,7 @@ class JamfExtensionAttributeUploader(Processor):
             self.output(f"WARNING: HTTP method {method} not supported")
 
         # write session for jamf requests
-        if "uapi" in url or "JSSResource" in url:
+        if "uapi" in url or "JSSResource" in url or "dbfileupload" in url:
             try:
                 with open(headers_file, "r") as file:
                     headers = file.readlines()
@@ -287,14 +287,12 @@ class JamfExtensionAttributeUploader(Processor):
         if r.status_code == 200:
             object_list = json.loads(r.output)
             self.output(
-                object_list,
-                verbose_level=4,
+                object_list, verbose_level=4,
             )
             obj_id = 0
             for obj in object_list[object_list_types[object_type]]:
                 self.output(
-                    obj,
-                    verbose_level=3,
+                    obj, verbose_level=3,
                 )
                 # we need to check for a case-insensitive match
                 if obj["name"].lower() == object_name.lower():
@@ -327,19 +325,12 @@ class JamfExtensionAttributeUploader(Processor):
                         replacement_key = self.env.get(found_key)
                     data = data.replace(f"%{found_key}%", replacement_key)
                 else:
-                    self.output(
-                        f"WARNING: '{found_key}' has no replacement object!",
-                    )
+                    self.output(f"WARNING: '{found_key}' has no replacement object!",)
                     raise ProcessorError("Unsubstitutable key in template found")
         return data
 
     def upload_ea(
-        self,
-        jamf_url,
-        enc_creds,
-        ea_name,
-        script_path,
-        obj_id=None,
+        self, jamf_url, enc_creds, ea_name, script_path, obj_id=None,
     ):
         """Update extension attribute metadata."""
         # import script from file and replace any keys in the script
@@ -380,12 +371,10 @@ class JamfExtensionAttributeUploader(Processor):
             url = "{}/JSSResource/computerextensionattributes/id/0".format(jamf_url)
 
         self.output(
-            "Extension Attribute data:",
-            verbose_level=2,
+            "Extension Attribute data:", verbose_level=2,
         )
         self.output(
-            ea_data,
-            verbose_level=2,
+            ea_data, verbose_level=2,
         )
 
         self.output("Uploading Extension Attribute..")
@@ -396,8 +385,7 @@ class JamfExtensionAttributeUploader(Processor):
         while True:
             count += 1
             self.output(
-                "Extension Attribute upload attempt {}".format(count),
-                verbose_level=2,
+                "Extension Attribute upload attempt {}".format(count), verbose_level=2,
             )
             method = "PUT" if obj_id else "POST"
             r = self.curl(method, url, enc_creds, template_xml)
@@ -468,11 +456,7 @@ class JamfExtensionAttributeUploader(Processor):
                     verbose_level=1,
                 )
                 self.upload_ea(
-                    self.jamf_url,
-                    enc_creds,
-                    self.ea_name,
-                    self.ea_script_path,
-                    obj_id,
+                    self.jamf_url, enc_creds, self.ea_name, self.ea_script_path, obj_id,
                 )
                 ea_uploaded = True
             else:
@@ -484,10 +468,7 @@ class JamfExtensionAttributeUploader(Processor):
         else:
             # post the item
             self.upload_ea(
-                self.jamf_url,
-                enc_creds,
-                self.ea_name,
-                self.ea_script_path,
+                self.jamf_url, enc_creds, self.ea_name, self.ea_script_path,
             )
             ea_uploaded = True
 

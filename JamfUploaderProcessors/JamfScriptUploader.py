@@ -195,7 +195,7 @@ class JamfScriptUploader(Processor):
         if "uapi" in url and "tokens" not in url:
             curl_cmd.extend(["--header", f"authorization: Bearer {auth}"])
         # basic auth to obtain a token, or for classic API
-        elif "uapi" in url or "JSSResource" in url:
+        elif "uapi" in url or "JSSResource" in url or "dbfileupload" in url:
             curl_cmd.extend(["--header", f"authorization: Basic {auth}"])
 
         # set either Accept or Content-Type depending on method
@@ -207,7 +207,7 @@ class JamfScriptUploader(Processor):
             curl_cmd.extend(["--form", f"name=@{data}"])
         elif method == "POST" or method == "PUT":
             if data:
-                if "uapi" in url or "JSSResource" in url:
+                if "uapi" in url or "JSSResource" in url or "dbfileupload" in url:
                     # jamf data upload requires upload-file argument
                     curl_cmd.extend(["--upload-file", data])
                 else:
@@ -222,7 +222,7 @@ class JamfScriptUploader(Processor):
             self.output(f"WARNING: HTTP method {method} not supported")
 
         # write session for jamf requests
-        if "uapi" in url or "JSSResource" in url:
+        if "uapi" in url or "JSSResource" in url or "dbfileupload" in url:
             try:
                 with open(headers_file, "r") as file:
                     headers = file.readlines()
@@ -359,9 +359,7 @@ class JamfScriptUploader(Processor):
                         replacement_key = self.env.get(found_key)
                     data = data.replace(f"%{found_key}%", replacement_key)
                 else:
-                    self.output(
-                        f"WARNING: '{found_key}' has no replacement object!",
-                    )
+                    self.output(f"WARNING: '{found_key}' has no replacement object!",)
                     raise ProcessorError("Unsubstitutable key in template found")
         return data
 
@@ -464,12 +462,10 @@ class JamfScriptUploader(Processor):
             url = "{}/uapi/v1/scripts".format(jamf_url)
 
         self.output(
-            "Script data:",
-            verbose_level=2,
+            "Script data:", verbose_level=2,
         )
         self.output(
-            script_data,
-            verbose_level=2,
+            script_data, verbose_level=2,
         )
 
         self.output("Uploading script..")
@@ -479,8 +475,7 @@ class JamfScriptUploader(Processor):
         while True:
             count += 1
             self.output(
-                "Script upload attempt {}".format(count),
-                verbose_level=2,
+                "Script upload attempt {}".format(count), verbose_level=2,
             )
             method = "PUT" if obj_id else "POST"
             r = self.curl(method, url, token, script_json)
@@ -570,8 +565,7 @@ class JamfScriptUploader(Processor):
             "Checking for existing '{}' on {}".format(self.script_name, self.jamf_url)
         )
         self.output(
-            "Full path: {}".format(self.script_path),
-            verbose_level=2,
+            "Full path: {}".format(self.script_path), verbose_level=2,
         )
         obj_id = self.get_uapi_obj_id_from_name(
             self.jamf_url, "scripts", self.script_name, token
