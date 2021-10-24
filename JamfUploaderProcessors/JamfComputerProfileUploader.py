@@ -801,6 +801,7 @@ class JamfComputerProfileUploader(Processor):
                     template_contents,
                     new_uuid,
                 )
+                profile_updated = True
             else:
                 raise ProcessorError(
                     "A mobileconfig was not generated so cannot upload."
