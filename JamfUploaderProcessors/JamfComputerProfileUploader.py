@@ -470,7 +470,6 @@ class JamfComputerProfileUploader(Processor):
         mobileconfig_data = {
             "PayloadDescription": description,
             "PayloadDisplayName": mobileconfig_name,
-            "PayloadEnabled": True,
             "PayloadOrganization": organization,
             "PayloadRemovalDisallowed": True,
             "PayloadScope": "System",
