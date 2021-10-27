@@ -310,12 +310,14 @@ class JamfComputerProfileUploader(Processor):
         if r.status_code == 200:
             object_list = json.loads(r.output)
             self.output(
-                object_list, verbose_level=4,
+                object_list,
+                verbose_level=4,
             )
             obj_id = 0
             for obj in object_list["os_x_configuration_profiles"]:
                 self.output(
-                    obj, verbose_level=3,
+                    obj,
+                    verbose_level=3,
                 )
                 # we need to check for a case-insensitive match
                 if obj["name"].lower() == object_name.lower():
@@ -352,6 +354,39 @@ class JamfComputerProfileUploader(Processor):
                 self.output(f"\nValue of '{obj_path}':\n{value}", verbose_level=2)
             return value
 
+    # do not edit directly - copy from template
+    def substitute_assignable_keys(self, data, xml_escape=False):
+        """substitutes any key in the inputted text using the %MY_KEY% nomenclature"""
+        # do a four-pass to ensure that all keys are substituted
+        print(data)  # TEMP
+        loop = 5
+        while loop > 0:
+            loop = loop - 1
+            found_keys = re.findall(r"\%\w+\%", data)
+            if not found_keys:
+                break
+            found_keys = [i.replace("%", "") for i in found_keys]
+            for found_key in found_keys:
+                if self.env.get(found_key):
+                    self.output(
+                        (
+                            f"Replacing any instances of '{found_key}' with",
+                            f"'{str(self.env.get(found_key))}'",
+                        ),
+                        verbose_level=2,
+                    )
+                    if xml_escape:
+                        replacement_key = escape(self.env.get(found_key))
+                    else:
+                        replacement_key = self.env.get(found_key)
+                    data = data.replace(f"%{found_key}%", replacement_key)
+                else:
+                    self.output(
+                        f"WARNING: '{found_key}' has no replacement object!",
+                    )
+                    raise ProcessorError("Unsubstitutable key in template found")
+        return data
+
     def substitute_limited_assignable_keys(
         self, data, cli_custom_keys, xml_escape=False
     ):
@@ -381,7 +416,9 @@ class JamfComputerProfileUploader(Processor):
                         replacement_key = cli_custom_keys[found_key]
                     data = data.replace(f"%{found_key}%", replacement_key)
                 else:
-                    self.output(f"WARNING: '{found_key}' has no replacement object!",)
+                    self.output(
+                        f"WARNING: '{found_key}' has no replacement object!",
+                    )
         return data
 
     def pretty_print_xml(self, xml):
@@ -418,7 +455,7 @@ class JamfComputerProfileUploader(Processor):
 
         # now extract the UUID from the existing payload
         existing_payload = plistlib.loads(existing_plist)
-        self.output("\nImported payload:", verbose_level=2)
+        self.output("Imported payload", verbose_level=2)
         self.output(existing_payload, verbose_level=2)
         existing_uuid = existing_payload["PayloadUUID"]
         self.output(f"Existing UUID found: {existing_uuid}")
@@ -438,9 +475,15 @@ class JamfComputerProfileUploader(Processor):
         mobileconfig_uuid,
     ):
         """create a mobileconfig file using a payload file"""
-        # import plist and replace any substitutable keys
+        # import plist as text and replace any substitutable keys
         with open(payload_path, "rb") as file:
-            mcx_preferences = plistlib.load(file)
+            payload_text = file.read()
+        # substitute user-assignable keys (requires decode to string)
+        payload_text = self.substitute_assignable_keys(
+            (payload_text.decode()), xml_escape=True
+        )
+        # now convert to data (requires encode back to bytes...)
+        mcx_preferences = plistlib.loads(str.encode(payload_text))
 
         self.output("Preferences contents:", verbose_level=2)
         self.output(mcx_preferences, verbose_level=2)
