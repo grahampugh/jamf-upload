@@ -28,6 +28,7 @@ Arguments:
     --url <JSS_URL>         The Jamf Pro URL
     --user <API_USERNAME>   The API username
     --pass <API_PASSWORD>   The API user's password
+    --recipe-dir <RECIPE_DIR>
 
 Category arguments:
     --name <string>         The name
@@ -105,12 +106,17 @@ Script arguments:
 temp_processor_plist="/tmp/processor.plist"
 temp_receipt="/tmp/processor_receipt.plist"
 
-
 ###############
 ## ARGUMENTS ##
 ###############
 
 echo "" > "$temp_processor_plist"  # ensure an empty processor at the start of the run
+
+# set default for RECIPE_DIR (required for templates)
+if defaults write "$temp_processor_plist" RECIPE_DIR "."; then
+    echo "   [jamf-upload] Wrote RECIPE_DIR='.' into $temp_processor_plist"
+fi
+
 
 object="$1"
 if [[ $object == "category" ]]; then 
@@ -161,6 +167,12 @@ while test $# -gt 0 ; do
             shift
             if defaults write "$temp_processor_plist" JSS_URL "$1"; then
                 echo "   [jamf-upload] Wrote JSS_URL='$1' into $temp_processor_plist"
+            fi
+            ;;
+        --recipe-dir) 
+            shift
+            if defaults write "$temp_processor_plist" RECIPE_DIR "$1"; then
+                echo "   [jamf-upload] Wrote RECIPE_DIR='$1' into $temp_processor_plist"
             fi
             ;;
         --user*)  
