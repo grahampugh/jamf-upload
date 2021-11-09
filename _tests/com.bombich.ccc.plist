@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>RegistrationCode</key>
+    <string>%REGISTRATION_CODE%</string>
+    <key>RegistrationEmail</key>
+    <string>%REGISTRATION_EMAIL%</string>
+    <key>RegistrationName</key>
+    <string>%REGISTRATION_NAME%</string>
+    <key>RegistrationProductName</key>
+    <string>%REGISTRATION_PRODUCT_NAME%</string>
+    <key>SUCheckAtStartup</key>
+    <false/>
+    <key>SUScheduledCheckInterval</key>
+    <integer>0</integer>
+    <key>userAgreedToLicenseAgreement</key>
+    <true/>
+</dict>
+</plist>
