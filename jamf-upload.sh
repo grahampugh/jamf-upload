@@ -20,6 +20,7 @@ Valid object types:
     ea | extensionattribute
     pkg | package
     policy
+    restriction | softwarerestriction
     script
 
 Arguments:
@@ -96,6 +97,18 @@ Script arguments:
     --script_parameter[4-11]
                             Script parameter labels 
     --replace               Replace existing item
+
+Software Restriction arguments
+    --name <string>         The name
+    --template <path>       XML template
+    --process_name          Process name to restrict
+    --display_message       Message to display to users when the restriction is invoked
+    --match_exact_process_name
+                            Match only the exact process name if True
+    --send_notification     Send a notification when the restriction is invoked if True
+    --kill_process          Kill the process when the restriction is invoked if True
+    --delete_executable     Delete the executable when the restriction is invoked if True
+    --replace               Replace existing item
 "
 }
 
@@ -131,6 +144,8 @@ elif [[ $object == "pkg" || $object == "package" ]]; then
     processor="JamfPackageUploader"
 elif [[ $object == "policy" ]]; then
     processor="JamfPolicyUploader"
+elif [[ $object == "restriction" || $object == "softwarerestriction" ]]; then
+    processor="JamfSoftwareRestrictionUploader"
 elif [[ $object == "script" ]]; then
     processor="JamfScriptUploader"
 elif [[ $object == "--help" || $object == "help" || $object == "-h" ]]; then
@@ -230,6 +245,10 @@ while test $# -gt 0 ; do
                 if defaults write "$temp_processor_plist" replace_policy "True"; then
                     echo "   [jamf-upload] Wrote replace_policy='True' into $temp_processor_plist"
                 fi
+            elif [[ $processor == "JamfSoftwareRestrictionUploader" ]]; then
+                if defaults write "$temp_processor_plist" replace_restriction "True"; then
+                    echo "   [jamf-upload] Wrote replace_restriction='True' into $temp_processor_plist"
+                fi
             elif [[ $processor == "JamfScriptUploader" ]]; then
                 if defaults write "$temp_processor_plist" replace_script "True"; then
                     echo "   [jamf-upload] Wrote replace_script='True' into $temp_processor_plist"
@@ -262,6 +281,10 @@ while test $# -gt 0 ; do
                 if defaults write "$temp_processor_plist" policy_name "$1"; then
                     echo "   [jamf-upload] Wrote policy_name='$1' into $temp_processor_plist"
                 fi
+            elif [[ $processor == "JamfSoftwareRestrictionUploader" ]]; then
+                if defaults write "$temp_processor_plist" restriction_name "$1"; then
+                    echo "   [jamf-upload] Wrote restriction_name='$1' into $temp_processor_plist"
+                fi
             elif [[ $processor == "JamfScriptUploader" ]]; then
                 if defaults write "$temp_processor_plist" script_name "$1"; then
                     echo "   [jamf-upload] Wrote script_name='$1' into $temp_processor_plist"
@@ -281,6 +304,10 @@ while test $# -gt 0 ; do
             elif [[ $processor == "JamfPolicyUploader" ]]; then
                 if defaults write "$temp_processor_plist" policy_template "$1"; then
                     echo "   [jamf-upload] Wrote policy_template='$1' into $temp_processor_plist"
+                fi
+            elif [[ $processor == "JamfSoftwareRestrictionUploader" ]]; then
+                if defaults write "$temp_processor_plist" restriction_template "$1"; then
+                    echo "   [jamf-upload] Wrote restriction_template='$1' into $temp_processor_plist"
                 fi
             fi
             ;;
@@ -345,6 +372,10 @@ while test $# -gt 0 ; do
             if [[ $processor == "JamfComputerProfileUploader" ]]; then
                 if defaults write "$temp_processor_plist" profile_computergroup "$1"; then
                     echo "   [jamf-upload] Wrote profile_computergroup='$1' into $temp_processor_plist"
+                fi
+            elif [[ $processor == "JamfSoftwareRestrictionUploader" ]]; then
+                if defaults write "$temp_processor_plist" restriction_computergroup "$1"; then
+                    echo "   [jamf-upload] Wrote restriction_computergroup='$1' into $temp_processor_plist"
                 fi
             fi
             ;;
@@ -448,14 +479,18 @@ while test $# -gt 0 ; do
             ;;
         --send_notification|--send-notification) 
             if [[ $processor == "JamfPackageUploader" ]]; then
-                if defaults write "$temp_processor_plist" send_notification "$1"; then
-                    echo "   [jamf-upload] Wrote send_notification='$1' into $temp_processor_plist"
+                if defaults write "$temp_processor_plist" send_notification -string "true"; then
+                    echo "   [jamf-upload] Wrote send_notification='true' into $temp_processor_plist"
+                fi
+            elif [[ $processor == "JamfSoftwareRestrictionUploader" ]]; then
+                if defaults write "$temp_processor_plist" restriction_send_notification -string "true"; then
+                    echo "   [jamf-upload] Wrote restriction_send_notification='true' into $temp_processor_plist"
                 fi
             fi
             ;;
         --replace_pkg_metadata|--replace-pkg-metadata) 
             if [[ $processor == "JamfPackageUploader" ]]; then
-                if defaults write "$temp_processor_plist" replace_pkg_metadata "True"; then
+                if defaults write "$temp_processor_plist" replace_pkg_metadata "true"; then
                     echo "   [jamf-upload] Wrote replace_pkg_metadata='True' into $temp_processor_plist"
                 fi
             fi
@@ -481,6 +516,43 @@ while test $# -gt 0 ; do
             if [[ $processor == "JamfScriptUploader" ]]; then
                 if defaults write "$temp_processor_plist" "script_parameter$param_number" "$1"; then
                     echo "   [jamf-upload] Wrote script_parameter$param_number='$1' into $temp_processor_plist"
+                fi
+            fi
+            ;;
+        --process_name|--process-name) 
+            shift
+            if [[ $processor == "JamfSoftwareRestrictionUploader" ]]; then
+                if defaults write "$temp_processor_plist" process_name "$1"; then
+                    echo "   [jamf-upload] Wrote process_name='$1' into $temp_processor_plist"
+                fi
+            fi
+            ;;
+        --display_message|--display-message) 
+            shift
+            if [[ $processor == "JamfSoftwareRestrictionUploader" ]]; then
+                if defaults write "$temp_processor_plist" display_message "$1"; then
+                    echo "   [jamf-upload] Wrote display_message='$1' into $temp_processor_plist"
+                fi
+            fi
+            ;;
+        --match_exact_process_name|--match-exact-process-name) 
+            if [[ $processor == "JamfSoftwareRestrictionUploader" ]]; then
+                if defaults write "$temp_processor_plist" match_exact_process_name -string "true"; then
+                    echo "   [jamf-upload] Wrote match_exact_process_name='true' into $temp_processor_plist"
+                fi
+            fi
+            ;;
+        --kill_process|--kill-process) 
+            if [[ $processor == "JamfSoftwareRestrictionUploader" ]]; then
+                if defaults write "$temp_processor_plist" kill_process -string "true"; then
+                    echo "   [jamf-upload] Wrote kill_process='true' into $temp_processor_plist"
+                fi
+            fi
+            ;;
+        --delete_executable|--delete-executable) 
+            if [[ $processor == "JamfSoftwareRestrictionUploader" ]]; then
+                if defaults write "$temp_processor_plist" delete_executable -string "true"; then
+                    echo "   [jamf-upload] Wrote delete_executable='true' into $temp_processor_plist"
                 fi
             fi
             ;;

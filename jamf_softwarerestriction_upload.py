@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 
 """
-** Jamf Computer Group Upload Script
+** Jamf Software Restriction Upload Script
    by G Pugh
 
 Credentials can be supplied from the command line as arguments, or inputted, or
@@ -13,7 +13,7 @@ Note that criteria containing dependent computer groups can only be set if those
 already exist. This script will not create them. Ensure you script in a logical order
 to build up the dependencies in turn.
 
-For usage, run jamf_computergroup_upload.py --help
+For usage, run jamf_softwarerestriction_upload.py --help
 """
 
 
@@ -25,52 +25,54 @@ from time import sleep
 from jamf_upload_lib import actions, api_connect, api_get, curl
 
 
-def get_computergroup_name(template_contents, verbosity):
-    """Determine group name from template - used when no name is supplied in CLI"""
+def get_restriction_name(template_contents, verbosity):
+    """Determine software restriction name from template - used when no name is supplied in CLI"""
     regex_search = "<name>.*</name>"
     result = re.search(regex_search, template_contents)[0]
     print(result)
     if result:
-        computergroup_name = re.sub("<name>", "", result, 1)
-        computergroup_name = re.sub("</name>", "", computergroup_name, 1)
+        restriction_name = re.sub("<name>", "", result, 1)
+        restriction_name = re.sub("</name>", "", restriction_name, 1)
     else:
-        computergroup_name = ""
+        restriction_name = ""
 
-    return computergroup_name
+    return restriction_name
 
 
-def replace_computergroup_name(computergroup_name, template_contents, verbosity):
-    """Write group name to template - used when name is supplied in CLI"""
+def replace_restriction_name(restriction_name, template_contents, verbosity):
+    """Write restriction name to template - used when name is supplied in CLI"""
     if verbosity:
-        print("Replacing smart group name '{}' in XML".format(computergroup_name))
+        print(
+            "Replacing computer restriction name '{}' in XML".format(restriction_name)
+        )
     regex_search = "<name>.*</name>"
-    regex_replace = "<name>{}</name>".format(computergroup_name)
+    regex_replace = "<name>{}</name>".format(restriction_name)
     template_contents = re.sub(regex_search, regex_replace, template_contents, 1)
     return template_contents
 
 
-def upload_computergroup(
+def upload_restriction(
     jamf_url,
     enc_creds,
-    computergroup_name,
+    restriction_name,
     template_contents,
     cli_custom_keys,
     verbosity,
     obj_id=None,
 ):
-    """Upload computer group"""
+    """Upload software restriction"""
 
     # if we find an object ID we put, if not, we post
     if obj_id:
-        url = "{}/JSSResource/computergroups/id/{}".format(jamf_url, obj_id)
+        url = "{}/JSSResource/restrictedsoftware/id/{}".format(jamf_url, obj_id)
     else:
-        url = "{}/JSSResource/computergroups/id/0".format(jamf_url)
+        url = "{}/JSSResource/restrictedsoftware/id/0".format(jamf_url)
 
     if verbosity > 2:
-        print("Computer Group data:")
+        print("Software Restriction data:")
         print(template_contents)
 
-    print("Uploading Computer Group...")
+    print("Uploading Software Restriction...")
 
     # write the template to temp file
     template_xml = curl.write_temp_file(template_contents)
@@ -79,14 +81,16 @@ def upload_computergroup(
     while True:
         count += 1
         if verbosity > 1:
-            print("Computer Group upload attempt {}".format(count))
+            print("Software Restriction upload attempt {}".format(count))
         method = "PUT" if obj_id else "POST"
         r = curl.request(method, url, enc_creds, verbosity, template_xml)
         # check HTTP response
-        if curl.status_check(r, "Computer Group", computergroup_name) == "break":
+        if curl.status_check(r, "Software Restriction", restriction_name) == "break":
             break
         if count > 5:
-            print("WARNING: Computer Group upload did not succeed after 5 attempts")
+            print(
+                "WARNING: Software Restriction upload did not succeed after 5 attempts"
+            )
             print("\nHTTP POST Response Code: {}".format(r.status_code))
             break
         sleep(30)
@@ -108,26 +112,47 @@ def get_args():
         action="append",
         dest="names",
         default=[],
-        help=("Computer Group to create or update"),
+        help=("Software Restriction to create or update"),
     )
     parser.add_argument(
         "--replace",
-        help="overwrite an existing Computer Group",
+        help="overwrite an existing Software Restriction",
+        action="store_true",
+    )
+    parser.add_argument(
+        "--process-name",
+        default="",
+        help="process name",
+    )
+    parser.add_argument(
+        "--display-message",
+        default="",
+        help="message to display",
+    )
+    parser.add_argument(
+        "--match-exact-process-name",
+        help="match exact process name (boolean)",
+        action="store_true",
+    )
+    parser.add_argument(
+        "--send-notification",
+        help="send notification (boolean)",
+        action="store_true",
+    )
+    parser.add_argument(
+        "--kill-process",
+        help="kill process (boolean)",
+        action="store_true",
+    )
+    parser.add_argument(
+        "--delete-executable",
+        help="delete executable (boolean)",
         action="store_true",
     )
     parser.add_argument(
         "--template",
         default="",
-        help="Path to Computer Group XML template",
-    )
-    parser.add_argument(
-        "-k",
-        "--key",
-        action="append",
-        dest="variables",
-        default=[],
-        metavar="KEY=VALUE",
-        help=("Provide key/value pairs for template value substitution. "),
+        help="Path to Software Restriction XML template",
     )
     parser.add_argument(
         "--url",
@@ -164,16 +189,7 @@ def get_args():
     )
     args = parser.parse_args()
 
-    # Add variables from commandline. These might override those from
-    # environment variables and recipe_list
-    cli_custom_keys = {}
-    for arg in args.variables:
-        (key, sep, value) = arg.partition("=")
-        if sep != "=":
-            print("Invalid variable [key=value]: {}".format(arg))
-        cli_custom_keys[key] = value
-
-    return args, cli_custom_keys
+    return args
 
 
 def main():
@@ -182,7 +198,7 @@ def main():
     print("** Creates a computer group in Jamf Pro.")
 
     # parse the command line arguments
-    args, cli_custom_keys = get_args()
+    args = get_args()
     verbosity = args.verbose
 
     # grab values from a prefs file if supplied
@@ -197,36 +213,36 @@ def main():
         template_contents, cli_custom_keys, verbosity, xml_escape=True
     )
 
-    # set a list of names either from the CLI args or from the template if no arg provided
+    #  set a list of names either from the CLI args or from the template if no arg provided
     if args.names:
         names = args.names
     else:
-        names = [get_computergroup_name(template_contents, verbosity)]
+        names = [get_restriction_name(template_contents, verbosity)]
 
     # now process the list of names
-    for computergroup_name in names:
+    for restriction_name in names:
         # where a group name was supplied via CLI arg, replace this in the template
         if args.names:
-            template_contents = replace_computergroup_name(
-                computergroup_name, template_contents, verbosity
+            template_contents = replace_restriction_name(
+                restriction_name, template_contents, verbosity
             )
 
         # check for existing group
-        print("\nChecking '{}' on {}".format(computergroup_name, jamf_url))
+        print("\nChecking '{}' on {}".format(restriction_name, jamf_url))
         obj_id = api_get.get_api_obj_id_from_name(
-            jamf_url, "computer_group", computergroup_name, enc_creds, verbosity
+            jamf_url, "computer_group", restriction_name, enc_creds, verbosity
         )
         if obj_id:
             print(
-                "Computer Group '{}' already exists: ID {}".format(
-                    computergroup_name, obj_id
+                "Software Restriction '{}' already exists: ID {}".format(
+                    restriction_name, obj_id
                 )
             )
             if args.replace:
                 upload_computergroup(
                     jamf_url,
                     enc_creds,
-                    computergroup_name,
+                    restriction_name,
                     template_contents,
                     cli_custom_keys,
                     verbosity,
@@ -234,16 +250,18 @@ def main():
                 )
             else:
                 print(
-                    "Not replacing existing Computer Group. Use --replace to enforce."
+                    "Not replacing existing Software Restriction. Use --replace to enforce."
                 )
         else:
             print(
-                "Computer Group '{}' not found - will create".format(computergroup_name)
+                "Software Restriction '{}' not found - will create".format(
+                    restriction_name
+                )
             )
             upload_computergroup(
                 jamf_url,
                 enc_creds,
-                computergroup_name,
+                restriction_name,
                 template_contents,
                 cli_custom_keys,
                 verbosity,

@@ -260,12 +260,16 @@ class CommonSnippets(Processor):
             "computer_group": "computergroups",
             "policy": "policies",
             "extension_attribute": "computerextensionattributes",
+            "restricted_software": "restrictedsoftware",
+            "os_x_configuration_profile": "osxconfigurationprofiles",
         }
         object_list_types = {
             "package": "packages",
             "computer_group": "computer_groups",
             "policy": "policies",
             "extension_attribute": "computer_extension_attributes",
+            "restricted_software": "restricted_software",
+            "os_x_configuration_profile": "os_x_configuration_profiles",
         }
         url = f"{jamf_url}/JSSResource/{object_types[object_type]}"
         r = self.curl("GET", url, enc_creds)
@@ -318,10 +322,26 @@ class CommonSnippets(Processor):
                 self.output(f"File found at: {matched_filepath}")
                 return matched_filepath
 
-    def get_api_obj_id_from_name(self, jamf_url, object_name, enc_creds):
+    def get_api_obj_id_from_name(self, jamf_url, object_name, object_type, enc_creds):
         """check if a Classic API object with the same name exists on the server"""
         # define the relationship between the object types and their URL
-        url = f"{jamf_url}/JSSResource/osxconfigurationprofiles"
+        object_types = {
+            "package": "packages",
+            "computer_group": "computergroups",
+            "policy": "policies",
+            "extension_attribute": "computerextensionattributes",
+            "restricted_software": "restrictedsoftware",
+            "os_x_configuration_profile": "osxconfigurationprofiles",
+        }
+        object_list_types = {
+            "computer_group": "computer_groups",
+            "extension_attribute": "computer_extension_attributes",
+            "os_x_configuration_profile": "os_x_configuration_profiles",
+            "package": "packages",
+            "policy": "policies",
+            "restricted_software": "restricted_software",
+        }
+        url = "{}/JSSResource/{}".format(jamf_url, object_types[object_type])
         r = self.curl("GET", url, enc_creds)
 
         if r.status_code == 200:
@@ -331,7 +351,7 @@ class CommonSnippets(Processor):
                 verbose_level=4,
             )
             obj_id = 0
-            for obj in object_list["os_x_configuration_profiles"]:
+            for obj in object_list[object_list_types[object_type]]:
                 self.output(
                     obj,
                     verbose_level=3,
@@ -352,6 +372,8 @@ class CommonSnippets(Processor):
             "computer_group": "computergroups",
             "policy": "policies",
             "extension_attribute": "computerextensionattributes",
+            "restricted_software": "restrictedsoftware",
+            "os_x_configuration_profile": "osxconfigurationprofiles",
         }
         url = "{}/JSSResource/{}/id/{}".format(
             jamf_url, object_types[object_type], obj_id
