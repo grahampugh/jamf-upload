@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<restricted_software>
+    <general>
+        <name>%restriction_name%</name>
+        <process_name>%process_name%</process_name>
+        <match_exact_process_name>%match_exact_process_name%</match_exact_process_name>
+        <send_notification>%send_notification%</send_notification>
+        <kill_process>%kill_process%</kill_process>
+        <delete_executable>%delete_executable%</delete_executable>
+        <display_message>%display_message%</display_message>
+    </general>
+    <scope>
+        <computer_groups>
+            <computer_group/>
+        </computer_groups>
+    </scope>
+</restricted_software>

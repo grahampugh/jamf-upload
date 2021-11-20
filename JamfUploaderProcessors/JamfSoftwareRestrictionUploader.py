@@ -1,7 +1,7 @@
 #!/usr/local/autopkg/python
 
 """
-JamfComputerProfileUploader processor for uploading computer configuration profiles
+JamfSoftwareRestrictionUploader processor for uploading computer restrictions
 to Jamf Pro using AutoPkg
     by G Pugh
 """
@@ -9,7 +9,6 @@ to Jamf Pro using AutoPkg
 import json
 import re
 import os
-import plistlib
 import subprocess
 import uuid
 
@@ -22,7 +21,7 @@ from xml.sax.saxutils import escape
 from autopkglib import Processor, ProcessorError  # pylint: disable=import-error
 
 
-class JamfComputerProfileUploader(Processor):
+class JamfSoftwareRestrictionUploader(Processor):
     """A processor for AutoPkg that will upload an item to a Jamf Cloud or on-prem server."""
 
     input_variables = {
@@ -43,60 +42,58 @@ class JamfComputerProfileUploader(Processor):
             "description": "Password of api user, optionally set as a key in "
             "the com.github.autopkg preference file.",
         },
-        "profile_name": {
-            "required": False,
-            "description": "Configuration Profile name",
+        "restriction_name": {
+            "required": True,
+            "description": "Software Restriction name",
             "default": "",
         },
-        "payload": {
-            "required": False,
-            "description": "Path to Configuration Profile payload plist file",
+        "restriction_template": {
+            "required": True,
+            "description": "Path to Software Restriction XML template file",
+            "default": "RestrictionTemplate-no-scope.xml",
         },
-        "mobileconfig": {
+        "restriction_computergroup": {
             "required": False,
-            "description": "Path to Configuration Profile mobileconfig file",
+            "description": "A single computer group to add to the scope.",
+            "default": "",
         },
-        "identifier": {
+        "process_name": {
             "required": False,
-            "description": "Configuration Profile payload identifier",
+            "description": "Process name to restrict",
         },
-        "profile_template": {
+        "display_message": {
             "required": False,
-            "description": "Path to Configuration Profile XML template file",
+            "description": "Message to display to users when the restriction is invoked",
         },
-        "profile_category": {
+        "match_exact_process_name": {
             "required": False,
-            "description": "a category to assign to the profile",
-        },
-        "organization": {
-            "required": False,
-            "description": "Organization to assign to the profile",
-        },
-        "profile_description": {
-            "required": False,
-            "description": "a description to assign to the profile",
-        },
-        "profile_computergroup": {
-            "required": False,
-            "description": "a computer group that will be scoped to the profile",
-        },
-        "unsign_profile": {
-            "required": False,
-            "description": (
-                "Unsign a mobileconfig file prior to uploading "
-                "if it is signed, if true."
-            ),
+            "description": "Match only the exact process name if True",
             "default": False,
         },
-        "replace_profile": {
+        "restriction_send_notification": {
             "required": False,
-            "description": "overwrite an existing Configuration Profile if True.",
+            "description": "Send a notification when the restriction is invoked if True",
+            "default": False,
+        },
+        "kill_process": {
+            "required": False,
+            "description": "Kill the process when the restriction is invoked if True",
+            "default": False,
+        },
+        "delete_executable": {
+            "required": False,
+            "description": "Delete the executable when the restriction is invoked if True",
+            "default": False,
+        },
+        "replace_restriction": {
+            "required": False,
+            "description": "overwrite an existing Software Restriction if True",
             "default": False,
         },
     }
 
     output_variables = {
-        "jamfcomputerprofileuploader_summary_result": {
+        "jamfsoftwarerestriction_summary_result": {
             "description": "Description of interesting results.",
         },
     }
@@ -301,6 +298,7 @@ class JamfComputerProfileUploader(Processor):
                 return matched_filepath
 
     # do not edit directly - copy from template
+    # do not edit directly - copy from template
     def get_api_obj_id_from_name(self, jamf_url, object_name, object_type, enc_creds):
         """check if a Classic API object with the same name exists on the server"""
         # define the relationship between the object types and their URL
@@ -456,167 +454,39 @@ class JamfComputerProfileUploader(Processor):
         (output, _) = proc.communicate(xml)
         return output
 
-    def get_existing_uuid(self, jamf_url, obj_id, enc_creds):
-        """return the existing UUID to ensure we don't change it"""
-        # first grab the payload from the xml object
-        existing_plist = self.get_api_obj_value_from_id(
-            jamf_url,
-            "os_x_configuration_profile",
-            obj_id,
-            "general/payloads",
-            enc_creds,
-        )
-
-        # Jamf seems to sometimes export an empty key which plistlib considers invalid,
-        # so let's remove this
-        existing_plist = existing_plist.replace("<key/>", "")
-
-        # make the xml pretty so we can see where the problem importing it is better
-        existing_plist = self.pretty_print_xml(bytes(existing_plist, "utf-8"))
-
-        self.output(
-            f"Existing payload (type: {type(existing_plist)}):", verbose_level=2
-        )
-        self.output(existing_plist.decode("UTF-8"), verbose_level=2)
-
-        # now extract the UUID from the existing payload
-        existing_payload = plistlib.loads(existing_plist)
-        self.output("Imported payload", verbose_level=2)
-        self.output(existing_payload, verbose_level=2)
-        existing_uuid = existing_payload["PayloadUUID"]
-        self.output(f"Existing UUID found: {existing_uuid}")
-        return existing_uuid
-
-    def generate_uuid(self):
-        """generate a UUID for new profiles"""
-        return str(uuid.uuid4())
-
-    def make_mobileconfig_from_payload(
-        self,
-        payload_path,
-        payload_identifier,
-        mobileconfig_name,
-        organization,
-        description,
-        mobileconfig_uuid,
-    ):
-        """create a mobileconfig file using a payload file"""
-        # import plist as text and replace any substitutable keys
-        with open(payload_path, "rb") as file:
-            payload_text = file.read()
-        # substitute user-assignable keys (requires decode to string)
-        payload_text = self.substitute_assignable_keys(
-            (payload_text.decode()), xml_escape=True
-        )
-        # now convert to data (requires encode back to bytes...)
-        mcx_preferences = plistlib.loads(str.encode(payload_text))
-
-        self.output("Preferences contents:", verbose_level=2)
-        self.output(mcx_preferences, verbose_level=2)
-
-        # generate a random UUID for the payload
-        payload_uuid = self.generate_uuid()
-
-        # add the other keys required in the payload
-        payload_contents = {
-            "PayloadDisplayName": "Custom Settings",
-            "PayloadIdentifier": payload_uuid,
-            "PayloadOrganization": "JAMF Software",
-            "PayloadType": "com.apple.ManagedClient.preferences",
-            "PayloadUUID": payload_uuid,
-            "PayloadVersion": 1,
-            "PayloadContent": {
-                payload_identifier: {
-                    "Forced": [{"mcx_preference_settings": mcx_preferences}]
-                }
-            },
-        }
-
-        self.output("Payload contents:", verbose_level=2)
-        self.output(payload_contents, verbose_level=2)
-
-        # now write the mobileconfig file
-        mobileconfig_data = {
-            "PayloadDescription": description,
-            "PayloadDisplayName": mobileconfig_name,
-            "PayloadOrganization": organization,
-            "PayloadRemovalDisallowed": True,
-            "PayloadScope": "System",
-            "PayloadType": "Configuration",
-            "PayloadVersion": 1,
-            "PayloadIdentifier": mobileconfig_uuid,
-            "PayloadUUID": mobileconfig_uuid,
-            "PayloadContent": [payload_contents],
-        }
-
-        self.output("Converting config data to plist")
-        mobileconfig_plist = plistlib.dumps(mobileconfig_data)
-
-        self.output("Mobileconfig contents:", verbose_level=2)
-        self.output(mobileconfig_plist.decode("UTF-8"), verbose_level=2)
-
-        return mobileconfig_plist
-
-    def unsign_signed_mobileconfig(self, mobileconfig_plist):
-        """checks if profile is signed. This is necessary because Jamf cannot
-        upload a signed profile, so we either need to unsign it, or bail"""
-        output_path = os.path.join("/tmp", str(uuid.uuid4()))
-        cmd = [
-            "/usr/bin/security",
-            "cms",
-            "-D",
-            "-i",
-            mobileconfig_plist,
-            "-o",
-            output_path,
-        ]
-        self.output(cmd, verbose_level=1)
-
-        proc = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-        _, err = proc.communicate()
-        if os.path.exists(output_path) and os.stat(output_path).st_size > 0:
-            self.output(f"Profile is signed. Unsigned profile at {output_path}")
-            return output_path
-        elif err:
-            self.output("Profile is not signed.")
-            self.output(err, verbose_level=2)
-
-    def upload_mobileconfig(
+    def upload_restriction(
         self,
         jamf_url,
         enc_creds,
-        mobileconfig_name,
-        description,
-        category,
-        mobileconfig_plist,
+        restriction_name,
+        process_name,
+        display_message,
+        match_exact_process_name,
+        send_notification,
+        kill_process,
+        delete_executable,
         computergroup_name,
         template_contents,
-        profile_uuid,
         obj_id=None,
     ):
-        """Update Configuration Profile metadata."""
+        """Update Software Restriction metadata."""
 
         # if we find an object ID we put, if not, we post
         if obj_id:
-            url = f"{jamf_url}/JSSResource/osxconfigurationprofiles/id/{obj_id}"
+            url = f"{jamf_url}/JSSResource/restrictedsoftware/id/{obj_id}"
         else:
-            url = f"{jamf_url}/JSSResource/osxconfigurationprofiles/id/0"
-
-        # remove newlines, tabs, leading spaces, and XML-escape the payload
-        mobileconfig_plist = mobileconfig_plist.decode("UTF-8")
-        mobileconfig_list = mobileconfig_plist.rsplit("\n")
-        mobileconfig_list = [x.strip("\t") for x in mobileconfig_list]
-        mobileconfig_list = [x.strip(" ") for x in mobileconfig_list]
-        mobileconfig = "".join(mobileconfig_list)
+            url = f"{jamf_url}/JSSResource/restrictedsoftware/id/0"
 
         # substitute user-assignable keys
         replaceable_keys = {
-            "mobileconfig_name": mobileconfig_name,
-            "description": description,
-            "category": category,
-            "payload": mobileconfig,
+            "restriction_name": restriction_name,
+            "process_name": process_name,
+            "display_message": display_message,
+            "match_exact_process_name": match_exact_process_name,
+            "send_notification": send_notification,
+            "kill_process": kill_process,
+            "delete_executable": delete_executable,
             "computergroup_name": computergroup_name,
-            "uuid": f"com.github.grahampugh.jamf-upload.{profile_uuid}",
         }
 
         # for key in replaceable_keys:
@@ -627,30 +497,28 @@ class JamfComputerProfileUploader(Processor):
             template_contents, replaceable_keys, xml_escape=True
         )
 
-        self.output("Configuration Profile to be uploaded:", verbose_level=2)
+        self.output("Software Restriction to be uploaded:", verbose_level=2)
         self.output(template_contents, verbose_level=2)
 
-        self.output("Uploading Configuration Profile..")
+        self.output("Uploading Software Restriction...")
         # write the template to temp file
         template_xml = self.write_temp_file(template_contents)
 
         count = 0
         while True:
             count += 1
-            self.output(
-                f"Configuration Profile upload attempt {count}", verbose_level=1
-            )
+            self.output(f"Software Restriction upload attempt {count}", verbose_level=1)
             method = "PUT" if obj_id else "POST"
             r = self.curl(method, url, enc_creds, template_xml)
             # check HTTP response
             if (
-                self.status_check(r, "Configuration Profile", mobileconfig_name)
+                self.status_check(r, "Software Restriction", restriction_name)
                 == "break"
             ):
                 break
             if count > 5:
                 self.output(
-                    "ERROR: Configuration Profile upload did not succeed after 5 attempts"
+                    "ERROR: Software Restriction upload did not succeed after 5 attempts"
                 )
                 self.output(f"\nHTTP POST Response Code: {r.status_code}")
                 break
@@ -663,29 +531,42 @@ class JamfComputerProfileUploader(Processor):
         self.jamf_url = self.env.get("JSS_URL")
         self.jamf_user = self.env.get("API_USERNAME")
         self.jamf_password = self.env.get("API_PASSWORD")
-        self.profile_name = self.env.get("profile_name")
-        self.payload = self.env.get("payload")
-        self.mobileconfig = self.env.get("mobileconfig")
-        self.identifier = self.env.get("identifier")
-        self.template = self.env.get("profile_template")
-        self.profile_category = self.env.get("profile_category")
-        self.organization = self.env.get("organization")
-        self.profile_description = self.env.get("profile_description")
-        self.profile_computergroup = self.env.get("profile_computergroup")
-        self.unsign = self.env.get("unsign_profile")
-        # handle setting unsign in overrides
-        if not self.unsign or self.unsign == "False":
-            self.unsign = False
-        self.replace = self.env.get("replace_profile")
+        self.restriction_name = self.env.get("restriction_name")
+        self.process_name = self.env.get("process_name")
+        self.template = self.env.get("restriction_template")
+        # handle setting display_message in overrides
+        self.display_message = self.env.get("display_message")
+        if not self.display_message:
+            self.display_message = "False"
+        # handle setting match_exact_process_name in overrides
+        self.match_exact_process_name = self.env.get("match_exact_process_name")
+        if not self.match_exact_process_name:
+            self.match_exact_process_name = "False"
+        # handle setting send_notification in overrides
+        self.restriction_send_notification = self.env.get(
+            "restriction_send_notification"
+        )
+        if not self.restriction_send_notification:
+            self.restriction_send_notification = "false"
+        # handle setting kill_process in overrides
+        self.kill_process = self.env.get("kill_process")
+        if not self.kill_process:
+            self.kill_process = "false"
+        # handle setting delete_executable in overrides
+        self.delete_executable = self.env.get("delete_executable")
+        if not self.delete_executable:
+            self.delete_executable = "false"
+        self.restriction_computergroup = self.env.get("restriction_computergroup")
+        self.replace = self.env.get("replace_restriction")
         # handle setting replace in overrides
         if not self.replace or self.replace == "False":
             self.replace = False
 
         # clear any pre-existing summary result
-        if "jamfcomputerprofileuploader_summary_result" in self.env:
-            del self.env["jamfcomputerprofileuploader_summary_result"]
+        if "jamfsoftwarerestrictionuploader_summary_result" in self.env:
+            del self.env["jamfsoftwarerestrictionuploader_summary_result"]
 
-        profile_updated = False
+        restriction_updated = False
 
         # encode the username and password into a basic auth b64 encoded string
         credentials = f"{self.jamf_user}:{self.jamf_password}"
@@ -693,20 +574,6 @@ class JamfComputerProfileUploader(Processor):
         enc_creds = str(enc_creds_bytes, "utf-8")
 
         # handle files with no path
-        if self.payload and "/" not in self.payload:
-            found_payload = self.get_path_to_file(self.payload)
-            if found_payload:
-                self.payload = found_payload
-            else:
-                raise ProcessorError(f"ERROR: Payload file {self.payload} not found")
-        if self.mobileconfig and "/" not in self.mobileconfig:
-            found_mobileconfig = self.get_path_to_file(self.mobileconfig)
-            if found_mobileconfig:
-                self.mobileconfig = found_mobileconfig
-            else:
-                raise ProcessorError(
-                    f"ERROR: mobileconfig file {self.mobileconfig} not found"
-                )
         if self.template and "/" not in self.template:
             found_template = self.get_path_to_file(self.template)
             if found_template:
@@ -716,182 +583,84 @@ class JamfComputerProfileUploader(Processor):
                     f"ERROR: XML template file {self.template} not found"
                 )
 
-        # if an unsigned mobileconfig file is supplied we can get the name, organization and
-        # description from it
-        if self.mobileconfig:
-            self.output(f"mobileconfig file supplied: {self.mobileconfig}")
-            # check if the file is signed
-            mobileconfig_file = self.unsign_signed_mobileconfig(self.mobileconfig)
-            # quit if we get an unsigned profile back and we didn't select --unsign
-            if mobileconfig_file and not self.unsign:
-                raise ProcessorError(
-                    "Signed profiles cannot be uploaded to Jamf Pro via the API. "
-                    "Use the GUI to upload the signed profile, or use --unsign to upload "
-                    "the profile with the signature removed."
-                )
+        # exit if essential values are not supplied
+        if not self.restriction_name:
+            raise ProcessorError(
+                "ERROR: No software restriction name supplied - cannot import"
+            )
 
-            # import mobileconfig
-            with open(self.mobileconfig, "rb") as file:
-                mobileconfig_contents = plistlib.load(file)
-            with open(self.mobileconfig, "rb") as file:
-                mobileconfig_plist = file.read()
-            try:
-                mobileconfig_name = mobileconfig_contents["PayloadDisplayName"]
-                self.output(f"Configuration Profile name: {mobileconfig_name}")
-                self.output("Mobileconfig contents:", verbose_level=2)
-                self.output(mobileconfig_plist.decode("UTF-8"), verbose_level=2)
-            except KeyError:
-                raise ProcessorError(
-                    "ERROR: Invalid mobileconfig file supplied - cannot import"
-                )
-            try:
-                description = mobileconfig_contents["PayloadDescription"]
-            except KeyError:
-                description = ""
-            try:
-                organization = mobileconfig_contents["PayloadOrganization"]
-            except KeyError:
-                organization = ""
-
-        # otherwise we are dealing with a payload plist and we need a few other bits of info
-        else:
-            if not self.profile_name:
-                raise ProcessorError("ERROR: No profile name supplied - cannot import")
-            if not self.payload:
-                raise ProcessorError(
-                    "ERROR: No path to payload file supplied - cannot import"
-                )
-            if not self.identifier:
-                raise ProcessorError(
-                    "ERROR: No identifier for mobileconfig supplied - cannot import"
-                )
-            mobileconfig_name = self.profile_name
-            description = ""
-            organization = ""
-
-        # we provide a default template which has no category or scope
-        if not self.template:
-            self.template = "Jamf_Templates/ProfileTemplate-no-scope.xml"
-
-        # automatically provide a description and organisation from the mobileconfig
-        # if not provided in the options
-        if not self.profile_description:
-            if description:
-                self.profile_description = description
-            else:
-                self.profile_description = (
-                    "Config profile created by AutoPkg and JamfComputerProfileUploader"
-                )
-        if not self.organization:
-            if organization:
-                self.organization = organization
-            else:
-                organization = "AutoPkg"
-                self.organization = organization
-
-        # import profile template
+        # import restriction template
         with open(self.template, "r") as file:
             template_contents = file.read()
 
-        # check for existing Configuration Profile
-        self.output(f"Checking for existing '{mobileconfig_name}' on {self.jamf_url}")
+        # check for existing Software Restriction
+        self.output(
+            f"Checking for existing '{self.restriction_name}' on {self.jamf_url}"
+        )
         obj_id = self.get_api_obj_id_from_name(
-            self.jamf_url, mobileconfig_name, "os_x_configuration_profile", enc_creds
+            self.jamf_url, self.restriction_name, "restricted_software", enc_creds
         )
         if obj_id:
             self.output(
-                f"Configuration Profile '{mobileconfig_name}' already exists: ID {obj_id}"
+                f"Software Restriction '{self.restriction_name}' already exists: ID {obj_id}"
             )
             if self.replace:
-                # grab existing UUID from profile as it MUST match on the destination
-                existing_uuid = self.get_existing_uuid(self.jamf_url, obj_id, enc_creds)
-
-                if not self.mobileconfig:
-                    # generate the mobileconfig from the supplied payload
-                    mobileconfig_plist = self.make_mobileconfig_from_payload(
-                        self.payload,
-                        self.identifier,
-                        mobileconfig_name,
-                        self.organization,
-                        self.profile_description,
-                        existing_uuid,
-                    )
-
-                # now upload the mobileconfig by generating an XML template
-                if mobileconfig_plist:
-                    self.upload_mobileconfig(
-                        self.jamf_url,
-                        enc_creds,
-                        mobileconfig_name,
-                        self.profile_description,
-                        self.profile_category,
-                        mobileconfig_plist,
-                        self.profile_computergroup,
-                        template_contents,
-                        existing_uuid,
-                        obj_id,
-                    )
-                    profile_updated = True
-                else:
-                    self.output("A mobileconfig was not generated so cannot upload.")
+                self.upload_restriction(
+                    self.jamf_url,
+                    enc_creds,
+                    self.restriction_name,
+                    self.process_name,
+                    self.display_message,
+                    self.match_exact_process_name,
+                    self.restriction_send_notification,
+                    self.kill_process,
+                    self.delete_executable,
+                    self.restriction_computergroup,
+                    template_contents,
+                    obj_id,
+                )
+                restriction_updated = True
             else:
                 self.output(
-                    "Not replacing existing Configuration Profile. "
-                    "Override the replace_profile key to True to enforce."
+                    "Not replacing existing Software Restriction. "
+                    "Override the replace_restriction key to True to enforce."
                 )
         else:
             self.output(
-                f"Configuration Profile '{mobileconfig_name}' not found - will create"
+                f"Software Restriction '{self.restriction_name}' not found - will create"
             )
-            new_uuid = self.generate_uuid()
-
-            if not self.mobileconfig:
-                # generate the mobileconfig from the supplied payload
-                mobileconfig_plist = self.make_mobileconfig_from_payload(
-                    self.payload,
-                    self.identifier,
-                    mobileconfig_name,
-                    self.organization,
-                    self.profile_description,
-                    new_uuid,
-                )
-
             # now upload the mobileconfig by generating an XML template
-            if mobileconfig_plist:
-                self.upload_mobileconfig(
-                    self.jamf_url,
-                    enc_creds,
-                    mobileconfig_name,
-                    self.profile_description,
-                    self.profile_category,
-                    mobileconfig_plist,
-                    self.profile_computergroup,
-                    template_contents,
-                    new_uuid,
-                )
-                profile_updated = True
-            else:
-                raise ProcessorError(
-                    "A mobileconfig was not generated so cannot upload."
-                )
+            self.upload_restriction(
+                self.jamf_url,
+                enc_creds,
+                self.restriction_name,
+                self.process_name,
+                self.display_message,
+                self.match_exact_process_name,
+                self.restriction_send_notification,
+                self.kill_process,
+                self.delete_executable,
+                self.restriction_computergroup,
+                template_contents,
+            )
+            restriction_updated = True
 
         # output the summary
-        self.env["profile_name"] = self.profile_name
-        self.env["profile_updated"] = profile_updated
-        if profile_updated:
-            self.env["jamfcomputerprofileuploader_summary_result"] = {
+        self.env["restriction_name"] = self.restriction_name
+        self.env["restriction_updated"] = restriction_updated
+        if restriction_updated:
+            self.env["jamfsoftwarerestrictionuploader_summary_result"] = {
                 "summary_text": (
-                    "The following configuration profiles were uploaded to "
+                    "The following software restrictions were uploaded to "
                     "or updated in Jamf Pro:"
                 ),
-                "report_fields": ["mobileconfig_name", "profile_category"],
+                "report_fields": ["restriction_name"],
                 "data": {
-                    "mobileconfig_name": mobileconfig_name,
-                    "profile_category": self.profile_category,
+                    "mobileconfig_name": self.restriction_name,
                 },
             }
 
 
 if __name__ == "__main__":
-    PROCESSOR = JamfComputerProfileUploader()
+    PROCESSOR = JamfSoftwareRestrictionUploader()
     PROCESSOR.execute_shell()

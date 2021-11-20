@@ -142,7 +142,7 @@ def upload_policy_icon(
     )
 
     # If the icon naame matches that we already have, don't upload again
-    #  unless --replace-icon is set
+    # unless --replace-icon is set
     policy_icon_name = os.path.basename(policy_icon_path)
     if existing_icon != policy_icon_name or replace_icon:
         url = "{}/JSSResource/fileuploads/policies/id/{}".format(jamf_url, obj_id)
@@ -182,13 +182,19 @@ def get_args():
         help=("Policy to create or update"),
     )
     parser.add_argument(
-        "--replace", help="overwrite an existing policy", action="store_true",
+        "--replace",
+        help="overwrite an existing policy",
+        action="store_true",
     )
     parser.add_argument(
-        "--template", default="", help="Path to Policy XML template",
+        "--template",
+        default="",
+        help="Path to Policy XML template",
     )
     parser.add_argument(
-        "--icon", default="", help="Path to Policy Self Service icon",
+        "--icon",
+        default="",
+        help="Path to Policy Self Service icon",
     )
     parser.add_argument(
         "--replace-icon",
@@ -205,7 +211,9 @@ def get_args():
         help=("Provide key/value pairs for template value substitution. "),
     )
     parser.add_argument(
-        "--url", default="", help="the Jamf Pro Server URL",
+        "--url",
+        default="",
+        help="the Jamf Pro Server URL",
     )
     parser.add_argument(
         "--user",
@@ -286,7 +294,7 @@ def main():
                 policy_name, template_contents, verbosity
             )
 
-        #  all template processing has now been done so escape it for xml special characters
+        # all template processing has now been done so escape it for xml special characters
         template_contents = escape(template_contents)
 
         # check for existing policy
