@@ -1,8 +1,8 @@
-# JamfExtensionAttributeUploader
+# JamfComputerGroupUploader
 
 ## Description
 
-A processor for AutoPkg that will upload an Extension Attribute item to a Jamf Cloud or on-prem server.
+A processor for AutoPkg that will upload a computer group (smart or static) to a Jamf Cloud or on-prem server.
 
 ## Input variables
 
@@ -15,18 +15,18 @@ A processor for AutoPkg that will upload an Extension Attribute item to a Jamf C
 - **API_PASSWORD:**
   - **required:** True
   - **description:** Password of api user, optionally set as a key in the com.github.autopkg preference file.
-- **ea_name**:
+- **computergroup_name**:
   - **required**: False
-  - **description**: Extension Attribute name
-- **ea_script_path**:
+  - **description**: Computer Group name
+- **computergroup_template**:
   - **required**: False
-  - **description**: Full path to the script to be uploaded
-- **replace_ea**:
+  - **description**: Path to Computer Group template file
+- **eplace_group**:
   - **required**: False
-  - **description**: Overwrite an existing Extension Attribute if True.
+  - **description**: overwrite an existing Computer Group if True.
   - **default**: False
 
 ## Output variables
 
-- **jamfextensionattributeuploader_summary_result:**
+- **jamfcomputergroupuploader_summary_result:**
   - **description:** Description of interesting results.

@@ -55,6 +55,12 @@ Computer Profile arguments:
     --key X=Y               Substitutable values in the script. Multiple values can be supplied
     --replace               Replace existing item
 
+Dock Item arguments:
+    --name <string>         The name
+    --type <string>         Type of Dock Item - either 'App', 'File' or 'Folder'
+    --path <string>         Path of Dock Item - e.g. 'file:///Applications/Safari.app/'
+    --replace               Replace existing item
+
 Extension Attribute arguments:
     --name <string>         The name
     --script <path>         Full path of the script to be uploaded
@@ -138,6 +144,8 @@ elif [[ $object == "group" || $object == "computergroup" ]]; then
     processor="JamfComputerGroupUploader"
 elif [[ $object == "profile" || $object == "computerprofile" ]]; then
     processor="JamfComputerProfileUploader"
+elif [[ $object == "dock" || $object == "dockitem" ]]; then
+    processor="JamfDockItemUploader"
 elif [[ $object == "ea" || $object == "extensionattribute" ]]; then
     processor="JamfExtensionAttributeUploader"
 elif [[ $object == "pkg" || $object == "package" ]]; then
@@ -233,6 +241,10 @@ while test $# -gt 0 ; do
                 if defaults write "$temp_processor_plist" replace_profile "True"; then
                     echo "   [jamf-upload] Wrote replace_profile='True' into $temp_processor_plist"
                 fi
+            elif [[ $processor == "JamfDockItemUploader" ]]; then
+                if defaults write "$temp_processor_plist" replace_dock_item "True"; then
+                    echo "   [jamf-upload] Wrote replace_dock_item='True' into $temp_processor_plist"
+                fi
             elif [[ $processor == "JamfExtensionAttributeUploader" ]]; then
                 if defaults write "$temp_processor_plist" replace_ea "True"; then
                     echo "   [jamf-upload] Wrote replace_ea='True' into $temp_processor_plist"
@@ -268,6 +280,10 @@ while test $# -gt 0 ; do
             elif [[ $processor == "JamfComputerProfileUploader" ]]; then
                 if defaults write "$temp_processor_plist" profile_name "$1"; then
                     echo "   [jamf-upload] Wrote profile_name='$1' into $temp_processor_plist"
+                fi
+            elif [[ $processor == "JamfDockItemUploader" ]]; then
+                if defaults write "$temp_processor_plist" dock_item_name "$1"; then
+                    echo "   [jamf-upload] Wrote dock_item_name='$1' into $temp_processor_plist"
                 fi
             elif [[ $processor == "JamfExtensionAttributeUploader" ]]; then
                 if defaults write "$temp_processor_plist" ea_name "$1"; then
@@ -376,6 +392,22 @@ while test $# -gt 0 ; do
             elif [[ $processor == "JamfSoftwareRestrictionUploader" ]]; then
                 if defaults write "$temp_processor_plist" restriction_computergroup "$1"; then
                     echo "   [jamf-upload] Wrote restriction_computergroup='$1' into $temp_processor_plist"
+                fi
+            fi
+            ;;
+        --path)
+            shift
+            if [[ $processor == "JamfDockItemUploader" ]]; then
+                if defaults write "$temp_processor_plist" dock_item_path "$1"; then
+                    echo "   [jamf-upload] Wrote dock_item_path='$1' into $temp_processor_plist"
+                fi
+            fi
+            ;;
+        --type)
+            shift
+            if [[ $processor == "JamfDockItemUploader" ]]; then
+                if defaults write "$temp_processor_plist" dock_item_type "$1"; then
+                    echo "   [jamf-upload] Wrote dock_item_type='$1' into $temp_processor_plist"
                 fi
             fi
             ;;

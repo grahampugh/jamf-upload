@@ -46,7 +46,7 @@ A processor for AutoPkg that will upload a computer configuration profile to a J
   - **required**: False
   - **description**: Unsign a mobileconfig file prior to uploading if it is signed, if true.
   - **default**: False
-- **replareplace_profilece_category**:
+- **replace_profile**:
   - **required**: False
   - **description**: overwrite an existing Configuration Profile if True.
   - **default**: False

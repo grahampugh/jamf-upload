@@ -3,31 +3,35 @@
 # this folder
 DIR=$(dirname "$0")
 
-# example commands to run
+# example commands to run (uncomment whichever you want to run and then run bash test.sh)
 
 
 # upload a category (do not replace)
-# "$DIR"/../jamf-upload.sh category --prefs ~/Library/Preferences/com.github.autopkg.plist --name JamfUploadTest --priority 18 -vv
+# "$DIR"/../jamf-upload.sh category \
+#     --prefs ~/Library/Preferences/com.github.autopkg.plist \
+#     --name JamfUploadTest \
+#     --priority 18 \
+#     -vv
 
 
 # upload a profile
-"$DIR"/../jamf-upload.sh profile \
-    --prefs ~/Library/Preferences/com.github.autopkg.plist \
-    --name "Carbon Copy Cloner" \
-    --recipe-dir /Users/gpugh/sourcecode/jamf-upload/_tests \
-    --template ProfileTemplate-test-users.xml \
-    --payload com.bombich.ccc.plist \
-    --identifier com.bombich.ccc \
-    --category JamfUploadTest \
-    --organization "Graham Pugh Inc." \
-    --description "Amazing test profile" \
-    --computergroup "Testing" \
-    -vv \
-    --key REGISTRATION_CODE="FAKE-CODE" \
-    --key REGISTRATION_EMAIL="no@yes.com" \
-    --key REGISTRATION_NAME="ETH License Administration" \
-    --key REGISTRATION_PRODUCT_NAME='Carbon Copy Cloner 6 Volume License' \
-    --replace
+# "$DIR"/../jamf-upload.sh profile \
+#     --prefs ~/Library/Preferences/com.github.autopkg.plist \
+#     --name "Carbon Copy Cloner" \
+#     --recipe-dir /Users/gpugh/sourcecode/jamf-upload/_tests \
+#     --template ProfileTemplate-test-users.xml \
+#     --payload com.bombich.ccc.plist \
+#     --identifier com.bombich.ccc \
+#     --category JamfUploadTest \
+#     --organization "Graham Pugh Inc." \
+#     --description "Amazing test profile" \
+#     --computergroup "Testing" \
+#     -vv \
+#     --key REGISTRATION_CODE="FAKE-CODE" \
+#     --key REGISTRATION_EMAIL="no@yes.com" \
+#     --key REGISTRATION_NAME="ETH License Administration" \
+#     --key REGISTRATION_PRODUCT_NAME='Carbon Copy Cloner 6 Volume License' \
+#     --replace
 
 
 # upload a software restriction
@@ -45,6 +49,19 @@ DIR=$(dirname "$0")
 #     --replace
 
 
-# uplaod a package
-# "$DIR"/../jamf-upload.sh pkg --prefs ~/Library/Preferences/com.github.autopkg.plist --pkg python_recommended_signed-3.9.5.09222021234106.pkg --category JamfUploadTest -v
+# upload a package
+# "$DIR"/../jamf-upload.sh pkg \
+#     --prefs ~/Library/Preferences/com.github.autopkg.plist \
+#     --pkg python_recommended_signed-3.9.5.09222021234106.pkg \
+#     --category JamfUploadTest \
+#     -v \
+#     --replace
 
+# upload a dock item
+"$DIR"/../jamf-upload.sh dock \
+    --prefs ~/Library/Preferences/com.github.autopkg.plist \
+    --name "Privileges" \
+    --type "App" \
+    --path "/Applications/Privileges.app/" \
+    -vvv \
+    --replace

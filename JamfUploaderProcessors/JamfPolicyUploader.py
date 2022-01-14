@@ -74,6 +74,9 @@ class JamfPolicyUploader(Processor):
         "jamfpolicyuploader_summary_result": {
             "description": "Description of interesting results.",
         },
+        "changed_policy_id": {
+            "description": "Jamf object ID of the newly created or modified policy.",
+        },
     }
 
     # do not edit directly - copy from template
@@ -574,12 +577,21 @@ class JamfPolicyUploader(Processor):
                     verbose_level=1,
                 )
                 return
+            # Set the changed_policy_id to obj_id
+            self.env["changed_policy_id"] = str(obj_id)
         else:
             # post the item
             r = self.upload_policy(
                 self.jamf_url, enc_creds, self.policy_name, template_xml,
             )
             self.policy_updated = True
+            # Set the changed_policy_id to the returned output's ID if and only
+            # if it can be determined
+            try:
+                changed_policy_id = ElementTree.fromstring(r.output).findtext("id")
+                self.env["changed_policy_id"] = str(changed_policy_id)
+            except UnboundLocalError:
+                self.env["changed_policy_id"] = "UNKNOWN_POLICY_ID"
 
         # now upload the icon to the policy if specified in the args
         policy_icon_name = ""
