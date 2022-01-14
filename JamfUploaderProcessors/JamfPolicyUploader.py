@@ -74,6 +74,12 @@ class JamfPolicyUploader(Processor):
         "jamfpolicyuploader_summary_result": {
             "description": "Description of interesting results.",
         },
+        "policy_name": {
+            "description": "Jamf object name of the newly created or modified policy.",
+        },
+        "policy_updated": {
+            "description": "Boolean - True if the policy was changed.",
+        },
         "changed_policy_id": {
             "description": "Jamf object ID of the newly created or modified policy.",
         },
