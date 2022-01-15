@@ -19,6 +19,7 @@ Valid object types:
     profile | computerprofile
     ea | extensionattribute
     pkg | package
+    pkg-direct
     policy
     restriction | softwarerestriction
     script
@@ -142,6 +143,8 @@ elif [[ $object == "ea" || $object == "extensionattribute" ]]; then
     processor="JamfExtensionAttributeUploader"
 elif [[ $object == "pkg" || $object == "package" ]]; then
     processor="JamfPackageUploader"
+elif [[ $object == "pkg-direct" ]]; then
+    processor="JamfPackageUploaderGUI"
 elif [[ $object == "policy" ]]; then
     processor="JamfPolicyUploader"
 elif [[ $object == "restriction" || $object == "softwarerestriction" ]]; then
@@ -210,7 +213,7 @@ while test $# -gt 0 ; do
                 if defaults write "$temp_processor_plist" category_priority "$1"; then
                     echo "   [jamf-upload] Wrote category_priority='$1' into $temp_processor_plist"
                 fi
-            elif [[ $processor == "JamfPackageUploader" ]]; then
+            elif [[ $processor == "JamfPackageUploader" || $processor == "JamfPackageUploaderGUI" ]]; then
                 if defaults write "$temp_processor_plist" pkg_priority "$1"; then
                     echo "   [jamf-upload] Wrote pkg_priority='$1' into $temp_processor_plist"
                 fi
@@ -237,7 +240,7 @@ while test $# -gt 0 ; do
                 if defaults write "$temp_processor_plist" replace_ea "True"; then
                     echo "   [jamf-upload] Wrote replace_ea='True' into $temp_processor_plist"
                 fi
-            elif [[ $processor == "JamfPackageUploader" ]]; then
+            elif [[ $processor == "JamfPackageUploader" || $processor == "JamfPackageUploaderGUI" ]]; then
                 if defaults write "$temp_processor_plist" replace_pkg "True"; then
                     echo "   [jamf-upload] Wrote replace_pkg='True' into $temp_processor_plist"
                 fi
@@ -273,7 +276,7 @@ while test $# -gt 0 ; do
                 if defaults write "$temp_processor_plist" ea_name "$1"; then
                     echo "   [jamf-upload] Wrote ea_name='$1' into $temp_processor_plist"
                 fi
-            elif [[ $processor == "JamfPackageUploader" ]]; then
+            elif [[ $processor == "JamfPackageUploader" || $processor == "JamfPackageUploaderGUI" ]]; then
                 if defaults write "$temp_processor_plist" pkg_name "$1"; then
                     echo "   [jamf-upload] Wrote pkg_name='$1' into $temp_processor_plist"
                 fi
@@ -393,7 +396,7 @@ while test $# -gt 0 ; do
             ;;
         --smb_url|--smb-url)
             shift
-            if [[ $processor == "JamfPackageUploader" ]]; then
+            if [[ $processor == "JamfPackageUploader" || $processor == "JamfPackageUploaderGUI" ]]; then
                 if defaults write "$temp_processor_plist" SMB_URL "$1"; then
                     echo "   [jamf-upload] Wrote SMB_URL='$1' into $temp_processor_plist"
                 fi
@@ -402,7 +405,7 @@ while test $# -gt 0 ; do
         --smb_user*|--smb-user*)  
             ## allows --smb_user, --smb_username, --smb-user, --smb-username
             shift
-            if [[ $processor == "JamfPackageUploader" ]]; then
+            if [[ $processor == "JamfPackageUploader" || $processor == "JamfPackageUploaderGUI" ]]; then
                 if defaults write "$temp_processor_plist" SMB_USERNAME "$1"; then
                     echo "   [jamf-upload] Wrote SMB_USERNAME='$1' into $temp_processor_plist"
                 fi
@@ -411,7 +414,7 @@ while test $# -gt 0 ; do
         --smb_pass*)  
             ## allows --smb_pass, --smb_password, --smb-pass, --smb-password
             shift
-            if [[ $processor == "JamfPackageUploader" ]]; then
+            if [[ $processor == "JamfPackageUploader" || $processor == "JamfPackageUploaderGUI" ]]; then
                 if defaults write "$temp_processor_plist" SMB_PASSWORD "$1"; then
                     echo "   [jamf-upload] Wrote SMB_PASSWORD='$1' into $temp_processor_plist"
                 fi
@@ -419,7 +422,7 @@ while test $# -gt 0 ; do
             ;;
         --pkg|--pkg_path)
             shift
-            if [[ $processor == "JamfPackageUploader" ]]; then
+            if [[ $processor == "JamfPackageUploader" || $processor == "JamfPackageUploaderGUI" ]]; then
                 if defaults write "$temp_processor_plist" pkg_path "$1"; then
                     echo "   [jamf-upload] Wrote pkg_path='$1' into $temp_processor_plist"
                 fi
@@ -427,7 +430,7 @@ while test $# -gt 0 ; do
             ;;
         --info)
             shift
-            if [[ $processor == "JamfPackageUploader" ]]; then
+            if [[ $processor == "JamfPackageUploader" || $processor == "JamfPackageUploaderGUI" ]]; then
                 if defaults write "$temp_processor_plist" pkg_info "$1"; then
                     echo "   [jamf-upload] Wrote pkg_info='$1' into $temp_processor_plist"
                 fi
@@ -439,7 +442,7 @@ while test $# -gt 0 ; do
             ;;
         --notes)
             shift
-            if [[ $processor == "JamfPackageUploader" ]]; then
+            if [[ $processor == "JamfPackageUploader" || $processor == "JamfPackageUploaderGUI" ]]; then
                 if defaults write "$temp_processor_plist" pkg_notes "$1"; then
                     echo "   [jamf-upload] Wrote pkg_notes='$1' into $temp_processor_plist"
                 fi
@@ -450,7 +453,7 @@ while test $# -gt 0 ; do
             fi
             ;;
         --reboot_required|--reboot-required) 
-            if [[ $processor == "JamfPackageUploader" ]]; then
+            if [[ $processor == "JamfPackageUploader" || $processor == "JamfPackageUploaderGUI" ]]; then
                 if defaults write "$temp_processor_plist" reboot_required "$1"; then
                     echo "   [jamf-upload] Wrote reboot_required='$1' into $temp_processor_plist"
                 fi
@@ -459,7 +462,7 @@ while test $# -gt 0 ; do
         --os_requirement*|--os-requirement*|--osrequirement*)  
             ## allows --os_requirement, --os-requirement, --osrequirements
             shift
-            if [[ $processor == "JamfPackageUploader" ]]; then
+            if [[ $processor == "JamfPackageUploader" || $processor == "JamfPackageUploaderGUI" ]]; then
                 if defaults write "$temp_processor_plist" os_requirement "$1"; then
                     echo "   [jamf-upload] Wrote os_requirement='$1' into $temp_processor_plist"
                 fi
@@ -471,14 +474,14 @@ while test $# -gt 0 ; do
             ;;
         --required_processor|--required-processor)
             shift
-            if [[ $processor == "JamfPackageUploader" ]]; then
+            if [[ $processor == "JamfPackageUploader" || $processor == "JamfPackageUploaderGUI" ]]; then
                 if defaults write "$temp_processor_plist" required_processor "$1"; then
                     echo "   [jamf-upload] Wrote required_processor='$1' into $temp_processor_plist"
                 fi
             fi
             ;;
         --send_notification|--send-notification) 
-            if [[ $processor == "JamfPackageUploader" ]]; then
+            if [[ $processor == "JamfPackageUploader" || $processor == "JamfPackageUploaderGUI" ]]; then
                 if defaults write "$temp_processor_plist" send_notification -string "true"; then
                     echo "   [jamf-upload] Wrote send_notification='true' into $temp_processor_plist"
                 fi
@@ -489,7 +492,7 @@ while test $# -gt 0 ; do
             fi
             ;;
         --replace_pkg_metadata|--replace-pkg-metadata) 
-            if [[ $processor == "JamfPackageUploader" ]]; then
+            if [[ $processor == "JamfPackageUploader" || $processor == "JamfPackageUploaderGUI" ]]; then
                 if defaults write "$temp_processor_plist" replace_pkg_metadata "true"; then
                     echo "   [jamf-upload] Wrote replace_pkg_metadata='True' into $temp_processor_plist"
                 fi
@@ -504,7 +507,7 @@ while test $# -gt 0 ; do
             fi
             ;;
         --replace_icon|--replace-icon) 
-            if [[ $processor == "JamfPackageUploader" ]]; then
+            if [[ $processor == "JamfPolicyUploader" ]]; then
                 if defaults write "$temp_processor_plist" replace_icon "True"; then
                     echo "   [jamf-upload] Wrote replace_icon='True' into $temp_processor_plist"
                 fi

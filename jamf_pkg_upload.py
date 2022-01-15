@@ -193,7 +193,7 @@ def nscurl_pkg(pkg_name, pkg_path, jamf_url, enc_creds, obj_id, r_timeout, verbo
 def update_pkg_metadata(
     jamf_url, enc_creds, pkg_name, pkg_metadata, hash_value, verbosity, pkg_id=None
 ):
-    """Update package metadata. Currently only serves category"""
+    """Update package metadata."""
 
     if hash_value:
         hash_type = "SHA_512"
