@@ -15,11 +15,16 @@ import uuid
 
 from collections import namedtuple
 from base64 import b64encode
+from datetime import datetime
 from pathlib import Path
 from shutil import rmtree
 from time import sleep
 from xml.sax.saxutils import escape
-from autopkglib import Processor, ProcessorError  # pylint: disable=import-error
+from autopkglib import (
+    APLooseVersion,
+    Processor,
+    ProcessorError,
+)  # pylint: disable=import-error
 
 
 class JamfComputerProfileUploader(Processor):
@@ -102,6 +107,38 @@ class JamfComputerProfileUploader(Processor):
     }
 
     # do not edit directly - copy from template
+    def api_endpoints(self, object_type):
+        """Return the endpoint URL from the object type"""
+        api_endpoints = {
+            "category": "api/v1/categories",
+            "extension_attribute": "JSSResource/computerextensionattributes",
+            "computer_group": "JSSResource/computergroups",
+            "jamf_pro_version": "api/v1/jamf-pro-version",
+            "package": "JSSResource/packages",
+            "os_x_configuration_profile": "JSSResource/osxconfigurationprofiles",
+            "policy": "JSSResource/policies",
+            "policy_icon": "JSSResource/fileuploads/policies",
+            "restricted_software": "JSSResource/restrictedsoftware",
+            "script": "api/v1/scripts",
+            "token": "api/v1/auth/token",
+        }
+        return api_endpoints[object_type]
+
+    # do not edit directly - copy from template
+    def object_list_types(self, object_type):
+        """Return a XML dictionary type from the object type"""
+        object_list_types = {
+            "computer_group": "computer_groups",
+            "extension_attribute": "computer_extension_attributes",
+            "os_x_configuration_profile": "os_x_configuration_profiles",
+            "package": "packages",
+            "policy": "policies",
+            "restricted_software": "restricted_software",
+            "script": "scripts",
+        }
+        return object_list_types[object_type]
+
+    # do not edit directly - copy from template
     def write_json_file(self, data, tmp_dir="/tmp/jamf_upload"):
         """dump some json to a temporary file"""
         self.make_tmp_dir(tmp_dir)
@@ -134,10 +171,91 @@ class JamfComputerProfileUploader(Processor):
         return tmp_dir
 
     # do not edit directly - copy from template
-    def curl(self, method, url, auth, data="", additional_headers=""):
+    def get_enc_creds(self, user, password):
+        """encode the username and password into a b64-encoded string"""
+        credentials = f"{self.jamf_user}:{self.jamf_password}"
+        enc_creds_bytes = b64encode(credentials.encode("utf-8"))
+        enc_creds = str(enc_creds_bytes, "utf-8")
+        return enc_creds
+
+    # do not edit directly - copy from template
+    def check_api_token(self, token_file="/tmp/jamf_upload_token"):
+        """Check validity of an existing token"""
+        if os.path.exists(token_file):
+            with open(token_file, "rb") as file:
+                data = json.load(file)
+                # check that there is a 'token' key
+                if data["token"]:
+                    # check if it's expired or not
+                    expires = datetime.strptime(
+                        data["expires"], "%Y-%m-%dT%H:%M:%S.%fZ"
+                    )
+                    if expires > datetime.utcnow():
+                        self.output("Existing token is valid")
+                        return data["token"]
+                else:
+                    self.output("Token not found in file", verbose_level=2)
+        self.output("No existing valid token found", verbose_level=2)
+
+    # do not edit directly - copy from template
+    def write_token_to_json_file(self, data, token_file="/tmp/jamf_upload_token"):
+        """dump the token and expiry as json to a temporary file"""
+        with open(token_file, "w") as fp:
+            json.dump(data, fp)
+
+    # do not edit directly - copy from template
+    def get_api_token(self, jamf_url, enc_creds):
+        """get a token for the Jamf Pro API or Classic API for Jamf Pro 10.35+"""
+        url = jamf_url + "/" + self.api_endpoints("token")
+        r = self.curl(request="POST", url=url, enc_creds=enc_creds)
+        if r.status_code == 200:
+            try:
+                self.output(r.output, verbose_level=2)
+                token = str(r.output["token"])
+                expires = str(r.output["expires"])
+
+                # write the data to a file
+                self.write_token_to_json_file(r.output)
+                self.output("Session token received")
+                self.output(f"Token: {token}", verbose_level=2)
+                self.output(f"Expires: {expires}", verbose_level=2)
+                return token
+            except KeyError:
+                self.output("ERROR: No token received in response")
+        else:
+            self.output(f"ERROR: No token received (response: {r.status_code})")
+
+    # do not edit directly - copy from template
+    def get_jamf_pro_version(self, jamf_url, token):
+        """get the Jamf Pro version so that we can figure out which auth method to use for the
+        Classic API"""
+        url = jamf_url + "/" + self.api_endpoints("jamf_pro_version")
+        r = self.curl(request="GET", url=url, token=token)
+        if r.status_code == 200:
+            try:
+                jamf_pro_version = str(r.output["version"])
+                self.output(f"Jamf Pro Version: {jamf_pro_version}")
+                return jamf_pro_version
+            except KeyError:
+                self.output("ERROR: No version received")
+                return
+
+    # do not edit directly - copy from template
+    def validate_jamf_pro_version(self, jamf_url, token):
+        """return true if Jamf Pro version is 10.35 or greater"""
+        jamf_pro_version = self.get_jamf_pro_version(jamf_url, token)
+        if APLooseVersion(jamf_pro_version) >= APLooseVersion("10.35.0"):
+            return True
+        else:
+            return False
+
+    # do not edit directly - copy from template
+    def curl(
+        self, request="", url="", token="", enc_creds="", data="", additional_headers=""
+    ):
         """
         build a curl command based on method (GET, PUT, POST, DELETE)
-        If the URL contains 'uapi' then token should be passed to the auth variable,
+        If the URL contains 'api' then token should be passed to the auth variable,
         otherwise the enc_creds variable should be passed to the auth variable
         """
         tmp_dir = self.make_tmp_dir()
@@ -146,52 +264,58 @@ class JamfComputerProfileUploader(Processor):
         cookie_jar = os.path.join(tmp_dir, "curl_cookies_from_jamf_upload.txt")
 
         # build the curl command
-        curl_cmd = [
-            "/usr/bin/curl",
-            "--silent",
-            "--show-error",
-            "-X",
-            method,
-            "-D",
-            headers_file,
-            "--output",
-            output_file,
-            url,
-        ]
+        if url:
+            curl_cmd = [
+                "/usr/bin/curl",
+                "--silent",
+                "--show-error",
+                "-D",
+                headers_file,
+                "--output",
+                output_file,
+                url,
+            ]
+        else:
+            raise ProcessorError("No URL supplied")
+
+        if request:
+            curl_cmd.extend(["--request", request])
 
         # authorisation if using Jamf Pro API or Classic API
-        # if using uapi and we already have a token then we use the token for authorization
-        if "uapi" in url and "tokens" not in url:
-            curl_cmd.extend(["--header", f"authorization: Bearer {auth}"])
-        # basic auth to obtain a token, or for classic API
-        elif "uapi" in url or "JSSResource" in url or "dbfileupload" in url:
-            curl_cmd.extend(["--header", f"authorization: Basic {auth}"])
+        # if using Jamf Pro API, or Classic API on Jamf Pro 10.35+,
+        # and we already have a token, then we use the token for authorization.
+        # The Slack webhook doesn't have authentication
+        if token:
+            curl_cmd.extend(["--header", f"authorization: Bearer {token}"])
+        # basic auth to obtain a token, or for classic API older than 10.35
+        elif enc_creds:
+            curl_cmd.extend(["--header", f"authorization: Basic {enc_creds}"])
 
         # set either Accept or Content-Type depending on method
-        if method == "GET" or method == "DELETE":
+        if request == "GET" or request == "DELETE":
             curl_cmd.extend(["--header", "Accept: application/json"])
         # icon upload requires special method
-        elif method == "POST" and "fileuploads" in url:
+        elif request == "POST" and "fileuploads" in url:
             curl_cmd.extend(["--header", "Content-type: multipart/form-data"])
             curl_cmd.extend(["--form", f"name=@{data}"])
-        elif method == "POST" or method == "PUT":
+        elif request == "POST" or request == "PUT":
             if data:
-                if "uapi" in url or "JSSResource" in url or "dbfileupload" in url:
-                    # jamf data upload requires upload-file argument
-                    curl_cmd.extend(["--upload-file", data])
-                else:
+                if "slack" in url:
                     # slack requires data argument
                     curl_cmd.extend(["--data", data])
-            # uapi and slack accepts json, classic API only accepts xml
+                else:
+                    # jamf data upload requires upload-file argument
+                    curl_cmd.extend(["--upload-file", data])
+            # Jamf Pro API and Slack accepts json, but Classic API accepts xml
             if "JSSResource" in url:
                 curl_cmd.extend(["--header", "Content-type: application/xml"])
             else:
                 curl_cmd.extend(["--header", "Content-type: application/json"])
         else:
-            self.output(f"WARNING: HTTP method {method} not supported")
+            self.output(f"WARNING: HTTP method {request} not supported")
 
         # write session for jamf requests
-        if "uapi" in url or "JSSResource" in url or "dbfileupload" in url:
+        if "/api/" in url or "JSSResource" in url or "dbfileupload" in url:
             try:
                 with open(headers_file, "r") as file:
                     headers = file.readlines()
@@ -242,7 +366,7 @@ class JamfComputerProfileUploader(Processor):
             raise ProcessorError(f"WARNING: {headers_file} not found")
         if os.path.exists(output_file) and os.path.getsize(output_file) > 0:
             with open(output_file, "rb") as file:
-                if "uapi" in url:
+                if "/api/" in url:
                     r.output = json.load(file)
                 else:
                     r.output = file.read()
@@ -301,27 +425,13 @@ class JamfComputerProfileUploader(Processor):
                 return matched_filepath
 
     # do not edit directly - copy from template
-    def get_api_obj_id_from_name(self, jamf_url, object_name, object_type, enc_creds):
+    def get_api_obj_id_from_name(
+        self, jamf_url, object_name, object_type, enc_creds="", token=""
+    ):
         """check if a Classic API object with the same name exists on the server"""
         # define the relationship between the object types and their URL
-        object_types = {
-            "package": "packages",
-            "computer_group": "computergroups",
-            "policy": "policies",
-            "extension_attribute": "computerextensionattributes",
-            "restricted_software": "restrictedsoftware",
-            "os_x_configuration_profile": "osxconfigurationprofiles",
-        }
-        object_list_types = {
-            "computer_group": "computer_groups",
-            "extension_attribute": "computer_extension_attributes",
-            "os_x_configuration_profile": "os_x_configuration_profiles",
-            "package": "packages",
-            "policy": "policies",
-            "restricted_software": "restricted_software",
-        }
-        url = "{}/JSSResource/{}".format(jamf_url, object_types[object_type])
-        r = self.curl("GET", url, enc_creds)
+        url = jamf_url + "/" + self.api_endpoints(object_type)
+        r = self.curl(request="GET", url=url, enc_creds=enc_creds, token=token)
 
         if r.status_code == 200:
             object_list = json.loads(r.output)
@@ -330,7 +440,7 @@ class JamfComputerProfileUploader(Processor):
                 verbose_level=4,
             )
             obj_id = 0
-            for obj in object_list[object_list_types[object_type]]:
+            for obj in object_list[self.object_list_types(object_type)]:
                 self.output(
                     obj,
                     verbose_level=3,
@@ -342,23 +452,13 @@ class JamfComputerProfileUploader(Processor):
 
     # do not edit directly - copy from template
     def get_api_obj_value_from_id(
-        self, jamf_url, object_type, obj_id, obj_path, enc_creds
+        self, jamf_url, object_type, obj_id, obj_path, enc_creds="", token=""
     ):
         """get the value of an item in a Classic API object"""
         # define the relationship between the object types and their URL
         # we could make this shorter with some regex but I think this way is clearer
-        object_types = {
-            "package": "packages",
-            "computer_group": "computergroups",
-            "policy": "policies",
-            "extension_attribute": "computerextensionattributes",
-            "restricted_software": "restrictedsoftware",
-            "os_x_configuration_profile": "osxconfigurationprofiles",
-        }
-        url = "{}/JSSResource/{}/id/{}".format(
-            jamf_url, object_types[object_type], obj_id
-        )
-        r = self.curl("GET", url, enc_creds)
+        url = "{}/{}/id/{}".format(jamf_url, self.api_endpoints(object_type), obj_id)
+        r = self.curl(request="GET", url=url, enc_creds=enc_creds)
         if r.status_code == 200:
             obj_content = json.loads(r.output)
             self.output(obj_content, verbose_level=4)
@@ -464,7 +564,7 @@ class JamfComputerProfileUploader(Processor):
             "os_x_configuration_profile",
             obj_id,
             "general/payloads",
-            enc_creds,
+            enc_creds=enc_creds,
         )
 
         # Jamf seems to sometimes export an empty key which plistlib considers invalid,
@@ -584,7 +684,6 @@ class JamfComputerProfileUploader(Processor):
     def upload_mobileconfig(
         self,
         jamf_url,
-        enc_creds,
         mobileconfig_name,
         description,
         category,
@@ -593,15 +692,10 @@ class JamfComputerProfileUploader(Processor):
         template_contents,
         profile_uuid,
         obj_id=None,
+        enc_creds="",
+        token="",
     ):
         """Update Configuration Profile metadata."""
-
-        # if we find an object ID we put, if not, we post
-        if obj_id:
-            url = f"{jamf_url}/JSSResource/osxconfigurationprofiles/id/{obj_id}"
-        else:
-            url = f"{jamf_url}/JSSResource/osxconfigurationprofiles/id/0"
-
         # remove newlines, tabs, leading spaces, and XML-escape the payload
         mobileconfig_plist = mobileconfig_plist.decode("UTF-8")
         mobileconfig_list = mobileconfig_plist.rsplit("\n")
@@ -619,9 +713,6 @@ class JamfComputerProfileUploader(Processor):
             "uuid": f"com.github.grahampugh.jamf-upload.{profile_uuid}",
         }
 
-        # for key in replaceable_keys:
-        #     self.output(f"TEMP: {replaceable_keys[key]}")
-
         # substitute user-assignable keys (escaping for XML)
         template_contents = self.substitute_limited_assignable_keys(
             template_contents, replaceable_keys, xml_escape=True
@@ -634,14 +725,30 @@ class JamfComputerProfileUploader(Processor):
         # write the template to temp file
         template_xml = self.write_temp_file(template_contents)
 
+        # if we find an object ID we put, if not, we post
+        object_type = "os_x_configuration_profile"
+        if obj_id:
+            url = "{}/{}/id/{}".format(
+                jamf_url, self.api_endpoints(object_type), obj_id
+            )
+        else:
+            url = "{}/{}/id/0".format(jamf_url, self.api_endpoints(object_type))
+
         count = 0
         while True:
             count += 1
             self.output(
                 f"Configuration Profile upload attempt {count}", verbose_level=1
             )
-            method = "PUT" if obj_id else "POST"
-            r = self.curl(method, url, enc_creds, template_xml)
+            request = "PUT" if obj_id else "POST"
+            r = self.curl(
+                request=request,
+                url=url,
+                enc_creds=enc_creds,
+                token=token,
+                data=template_xml,
+            )
+
             # check HTTP response
             if (
                 self.status_check(r, "Configuration Profile", mobileconfig_name)
@@ -686,11 +793,6 @@ class JamfComputerProfileUploader(Processor):
             del self.env["jamfcomputerprofileuploader_summary_result"]
 
         profile_updated = False
-
-        # encode the username and password into a basic auth b64 encoded string
-        credentials = f"{self.jamf_user}:{self.jamf_password}"
-        enc_creds_bytes = b64encode(credentials.encode("utf-8"))
-        enc_creds = str(enc_creds_bytes, "utf-8")
 
         # handle files with no path
         if self.payload and "/" not in self.payload:
@@ -795,8 +897,38 @@ class JamfComputerProfileUploader(Processor):
 
         # check for existing Configuration Profile
         self.output(f"Checking for existing '{mobileconfig_name}' on {self.jamf_url}")
+
+        # check for existing token
+        self.output("Checking for existing authentication token", verbose_level=2)
+        token = self.check_api_token()
+
+        # if no valid token, get one
+        if not token:
+            enc_creds = self.get_enc_creds(self.jamf_user, self.jamf_password)
+            self.output("Getting an authentication token", verbose_level=2)
+            token = self.get_api_token(self.jamf_url, enc_creds)
+
+        # if token, verify Jamf Pro version
+        if token:
+            can_use_token = self.validate_jamf_pro_version(self.jamf_url, token)
+            if can_use_token:
+                self.output("Token auth will be used, ", verbose_level=2)
+                send_creds = ""
+            else:
+                self.output("Basic auth will be used, ", verbose_level=2)
+                send_creds = enc_creds
+        else:
+            can_use_token = False
+            self.output("No token found, basic auth will be used, ", verbose_level=2)
+            send_creds = enc_creds
+
+        obj_type = "os_x_configuration_profile"
         obj_id = self.get_api_obj_id_from_name(
-            self.jamf_url, mobileconfig_name, "os_x_configuration_profile", enc_creds
+            self.jamf_url,
+            self.restriction_name,
+            obj_type,
+            enc_creds=send_creds,
+            token=token,
         )
         if obj_id:
             self.output(
@@ -821,7 +953,6 @@ class JamfComputerProfileUploader(Processor):
                 if mobileconfig_plist:
                     self.upload_mobileconfig(
                         self.jamf_url,
-                        enc_creds,
                         mobileconfig_name,
                         self.profile_description,
                         self.profile_category,
@@ -829,7 +960,9 @@ class JamfComputerProfileUploader(Processor):
                         self.profile_computergroup,
                         template_contents,
                         existing_uuid,
-                        obj_id,
+                        obj_id=obj_id,
+                        enc_creds=send_creds,
+                        token=token,
                     )
                     profile_updated = True
                 else:
@@ -860,7 +993,6 @@ class JamfComputerProfileUploader(Processor):
             if mobileconfig_plist:
                 self.upload_mobileconfig(
                     self.jamf_url,
-                    enc_creds,
                     mobileconfig_name,
                     self.profile_description,
                     self.profile_category,
@@ -868,6 +1000,8 @@ class JamfComputerProfileUploader(Processor):
                     self.profile_computergroup,
                     template_contents,
                     new_uuid,
+                    enc_creds=send_creds,
+                    token=token,
                 )
                 profile_updated = True
             else:
