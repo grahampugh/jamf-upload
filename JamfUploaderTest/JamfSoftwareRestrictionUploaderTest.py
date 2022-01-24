@@ -11,7 +11,7 @@ import subprocess
 
 from time import sleep
 from xml.sax.saxutils import escape
-from .JamfUploaderBase import JamfUploaderBase
+from JamfUploaderLib.JamfUploaderBase import JamfUploaderBase
 from autopkglib import (
     ProcessorError,
 )  # pylint: disable=import-error
@@ -262,7 +262,7 @@ class JamfSoftwareRestrictionUploaderTest(JamfUploaderBase):
 
         # handle files with no path
         if self.template and "/" not in self.template:
-            found_template = self.get_path_to_file(self.env, self.template)
+            found_template = self.get_path_to_file(self.template)
             if found_template:
                 self.template = found_template
             else:
