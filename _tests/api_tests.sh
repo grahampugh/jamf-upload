@@ -159,7 +159,8 @@ http_response=$(
         --header 'FILE_TYPE: 0' \
         --header 'FILE_NAME: '"$pkg"'' \
         --upload-file "$pkg_path" \
-        -i -o /dev/null \
+        -i \
+        --output /tmp/jamf_upload/curl_output_from_api_tests.txt \
         --write-out %{http_code} \
         "$url/dbfileupload"
 )
