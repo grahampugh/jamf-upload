@@ -104,16 +104,24 @@ class JamfPolicyDeleter(JamfUploaderBase):
         obj_type = "policy"
         obj_name = self.policy_name
         obj_id = self.get_api_obj_id_from_name(
-            self.jamf_url, obj_type, obj_name, enc_creds=send_creds, token=token,
+            self.jamf_url,
+            obj_name,
+            obj_type,
+            enc_creds=send_creds,
+            token=token,
         )
 
         if obj_id:
             self.output(f"Policy '{self.policy_name}' exists: ID {obj_id}")
             self.output(
-                "Deleting existing policy", verbose_level=1,
+                "Deleting existing policy",
+                verbose_level=1,
             )
             self.delete_policy(
-                self.jamf_url, obj_id, enc_creds=send_creds, token=token,
+                self.jamf_url,
+                obj_id,
+                enc_creds=send_creds,
+                token=token,
             )
         else:
             self.output(
