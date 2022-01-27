@@ -6,9 +6,13 @@ Script for testing Jamf API dbfileupload endpoint using curl
 DOC
 
 usage() {
-    echo "Usage: api_tests.sh --jss someserver --user username --pass password --pkg /path/to/pkg.pkg"
+    echo "Usage: api_tests.sh --jss someserver --user username --pass password --pkg /path/to/pkg.pkg --id NN"
     echo "(don't include https:// or .jamfcloud.com)"
+    echo "ID is used to overwrite an existing package"
 }
+
+# default ID for a new package
+pkg_id=-1
 
 while test $# -gt 0 ; do
     case "$1" in
@@ -27,6 +31,10 @@ while test $# -gt 0 ; do
         -f|--pkg)
             shift
             pkg_path="$1"
+            ;;
+        --id)
+            shift
+            pkg_id="$1"
             ;;
         *)
             usage
@@ -57,9 +65,9 @@ http_response=$(
         --header "authorization: Basic $credentials" \
         --header 'Accept: application/xml' \
         --header 'DESTINATION: 0' \
-        --header 'OBJECT_ID: -1' \
+        --header "OBJECT_ID: $pkg_id" \
         --header 'FILE_TYPE: 0' \
-        --header 'FILE_NAME: '"$pkg"'' \
+        --header "FILE_NAME: $pkg" \
         --upload-file "$pkg_path" \
         -i -o /dev/null \
         --write-out %{http_code} \

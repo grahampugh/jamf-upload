@@ -13,7 +13,7 @@ Actions:
 DOC
 
 usage() {
-    echo "Usage: api_tests.sh --jss someserver --user username --pass password --pkg /path/to/pkg.pkg --id 30"
+    echo "Usage: api_tests.sh --jss someserver --user username --pass password --pkg /path/to/pkg.pkg"
     echo "(don't include https:// or .jamfcloud.com)"
 }
 
@@ -26,6 +26,9 @@ get_token() {
         --header 'Accept: application/json' \
         -o "$token_file"
 }
+
+# degfault to not replace existing package
+replace=0
 
 while test $# -gt 0 ; do
     case "$1" in
@@ -45,9 +48,9 @@ while test $# -gt 0 ; do
             shift
             pkg_path="$1"
             ;;
-        -i|--id)
+        --replace)
             shift
-            pkg_id="$1"
+            replace=1
             ;;
         *)
             usage
@@ -57,7 +60,7 @@ while test $# -gt 0 ; do
     shift
 done
 
-if [[ ! $jss || ! $user || ! $pass || ! $pkg_path || ! $pkg_id ]]; then
+if [[ ! $jss || ! $user || ! $pass || ! $pkg_path ]]; then
     usage
     exit
 fi
@@ -66,6 +69,12 @@ temp_file="/tmp/api_tests.txt"
 token_file="/tmp/api_token.txt"
 
 url="https://$jss.jamfcloud.com"
+
+if [[ ! -f "$pkg_path" ]]; then
+    echo 
+    echo "ERROR: package not found!"
+    exit 1
+fi
 
 # generate a b64 hash of the credentials
 credentials=$(printf "%s" "$user:$pass" | iconv -t ISO-8859-1 | base64 -i -)
@@ -88,12 +97,6 @@ else
 fi
 
 token=$(plutil -extract token raw "$token_file")
-# expires=$(plutil -extract expires raw "$token_file")
-
-# echo
-# echo "Token = $token"
-# echo
-# echo "Expires = $expires"
 
 # get the Jamf Pro version
 curl --request GET \
@@ -131,61 +134,58 @@ else
 fi
 
 # now perform a get request on an existing package
-echo "Getting a package from the server (ID must exist!)"
-curl --request GET \
-    --silent \
-    --header "authorization: Bearer $token" \
-    --header 'Accept: application/xml' \
-    "$url/JSSResource/packages/id/$pkg_id" \
-    | xmllint --format - > "$temp_file"
+pkg=$(basename "$pkg_path")
+
+echo "Getting a package from the server"
+http_response=$(
+    curl --request GET \
+        --silent \
+        --header "authorization: Bearer $token" \
+        --header 'Accept: application/json' \
+        "$url/JSSResource/packages/name/$pkg" \
+        --write-out %{http_code} \
+        --output "$temp_file"
+)
+    # | xmllint --format - > "$temp_file"
 
 echo
-cat "$temp_file"
-echo
+echo "HTTP response: $http_response"
+
+if [[ $http_response -lt 350 ]]; then
+    pkg_id=$(plutil -extract package.id raw -expect integer "$temp_file")
+    # check that we got an integer
+    if [ "$pkg_id" -eq "$pkg_id" ]; then
+        echo "Existing package found: ID $pkg_id"
+        if [[ $replace ]]; then
+            echo "Replacing existing package"
+        else
+            echo "Not replacing existing package"
+            exit 
+        fi
+    fi
+else
+    echo "No existing package found: uploading as a new package"
+    pkg_id=-1
+fi
 
 rm "$temp_file"
 
-# now try to post a package with a bearer token
-echo 
+echo
+echo "Posting package as ID $pkg_id"
 
-
-pkg=$(basename "$pkg_path")
 http_response=$(
     curl --request POST \
-        --header "authorization: Bearer $token" \
+        --header "authorization: Basic $credentials" \
         --header 'Accept: application/xml' \
         --header 'DESTINATION: 0' \
-        --header 'OBJECT_ID: -1' \
+        --header "OBJECT_ID: $pkg_id" \
         --header 'FILE_TYPE: 0' \
         --header 'FILE_NAME: '"$pkg"'' \
         --upload-file "$pkg_path" \
-        -i \
-        --output /tmp/jamf_upload/curl_output_from_api_tests.txt \
+        -i -o /dev/null \
         --write-out %{http_code} \
         "$url/dbfileupload"
 )
 
 echo
 echo "HTTP response: $http_response"
-
-if [[ $http_response -gt 350 ]]; then
-    sleep 2
-    echo
-    echo "Posting failed. Trying with basic authentication instead"
-    http_response=$(
-        curl --request POST \
-            --header "authorization: Basic $credentials" \
-            --header 'Accept: application/xml' \
-            --header 'DESTINATION: 0' \
-            --header 'OBJECT_ID: -1' \
-            --header 'FILE_TYPE: 0' \
-            --header 'FILE_NAME: '"$pkg"'' \
-            --upload-file "$pkg_path" \
-            -i -o /dev/null \
-            --write-out %{http_code} \
-            "$url/dbfileupload"
-    )
-
-    echo
-    echo "HTTP response: $http_response"
-fi

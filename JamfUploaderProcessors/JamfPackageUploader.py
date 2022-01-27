@@ -191,7 +191,8 @@ class JamfPackageUploader(JamfUploaderBase):
             ),
         ]
         self.output(
-            f"Mount command: {' '.join(mount_cmd)}", verbose_level=3,
+            f"Mount command: {' '.join(mount_cmd)}",
+            verbose_level=3,
         )
 
         r = subprocess.check_output(mount_cmd)
@@ -208,7 +209,8 @@ class JamfPackageUploader(JamfUploaderBase):
         try:
             r = subprocess.check_output(cmd)
             self.output(
-                r.decode("ascii"), verbose_level=2,
+                r.decode("ascii"),
+                verbose_level=2,
             )
         except subprocess.CalledProcessError:
             self.output("WARNING! Unmount failed.")
@@ -224,11 +226,13 @@ class JamfPackageUploader(JamfUploaderBase):
             else:
                 self.output("No existing package found")
                 self.output(
-                    f"Expected path: {existing_pkg_path}", verbose_level=2,
+                    f"Expected path: {existing_pkg_path}",
+                    verbose_level=2,
                 )
         else:
             self.output(
-                f"Expected path not found!: {dirname}", verbose_level=2,
+                f"Expected path not found!: {dirname}",
+                verbose_level=2,
             )
 
     def copy_pkg(self, mount_share, pkg_path, pkg_name):
@@ -264,7 +268,8 @@ class JamfPackageUploader(JamfUploaderBase):
                 for member in files:
                     zip_handle.write(os.path.join(root, member))
             self.output(
-                f"Closing: {zip_name}", verbose_level=2,
+                f"Closing: {zip_name}",
+                verbose_level=2,
             )
         return zip_name
 
@@ -279,7 +284,12 @@ class JamfPackageUploader(JamfUploaderBase):
         )
 
         request = "GET"
-        r = self.curl(request=request, url=url, enc_creds=enc_creds, token=token,)
+        r = self.curl(
+            request=request,
+            url=url,
+            enc_creds=enc_creds,
+            token=token,
+        )
 
         if r.status_code == 200:
             obj = json.loads(r.output)
@@ -291,7 +301,7 @@ class JamfPackageUploader(JamfUploaderBase):
             obj_id = "-1"
         return obj_id
 
-    def curl_pkg(self, pkg_name, pkg_path, jamf_url, enc_creds, obj_id):
+    def curl_pkg(self, pkg_name, pkg_path, jamf_url, enc_creds, obj_id=-1):
         """uploads the package using curl"""
 
         object_type = "package_upload"
@@ -315,6 +325,7 @@ class JamfPackageUploader(JamfUploaderBase):
             url=url,
             enc_creds=enc_creds,
             additional_headers=additional_headers,
+            data=pkg_path,
         )
 
         self.output(f"HTTP response: {r.status_code}", verbose_level=1)
@@ -359,14 +370,16 @@ class JamfPackageUploader(JamfUploaderBase):
         url = "{}/{}/id/{}".format(jamf_url, self.api_endpoints(object_type), pkg_id)
 
         self.output(
-            pkg_data, verbose_level=2,
+            pkg_data,
+            verbose_level=2,
         )
 
         count = 0
         while True:
             count += 1
             self.output(
-                f"Package metadata upload attempt {count}", verbose_level=2,
+                f"Package metadata upload attempt {count}",
+                verbose_level=2,
             )
 
             pkg_xml = self.write_temp_file(pkg_data)
@@ -388,7 +401,8 @@ class JamfPackageUploader(JamfUploaderBase):
                     "WARNING: Package metadata update did not succeed after 5 attempts"
                 )
                 self.output(
-                    f"HTTP POST Response Code: {r.status_code}", verbose_level=1,
+                    f"HTTP POST Response Code: {r.status_code}",
+                    verbose_level=1,
                 )
                 raise ProcessorError("ERROR: Package metadata upload failed ")
             sleep(30)
@@ -568,7 +582,8 @@ class JamfPackageUploader(JamfUploaderBase):
         # now process the package metadata if specified
         if pkg_id and (self.pkg_uploaded or self.replace_metadata):
             self.output(
-                "Updating package metadata for {}".format(pkg_id), verbose_level=1,
+                "Updating package metadata for {}".format(pkg_id),
+                verbose_level=1,
             )
             self.update_pkg_metadata(
                 self.jamf_url,
@@ -582,7 +597,8 @@ class JamfPackageUploader(JamfUploaderBase):
             self.pkg_metadata_updated = True
         elif self.smb_url and not pkg_id:
             self.output(
-                "Creating package metadata", verbose_level=1,
+                "Creating package metadata",
+                verbose_level=1,
             )
             self.update_pkg_metadata(
                 self.jamf_url,
@@ -595,7 +611,8 @@ class JamfPackageUploader(JamfUploaderBase):
             self.pkg_metadata_updated = True
         else:
             self.output(
-                "Not updating package metadata", verbose_level=1,
+                "Not updating package metadata",
+                verbose_level=1,
             )
             self.pkg_metadata_updated = False
 
