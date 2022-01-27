@@ -57,7 +57,7 @@ class JamfPolicyDeleter(JamfUploaderBase):
         },
     }
 
-    def delete_policy(self, jamf_url, enc_creds, obj_id):
+    def delete_policy(self, jamf_url, obj_id, enc_creds="", token=""):
         """Delete policy"""
 
         self.output("Deleting Policy...")
