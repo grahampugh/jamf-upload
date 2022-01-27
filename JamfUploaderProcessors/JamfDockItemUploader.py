@@ -5,11 +5,21 @@ JamfDockItemUploader processor for uploading a dock item to Jamf Pro using AutoP
     by Marcel Keßler based on G Pugh's great work
 """
 
-import xml.etree.cElementTree as ET  # Everybody loves working with the classic api
+import os.path
+import sys
+import xml.etree.cElementTree as ET
 
 from time import sleep
-from JamfUploaderLib.JamfUploaderBase import JamfUploaderBase
 from autopkglib import ProcessorError  # pylint: disable=import-error
+
+# to use a base module in AutoPkg we need to add this path to the sys.path.
+# this violates flake8 E402 (PEP8 imports) but is unavoidable, so the following
+# imports require noqa comments for E402
+sys.path.insert(0, os.path.dirname(__file__))
+
+from JamfUploaderLib.JamfUploaderBase import JamfUploaderBase  # noqa: E402
+
+__all__ = ["JamfDockItemUploader"]
 
 
 class JamfDockItemUploader(JamfUploaderBase):
@@ -93,8 +103,7 @@ class JamfDockItemUploader(JamfUploaderBase):
         while True:
             count += 1
             self.output(
-                f"Dock Item upload attempt {count}",
-                verbose_level=2,
+                f"Dock Item upload attempt {count}", verbose_level=2,
             )
             request = "PUT" if obj_id else "POST"
             r = self.curl(
@@ -145,11 +154,7 @@ class JamfDockItemUploader(JamfUploaderBase):
         obj_type = "dock_item"
         obj_name = self.dock_item_name
         obj_id = self.get_api_obj_id_from_name(
-            self.jamf_url,
-            obj_name,
-            obj_type,
-            enc_creds=send_creds,
-            token=token,
+            self.jamf_url, obj_name, obj_type, enc_creds=send_creds, token=token,
         )
 
         if obj_id:

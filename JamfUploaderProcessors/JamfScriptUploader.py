@@ -6,10 +6,19 @@ JamfScriptUploader processor for uploading items to Jamf Pro using AutoPkg
 """
 
 import os.path
+import sys
 
 from time import sleep
-from JamfUploaderLib.JamfUploaderBase import JamfUploaderBase
 from autopkglib import ProcessorError  # pylint: disable=import-error
+
+# to use a base module in AutoPkg we need to add this path to the sys.path.
+# this violates flake8 E402 (PEP8 imports) but is unavoidable, so the following
+# imports require noqa comments for E402
+sys.path.insert(0, os.path.dirname(__file__))
+
+from JamfUploaderLib.JamfUploaderBase import JamfUploaderBase  # noqa: E402
+
+__all__ = ["JamfScriptUploader"]
 
 
 class JamfScriptUploader(JamfUploaderBase):
@@ -182,12 +191,10 @@ class JamfScriptUploader(JamfUploaderBase):
         }
 
         self.output(
-            "Script data:",
-            verbose_level=2,
+            "Script data:", verbose_level=2,
         )
         self.output(
-            script_data,
-            verbose_level=2,
+            script_data, verbose_level=2,
         )
 
         script_json = self.write_json_file(script_data)
@@ -202,8 +209,7 @@ class JamfScriptUploader(JamfUploaderBase):
         while True:
             count += 1
             self.output(
-                "Script upload attempt {}".format(count),
-                verbose_level=2,
+                "Script upload attempt {}".format(count), verbose_level=2,
             )
             request = "PUT" if obj_id else "POST"
             r = self.curl(request=request, url=url, token=token, data=script_json)
@@ -258,10 +264,7 @@ class JamfScriptUploader(JamfUploaderBase):
             obj_type = "category"
             obj_name = self.category_name
             category_id = self.get_uapi_obj_id_from_name(
-                self.jamf_url,
-                obj_type,
-                obj_name,
-                token,
+                self.jamf_url, obj_type, obj_name, token,
             )
 
             if not category_id:
@@ -292,16 +295,12 @@ class JamfScriptUploader(JamfUploaderBase):
             "Checking for existing '{}' on {}".format(self.script_name, self.jamf_url)
         )
         self.output(
-            "Full path: {}".format(self.script_path),
-            verbose_level=2,
+            "Full path: {}".format(self.script_path), verbose_level=2,
         )
         obj_type = "script"
         obj_name = self.script_name
         obj_id = self.get_uapi_obj_id_from_name(
-            self.jamf_url,
-            obj_type,
-            obj_name,
-            token,
+            self.jamf_url, obj_type, obj_name, token,
         )
 
         if obj_id:

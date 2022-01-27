@@ -6,11 +6,20 @@ JamfPolicyUploader processor for uploading policies to Jamf Pro using AutoPkg
 """
 
 import os
+import sys
 import xml.etree.ElementTree as ElementTree
 
 from time import sleep
-from JamfUploaderLib.JamfUploaderBase import JamfUploaderBase
 from autopkglib import ProcessorError  # pylint: disable=import-error
+
+# to use a base module in AutoPkg we need to add this path to the sys.path.
+# this violates flake8 E402 (PEP8 imports) but is unavoidable, so the following
+# imports require noqa comments for E402
+sys.path.insert(0, os.path.dirname(__file__))
+
+from JamfUploaderLib.JamfUploaderBase import JamfUploaderBase  # noqa: E402
+
+__all__ = ["JamfPolicyUploader"]
 
 
 class JamfPolicyUploader(JamfUploaderBase):
@@ -90,13 +99,7 @@ class JamfPolicyUploader(JamfUploaderBase):
         return policy_name, template_xml
 
     def upload_policy(
-        self,
-        jamf_url,
-        policy_name,
-        template_xml,
-        obj_id=0,
-        enc_creds="",
-        token="",
+        self, jamf_url, policy_name, template_xml, obj_id=0, enc_creds="", token="",
     ):
         """Upload policy"""
 
@@ -148,11 +151,7 @@ class JamfPolicyUploader(JamfUploaderBase):
             obj_type = "policy"
             obj_name = policy_name
             obj_id = self.get_api_obj_id_from_name(
-                jamf_url,
-                obj_type,
-                obj_name,
-                enc_creds=enc_creds,
-                token=token,
+                jamf_url, obj_type, obj_name, enc_creds=enc_creds, token=token,
             )
 
             if not obj_id:
@@ -265,11 +264,7 @@ class JamfPolicyUploader(JamfUploaderBase):
         obj_type = "policy"
         obj_name = self.policy_name
         obj_id = self.get_api_obj_id_from_name(
-            self.jamf_url,
-            obj_name,
-            obj_type,
-            enc_creds=send_creds,
-            token=token,
+            self.jamf_url, obj_name, obj_type, enc_creds=send_creds, token=token,
         )
 
         if obj_id:

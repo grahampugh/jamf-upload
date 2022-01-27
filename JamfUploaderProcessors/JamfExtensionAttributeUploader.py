@@ -7,10 +7,19 @@ to Jamf Pro using AutoPkg
 """
 
 import os
+import sys
 from time import sleep
 from xml.sax.saxutils import escape
-from JamfUploaderLib.JamfUploaderBase import JamfUploaderBase
 from autopkglib import ProcessorError  # pylint: disable=import-error
+
+# to use a base module in AutoPkg we need to add this path to the sys.path.
+# this violates flake8 E402 (PEP8 imports) but is unavoidable, so the following
+# imports require noqa comments for E402
+sys.path.insert(0, os.path.dirname(__file__))
+
+from JamfUploaderLib.JamfUploaderBase import JamfUploaderBase  # noqa: E402
+
+__all__ = ["JamfExtensionAttributeUploader"]
 
 
 class JamfExtensionAttributeUploader(JamfUploaderBase):
@@ -57,13 +66,7 @@ class JamfExtensionAttributeUploader(JamfUploaderBase):
     }
 
     def upload_ea(
-        self,
-        jamf_url,
-        ea_name,
-        script_path,
-        obj_id=None,
-        enc_creds="",
-        token="",
+        self, jamf_url, ea_name, script_path, obj_id=None, enc_creds="", token="",
     ):
         """Update extension attribute metadata."""
         # import script from file and replace any keys in the script
@@ -96,12 +99,10 @@ class JamfExtensionAttributeUploader(JamfUploaderBase):
             + "</computer_extension_attribute>"
         )
         self.output(
-            "Extension Attribute data:",
-            verbose_level=2,
+            "Extension Attribute data:", verbose_level=2,
         )
         self.output(
-            ea_data,
-            verbose_level=2,
+            ea_data, verbose_level=2,
         )
 
         self.output("Uploading Extension Attribute..")
@@ -116,8 +117,7 @@ class JamfExtensionAttributeUploader(JamfUploaderBase):
         while True:
             count += 1
             self.output(
-                "Extension Attribute upload attempt {}".format(count),
-                verbose_level=2,
+                "Extension Attribute upload attempt {}".format(count), verbose_level=2,
             )
             request = "PUT" if obj_id else "POST"
             r = self.curl(
@@ -176,11 +176,7 @@ class JamfExtensionAttributeUploader(JamfUploaderBase):
         obj_type = "extension_attribute"
         obj_name = self.ea_name
         obj_id = self.get_api_obj_id_from_name(
-            self.jamf_url,
-            obj_name,
-            obj_type,
-            enc_creds=send_creds,
-            token=token,
+            self.jamf_url, obj_name, obj_type, enc_creds=send_creds, token=token,
         )
 
         if obj_id:

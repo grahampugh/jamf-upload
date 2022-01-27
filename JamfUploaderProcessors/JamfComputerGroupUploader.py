@@ -6,10 +6,19 @@ JamfComputerGroupUploader processor for uploading items to Jamf Pro using AutoPk
 """
 
 import os
+import sys
 
 from time import sleep
-from JamfUploaderLib.JamfUploaderBase import JamfUploaderBase
 from autopkglib import ProcessorError  # pylint: disable=import-error
+
+# to use a base module in AutoPkg we need to add this path to the sys.path.
+# this violates flake8 E402 (PEP8 imports) but is unavoidable, so the following
+# imports require noqa comments for E402
+sys.path.insert(0, os.path.dirname(__file__))
+
+from JamfUploaderLib.JamfUploaderBase import JamfUploaderBase  # noqa: E402
+
+__all__ = ["JamfComputerGroupUploader"]
 
 
 class JamfComputerGroupUploader(JamfUploaderBase):
@@ -165,11 +174,7 @@ class JamfComputerGroupUploader(JamfUploaderBase):
         obj_type = "computer_group"
         obj_name = self.computergroup_name
         obj_id = self.get_api_obj_id_from_name(
-            self.jamf_url,
-            obj_name,
-            obj_type,
-            enc_creds=send_creds,
-            token=token,
+            self.jamf_url, obj_name, obj_type, enc_creds=send_creds, token=token,
         )
 
         if obj_id:

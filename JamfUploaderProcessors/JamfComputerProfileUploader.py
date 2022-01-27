@@ -7,13 +7,22 @@ to Jamf Pro using AutoPkg
 """
 
 import os
+import sys
 import plistlib
 import subprocess
 import uuid
 
 from time import sleep
-from JamfUploaderLib.JamfUploaderBase import JamfUploaderBase
-from autopkglib import ProcessorError  # pylint: disable=import-error
+from autopkglib import ProcessorError  # pylint: disable=import-error  # noqa: E402
+
+# to use a base module in AutoPkg we need to add this path to the sys.path.
+# this violates flake8 E402 (PEP8 imports) but is unavoidable, so the following
+# imports require noqa comments for E402
+sys.path.insert(0, os.path.dirname(__file__))
+
+from JamfUploaderLib.JamfUploaderBase import JamfUploaderBase  # noqa: E402
+
+__all__ = ["JamfComputerProfileUploader"]
 
 
 class JamfComputerProfileUploader(JamfUploaderBase):
@@ -440,11 +449,7 @@ class JamfComputerProfileUploader(JamfUploaderBase):
         obj_type = "os_x_configuration_profile"
         obj_name = mobileconfig_name
         obj_id = self.get_api_obj_id_from_name(
-            self.jamf_url,
-            obj_name,
-            obj_type,
-            enc_creds=send_creds,
-            token=token,
+            self.jamf_url, obj_name, obj_type, enc_creds=send_creds, token=token,
         )
         if obj_id:
             self.output(

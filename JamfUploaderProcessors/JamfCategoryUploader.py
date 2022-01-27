@@ -5,9 +5,20 @@ JamfCategoryUploader processor for uploading a category to Jamf Pro using AutoPk
     by G Pugh
 """
 
+import os.path
+import sys
+
 from time import sleep
-from JamfUploaderLib.JamfUploaderBase import JamfUploaderBase
-from autopkglib import ProcessorError  # pylint: disable=import-error
+from autopkglib import ProcessorError
+
+# to use a base module in AutoPkg we need to add this path to the sys.path.
+# this violates flake8 E402 (PEP8 imports) but is unavoidable, so the following
+# imports require noqa comments for E402
+sys.path.insert(0, os.path.dirname(__file__))
+
+from JamfUploaderLib.JamfUploaderBase import JamfUploaderBase  # noqa: E402
+
+__all__ = ["JamfCategoryUploader"]
 
 
 class JamfCategoryUploader(JamfUploaderBase):
@@ -72,8 +83,7 @@ class JamfCategoryUploader(JamfUploaderBase):
         while True:
             count += 1
             self.output(
-                f"Category upload attempt {count}",
-                verbose_level=2,
+                f"Category upload attempt {count}", verbose_level=2,
             )
             request = "PUT" if obj_id else "POST"
             r = self.curl(request=request, url=url, token=token, data=category_json)
@@ -112,10 +122,7 @@ class JamfCategoryUploader(JamfUploaderBase):
         obj_type = "category"
         obj_name = self.category_name
         obj_id = self.get_uapi_obj_id_from_name(
-            self.jamf_url,
-            obj_type,
-            obj_name,
-            token,
+            self.jamf_url, obj_type, obj_name, token,
         )
 
         if obj_id:
@@ -136,11 +143,7 @@ class JamfCategoryUploader(JamfUploaderBase):
 
         # upload the category
         self.upload_category(
-            self.jamf_url,
-            self.category_name,
-            self.category_priority,
-            token,
-            obj_id,
+            self.jamf_url, self.category_name, self.category_priority, token, obj_id,
         )
 
         # output the summary

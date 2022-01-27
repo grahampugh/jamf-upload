@@ -20,12 +20,19 @@ Set the webhook_url to the one provided by Slack when you create the webhook at
 https://my.slack.com/services/new/incoming-webhook/
 """
 
-
 import json
+import os.path
+import sys
 
 from time import sleep
-from JamfUploaderLib.JamfUploaderBase import JamfUploaderBase
 from autopkglib import ProcessorError  # pylint: disable=import-error
+
+# to use a base module in AutoPkg we need to add this path to the sys.path.
+# this violates flake8 E402 (PEP8 imports) but is unavoidable, so the following
+# imports require noqa comments for E402
+sys.path.insert(0, os.path.dirname(__file__))
+
+from JamfUploaderLib.JamfUploaderBase import JamfUploaderBase  # noqa: E402
 
 
 __all__ = ["JamfUploaderSlacker"]
@@ -169,8 +176,7 @@ class JamfUploaderSlacker(JamfUploaderBase):
         while True:
             count += 1
             self.output(
-                "Slack webhook post attempt {}".format(count),
-                verbose_level=2,
+                "Slack webhook post attempt {}".format(count), verbose_level=2,
             )
             r = self.curl(
                 method="POST", url=slack_webhook_url, data=slack_json, auth=""
