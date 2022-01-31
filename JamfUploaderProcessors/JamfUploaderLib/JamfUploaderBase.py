@@ -381,7 +381,12 @@ class JamfUploaderBase(Processor):
             raise ProcessorError(
                 f"ERROR: {endpoint_type} '{obj_name}' {action} failed due to permissions error"
             )
-        elif r.status_code == 401:
+        elif r.status_code == 405:
+            raise ProcessorError(
+                f"ERROR: {endpoint_type} '{obj_name}' {action} failed due to a "
+                "'method not allowed' error"
+            )
+        elif r.status_code == 500:
             raise ProcessorError(
                 f"ERROR: {endpoint_type} '{obj_name}' {action} failed due to an "
                 "internal server error"

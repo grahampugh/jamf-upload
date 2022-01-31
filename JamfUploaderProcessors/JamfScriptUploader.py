@@ -205,7 +205,10 @@ class JamfScriptUploader(JamfUploaderBase):
 
         # if we find an object ID we put, if not, we post
         object_type = "script"
-        url = "{}/{}/{}".format(jamf_url, self.api_endpoints(object_type), obj_id)
+        if obj_id:
+            url = "{}/{}/{}".format(jamf_url, self.api_endpoints(object_type), obj_id)
+        else:
+            url = "{}/{}".format(jamf_url, self.api_endpoints(object_type))
 
         count = 0
         while True:
