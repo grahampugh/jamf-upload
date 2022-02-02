@@ -193,7 +193,7 @@ def nscurl_pkg(pkg_name, pkg_path, jamf_url, enc_creds, obj_id, r_timeout, verbo
 def update_pkg_metadata(
     jamf_url, enc_creds, pkg_name, pkg_metadata, hash_value, verbosity, pkg_id=None
 ):
-    """Update package metadata. Currently only serves category"""
+    """Update package metadata."""
 
     if hash_value:
         hash_type = "SHA_512"
@@ -211,7 +211,7 @@ def update_pkg_metadata(
         + f"<priority>{pkg_metadata['priority']}</priority>"
         + f"<reboot_required>{pkg_metadata['reboot_required']}</reboot_required>"
         + f"<required_processor>{pkg_metadata['required_processor']}</required_processor>"
-        + f"<os_requirement>{pkg_metadata['os_requirement']}</os_requirement>"
+        + f"<os_requirements>{pkg_metadata['os_requirements']}</os_requirements>"
         + f"<hash_type>{hash_type}</hash_type>"
         + f"<hash_value>{hash_value}</hash_value>"
         + f"<send_notification>{pkg_metadata['send_notification']}</send_notification>"
@@ -378,7 +378,7 @@ def update_pkg_by_form(
             "notes": pkg_metadata["notes"],
             "priority": pkg_metadata["priority"],
             "uninstall_disabled": "true",
-            "osRequirements": pkg_metadata["os_requirement"],
+            "osRequirements": pkg_metadata["os_requirements"],
             "requiredProcessor": pkg_metadata["required_processor"],
             "switchWithPackageID": "-1",
             "action": "Save",
@@ -504,7 +504,7 @@ def get_args():
         help="a priority to assign to the package (default=10)",
     )
     parser.add_argument(
-        "--os_requirement",
+        "--os_requirements",
         default="",
         help="an OS requirements string to assign to the package",
     )
@@ -561,7 +561,7 @@ def main():
         "notes": args.notes,
         "reboot_required": args.reboot_required,
         "priority": args.priority,
-        "os_requirement": args.os_requirement,
+        "os_requirements": args.os_requirements,
         "required_processor": args.required_processor,
         "send_notification": args.send_notification,
     }

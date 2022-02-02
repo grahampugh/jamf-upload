@@ -5,23 +5,23 @@ JamfScriptUploader processor for uploading items to Jamf Pro using AutoPkg
     by G Pugh
 """
 
-import json
-import re
 import os.path
-import subprocess
-import uuid
+import sys
 
-from collections import namedtuple
-from pathlib import Path
-from base64 import b64encode
-from shutil import rmtree
 from time import sleep
-from urllib.parse import quote
-from xml.sax.saxutils import escape
-from autopkglib import Processor, ProcessorError  # pylint: disable=import-error
+from autopkglib import ProcessorError  # pylint: disable=import-error
+
+# to use a base module in AutoPkg we need to add this path to the sys.path.
+# this violates flake8 E402 (PEP8 imports) but is unavoidable, so the following
+# imports require noqa comments for E402
+sys.path.insert(0, os.path.dirname(__file__))
+
+from JamfUploaderLib.JamfUploaderBase import JamfUploaderBase  # noqa: E402
+
+__all__ = ["JamfScriptUploader"]
 
 
-class JamfScriptUploader(Processor):
+class JamfScriptUploader(JamfUploaderBase):
     """A processor for AutoPkg that will upload a script to a Jamf Cloud or on-prem server."""
 
     input_variables = {
@@ -117,7 +117,7 @@ class JamfScriptUploader(Processor):
         },
         "replace_script": {
             "required": False,
-            "description": "Overwrite an existing category if True.",
+            "description": "Overwrite an existing script if True.",
             "default": False,
         },
     }
@@ -131,269 +131,6 @@ class JamfScriptUploader(Processor):
             "description": "Description of interesting results.",
         },
     }
-
-    # do not edit directly - copy from template
-    def write_json_file(self, data, tmp_dir="/tmp/jamf_upload"):
-        """dump some json to a temporary file"""
-        self.make_tmp_dir(tmp_dir)
-        tf = os.path.join(tmp_dir, f"jamf_upload_{str(uuid.uuid4())}.json")
-        with open(tf, "w") as fp:
-            json.dump(data, fp)
-        return tf
-
-    # do not edit directly - copy from template
-    def write_temp_file(self, data, tmp_dir="/tmp/jamf_upload"):
-        """dump some text to a temporary file"""
-        self.make_tmp_dir(tmp_dir)
-        tf = os.path.join(tmp_dir, f"jamf_upload_{str(uuid.uuid4())}.txt")
-        with open(tf, "w") as fp:
-            fp.write(data)
-        return tf
-
-    # do not edit directly - copy from template
-    def make_tmp_dir(self, tmp_dir="/tmp/jamf_upload"):
-        """make the tmp directory"""
-        if not os.path.exists(tmp_dir):
-            os.mkdir(tmp_dir)
-        return tmp_dir
-
-    # do not edit directly - copy from template
-    def clear_tmp_dir(self, tmp_dir="/tmp/jamf_upload"):
-        """remove the tmp directory"""
-        if os.path.exists(tmp_dir):
-            rmtree(tmp_dir)
-        return tmp_dir
-
-    # do not edit directly - copy from template
-    def curl(self, method, url, auth, data="", additional_headers=""):
-        """
-        build a curl command based on method (GET, PUT, POST, DELETE)
-        If the URL contains 'uapi' then token should be passed to the auth variable,
-        otherwise the enc_creds variable should be passed to the auth variable
-        """
-        tmp_dir = self.make_tmp_dir()
-        headers_file = os.path.join(tmp_dir, "curl_headers_from_jamf_upload.txt")
-        output_file = os.path.join(tmp_dir, "curl_output_from_jamf_upload.txt")
-        cookie_jar = os.path.join(tmp_dir, "curl_cookies_from_jamf_upload.txt")
-
-        # build the curl command
-        curl_cmd = [
-            "/usr/bin/curl",
-            "--silent",
-            "--show-error",
-            "-X",
-            method,
-            "-D",
-            headers_file,
-            "--output",
-            output_file,
-            url,
-        ]
-
-        # authorisation if using Jamf Pro API or Classic API
-        # if using uapi and we already have a token then we use the token for authorization
-        if "uapi" in url and "tokens" not in url:
-            curl_cmd.extend(["--header", f"authorization: Bearer {auth}"])
-        # basic auth to obtain a token, or for classic API
-        elif "uapi" in url or "JSSResource" in url or "dbfileupload" in url:
-            curl_cmd.extend(["--header", f"authorization: Basic {auth}"])
-
-        # set either Accept or Content-Type depending on method
-        if method == "GET" or method == "DELETE":
-            curl_cmd.extend(["--header", "Accept: application/json"])
-        # icon upload requires special method
-        elif method == "POST" and "fileuploads" in url:
-            curl_cmd.extend(["--header", "Content-type: multipart/form-data"])
-            curl_cmd.extend(["--form", f"name=@{data}"])
-        elif method == "POST" or method == "PUT":
-            if data:
-                if "uapi" in url or "JSSResource" in url or "dbfileupload" in url:
-                    # jamf data upload requires upload-file argument
-                    curl_cmd.extend(["--upload-file", data])
-                else:
-                    # slack requires data argument
-                    curl_cmd.extend(["--data", data])
-            # uapi and slack accepts json, classic API only accepts xml
-            if "JSSResource" in url:
-                curl_cmd.extend(["--header", "Content-type: application/xml"])
-            else:
-                curl_cmd.extend(["--header", "Content-type: application/json"])
-        else:
-            self.output(f"WARNING: HTTP method {method} not supported")
-
-        # write session for jamf requests
-        if "uapi" in url or "JSSResource" in url or "dbfileupload" in url:
-            try:
-                with open(headers_file, "r") as file:
-                    headers = file.readlines()
-                existing_headers = [x.strip() for x in headers]
-                for header in existing_headers:
-                    if "APBALANCEID" in header or "AWSALB" in header:
-                        with open(cookie_jar, "w") as fp:
-                            fp.write(header)
-            except IOError:
-                pass
-
-            # look for existing session
-            try:
-                with open(cookie_jar, "r") as file:
-                    headers = file.readlines()
-                existing_headers = [x.strip() for x in headers]
-                for header in existing_headers:
-                    if "APBALANCEID" in header or "AWSALB" in header:
-                        cookie = header.split()[1].rstrip(";")
-                        self.output(f"Existing cookie found: {cookie}", verbose_level=2)
-                        curl_cmd.extend(["--cookie", cookie])
-            except IOError:
-                self.output(
-                    "No existing cookie found - starting new session", verbose_level=2
-                )
-
-        # additional headers for advanced requests
-        if additional_headers:
-            curl_cmd.extend(additional_headers)
-
-        self.output(f"curl command: {' '.join(curl_cmd)}", verbose_level=3)
-
-        # now subprocess the curl command and build the r tuple which contains the
-        # headers, status code and outputted data
-        subprocess.check_output(curl_cmd)
-
-        r = namedtuple(
-            "r", ["headers", "status_code", "output"], defaults=(None, None, None)
-        )
-        try:
-            with open(headers_file, "r") as file:
-                headers = file.readlines()
-            r.headers = [x.strip() for x in headers]
-            for header in r.headers:  # pylint: disable=not-an-iterable
-                if re.match(r"HTTP/(1.1|2)", header) and "Continue" not in header:
-                    r.status_code = int(header.split()[1])
-        except IOError:
-            raise ProcessorError(f"WARNING: {headers_file} not found")
-        if os.path.exists(output_file) and os.path.getsize(output_file) > 0:
-            with open(output_file, "rb") as file:
-                if "uapi" in url:
-                    r.output = json.load(file)
-                else:
-                    r.output = file.read()
-        else:
-            self.output(f"No output from request ({output_file} not found or empty)")
-        return r()
-
-    # do not edit directly - copy from template
-    def status_check(self, r, endpoint_type, obj_name):
-        """Return a message dependent on the HTTP response"""
-        if r.status_code == 200 or r.status_code == 201:
-            self.output(f"{endpoint_type} '{obj_name}' uploaded successfully")
-            return "break"
-        elif r.status_code == 409:
-            self.output(r.output, verbose_level=2)
-            raise ProcessorError(
-                f"WARNING: {endpoint_type} '{obj_name}' upload failed due to a conflict"
-            )
-        elif r.status_code == 401:
-            raise ProcessorError(
-                f"ERROR: {endpoint_type} '{obj_name}' upload failed due to permissions error"
-            )
-        else:
-            self.output(f"WARNING: {endpoint_type} '{obj_name}' upload failed")
-            self.output(r.output, verbose_level=2)
-
-    # do not edit directly - copy from template
-    def get_uapi_token(self, jamf_url, enc_creds):
-        """get a token for the Jamf Pro API"""
-        url = "{}/uapi/auth/tokens".format(jamf_url)
-        r = self.curl("POST", url, enc_creds)
-        if r.status_code == 200:
-            try:
-                token = str(r.output["token"])
-                self.output("Session token received")
-                return token
-            except KeyError:
-                self.output("ERROR: No token received")
-                return
-        else:
-            self.output("ERROR: No token received")
-            return
-
-    # do not edit directly - copy from template
-    def get_uapi_obj_id_from_name(self, jamf_url, object_type, object_name, token):
-        """Get the UAPI object by name"""
-        url = (
-            f"{jamf_url}/uapi/v1/{object_type}?page=0&page-size=1000&sort=id"
-            f"&filter=name%3D%3D%22{quote(object_name)}%22"
-        )
-        r = self.curl("GET", url, token)
-        if r.status_code == 200:
-            obj_id = 0
-            for obj in r.output["results"]:
-                self.output(f"ID: {obj['id']} NAME: {obj['name']}", verbose_level=3)
-                if obj["name"] == object_name:
-                    obj_id = obj["id"]
-            return obj_id
-
-    # do not edit directly - copy from template
-    def substitute_assignable_keys(self, data, xml_escape=False):
-        """substitutes any key in the inputted text using the %MY_KEY% nomenclature"""
-        # do a four-pass to ensure that all keys are substituted
-        loop = 5
-        while loop > 0:
-            loop = loop - 1
-            found_keys = re.findall(r"\%\w+\%", data)
-            if not found_keys:
-                break
-            found_keys = [i.replace("%", "") for i in found_keys]
-            for found_key in found_keys:
-                if self.env.get(found_key):
-                    self.output(
-                        (
-                            f"Replacing any instances of '{found_key}' with",
-                            f"'{str(self.env.get(found_key))}'",
-                        ),
-                        verbose_level=2,
-                    )
-                    if xml_escape:
-                        replacement_key = escape(self.env.get(found_key))
-                    else:
-                        replacement_key = self.env.get(found_key)
-                    data = data.replace(f"%{found_key}%", replacement_key)
-                else:
-                    self.output(f"WARNING: '{found_key}' has no replacement object!",)
-                    raise ProcessorError("Unsubstitutable key in template found")
-        return data
-
-    # do not edit directly - copy from template
-    def get_path_to_file(self, filename):
-        """AutoPkg is not very good at finding dependent files. This function
-        will look inside the search directories for any supplied file"""
-        # if the supplied file is not a path, use the override directory or
-        # recipe dir if no override
-        recipe_dir = self.env.get("RECIPE_DIR")
-        filepath = os.path.join(recipe_dir, filename)
-        if os.path.exists(filepath):
-            self.output(f"File found at: {filepath}")
-            return filepath
-
-        # if not found, search parent directories to look for it
-        if self.env.get("PARENT_RECIPES"):
-            # also look in the repos containing the parent recipes.
-            parent_recipe_dirs = list(
-                {os.path.dirname(item) for item in self.env["PARENT_RECIPES"]}
-            )
-            matched_filepath = ""
-            for d in parent_recipe_dirs:
-                # check if we are in the root of a parent repo, if not, ascend to the root
-                # note that if the parents are not in a git repo, only the same
-                # directory as the recipe will be searched for templates
-                if not os.path.isdir(os.path.join(d, ".git")):
-                    d = os.path.dirname(d)
-                for path in Path(d).rglob(filename):
-                    matched_filepath = str(path)
-                    break
-            if matched_filepath:
-                self.output(f"File found at: {matched_filepath}")
-                return matched_filepath
 
     def upload_script(
         self,
@@ -415,7 +152,7 @@ class JamfScriptUploader(Processor):
         script_parameter11,
         script_os_requirements,
         token,
-        obj_id=None,
+        obj_id=0,
     ):
         """Update script metadata."""
 
@@ -453,44 +190,43 @@ class JamfScriptUploader(Processor):
             "scriptContents": script_contents,
         }
 
-        # ideally we upload to the object ID but if we didn't get a good response
-        # we fall back to the name
-        if obj_id:
-            url = "{}/uapi/v1/scripts/{}".format(jamf_url, obj_id)
-            script_data["id"] = obj_id
-        else:
-            url = "{}/uapi/v1/scripts".format(jamf_url)
+        self.output(
+            "Script data:",
+            verbose_level=2,
+        )
+        self.output(
+            script_data,
+            verbose_level=2,
+        )
 
-        self.output(
-            "Script data:", verbose_level=2,
-        )
-        self.output(
-            script_data, verbose_level=2,
-        )
+        script_json = self.write_json_file(script_data)
 
         self.output("Uploading script..")
-        script_json = self.write_json_file(script_data)
+
+        # if we find an object ID we put, if not, we post
+        object_type = "script"
+        if obj_id:
+            url = "{}/{}/{}".format(jamf_url, self.api_endpoints(object_type), obj_id)
+        else:
+            url = "{}/{}".format(jamf_url, self.api_endpoints(object_type))
 
         count = 0
         while True:
             count += 1
             self.output(
-                "Script upload attempt {}".format(count), verbose_level=2,
+                "Script upload attempt {}".format(count),
+                verbose_level=2,
             )
-            method = "PUT" if obj_id else "POST"
-            r = self.curl(method, url, token, script_json)
+            request = "PUT" if obj_id else "POST"
+            r = self.curl(request=request, url=url, token=token, data=script_json)
             # check HTTP response
-            if self.status_check(r, "Script", script_name) == "break":
+            if self.status_check(r, "Script", script_name, request) == "break":
                 break
             if count > 5:
                 self.output("Script upload did not succeed after 5 attempts")
                 self.output("\nHTTP POST Response Code: {}".format(r.status_code))
                 raise ProcessorError("ERROR: Script upload failed ")
             sleep(10)
-
-        # clean up temp files
-        self.clear_tmp_dir()
-
         return r
 
     def main(self):
@@ -523,20 +259,23 @@ class JamfScriptUploader(Processor):
             del self.env["jamfscriptuploader_summary_result"]
         script_uploaded = False
 
-        # encode the username and password into a basic auth b64 encoded string
-        credentials = f"{self.jamf_user}:{self.jamf_password}"
-        enc_creds_bytes = b64encode(credentials.encode("utf-8"))
-        enc_creds = str(enc_creds_bytes, "utf-8")
-
-        # now get the session token
-        token = self.get_uapi_token(self.jamf_url, enc_creds)
+        # obtain the relevant credentials
+        token = self.handle_uapi_auth(self.jamf_url, self.jamf_user, self.jamf_password)
 
         # get the id for a category if supplied
         if self.script_category:
             self.output("Checking categories for {}".format(self.script_category))
+
+            # check for existing category - requires obj_name
+            obj_type = "category"
+            obj_name = self.script_category
             category_id = self.get_uapi_obj_id_from_name(
-                self.jamf_url, "categories", self.script_category, token
+                self.jamf_url,
+                obj_type,
+                obj_name,
+                token,
             )
+
             if not category_id:
                 self.output("WARNING: Category not found!")
                 category_id = "-1"
@@ -565,10 +304,16 @@ class JamfScriptUploader(Processor):
             "Checking for existing '{}' on {}".format(self.script_name, self.jamf_url)
         )
         self.output(
-            "Full path: {}".format(self.script_path), verbose_level=2,
+            "Full path: {}".format(self.script_path),
+            verbose_level=2,
         )
+        obj_type = "script"
+        obj_name = self.script_name
         obj_id = self.get_uapi_obj_id_from_name(
-            self.jamf_url, "scripts", self.script_name, token
+            self.jamf_url,
+            obj_type,
+            obj_name,
+            token,
         )
 
         if obj_id:

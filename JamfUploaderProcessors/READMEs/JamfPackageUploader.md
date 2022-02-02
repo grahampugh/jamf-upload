@@ -36,7 +36,7 @@ The pkg recipe must output pkg_path or this will fail.
   - **required:** False
   - **description:** Whether a package requires a reboot after installation.
   - **default:**
-- **os_requirement:**
+- **os_requirements:**
   - **required:** False
   - **description:** Package OS requirement
 - **required_processor:**
