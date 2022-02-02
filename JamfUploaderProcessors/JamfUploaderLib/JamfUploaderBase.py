@@ -140,7 +140,7 @@ class JamfUploaderBase(Processor):
                         if data["token"]:
                             # check if it's expired or not
                             expires = datetime.strptime(
-                                data["expires"], "%Y-%m-%dT%H:%M:%S.%fZ"
+                                data["expires"].split('.')[0], "%Y-%m-%dT%H:%M:%S"
                             )
                             if expires > datetime.utcnow():
                                 self.output("Existing token is valid")
