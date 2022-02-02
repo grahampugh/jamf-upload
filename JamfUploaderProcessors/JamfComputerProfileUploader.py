@@ -499,7 +499,7 @@ class JamfComputerProfileUploader(JamfUploaderBase):
             self.output(
                 f"Configuration Profile '{mobileconfig_name}' not found - will create"
             )
-            new_uuid = self.generate_uuid()
+            new_uuid = str(uuid.uuid4())
 
             if not self.mobileconfig:
                 # generate the mobileconfig from the supplied payload
