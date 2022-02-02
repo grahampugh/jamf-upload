@@ -74,6 +74,15 @@ class JamfPolicyUploader(JamfUploaderBase):
         "jamfpolicyuploader_summary_result": {
             "description": "Description of interesting results.",
         },
+        "policy_name": {
+            "description": "Jamf object name of the newly created or modified policy.",
+        },
+        "policy_updated": {
+            "description": "Boolean - True if the policy was changed.",
+        },
+        "changed_policy_id": {
+            "description": "Jamf object ID of the newly created or modified policy.",
+        },
     }
 
     def prepare_policy_template(self, policy_name, policy_template):
@@ -295,6 +304,14 @@ class JamfPolicyUploader(JamfUploaderBase):
             token=token,
         )
         self.policy_updated = True
+
+        # Set the changed_policy_id to the returned output's ID if and only
+        # if it can be determined
+        try:
+            changed_policy_id = ElementTree.fromstring(r.output).findtext("id")
+            self.env["changed_policy_id"] = str(changed_policy_id)
+        except UnboundLocalError:
+            self.env["changed_policy_id"] = "UNKNOWN_POLICY_ID"
 
         # now upload the icon to the policy if specified in the args
         policy_icon_name = ""

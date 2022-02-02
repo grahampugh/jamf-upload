@@ -500,7 +500,7 @@ while test $# -gt 0 ; do
         --os_requirement*|--os-requirement*|--osrequirement*)  
             ## allows --os_requirement, --os-requirement, --osrequirements
             shift
-            if [[ $processor == "JamfPackageUploader" || $processor == "JamfPackageUploaderGUI" ]]; then
+            if [[ $processor == "JamfPackageUploader" ]]; then
                 if defaults write "$temp_processor_plist" os_requirements "$1"; then
                     echo "   [jamf-upload] Wrote os_requirements='$1' into $temp_processor_plist"
                 fi
