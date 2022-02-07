@@ -53,7 +53,7 @@ class JamfPolicyLogFlusher(JamfUploaderBase):
         "logflush_interval": {
             "required": False,
             "description": "Log interval to be flushed",
-            "default": "Six Years",
+            "default": "Zero Days",
         },
     }
 
