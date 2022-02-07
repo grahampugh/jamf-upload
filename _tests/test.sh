@@ -8,6 +8,7 @@ DIR=$(dirname "$0")
 # which test?
 test_type="$1"
 verbosity="$2"
+url="$3"
 
 # other variables
 prefs="$HOME/Library/Preferences/com.github.autopkg.plist"
@@ -17,6 +18,10 @@ if [[ ! $verbosity ]]; then
     verbosity="-v"
 fi
 
+if [[ $url ]]; then
+    jss_url="--key JSS_URL=$url"
+fi
+
 if [[ $test_type == "category" ]]; then
     # upload a category
     "$DIR"/../jamf-upload.sh category \
@@ -24,6 +29,7 @@ if [[ $test_type == "category" ]]; then
         --name JamfUploadTest \
         --priority 18 \
         "$verbosity" \
+        "$jss_url" \
         --replace
 
 elif [[ $test_type == "group" ]]; then
@@ -35,6 +41,7 @@ elif [[ $test_type == "group" ]]; then
         --template "SmartGroupTemplate-test-users.xml" \
         --key POLICY_NAME="Firefox" \
         "$verbosity" \
+        "$jss_url" \
         --replace
 
 elif [[ $test_type == "profile" ]]; then
@@ -51,6 +58,7 @@ elif [[ $test_type == "profile" ]]; then
         --description "Amazing test profile" \
         --computergroup "Testing" \
         "$verbosity" \
+        "$jss_url" \
         --key REGISTRATION_CODE="FAKE-CODE" \
         --key REGISTRATION_EMAIL="yes@yes.com" \
         --key REGISTRATION_NAME="ETH License Administration" \
@@ -65,6 +73,7 @@ elif [[ $test_type == "ea" ]]; then
         --name "Microsoft AutoUpdate Version" \
         --script "MicrosoftAutoUpdate-EA.sh" \
         "$verbosity" \
+        "$jss_url" \
         --replace
 
 elif [[ $test_type == "policy" ]]; then
@@ -79,6 +88,7 @@ elif [[ $test_type == "policy" ]]; then
         --key CATEGORY="JamfUploadTest" \
         --key pkg_name="Firefox-96.0.pkg" \
         "$verbosity" \
+        "$jss_url" \
         --replace
 
 elif [[ $test_type == "policy_delete" ]]; then
@@ -87,7 +97,8 @@ elif [[ $test_type == "policy_delete" ]]; then
         --prefs "$prefs" \
         --recipe-dir /Users/gpugh/sourcecode/jamf-upload/_tests \
         --name "Install Firefox" \
-        "$verbosity"
+        "$verbosity" \
+        "$jss_url"
 
 elif [[ $test_type == "policy_flush" ]]; then
     # upload a policy
@@ -96,7 +107,8 @@ elif [[ $test_type == "policy_flush" ]]; then
         --recipe-dir /Users/gpugh/sourcecode/jamf-upload/_tests \
         --name "0001 - Install Rosetta 2" \
         --interval "Three Months" \
-        "$verbosity"
+        "$verbosity" \
+        "$jss_url"
 
 elif [[ $test_type == "restriction" ]]; then
     # upload a software restriction
@@ -111,6 +123,7 @@ elif [[ $test_type == "restriction" ]]; then
         --kill_process \
         --computergroup Testing \
         "$verbosity" \
+        "$jss_url" \
         --replace
 
 elif [[ $test_type == "package" || $test_type == "pkg" ]]; then
@@ -121,6 +134,7 @@ elif [[ $test_type == "package" || $test_type == "pkg" ]]; then
         --pkg "$HOME/Downloads/Microsoft_Office_Reset_1.8.pkg" \
         --category JamfUploadTest \
         "$verbosity" \
+        "$jss_url" \
         --replace
     
 elif [[ $test_type == "script" ]]; then
@@ -132,6 +146,7 @@ elif [[ $test_type == "script" ]]; then
         --script "Microsoft Office License Type.sh" \
         --script_parameter4 "License Type" \
         "$verbosity" \
+        "$jss_url" \
         --replace
 
 elif [[ $test_type == "dock" ]]; then
@@ -142,6 +157,7 @@ elif [[ $test_type == "dock" ]]; then
         --type "App" \
         --path "/Applications/ETH Self Service.app/" \
         "$verbosity" \
+        "$jss_url" \
         --replace
 
 else
