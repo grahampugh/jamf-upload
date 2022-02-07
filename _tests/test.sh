@@ -81,6 +81,23 @@ elif [[ $test_type == "policy" ]]; then
         "$verbosity" \
         --replace
 
+elif [[ $test_type == "policy_delete" ]]; then
+    # upload a policy
+    "$DIR"/../jamf-upload.sh policy_delete \
+        --prefs "$prefs" \
+        --recipe-dir /Users/gpugh/sourcecode/jamf-upload/_tests \
+        --name "Install Firefox" \
+        "$verbosity"
+
+elif [[ $test_type == "policy_flush" ]]; then
+    # upload a policy
+    "$DIR"/../jamf-upload.sh policy_flush \
+        --prefs "$prefs" \
+        --recipe-dir /Users/gpugh/sourcecode/jamf-upload/_tests \
+        --name "0001 - Install Rosetta 2" \
+        --interval "Three Months" \
+        "$verbosity"
+
 elif [[ $test_type == "restriction" ]]; then
     # upload a software restriction
     "$DIR"/../jamf-upload.sh restriction \

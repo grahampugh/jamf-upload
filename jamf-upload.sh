@@ -18,6 +18,7 @@ Valid object types:
     group | computergroup
     profile | computerprofile
     ea | extensionattribute
+    logflush
     pkg | package
     pkg-direct
     policy
@@ -97,6 +98,13 @@ Policy arguments:
     --replace               Replace existing item
     --replace-icon          Set to replace the existing icon if it has the same name
 
+Policy Delete arguments:
+    --name <string>         The policy name
+
+Policy Log Flush arguments:
+    --name <string>         The policy name
+    --interval              The log flush interval
+
 Script arguments:
     --name <string>         The name
     --script <path>         Full path of the script to be uploaded
@@ -161,6 +169,10 @@ elif [[ $object == "pkg-direct" ]]; then
     processor="JamfPackageUploaderGUI"
 elif [[ $object == "policy" ]]; then
     processor="JamfPolicyUploader"
+elif [[ $object == "policy_delete" ]]; then
+    processor="JamfPolicyDeleter"
+elif [[ $object == "policy_flush" ]]; then
+    processor="JamfPolicyLogFlusher"
 elif [[ $object == "restriction" || $object == "softwarerestriction" ]]; then
     processor="JamfSoftwareRestrictionUploader"
 elif [[ $object == "script" ]]; then
@@ -302,7 +314,7 @@ while test $# -gt 0 ; do
                 if defaults write "$temp_processor_plist" pkg_name "$1"; then
                     echo "   [jamf-upload] Wrote pkg_name='$1' into $temp_processor_plist"
                 fi
-            elif [[ $processor == "JamfPolicyUploader" ]]; then
+            elif [[ $processor == "JamfPolicyUploader" || $processor == "JamfPolicyDeleter" || $processor == "JamfPolicyLogFlusher" ]]; then
                 if defaults write "$temp_processor_plist" policy_name "$1"; then
                     echo "   [jamf-upload] Wrote policy_name='$1' into $temp_processor_plist"
                 fi
@@ -548,6 +560,14 @@ while test $# -gt 0 ; do
             if [[ $processor == "JamfPolicyUploader" ]]; then
                 if defaults write "$temp_processor_plist" replace_icon "True"; then
                     echo "   [jamf-upload] Wrote replace_icon='True' into $temp_processor_plist"
+                fi
+            fi
+            ;;
+        --interval)
+            shift
+            if [[ $processor == "JamfPolicyLogFlusher" ]]; then
+                if defaults write "$temp_processor_plist" logflush_interval "$1"; then
+                    echo "   [jamf-upload] Wrote logflush_interval='$1' into $temp_processor_plist"
                 fi
             fi
             ;;
