@@ -178,9 +178,7 @@ class JamfUploaderSlacker(JamfUploaderBase):
             self.output(
                 "Slack webhook post attempt {}".format(count), verbose_level=2,
             )
-            r = self.curl(
-                method="POST", url=slack_webhook_url, data=slack_json, auth=""
-            )
+            r = self.curl(request="POST", url=slack_webhook_url, data=slack_json)
             # check HTTP response
             if self.slack_status_check(r) == "break":
                 break
