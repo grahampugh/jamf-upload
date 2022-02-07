@@ -107,7 +107,7 @@ elif [[ $test_type == "policy_flush" ]]; then
         --prefs "$prefs" \
         --recipe-dir /Users/gpugh/sourcecode/jamf-upload/_tests \
         --name "0001 - Install Rosetta 2" \
-        --interval "Three Months" \
+        --interval "Zero Days" \
         "$verbosity" \
         "$jss_url"
 
