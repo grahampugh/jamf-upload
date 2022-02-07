@@ -19,7 +19,8 @@ if [[ ! $verbosity ]]; then
 fi
 
 if [[ $url ]]; then
-    jss_url="--key JSS_URL=$url"
+    usual_url=$(defaults read "$prefs" JSS_URL)
+    defaults write "$prefs" JSS_URL "$url"
 fi
 
 if [[ $test_type == "category" ]]; then
@@ -162,4 +163,9 @@ elif [[ $test_type == "dock" ]]; then
 
 else
     echo "Usage: test.sh [test_type]"
+fi
+
+# revert url
+if [[ $usual_url ]]; then
+    defaults write "$prefs" JSS_URL "$usual_url"
 fi
