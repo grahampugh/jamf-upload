@@ -24,6 +24,7 @@ Valid object types:
     policy
     restriction | softwarerestriction
     script
+    slack
 
 Arguments:
     --prefs <path>          Inherit AutoPkg prefs file provided by the full path to the file
@@ -116,14 +117,41 @@ Script arguments:
 Software Restriction arguments
     --name <string>         The name
     --template <path>       XML template
-    --process_name          Process name to restrict
-    --display_message       Message to display to users when the restriction is invoked
-    --match_exact_process_name
+    --process-name          Process name to restrict
+    --display-message       Message to display to users when the restriction is invoked
+    --match-exact-process-name
                             Match only the exact process name if True
-    --send_notification     Send a notification when the restriction is invoked if True
-    --kill_process          Kill the process when the restriction is invoked if True
-    --delete_executable     Delete the executable when the restriction is invoked if True
+    --send-notification     Send a notification when the restriction is invoked if True
+    --kill-process          Kill the process when the restriction is invoked if True
+    --delete-executable     Delete the executable when the restriction is invoked if True
     --replace               Replace existing item
+
+Slack arguments:
+    --name <string>         The name
+    --policy-category <string>
+                            The POLICY_CATEGORY
+    --pkg-category <string> The PKG_CATEGORY
+    --pkg_name <string>     The package name
+    --pkg-uploaded          Pretends that a package was uploaded (sets a value to jamfpackageuploader_summary_result)
+    --policy-uploaded       Pretends that a policy was uploaded (sets a value to jamfpolicyuploader_summary_result)
+    --slack-url <url>       The slack_webhook_url
+    --slack-user <string>   The Slack user to display
+    --icon <url>        The Slack icon URL
+    --channel <string>      The Slack channel to post to
+    --emoji <string>        the Slack icon emoji
+
+Teams arguments:
+    --name <string>         The name
+    --policy-category <string>
+                            The POLICY_CATEGORY
+    --pkg-category <string> The PKG_CATEGORY
+    --pkg_name <string>     The package name
+    --pkg-uploaded          Pretends that a package was uploaded (sets a value to jamfpackageuploader_summary_result)
+    --policy-uploaded       Pretends that a policy was uploaded (sets a value to jamfpolicyuploader_summary_result)
+    --teams-url <url>       The teams_webhook_url
+    --teams-user <string>   The Teams user to display
+    --icon <url>        The Slack icon URL
+
 "
 }
 
@@ -177,6 +205,10 @@ elif [[ $object == "restriction" || $object == "softwarerestriction" ]]; then
     processor="JamfSoftwareRestrictionUploader"
 elif [[ $object == "script" ]]; then
     processor="JamfScriptUploader"
+elif [[ $object == "slack" ]]; then
+    processor="JamfUploaderSlacker"
+elif [[ $object == "teams" ]]; then
+    processor="JamfUploaderTeamsNotifier"
 elif [[ $object == "--help" || $object == "help" || $object == "-h" ]]; then
     usage
     exit 0
@@ -325,6 +357,10 @@ while test $# -gt 0 ; do
             elif [[ $processor == "JamfScriptUploader" ]]; then
                 if defaults write "$temp_processor_plist" script_name "$1"; then
                     echo "   [jamf-upload] Wrote script_name='$1' into $temp_processor_plist"
+                fi
+            elif [[ $processor == "JamfUploaderSlacker" || $processor == "JamfUploaderTeamsNotifier" ]]; then
+                if defaults write "$temp_processor_plist" NAME "$1"; then
+                    echo "   [jamf-upload] Wrote NAME='$1' into $temp_processor_plist"
                 fi
             fi
             ;;
@@ -554,6 +590,14 @@ while test $# -gt 0 ; do
                 if defaults write "$temp_processor_plist" icon "$1"; then
                     echo "   [jamf-upload] Wrote icon='$1' into $temp_processor_plist"
                 fi
+            elif [[ $processor == "JamfUploaderSlacker" ]]; then
+                if defaults write "$temp_processor_plist" slack_icon_url "$1"; then
+                    echo "   [jamf-upload] Wrote slack_icon_url='$1' into $temp_processor_plist"
+                fi
+            elif [[ $processor == "JamfUploaderTeamsNotifier" ]]; then
+                if defaults write "$temp_processor_plist" teams_icon_url "$1"; then
+                    echo "   [jamf-upload] Wrote teams_icon_url='$1' into $temp_processor_plist"
+                fi
             fi
             ;;
         --replace_icon|--replace-icon) 
@@ -614,6 +658,108 @@ while test $# -gt 0 ; do
             if [[ $processor == "JamfSoftwareRestrictionUploader" ]]; then
                 if defaults write "$temp_processor_plist" delete_executable -string "true"; then
                     echo "   [jamf-upload] Wrote delete_executable='true' into $temp_processor_plist"
+                fi
+            fi
+            ;;
+        --pkg-category)
+            shift
+            if [[ $processor == "JamfUploaderSlacker" || $processor == "JamfUploaderTeamsNotifier" ]]; then
+                if defaults write "$temp_processor_plist" PKG_CATEGORY "$1"; then
+                    echo "   [jamf-upload] Wrote PKG_CATEGORY='$1' into $temp_processor_plist"
+                fi
+            fi
+            ;;
+        --policy-category)
+            shift
+            if [[ $processor == "JamfUploaderSlacker" || $processor == "JamfUploaderTeamsNotifier" ]]; then
+                if defaults write "$temp_processor_plist" POLICY_CATEGORY "$1"; then
+                    echo "   [jamf-upload] Wrote POLICY_CATEGORY='$1' into $temp_processor_plist"
+                fi
+            fi
+            ;;
+        --pkg-name) 
+            shift
+            if [[ $processor == "JamfUploaderSlacker" || $processor == "JamfUploaderTeamsNotifier" ]]; then
+                if defaults write "$temp_processor_plist" pkg_name "$1"; then
+                    echo "   [jamf-upload] Wrote pkg_name='$1' into $temp_processor_plist"
+                fi
+            fi
+            ;;
+        --version) 
+            shift
+            if [[ $processor == "JamfUploaderSlacker" || $processor == "JamfUploaderTeamsNotifier" ]]; then
+                if defaults write "$temp_processor_plist" version "$1"; then
+                    echo "   [jamf-upload] Wrote version='$1' into $temp_processor_plist"
+                fi
+            fi
+            ;;
+        --policy-name) 
+            shift
+            if [[ $processor == "JamfUploaderSlacker" || $processor == "JamfUploaderTeamsNotifier" ]]; then
+                if defaults write "$temp_processor_plist" policy_name "$1"; then
+                    echo "   [jamf-upload] Wrote policy_name='$1' into $temp_processor_plist"
+                fi
+            fi
+            ;;
+        --pkg-uploaded) 
+            if [[ $processor == "JamfUploaderSlacker" || $processor == "JamfUploaderTeamsNotifier" ]]; then
+                if defaults write "$temp_processor_plist" jamfpackageuploader_summary_result -string "true"; then
+                    echo "   [jamf-upload] Wrote jamfpackageuploader_summary_result='true' into $temp_processor_plist"
+                fi
+            fi
+            ;;
+        --policy-uploaded) 
+            if [[ $processor == "JamfUploaderSlacker" || $processor == "JamfUploaderTeamsNotifier" ]]; then
+                if defaults write "$temp_processor_plist" jamfpolicyuploader_summary_result -string "true"; then
+                    echo "   [jamf-upload] Wrote jamfpolicyuploader_summary_result='true' into $temp_processor_plist"
+                fi
+            fi
+            ;;
+        --slack-url) 
+            shift
+            if [[ $processor == "JamfUploaderSlacker" ]]; then
+                if defaults write "$temp_processor_plist" slack_webhook_url "$1"; then
+                    echo "   [jamf-upload] Wrote slack_webhook_url='$1' into $temp_processor_plist"
+                fi
+            fi
+            ;;
+        --slack-user) 
+            shift
+            if [[ $processor == "JamfUploaderSlacker" ]]; then
+                if defaults write "$temp_processor_plist" slack_username "$1"; then
+                    echo "   [jamf-upload] Wrote slack_username='$1' into $temp_processor_plist"
+                fi
+            fi
+            ;;
+        --channel) 
+            shift
+            if [[ $processor == "JamfUploaderSlacker" ]]; then
+                if defaults write "$temp_processor_plist" slack_channel "$1"; then
+                    echo "   [jamf-upload] Wrote slack_channel='$1' into $temp_processor_plist"
+                fi
+            fi
+            ;;
+        --emoji) 
+            shift
+            if [[ $processor == "JamfUploaderSlacker" ]]; then
+                if defaults write "$temp_processor_plist" slack_icon_emoji "$1"; then
+                    echo "   [jamf-upload] Wrote slack_icon_emoji='$1' into $temp_processor_plist"
+                fi
+            fi
+            ;;
+        --teams-url) 
+            shift
+            if [[ $processor == "JamfUploaderTeamsNotifier" ]]; then
+                if defaults write "$temp_processor_plist" teams_webhook_url "$1"; then
+                    echo "   [jamf-upload] Wrote teams_webhook_url='$1' into $temp_processor_plist"
+                fi
+            fi
+            ;;
+        --teams-user) 
+            shift
+            if [[ $processor == "JamfUploaderTeamsNotifier" ]]; then
+                if defaults write "$temp_processor_plist" teams_username "$1"; then
+                    echo "   [jamf-upload] Wrote teams_username='$1' into $temp_processor_plist"
                 fi
             fi
             ;;

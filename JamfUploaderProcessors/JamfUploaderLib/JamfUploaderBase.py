@@ -280,11 +280,8 @@ class JamfUploaderBase(Processor):
         # Content-Type for POST/PUT
         elif request == "POST" or request == "PUT":
             if data:
-                if "slack" in url:
-                    # slack requires data argument
-                    curl_cmd.extend(["--data", data])
-                elif "webhook.office" in url:
-                    # Teams requires data argument
+                if "slack" in url or "webhook.office" in url:
+                    # slack and teams require a data argument
                     curl_cmd.extend(["--data", data])
                 else:
                     # jamf data upload requires upload-file argument

@@ -1,4 +1,4 @@
-# JamfUploaderTeamsHook
+# JamfUploaderTeamsNotifier
 
 ## Description
 
