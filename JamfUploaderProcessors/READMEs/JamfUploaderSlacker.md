@@ -1,8 +1,8 @@
-# JamfUploaderTeamsNotifier
+# JamfUploaderSlacker
 
 ## Description
 
-A postprocessor for AutoPkg that will send details about a recipe run to a Microsoft Teams webhook.
+A postprocessor for AutoPkg that will send details about a recipe run to a Slack webhook.
 
 ## Input variables
 
@@ -30,12 +30,15 @@ A postprocessor for AutoPkg that will send details about a recipe run to a Micro
 - **jamfpolicyuploader_summary_result:**
   - **required:** False
   - **description:** Result of JamfPolicyUploader.
-- **teams_webhook_url:**
+- **slack_webhook_url:**
   - **required:** True
   - **description:** Teams webhook URL to send the message to.
-- **teams_username:**
+- **slack_username:**
   - **required:** False
   - **description:** Sets the displayname shown in the MessageCard in Teams. Defaults to AutoPkg.
-- **teams_icon_url:**
+- **slack_icon_url:**
   - **required:** False
-  - **description:** Sets the icon shown in the MessageCard in Teams. Defaults to a Jamf Pro product icon. Recommended that you use a square image that is publicly reachable.
+  - **description:** Sets the icon shown in the Slack notification.
+- **slack_icon_moji:**
+  - **required:** False
+  - **description:** Sets the icon shown in the Slack notification as an emoji.
