@@ -283,6 +283,9 @@ class JamfUploaderBase(Processor):
                 if "slack" in url:
                     # slack requires data argument
                     curl_cmd.extend(["--data", data])
+                elif "webhook.office" in url:
+                    # Teams requires data argument
+                    curl_cmd.extend(["--data", data])
                 else:
                     # jamf data upload requires upload-file argument
                     curl_cmd.extend(["--upload-file", data])
