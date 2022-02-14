@@ -113,38 +113,24 @@ class JamfUploaderTeamsNotifier(JamfUploaderBase):
         self.output(f"Package Category: {category}")
         self.output(f"Policy Category: {policy_category}")
 
-        webhook_text = (
-            "{"
-            + "'type': 'message', "
-            + "'attachments': "
-            + "["
-            + "{"
-            + "'contentType': 'application/vnd.microsoft.teams.card.o365connector', "
-            + "'content': "
-            + "{"
-            + "'type': 'MessageCard', "
-            + "'$schema': 'https://schema.org/extensions', "
-            + "'summary': 'New item uploaded to Jamf Pro', "
-            + "'themeColor': '778eb1', "
-            + "'title': 'New item uploaded to Jamf Pro', "
-            + "'sections': "
-            + "["
-            + "{"
-            + "'activityTitle': '', "
-            + "'activityImage': '', "
-            + "'facts': []"
-            + "}"
-            + "]"
-            + "}"
-            + "}"
-            + "]"
-            + "}"
-        )
-
-        webhook_template = json.loads(webhook_text)
+        webhook_text= {}
+        webhook_text["type"] = "message"
+        webhook_text["attachments"] = [{}]
+        webhook_text["attachments"][0]["contentType"] = "application/vnd.microsoft.teams.card.o365connector"
+        webhook_text["attachments"][0]["content"] = {}
+        webhook_text["attachments"][0]["content"]["type"] = "MessageCard"
+        webhook_text["attachments"][0]["content"]["$schema"] = "https://schema.org/extensions"
+        webhook_text["attachments"][0]["content"]["summary"] = "New item uploaded to Jamf Pro"
+        webhook_text["attachments"][0]["content"]["themeColor"] = "778eb1"
+        webhook_text["attachments"][0]["content"]["title"] = "New item uploaded to Jamf Pro"
+        webhook_text["attachments"][0]["content"]["sections"] = [{}]
+        webhook_text["attachments"][0]["content"]["sections"][0]["activityTitle"] = ""
+        webhook_text["attachments"][0]["content"]["sections"][0]["activitySubtitle"] = ""
+        webhook_text["attachments"][0]["content"]["sections"][0]["activityImage"] = ""
+        webhook_text["attachments"][0]["content"]["sections"][0]["facts"] = []
 
         if jamfpackageuploader_summary_result and jamfpolicyuploader_summary_result:
-            webhook_template["attachments"][0]["content"]["sections"][0]["facts"] += [
+            webhook_text["attachments"][0]["content"]["sections"][0]["facts"] += [
                 {"name": "Title", "value": selfservice_policy_name},
                 {"name": "Version", "value": version},
                 {"name": "Category", "value": category},
@@ -153,22 +139,22 @@ class JamfUploaderTeamsNotifier(JamfUploaderBase):
             ]
 
         elif jamfpolicyuploader_summary_result:
-            webhook_template["attachments"][0]["content"]["sections"][0]["facts"] += [
+            webhook_text["attachments"][0]["content"]["sections"][0]["facts"] += [
                 {"name": "Title", "value": selfservice_policy_name},
                 {"name": "Category", "value": category},
                 {"name": "Policy Name", "value": policy_name},
             ]
-            webhook_template["attachments"][0]["content"]["sections"] += [
+            webhook_text["attachments"][0]["content"]["sections"] += [
                 {"text": "No new package uploaded."}
             ]
 
         elif jamfpackageuploader_summary_result:
-            webhook_template["attachments"][0]["content"]["sections"][0]["facts"] += [
+            webhook_text["attachments"][0]["content"]["sections"][0]["facts"] += [
                 {"name": "Version", "value": version},
                 {"name": "Category", "value": category},
                 {"name": "Package", "value": pkg_name},
             ]
-            webhook_template["attachments"][0]["content"]["sections"] += [
+            webhook_text["attachments"][0]["content"]["sections"] += [
                 {"text": "No new package uploaded."}
             ]
 
@@ -176,19 +162,19 @@ class JamfUploaderTeamsNotifier(JamfUploaderBase):
             self.output("Nothing to report to Teams")
             return
 
-        webhook_template["attachments"][0]["content"]["sections"][0][
+        webhook_text["attachments"][0]["content"]["sections"][0][
             "activityTitle"
         ] = teams_username
-        webhook_template["attachments"][0]["content"]["sections"][0][
+        webhook_text["attachments"][0]["content"]["sections"][0][
             "activitySubtitle"
         ] = jss_url
 
         if teams_icon_url:
-            webhook_template["attachments"][0]["content"]["sections"][0][
+            webhook_text["attachments"][0]["content"]["sections"][0][
                 "activityImage"
             ] = teams_icon_url
 
-        teams_json = json.dumps(webhook_template)
+        teams_json = json.dumps(webhook_text)
 
         count = 0
         while True:
