@@ -113,19 +113,29 @@ class JamfUploaderTeamsNotifier(JamfUploaderBase):
         self.output(f"Package Category: {category}")
         self.output(f"Policy Category: {policy_category}")
 
-        webhook_text= {}
+        webhook_text = {}
         webhook_text["type"] = "message"
         webhook_text["attachments"] = [{}]
-        webhook_text["attachments"][0]["contentType"] = "application/vnd.microsoft.teams.card.o365connector"
+        webhook_text["attachments"][0][
+            "contentType"
+        ] = "application/vnd.microsoft.teams.card.o365connector"
         webhook_text["attachments"][0]["content"] = {}
         webhook_text["attachments"][0]["content"]["type"] = "MessageCard"
-        webhook_text["attachments"][0]["content"]["$schema"] = "https://schema.org/extensions"
-        webhook_text["attachments"][0]["content"]["summary"] = "New item uploaded to Jamf Pro"
+        webhook_text["attachments"][0]["content"][
+            "$schema"
+        ] = "https://schema.org/extensions"
+        webhook_text["attachments"][0]["content"][
+            "summary"
+        ] = "New item uploaded to Jamf Pro"
         webhook_text["attachments"][0]["content"]["themeColor"] = "778eb1"
-        webhook_text["attachments"][0]["content"]["title"] = "New item uploaded to Jamf Pro"
+        webhook_text["attachments"][0]["content"][
+            "title"
+        ] = "New item uploaded to Jamf Pro"
         webhook_text["attachments"][0]["content"]["sections"] = [{}]
         webhook_text["attachments"][0]["content"]["sections"][0]["activityTitle"] = ""
-        webhook_text["attachments"][0]["content"]["sections"][0]["activitySubtitle"] = ""
+        webhook_text["attachments"][0]["content"]["sections"][0][
+            "activitySubtitle"
+        ] = ""
         webhook_text["attachments"][0]["content"]["sections"][0]["activityImage"] = ""
         webhook_text["attachments"][0]["content"]["sections"][0]["facts"] = []
 
