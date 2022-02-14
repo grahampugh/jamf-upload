@@ -161,6 +161,42 @@ elif [[ $test_type == "dock" ]]; then
         "$jss_url" \
         --replace
 
+elif [[ $test_type == "slack" ]]; then
+    # send a webhook to slack
+    "$DIR"/../jamf-upload.sh slack \
+        --prefs "$prefs" \
+        --name "JamfUploaderSlacker Test - please ignore" \
+        --policy-name "JamfUploaderSlacker Test" \
+        --policy-category "Applications" \
+        --pkg-category "Packages" \
+        --pkg-name "Test-Package.pkg" \
+        --version "1.2.3" \
+        --pkg-uploaded \
+        --policy-uploaded \
+        --slack-user "JamfUploader Test User" \
+        --icon "https://resources.jamf.com/images/logos/Jamf-Icon-color.png" \
+        "$verbosity" \
+        "$jss_url" \
+        --replace
+
+elif [[ $test_type == "teams" ]]; then
+    # send a webhook to slack
+    "$DIR"/../jamf-upload.sh teams \
+        --prefs "$prefs" \
+        --name "JamfUploaderTeamsNotifier Test - please ignore" \
+        --policy-name "JamfUploaderTeamsNotifier Test" \
+        --policy-category "Applications" \
+        --pkg-category "Packages" \
+        --pkg-name "Test-Package.pkg" \
+        --version "1.2.3" \
+        --pkg-uploaded \
+        --policy-uploaded \
+        --teams-user "JamfUploader Test User" \
+        --icon "https://resources.jamf.com/images/logos/Jamf-Icon-color.png" \
+        "$verbosity" \
+        "$jss_url" \
+        --replace
+
 else
     echo "Usage: test.sh [test_type]"
 fi
