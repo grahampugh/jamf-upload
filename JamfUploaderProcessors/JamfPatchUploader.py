@@ -56,9 +56,9 @@ class JamfPatchUploader(JamfUploaderBase):
         },
         "patch_softwaretitle": {
             "required": True,
-            "description": "Name of the patch softwaretitel (e.g. 'Mozilla Firefox') used in Jamf. " +
+            "description": "Name of the patch softwaretitle (e.g. 'Mozilla Firefox') used in Jamf. " +
             "You need to create the patch softwaretitle by hand, since there is currently no way " +
-            "to craete these via the API.",
+            "to create these via the API.",
             "default": "",
         },
         "patch_name": {
@@ -154,7 +154,6 @@ class JamfPatchUploader(JamfUploaderBase):
             sleep(30)
         return r
 
-
     def main(self):
         """Do the main thing here"""
         self.jamf_url = self.env.get("JSS_URL")
@@ -183,7 +182,6 @@ class JamfPatchUploader(JamfUploaderBase):
                     f"ERROR: Patch Template file {self.patch_template} not found"
                 )
 
-
         self.output(f"Checking for existing '{self.patch_softwaretitle}' on {self.jamf_url}")
 
         # obtain the relevant credentials
@@ -193,7 +191,7 @@ class JamfPatchUploader(JamfUploaderBase):
 
         # -- Patch Icon
         # Sadly there is currently no (reasonable) way to upload an icon for a patch policy.
-        # We can only upload icons for non-patch polcies, and use them in patch policies afterwards.
+        # We can only upload icons for non-patch policies, and use them in patch policies afterwards.
         # Since most AutoPKG workflows include a policy (incl. an icon), we simply provide a way
         # to extract the icon from a specified policy (if desired).
 
@@ -207,7 +205,7 @@ class JamfPatchUploader(JamfUploaderBase):
             self.patch_icon_policy_id = 0
             self.output(
                 "No 'patch_icon_policy_name' was provided. Skipping icon extraction...",
-                verbose_level = 1
+                verbose_level=1
             )
 
         if self.patch_icon_policy_id and self.patch_icon_policy_name:
@@ -238,7 +236,6 @@ class JamfPatchUploader(JamfUploaderBase):
             self.output(
                 "WARNING: No icon found in given policy '{}'!".format(self.patch_icon_policy_name)
             )
-
 
         # -- Patch Softwaretitle
         obj_type = "patch_software_title"
@@ -287,7 +284,7 @@ class JamfPatchUploader(JamfUploaderBase):
                 return
 
         # Upload the patch
-        r = self.upload_patch(
+        _r = self.upload_patch(
             self.jamf_url,
             self.patch_name,
             self.patch_softwaretitle_id,
