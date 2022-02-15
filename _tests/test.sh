@@ -82,12 +82,12 @@ elif [[ $test_type == "policy" ]]; then
     "$DIR"/../jamf-upload.sh policy \
         --prefs "$prefs" \
         --recipe-dir /Users/gpugh/sourcecode/jamf-upload/_tests \
-        --name "Install Firefox" \
+        --name "Install Authy Desktop" \
         --template "PolicyTemplate-trigger.xml" \
-        --key POLICY_NAME="Install Firefox" \
-        --key TRIGGER_NAME="Firefox-install" \
+        --key POLICY_NAME="Install Authy Desktop" \
+        --key TRIGGER_NAME="Authy Desktop-install" \
         --key CATEGORY="JamfUploadTest" \
-        --key pkg_name="Firefox-96.0.pkg" \
+        --key pkg_name="Authy Desktop-1.8.4.pkg" \
         "$verbosity" \
         "$jss_url" \
         --replace
@@ -132,7 +132,7 @@ elif [[ $test_type == "package" || $test_type == "pkg" ]]; then
     "$DIR"/../jamf-upload.sh pkg \
         --prefs "$prefs" \
         --recipe-dir /Users/gpugh/sourcecode/jamf-upload/_tests \
-        --pkg "$HOME/Downloads/Microsoft_Office_Reset_1.8.pkg" \
+        --pkg "$HOME/Library/AutoPkg/Cache/com.github.nzmacgeek.pkg.authy/Authy Desktop-1.8.4.pkg" \
         --category JamfUploadTest \
         "$verbosity" \
         "$jss_url" \
@@ -157,6 +157,42 @@ elif [[ $test_type == "dock" ]]; then
         --name "ETH Self Service" \
         --type "App" \
         --path "/Applications/ETH Self Service.app/" \
+        "$verbosity" \
+        "$jss_url" \
+        --replace
+
+elif [[ $test_type == "slack" ]]; then
+    # send a webhook to slack
+    "$DIR"/../jamf-upload.sh slack \
+        --prefs "$prefs" \
+        --name "JamfUploaderSlacker Test - please ignore" \
+        --policy-name "JamfUploaderSlacker Test" \
+        --policy-category "Applications" \
+        --pkg-category "Packages" \
+        --pkg-name "Test-Package.pkg" \
+        --version "1.2.3" \
+        --pkg-uploaded \
+        --policy-uploaded \
+        --slack-user "JamfUploader Test User" \
+        --icon "https://resources.jamf.com/images/logos/Jamf-Icon-color.png" \
+        "$verbosity" \
+        "$jss_url" \
+        --replace
+
+elif [[ $test_type == "teams" ]]; then
+    # send a webhook to slack
+    "$DIR"/../jamf-upload.sh teams \
+        --prefs "$prefs" \
+        --name "JamfUploaderTeamsNotifier Test - please ignore" \
+        --policy-name "JamfUploaderTeamsNotifier Test" \
+        --policy-category "Applications" \
+        --pkg-category "Packages" \
+        --pkg-name "Test-Package.pkg" \
+        --version "1.2.3" \
+        --pkg-uploaded \
+        --policy-uploaded \
+        --teams-user "JamfUploader Test User" \
+        --icon "https://resources.jamf.com/images/logos/Jamf-Icon-color.png" \
         "$verbosity" \
         "$jss_url" \
         --replace
