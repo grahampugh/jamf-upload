@@ -7,7 +7,6 @@ JamfPatchUploader processor for uploading a patch policy to Jamf Pro using AutoP
 
 import os.path
 import sys
-import xml.etree.cElementTree as ET
 
 from time import sleep
 from autopkglib import ProcessorError  # pylint: disable=import-error
