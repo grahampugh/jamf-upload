@@ -150,6 +150,22 @@ elif [[ $test_type == "script" ]]; then
         "$jss_url" \
         --replace
 
+elif [[ $test_type == "patch" ]]; then
+    # upload a policy
+    "$DIR"/../jamf-upload.sh patch \
+        --prefs "$prefs" \
+        --recipe-dir /Users/gpugh/sourcecode/jamf-upload/_tests \
+        --name "Google Chrome" \
+        --title "Google Chrome" \
+        --policy-name "Install Latest Google Chrome" \
+        --template "PatchTemplate-selfservice.xml" \
+        --pkg_name "Google Chrome-91.0.4472.77.pkg" \
+        --version "91.0.4472.77" \
+        "$verbosity" \
+        "$jss_url" \
+        --replace
+
+
 elif [[ $test_type == "dock" ]]; then
     # upload a dock item
     "$DIR"/../jamf-upload.sh dock \

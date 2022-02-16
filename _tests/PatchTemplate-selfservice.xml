@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<patch_policy>
+    <general>
+        <name>%patch_name%</name>
+        <enabled>false</enabled>
+        <target_version>%version%</target_version>
+        <distribution_method>selfservice</distribution_method>
+        <allow_downgrade>false</allow_downgrade>
+        <patch_unknown>true</patch_unknown>
+    </general>
+    <scope>
+        <all_computers>true</all_computers>
+        <computers/>
+        <computer_groups/>
+        <users/>
+        <buildings/>
+        <departments/>
+        <limitations>
+            <network_segments/>
+            <ibeacons/>
+        </limitations>
+        <exclusions>
+            <computers/>
+            <computer_groups/>
+            <users/>
+            <buildings/>
+            <departments/>
+            <network_segments/>
+            <ibeacons/>
+        </exclusions>
+    </scope>
+    <user_interaction>
+        <install_button_text>Update</install_button_text>
+        <self_service_description/>
+        <self_service_icon>
+            <id>%patch_icon_id%</id>
+        </self_service_icon>
+        <notifications>
+            <notification_enabled>true</notification_enabled>
+            <notification_type>Self Service and Notification Center</notification_type>
+            <notification_subject>Google Chrome update available</notification_subject>
+            <notification_message/>
+            <reminders>
+                <notification_reminders_enabled>true</notification_reminders_enabled>
+                <notification_reminder_frequency>1</notification_reminder_frequency>
+            </reminders>
+        </notifications>
+        <deadlines>
+            <deadline_enabled>false</deadline_enabled>
+            <deadline_period>7</deadline_period>
+        </deadlines>
+    </user_interaction>
+    <software_title_configuration_id>%patch_softwaretitle_id%</software_title_configuration_id>
+</patch_policy>

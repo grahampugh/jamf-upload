@@ -46,7 +46,6 @@ class JamfUploaderBase(Processor):
             "package": "JSSResource/packages",
             "package_upload": "dbfileupload",
             "patch_policy": "JSSResource/patchpolicies",
-            "patch_policy_init": "JSSResource/patchpolicies/softwaretitleconfig",
             "patch_software_title": "JSSResource/patchsoftwaretitles",
             "os_x_configuration_profile": "JSSResource/osxconfigurationprofiles",
             "policy": "JSSResource/policies",
@@ -463,7 +462,9 @@ class JamfUploaderBase(Processor):
                     obj_id = obj["id"]
             return obj_id
         elif r.status_code == 401:
-            raise ProcessorError("ERROR: Jamf returned status code '401' - Access denied.")
+            raise ProcessorError(
+                "ERROR: Jamf returned status code '401' - Access denied."
+            )
 
     def substitute_assignable_keys(self, data, xml_escape=False):
         """substitutes any key in the inputted text using the %MY_KEY% nomenclature"""
