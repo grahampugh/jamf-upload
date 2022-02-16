@@ -45,6 +45,9 @@ class JamfUploaderBase(Processor):
             "logflush": "JSSResource/logflush",
             "package": "JSSResource/packages",
             "package_upload": "dbfileupload",
+            "patch_policy": "JSSResource/patchpolicies",
+            "patch_policy_init": "JSSResource/patchpolicies/softwaretitleconfig",
+            "patch_software_title": "JSSResource/patchsoftwaretitles",
             "os_x_configuration_profile": "JSSResource/osxconfigurationprofiles",
             "policy": "JSSResource/policies",
             "policy_icon": "JSSResource/fileuploads/policies",
@@ -75,6 +78,8 @@ class JamfUploaderBase(Processor):
             "extension_attribute": "computer_extension_attributes",
             "os_x_configuration_profile": "os_x_configuration_profiles",
             "package": "packages",
+            "patch_policy": "patch_policies",
+            "patch_software_title": "patch_software_titles",
             "policy": "policies",
             "restricted_software": "restricted_software",
             "script": "scripts",
@@ -457,6 +462,8 @@ class JamfUploaderBase(Processor):
                 if obj["name"].lower() == object_name.lower():
                     obj_id = obj["id"]
             return obj_id
+        elif r.status_code == 401:
+            raise ProcessorError("ERROR: Jamf returned status code '401' - Access denied.")
 
     def substitute_assignable_keys(self, data, xml_escape=False):
         """substitutes any key in the inputted text using the %MY_KEY% nomenclature"""
