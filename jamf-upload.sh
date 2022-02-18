@@ -108,7 +108,7 @@ Policy Log Flush arguments:
 
 Patch Policy arguments:
     --name <string>         The patch policy name
-    --pkg <path>            Full path to the package to uplaod
+    --pkg <path>            Name of the package to uplaod
     --version <string>      The package (or app) version
     --title <string>        The patch software title
     --template <path>       XML template
@@ -533,7 +533,7 @@ while test $# -gt 0 ; do
             ;;
         --pkg|--pkg_path)
             shift
-            if [[ $processor == "JamfPackageUploader" || $processor == "JamfPatchUploader" ]]; then
+            if [[ $processor == "JamfPackageUploader" ]]; then
                 if defaults write "$temp_processor_plist" pkg_path "$1"; then
                     echo "   [jamf-upload] Wrote pkg_path='$1' into $temp_processor_plist"
                 fi
@@ -732,7 +732,7 @@ while test $# -gt 0 ; do
             ;;
         --pkg-name) 
             shift
-            if [[ $processor == "JamfUploaderSlacker" || $processor == "JamfUploaderTeamsNotifier" ]]; then
+            if [[ $processor == "JamfUploaderSlacker" || $processor == "JamfUploaderTeamsNotifier" || $processor == "JamfPatchUploader" ]]; then
                 if defaults write "$temp_processor_plist" pkg_name "$1"; then
                     echo "   [jamf-upload] Wrote pkg_name='$1' into $temp_processor_plist"
                 fi

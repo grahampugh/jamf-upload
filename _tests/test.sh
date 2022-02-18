@@ -150,17 +150,32 @@ elif [[ $test_type == "script" ]]; then
         "$jss_url" \
         --replace
 
+# elif [[ $test_type == "patch" ]]; then
+#     # upload a policy
+#     "$DIR"/../jamf-upload.sh patch \
+#         --prefs "$prefs" \
+#         --recipe-dir /Users/gpugh/sourcecode/jamf-upload/_tests \
+#         --name "Google Chrome" \
+#         --title "Google Chrome" \
+#         --policy-name "Install Latest Google Chrome" \
+#         --template "PatchTemplate-selfservice.xml" \
+#         --pkg-name "Google Chrome-91.0.4472.77.pkg" \
+#         --version "91.0.4472.77" \
+#         "$verbosity" \
+#         "$jss_url" \
+#         --replace
+
 elif [[ $test_type == "patch" ]]; then
     # upload a policy
     "$DIR"/../jamf-upload.sh patch \
         --prefs "$prefs" \
         --recipe-dir /Users/gpugh/sourcecode/jamf-upload/_tests \
-        --name "Google Chrome" \
-        --title "Google Chrome" \
-        --policy-name "Install Latest Google Chrome" \
+        --name "Firefox" \
+        --title "Firefox" \
+        --policy-name "Install Latest Firefox" \
         --template "PatchTemplate-selfservice.xml" \
-        --pkg_name "Google Chrome-91.0.4472.77.pkg" \
-        --version "91.0.4472.77" \
+        --pkg-name "Firefox-96.0.pkg" \
+        --version "96.0" \
         "$verbosity" \
         "$jss_url" \
         --replace
