@@ -35,5 +35,5 @@ A processor for AutoPkg that will upload a Patch Policy to a Jamf Cloud or on-pr
 
 ## Output variables
 
-- **jamfdockitemuploader_summary_result:**
+- **jamfpatchuploader_summary_result:**
   - **description:** Description of interesting results.
