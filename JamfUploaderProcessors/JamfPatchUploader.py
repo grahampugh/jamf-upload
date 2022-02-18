@@ -233,12 +233,17 @@ class JamfPatchUploader(JamfUploaderBase):
         self.output("Uploading Patch policy...")
 
         # For patch policies the url differs when creating a new one or updating one.
+        object_type = "patch_policy"
         if patch_id:
-            object_type = "patch_policy"
-            url = "{}/{}/id/{}".format(jamf_url, self.api_endpoints(object_type), patch_id)
+            url = "{}/{}/id/{}".format(
+                jamf_url, self.api_endpoints(object_type), patch_id
+            )
         else:
-            object_type = "patch_policy_init"
-            url = "{}/{}/id/{}".format(jamf_url, self.api_endpoints(object_type), patch_softwaretitle_id)
+            url = "{}/{}/softwaretitleconfig/id/{}".format(
+                jamf_url,
+                self.api_endpoints(object_type),
+                patch_softwaretitle_id
+            )
 
         count = 0
         while True:
