@@ -231,7 +231,14 @@ class JamfUploaderBase(Processor):
         return tmp_dir
 
     def curl(
-        self, request="", url="", token="", enc_creds="", data="", additional_headers=""
+            self,
+            request="",
+            url="",
+            token="",
+            enc_creds="",
+            data="",
+            additional_headers="",
+            force_xml=False
     ):
         """
         build a curl command based on method (GET, PUT, POST, DELETE)
@@ -275,7 +282,13 @@ class JamfUploaderBase(Processor):
 
         # Accept for GET requests
         if request == "GET" or request == "DELETE":
-            curl_cmd.extend(["--header", "Accept: application/json"])
+            # Some endpoints are exceptions which NEED to respond with xml
+            # Otherwise the endpoints are broken or don't report all information.
+            # For example the `patchsoftwaretitle` endpoint.
+            if force_xml:
+                curl_cmd.extend(["--header", "Accept: application/xml"])
+            else:
+                curl_cmd.extend(["--header", "Accept: application/json"])
 
         # icon upload requires special method
         elif request == "POST" and "fileuploads" in url:

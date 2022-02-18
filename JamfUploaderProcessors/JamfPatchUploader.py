@@ -8,6 +8,8 @@ JamfPatchUploader processor for uploading a patch policy to Jamf Pro using AutoP
 import os.path
 import sys
 
+import xml.etree.ElementTree as ET
+
 from time import sleep
 from autopkglib import ProcessorError  # pylint: disable=import-error
 
@@ -42,10 +44,10 @@ class JamfPatchUploader(JamfUploaderBase):
             "description": "Password of api user, optionally set as a key in "
             "the com.github.autopkg preference file.",
         },
-        "pkg_path": {
+        "pkg_name": {
             "required": False,
-            "description": "Path to a pkg or dmg to import - provided by "
-            "previous pkg recipe/processor.",
+            "description": "Name of package which should be used in the patch."
+            "Mostly provided by previous AutoPKG recipe/processor.",
             "default": "",
         },
         "version": {
@@ -117,6 +119,114 @@ class JamfPatchUploader(JamfUploaderBase):
         template_xml = self.write_temp_file(template_contents)
         return patch_name, template_xml
 
+    def handle_patch_pkg(
+            self,
+            jamf_url,
+            patch_softwaretitle_name,
+            patch_softwaretitle_id,
+            pkg_version,
+            pkg_name,
+            enc_creds="",
+            token=""
+    ):
+        """Uploads an updated patch softwaretitle including the linked pkg"""
+        self.output("Linking pkg versions in patch softwaretitle...")
+
+        # Get package id from jamf. Try it three times, since
+        # in some cases a recently uploaded package can not be found.
+        count = 0
+        while True:
+            count += 1
+            self.output(f"Attempt '{count}' of fetching package id of '{pkg_name}'.",
+                        verbose_level=2)
+            obj_type = "package"
+            obj_name = pkg_name
+            pkg_id = self.get_api_obj_id_from_name(
+                self.jamf_url, obj_name, obj_type, enc_creds=enc_creds, token=token,
+            )
+            if pkg_id:
+                self.output(f"Found id '{pkg_id}' for package '{pkg_name}'.")
+                break
+            if count > 3:
+                raise ProcessorError(f"ERROR: Couldn't fetch package id for package '{pkg_name}'.")
+            sleep(10)
+
+        # Get current softwaretitle
+        object_type = "patch_software_title"
+        url = "{}/{}/id/{}".format(jamf_url, self.api_endpoints(object_type), patch_softwaretitle_id)
+
+        # No need to loop over curl function, since we only make a "GET" request.
+        r = self.curl(
+            request="GET",
+            url=url,
+            enc_creds=enc_creds,
+            token=token,
+            force_xml=True
+        )
+
+        if r.status_code != 200:
+            raise ProcessorError("ERROR: Could not fetch patch softwaretitle.")
+
+        # Parse response as xml
+        try:
+            patch_softwaretitle_xml = ET.fromstring(r.output)
+        except ET.ParseError as xml_error:
+            raise ProcessorError from xml_error
+
+        version_found = False
+        # Replace matching version string, with version string including package name
+        for v in patch_softwaretitle_xml.findall('versions/version'):
+            if v.find('software_version').text == pkg_version:
+                version_found = True
+                # Remove old, probably empty package element
+                v.remove(v.find('package'))
+                # Create new package element including given pkg information
+                e_pkg = ET.Element('package')
+                e_pkg_id = ET.SubElement(e_pkg, 'id')
+                e_pkg_id.text = str(pkg_id)
+                e_pkg_name = ET.SubElement(e_pkg, 'name')
+                e_pkg_name.text = pkg_name
+                # Inject package element into version element
+                v.append(e_pkg)
+                # Print new version element for debugging reasons
+                self.output(ET.tostring(v, encoding="UTF-8", method="xml"),
+                            verbose_level=3)
+
+        if not version_found:
+            # Get first match of all the versions listed in the
+            # softwaretitle to report the 'latest version'.
+            # That's helpful if e.g. AutoPKG uploaded a new version,
+            # which is not yet listed in the patch softwaretitle list.
+            latest_version = patch_softwaretitle_xml.find(
+                'versions/version/software_version').text
+            raise ProcessorError("ERROR: Could not find matching version " +
+                                 f"'{pkg_version}' in patch softwaretitle '{patch_softwaretitle_name}'. " +
+                                 f"Latest reported version is '{latest_version}'.")
+
+        # Write xml file
+        patch_softwaretitle_xml_file = self.write_xml_file(patch_softwaretitle_xml)
+
+        # Upload the 'updated' patch softwaretitle
+        count = 0
+        while True:
+            count += 1
+            self.output(f"Patch Softwaretitle upload attempt {count}.",
+                        verbose_level=2)
+            r = self.curl(
+                request="PUT",
+                url=url,  # Unchanged url from the request earlier
+                enc_creds=enc_creds,
+                token=token,
+                data=patch_softwaretitle_xml_file
+            )
+            # Check HTTP Status
+            if self.status_check(r, "Patch Softwaretitle", patch_softwaretitle_name, "PUT") == "break":
+                break
+            if count > 5:
+                self.output("ERROR: Uploading updated Patch Softwaretitle did not succeed after 5 attempts.")
+                raise ProcessorError("ERROR: Patch Softwaretitle upload failed.")
+            sleep(10)
+
     def upload_patch(
             self, jamf_url, patch_name, patch_softwaretitle_id, patch_template, patch_id=0, enc_creds="", token="",
     ):
@@ -130,7 +240,6 @@ class JamfPatchUploader(JamfUploaderBase):
         else:
             object_type = "patch_policy_init"
             url = "{}/{}/id/{}".format(jamf_url, self.api_endpoints(object_type), patch_softwaretitle_id)
-        self.output("URL: {}".format(url))
 
         count = 0
         while True:
@@ -152,6 +261,7 @@ class JamfPatchUploader(JamfUploaderBase):
                 self.output("\nHTTP POST Response Code: {}".format(r.status_code))
                 raise ProcessorError("ERROR: Policy upload failed.")
             sleep(30)
+        self.output(f"--> RESPONSE: {r.output}")
         return r
 
     def main(self):
@@ -159,7 +269,7 @@ class JamfPatchUploader(JamfUploaderBase):
         self.jamf_url = self.env.get("JSS_URL")
         self.jamf_user = self.env.get("API_USERNAME")
         self.jamf_password = self.env.get("API_PASSWORD")
-        self.pkg_path = self.env.get("pkg_path")
+        self.pkg_name = self.env.get("pkg_name")
         self.version = self.env.get("version")
         self.patch_softwaretitle = self.env.get("patch_softwaretitle")
         self.patch_name = self.env.get("patch_name")
@@ -250,6 +360,23 @@ class JamfPatchUploader(JamfUploaderBase):
                                  "There is currently no way to create a patch softwaretitle via API.")
         self.env["patch_softwaretitle_id"] = self.patch_softwaretitle_id
 
+        # -- Patch Package Definition
+        # Links the (AutoPKG) reported version with the reported pkg.
+        if not self.version:
+            raise ProcessorError(
+                f"ERROR: Not variable 'version' was reported by AutoPKG."
+            )
+
+        self.handle_patch_pkg(
+            self.jamf_url,
+            self.patch_softwaretitle,
+            self.patch_softwaretitle_id,
+            self.version,
+            self.pkg_name,
+            send_creds,
+            token
+        )
+
         # --- Patch Policy
         if not self.patch_name:
             self.patch_name = self.patch_softwaretitle + " - " + self.version
@@ -284,7 +411,7 @@ class JamfPatchUploader(JamfUploaderBase):
                 return
 
         # Upload the patch
-        _r = self.upload_patch(
+        r = self.upload_patch(
             self.jamf_url,
             self.patch_name,
             self.patch_softwaretitle_id,
@@ -293,6 +420,13 @@ class JamfPatchUploader(JamfUploaderBase):
             enc_creds=send_creds,
             token=token,
         )
+
+        # Parse xml output to get patch id of freshly created patch policy.
+        try:
+            patch_xml = ET.fromstring(r.output)
+            patch_id = patch_xml.find('id').text
+        except ET.ParseError as xml_error:
+            raise ProcessorError from xml_error
 
         # --- Summary
         self.env["patch"] = self.patch_name
