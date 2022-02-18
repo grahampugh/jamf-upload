@@ -365,7 +365,7 @@ class JamfPatchUploader(JamfUploaderBase):
                 )
             )
 
-        # -- Patch Softwaretitle
+        # Patch Softwaretitle
         obj_type = "patch_software_title"
         obj_name = self.patch_softwaretitle
         self.patch_softwaretitle_id = self.get_api_obj_id_from_name(
@@ -401,7 +401,7 @@ class JamfPatchUploader(JamfUploaderBase):
             token
         )
 
-        # --- Patch Policy
+        # Patch Policy
         if not self.patch_name:
             self.patch_name = self.patch_softwaretitle + " - " + self.version
             self.output(
@@ -458,7 +458,7 @@ class JamfPatchUploader(JamfUploaderBase):
         except ET.ParseError as xml_error:
             raise ProcessorError from xml_error
 
-        # --- Summary
+        # Summary
         self.env["patch"] = self.patch_name
         self.env["jamfpatchuploader_summary_result"] = {
             "summary_text": "The following patch policies were created or updated in Jamf Pro:",
