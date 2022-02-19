@@ -19,12 +19,14 @@ Valid object types:
     profile | computerprofile
     ea | extensionattribute
     logflush
+    patch
     pkg | package
     pkg-direct
     policy
     restriction | softwarerestriction
     script
     slack
+    teams
 
 Arguments:
     --prefs <path>          Inherit AutoPkg prefs file provided by the full path to the file
@@ -72,7 +74,7 @@ Extension Attribute arguments:
 
 Package arguments:
     --name <string>         The name
-    --pkg <path>            Full path to the package to uplaod
+    --pkg <path>            Full path to the package to upload
     --priority <int>        The priority
     --category <string>     The category. Must exist.
     --smb-url <url>         URL of the fileshare distribution point (on prem only)
@@ -155,8 +157,10 @@ Teams arguments:
     --policy-category <string>
                             The POLICY_CATEGORY
     --pkg-category <string> The PKG_CATEGORY
+    --patch_name <string>   The patch policy name
     --pkg_name <string>     The package name
     --version <string>      The package (or app) version
+    --patch-uploaded        Pretends that a patch was updated (sets a value to jamfpatchuploader_summary_result)
     --pkg-uploaded          Pretends that a package was uploaded (sets a value to jamfpackageuploader_summary_result)
     --policy-uploaded       Pretends that a policy was uploaded (sets a value to jamfpolicyuploader_summary_result)
     --teams-url <url>       The teams_webhook_url
@@ -737,6 +741,13 @@ while test $# -gt 0 ; do
                     echo "   [jamf-upload] Wrote pkg_name='$1' into $temp_processor_plist"
                 fi
             fi
+           ;;
+        --patch-uploaded) 
+            if [[ $processor == "JamfUploaderTeamsNotifier" ]]; then
+                if defaults write "$temp_processor_plist" jamfpatchuploader_summary_result -string "true"; then
+                    echo "   [jamf-upload] Wrote jamfpatchuploader_summary_result='true' into $temp_processor_plist"
+                fi
+            fi
             ;;
         --pkg-uploaded) 
             if [[ $processor == "JamfUploaderSlacker" || $processor == "JamfUploaderTeamsNotifier" ]]; then
@@ -797,6 +808,14 @@ while test $# -gt 0 ; do
             if [[ $processor == "JamfUploaderTeamsNotifier" ]]; then
                 if defaults write "$temp_processor_plist" teams_username "$1"; then
                     echo "   [jamf-upload] Wrote teams_username='$1' into $temp_processor_plist"
+                fi
+            fi
+            ;;
+        --patch_name) 
+            shift
+            if [[ $processor == "JamfUploaderTeamsNotifier" ]]; then
+                if defaults write "$temp_processor_plist" patch_name "$1"; then
+                    echo "   [jamf-upload] Wrote patch_name='$1' into $temp_processor_plist"
                 fi
             fi
             ;;

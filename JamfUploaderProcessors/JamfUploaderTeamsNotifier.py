@@ -47,10 +47,15 @@ class JamfUploaderTeamsNotifier(JamfUploaderBase):
             "description": ("Untested product name from a jamf recipe."),
         },
         "NAME": {"required": False, "description": ("Generic product name.")},
+        "patch_name": {"required": False, "description": ("Name of Patch Policy being updated")},
         "pkg_name": {"required": False, "description": ("Package in policy.")},
         "jamfpackageuploader_summary_result": {
             "required": False,
             "description": ("Summary results of package processors."),
+        },
+        "jamfpatchuploader_summary_result": {
+            "required": False,
+            "description": ("Summary results of patch processors."),
         },
         "jamfpolicyuploader_summary_result": {
             "required": False,
@@ -90,8 +95,12 @@ class JamfUploaderTeamsNotifier(JamfUploaderBase):
         name = self.env.get("NAME")
         version = self.env.get("version")
         pkg_name = self.env.get("pkg_name")
+        patch_name = self.env.get("patch_name")
         jamfpackageuploader_summary_result = self.env.get(
             "jamfpackageuploader_summary_result"
+        )
+        jamfpatchuploader_summary_result = self.env.get(
+            "jamfpatchuploader_summary_result"
         )
         jamfpolicyuploader_summary_result = self.env.get(
             "jamfpolicyuploader_summary_result"
@@ -139,13 +148,32 @@ class JamfUploaderTeamsNotifier(JamfUploaderBase):
         webhook_text["attachments"][0]["content"]["sections"][0]["activityImage"] = ""
         webhook_text["attachments"][0]["content"]["sections"][0]["facts"] = []
 
-        if jamfpackageuploader_summary_result and jamfpolicyuploader_summary_result:
+        if jamfpackageuploader_summary_result and jamfpatchuploader_summary_result and jamfpolicyuploader_summary_result:
             webhook_text["attachments"][0]["content"]["sections"][0]["facts"] += [
                 {"name": "Title", "value": selfservice_policy_name},
                 {"name": "Version", "value": version},
                 {"name": "Category", "value": category},
                 {"name": "Policy Name", "value": policy_name},
                 {"name": "Package", "value": pkg_name},
+                {"name": "Patch Policy", "value": patch_name}
+            ]
+
+        elif jamfpackageuploader_summary_result and jamfpolicyuploader_summary_result:
+            webhook_text["attachments"][0]["content"]["sections"][0]["facts"] += [
+                {"name": "Title", "value": selfservice_policy_name},
+                {"name": "Version", "value": version},
+                {"name": "Category", "value": category},
+                {"name": "Policy Name", "value": policy_name},
+                {"name": "Package", "value": pkg_name}
+            ]
+
+        elif jamfpackageuploader_summary_result and jamfpatchuploader_summary_result:
+            webhook_text["attachments"][0]["content"]["sections"][0]["facts"] += [
+                {"name": "Title", "value": selfservice_policy_name},
+                {"name": "Version", "value": version},
+                {"name": "Category", "value": category},
+                {"name": "Package", "value": pkg_name},
+                {"name": "Patch Policy", "value": patch_name}
             ]
 
         elif jamfpolicyuploader_summary_result:
