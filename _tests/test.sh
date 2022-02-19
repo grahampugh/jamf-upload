@@ -224,6 +224,8 @@ elif [[ $test_type == "teams" ]]; then
         --policy-uploaded \
         --teams-user "JamfUploader Test User" \
         --icon "https://resources.jamf.com/images/logos/Jamf-Icon-color.png" \
+        --patch-uploaded \
+        --patch_name "Test Patch Policy" \
         "$verbosity" \
         "$jss_url" \
         --replace
