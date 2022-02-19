@@ -350,49 +350,44 @@ class JamfPatchUploader(JamfUploaderBase):
                 enc_creds=send_creds,
                 token=token,
             )
+            if self.patch_icon_policy_id:
+                # Only try to extract an icon, if a policy with the given name was found.
+                obj_type = "policy"
+                obj_id = self.patch_icon_policy_id
+                obj_path = "self_service/self_service_icon/id"
+                self.patch_icon_id = self.get_api_obj_value_from_id(
+                    self.jamf_url,
+                    obj_type,
+                    obj_id,
+                    obj_path,
+                    enc_creds=send_creds,
+                    token=token,
+                )
+                if self.patch_icon_id:
+                    # Icon id could be extracted
+                    self.output(
+                        f"Set 'patch_icon_id' to '{self.patch_icon_id}'.",
+                        verbose_level=2,
+                    )
+                    # Convert int to str to avoid errors while mapping the template later on
+                    self.env["patch_icon_id"] = str(self.patch_icon_id)
+                else:
+                    # Found policy by name, but no icon id could  be extracted
+                    self.output(
+                        f"WARNING: No icon found in given policy '{self.patch_icon_policy_name}'!"
+                    )
+            else:
+                # Name was given, but no matching id could be found
+                self.output(
+                    f"No policy with the given name '{self.patch_icon_policy_name}' was found.",
+                    "Not able to extract an icon. Continuing...",
+                )
         else:
             self.patch_icon_policy_id = 0
+            self.env["patch_icon_id"] = "0"
             self.output(
                 "No 'patch_icon_policy_name' was provided. Skipping icon extraction...",
                 verbose_level=1,
-            )
-
-        if self.patch_icon_policy_id and self.patch_icon_policy_name:
-            # Only try to extract an icon, if a policy with the given name was found.
-            obj_type = "policy"
-            obj_id = self.patch_icon_policy_id
-            obj_path = "self_service/self_service_icon/id"
-            self.patch_icon_id = self.get_api_obj_value_from_id(
-                self.jamf_url,
-                obj_type,
-                obj_id,
-                obj_path,
-                enc_creds=send_creds,
-                token=token,
-            )
-        elif not self.patch_icon_policy_id and self.patch_icon_policy_name:
-            # Name was given, but no matching id could be found
-            self.output(
-                "No policy with the given name '{}' was found. ".format(
-                    self.patch_icon_policy_name
-                )
-                + "Not able to extract an icon. Continuing..."
-            )
-
-        if self.patch_icon_id:
-            # Icon id could be extracted
-            self.output(
-                "Set 'patch_icon_id' to '{}'.".format(self.patch_icon_id),
-                verbose_level=2,
-            )
-            # Convert int to str to avoid errors while mapping the template later on
-            self.env["patch_icon_id"] = str(self.patch_icon_id)
-        elif not self.patch_icon_id and self.patch_icon_policy_id:
-            # Found policy by name, but no icon id could  be extracted
-            self.output(
-                "WARNING: No icon found in given policy '{}'!".format(
-                    self.patch_icon_policy_name
-                )
             )
 
         # Patch Softwaretitle
@@ -408,9 +403,9 @@ class JamfPatchUploader(JamfUploaderBase):
 
         if not self.patch_softwaretitle_id:
             raise ProcessorError(
-                f"ERROR: Couldn't find patch softwaretitle with name '{self.patch_softwaretitle}'. "
-                + "You need to create the patch softwaretitle by hand in Jamf Pro. "
-                + "There is currently no way to create a patch softwaretitle via API."
+                f"ERROR: Couldn't find patch softwaretitle with name '{self.patch_softwaretitle}'.",
+                "You need to create the patch softwaretitle by hand in Jamf Pro.",
+                "There is currently no way to create a patch softwaretitle via API.",
             )
         self.env["patch_softwaretitle_id"] = self.patch_softwaretitle_id
 

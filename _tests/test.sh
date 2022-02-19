@@ -172,10 +172,11 @@ elif [[ $test_type == "patch" ]]; then
         --recipe-dir /Users/gpugh/sourcecode/jamf-upload/_tests \
         --name "Firefox" \
         --title "Firefox" \
-        --policy-name "Install Latest Firefox" \
         --template "PatchTemplate-selfservice.xml" \
         --pkg-name "Firefox-96.0.pkg" \
         --version "96.0" \
+        --policy-name "Install Latest Firefox" \
+        --key PATCH_ENABLED="true" \
         "$verbosity" \
         "$jss_url" \
         --replace

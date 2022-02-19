@@ -2,7 +2,7 @@
 <patch_policy>
     <general>
         <name>%patch_name%</name>
-        <enabled>false</enabled>
+        <enabled>%PATCH_ENABLED%</enabled>
         <target_version>%version%</target_version>
         <distribution_method>prompt</distribution_method>
         <allow_downgrade>false</allow_downgrade>
