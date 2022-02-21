@@ -47,7 +47,10 @@ class JamfUploaderTeamsNotifier(JamfUploaderBase):
             "description": ("Untested product name from a jamf recipe."),
         },
         "NAME": {"required": False, "description": ("Generic product name.")},
-        "patch_name": {"required": False, "description": ("Name of Patch Policy being updated")},
+        "patch_name": {
+            "required": False,
+            "description": ("Name of Patch Policy being updated"),
+        },
         "pkg_name": {"required": False, "description": ("Package in policy.")},
         "jamfpackageuploader_summary_result": {
             "required": False,
@@ -148,14 +151,18 @@ class JamfUploaderTeamsNotifier(JamfUploaderBase):
         webhook_text["attachments"][0]["content"]["sections"][0]["activityImage"] = ""
         webhook_text["attachments"][0]["content"]["sections"][0]["facts"] = []
 
-        if jamfpackageuploader_summary_result and jamfpatchuploader_summary_result and jamfpolicyuploader_summary_result:
+        if (
+            jamfpackageuploader_summary_result
+            and jamfpatchuploader_summary_result
+            and jamfpolicyuploader_summary_result
+        ):
             webhook_text["attachments"][0]["content"]["sections"][0]["facts"] += [
                 {"name": "Title", "value": selfservice_policy_name},
                 {"name": "Version", "value": version},
                 {"name": "Category", "value": category},
                 {"name": "Policy Name", "value": policy_name},
                 {"name": "Package", "value": pkg_name},
-                {"name": "Patch Policy", "value": patch_name}
+                {"name": "Patch Policy", "value": patch_name},
             ]
 
         elif jamfpackageuploader_summary_result and jamfpolicyuploader_summary_result:
@@ -164,7 +171,7 @@ class JamfUploaderTeamsNotifier(JamfUploaderBase):
                 {"name": "Version", "value": version},
                 {"name": "Category", "value": category},
                 {"name": "Policy Name", "value": policy_name},
-                {"name": "Package", "value": pkg_name}
+                {"name": "Package", "value": pkg_name},
             ]
 
         elif jamfpackageuploader_summary_result and jamfpatchuploader_summary_result:
@@ -173,7 +180,7 @@ class JamfUploaderTeamsNotifier(JamfUploaderBase):
                 {"name": "Version", "value": version},
                 {"name": "Category", "value": category},
                 {"name": "Package", "value": pkg_name},
-                {"name": "Patch Policy", "value": patch_name}
+                {"name": "Patch Policy", "value": patch_name},
             ]
 
         elif jamfpolicyuploader_summary_result:
