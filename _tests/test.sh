@@ -132,10 +132,11 @@ elif [[ $test_type == "package" || $test_type == "pkg" ]]; then
     "$DIR"/../jamf-upload.sh pkg \
         --prefs "$prefs" \
         --recipe-dir /Users/gpugh/sourcecode/jamf-upload/_tests \
-        --pkg "$HOME/Library/AutoPkg/Cache/com.github.nzmacgeek.pkg.authy/Authy Desktop-1.8.4.pkg" \
+        --pkg "/Users/gpugh/Library/AutoPkg/Cache/com.github.grahampugh.recipes.pkg.EclipseTemurin-8/EclipseTemurin_8_jdk_x64_hotspot-1.8.0_302.pkg" \
         --category JamfUploadTest \
         "$verbosity" \
         "$jss_url" \
+        --v3 \
         --replace
     
 elif [[ $test_type == "script" ]]; then

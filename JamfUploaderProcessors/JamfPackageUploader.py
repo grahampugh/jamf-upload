@@ -10,6 +10,7 @@ Developed from an idea posted at
 
 
 import os
+import re
 import sys
 import hashlib
 import json
@@ -107,6 +108,11 @@ class JamfPackageUploader(JamfUploaderBase):
         "replace_pkg": {
             "required": False,
             "description": "Overwrite an existing package if True.",
+            "default": "False",
+        },
+        "v3_mode": {
+            "required": False,
+            "description": "Use private API v3 mode if True.",
             "default": "False",
         },
         "replace_pkg_metadata": {
@@ -308,6 +314,8 @@ class JamfPackageUploader(JamfUploaderBase):
         url = "{}/{}".format(jamf_url, self.api_endpoints(object_type))
         additional_headers = [
             "--header",
+            "Accept: application/xml",
+            "--header",
             "DESTINATION: 0",
             "--header",
             f"OBJECT_ID: {obj_id}",
@@ -330,6 +338,166 @@ class JamfPackageUploader(JamfUploaderBase):
 
         self.output(f"HTTP response: {r.status_code}", verbose_level=1)
         return r
+
+    # Section for upload to Jamf Cloud using v3 endpoint
+
+    def get_pkg_category_id(self, url, category, enc_creds="", token=""):
+        """get the pkg category ID - required for API v3 uploads"""
+        # check for existing category
+        self.output(f"Checking for existing '{category}' on {url}")
+        obj_type = "category"
+        obj_name = category
+        obj_id = self.get_uapi_obj_id_from_name(
+            url,
+            obj_type,
+            obj_name,
+            token,
+        )
+        self.output(f"ID for category {category}: {obj_id}", verbose_level=1)
+        return obj_id
+
+    def create_session(self, jamf_url, user, password):
+        """create session cookies for the package upload endpoint"""
+        url = jamf_url
+        tmp_dir = self.make_tmp_dir()
+        cookie_jar = os.path.join(tmp_dir, "curl_cookies_from_jamf_upload.txt")
+        additional_headers = [
+            "--header",
+            "Content-Type: application/x-www-form-urlencoded",
+            "--data-urlencode",
+            f"username={user}",
+            "--data-urlencode",
+            f"password={password}",
+            "--cookie-jar",
+            cookie_jar,
+        ]
+        request = "POST"
+        r = self.curl(
+            request=request,
+            url=url,
+            additional_headers=additional_headers,
+        )
+
+        self.output(f"HTTP response: {r.status_code}", verbose_level=1)
+        self.output(f"Headers: {r.headers}", verbose_level=2)
+
+    def get_session_token(self, jamf_url, pkg_id):
+        """get a session token, x-auth token and pkg upload URL
+        for the package upload endpoint"""
+        url = f"{jamf_url}/legacy/packages.html?id={pkg_id}&o=c"
+        request = "GET"
+        r = self.curl(
+            request=request,
+            url=url,
+        )
+        self.output(f"HTTP response: {r.status_code}", verbose_level=1)
+        self.output(str(r.output), verbose_level=3)
+
+        # session token
+        matches = re.search(r'id="session-token" value="([^"]*)"', str(r.output))
+        if matches:
+            session_token = matches.group(1)
+            self.output("Session Token: " + session_token, verbose_level=2)
+        else:
+            raise ProcessorError("WARNING: No package upload session token was found")
+        matches = re.search(r'"X-Auth-Token", "([^"]*)"', str(r.output))
+
+        # x-auth token
+        if matches:
+            x_auth_token = matches.group(1)
+            self.output("X-Auth Token: " + x_auth_token, verbose_level=2)
+        else:
+            raise ProcessorError("WARNING: No x-auth token was found")
+        matches = re.search(r'const url = "([^"]*)"', str(r.output))
+
+        # pkg upload URL
+        if matches:
+            pkg_upload_url = matches.group(1)
+            self.output("Pkg Upload URL: " + pkg_upload_url, verbose_level=2)
+        else:
+            raise ProcessorError("WARNING: No package upload URL was found")
+
+        return session_token, x_auth_token, pkg_upload_url
+
+    def post_pkg(self, jamf_url, pkg_name, pkg_path, x_auth_token, pkg_upload_url):
+        """upload the package via the v3 endpoint"""
+        url = f"{pkg_upload_url}/{quote(pkg_name)}"
+        self.output(f"Pkg Upload URL: {url}", verbose_level=1)
+        additional_headers = [
+            "--header",
+            f"x-auth-token: {x_auth_token}",
+            "--header",
+            "accept: */*",
+            "--header",
+            f"origin: {jamf_url}",
+            "--header",
+            f"referer: {jamf_url}",
+            "--form",
+            f"file=@{pkg_path};filename={pkg_name}",
+            "--compressed",
+        ]
+        request = "POST"
+        r = self.curl(
+            request=request,
+            url=url,
+            additional_headers=additional_headers,
+        )
+        self.output(f"HTTP response: {r.status_code}", verbose_level=1)
+        self.output(r.output, verbose_level=3)
+
+    def create_pkg_object(
+        self, jamf_url, pkg_name, pkg_id, session_token, pkg_category_id
+    ):
+        """record the package in in the jamf server"""
+        url = f"{jamf_url}/legacy/packages.html?id={pkg_id}&o=c"
+        self.output(f"Pkg Object URL: {url}", verbose_level=1)
+        additional_headers = [
+            "--header",
+            f"origin: {jamf_url}",
+            "--header",
+            f"referer: {jamf_url}/legacy/packages.html?id={pkg_id}&o=c",
+            "--header",
+            "Content-Type: application/x-www-form-urlencoded",
+            "--header",
+            (
+                "accept: text/html,application/xhtml+xml,application/xml;"
+                "q=0.9,image/avif,image/webp,image/apng,*/*;"
+                "q=0.8,application/signed-exchange;v=b3;q=0.9"
+            ),
+            "--data-raw",
+            (
+                f"session-token={session_token}"
+                + "&lastTab=General"
+                + "&lastSideTab=null"
+                + "&lastSubTab=null"
+                + "&lastSubTabSet=null"
+                + f"&name={pkg_name}"
+                + f"&categoryID={pkg_category_id}"
+                + f"&fileInputfileName={pkg_name}"
+                + f"&fileName={pkg_name}"
+                + "&resetFIELD_MANIFEST_INPUT="
+                + "&info="
+                + self.pkg_metadata["info"]
+                + "&notes="
+                + self.pkg_metadata["notes"]
+                + "&priority="
+                + self.pkg_metadata["priority"]
+                + "&uninstall_disabled=false"
+                + "&osRequirements="
+                + "&action=Save"
+            ),
+            "--compressed",
+        ]
+        request = "POST"
+        r = self.curl(
+            request=request,
+            url=url,
+            additional_headers=additional_headers,
+        )
+        self.output("HTTP response: {}".format(r.status_code), verbose_level=1)
+        self.output(r.output, verbose_level=3)
+
+    # End of section for upload to Jamf Cloud using v3 endpoint
 
     def update_pkg_metadata(
         self,
@@ -423,6 +591,7 @@ class JamfPackageUploader(JamfUploaderBase):
             self.pkg_name = os.path.basename(self.pkg_path)
         self.version = self.env.get("version")
         self.replace = self.env.get("replace_pkg")
+        self.v3_mode = self.env.get("v3_mode")
         # handle setting replace in overrides
         if not self.replace or self.replace == "False":
             self.replace = False
@@ -476,7 +645,9 @@ class JamfPackageUploader(JamfUploaderBase):
         self.sha512string = self.sha512sum(self.pkg_path)
 
         # now start the process of uploading the package
-        self.output(f"Checking for existing '{self.pkg_name}' on {self.jamf_url}")
+        self.output(
+            f"Checking for existing package '{self.pkg_name}' on {self.jamf_url}"
+        )
 
         # obtain the relevant credentials
         token, send_creds, enc_creds = self.handle_classic_auth(
@@ -494,7 +665,11 @@ class JamfPackageUploader(JamfUploaderBase):
             )
             pkg_id = obj_id  # assign pkg_id for smb runs - JCDS runs get it from the pkg upload
         else:
-            pkg_id = 0
+            self.output("Package '{}' not found on server".format(self.pkg_name))
+            if self.v3_mode:
+                pkg_id = -1
+            else:
+                pkg_id = 0
 
         # process for SMB shares if defined
         if self.smb_url:
@@ -538,37 +713,80 @@ class JamfPackageUploader(JamfUploaderBase):
                         ),
                         verbose_level=1,
                     )
-                # post the package (won't run if the pkg exists and replace is False)
-                r = self.curl_pkg(
-                    self.pkg_name, self.pkg_path, self.jamf_url, enc_creds, obj_id
-                )
-                try:
-                    pkg_id = ElementTree.fromstring(r.output).findtext("id")
-                    success = ElementTree.fromstring(r.output).findtext("successful")
-                    if pkg_id:
-                        if success == "true":
-                            self.output(
-                                "Package uploaded successfully, ID={}".format(pkg_id)
-                            )
-                            self.pkg_uploaded = True
-                        else:
-                            raise ProcessorError(
-                                "WARNING: Response reported 'Error uploading file to the JSS'"
-                            )
-                except ElementTree.ParseError:
-                    self.output("Could not parse XML. Raw output:", verbose_level=2)
-                    self.output(r.output.decode("ascii"), verbose_level=2)
-                    raise ProcessorError(
-                        "WARNING: Could not read HTTP response. The package was probably not "
-                        "uploaded successfully"
-                    )
+                if self.v3_mode:
+                    # use direct upload method if v3_mode is True
+                    if self.pkg_category:
+                        # 1. get the ID of a category
+                        pkg_category_id = self.get_pkg_category_id(
+                            self.jamf_url,
+                            self.pkg_category,
+                            enc_creds=enc_creds,
+                            token=token,
+                        )
+                        # 2. start the session
+                        self.create_session(
+                            self.jamf_url, self.jamf_user, self.jamf_password
+                        )
+                        # 3. get the required tokens and URL
+                        (
+                            session_token,
+                            x_auth_token,
+                            pkg_upload_url,
+                        ) = self.get_session_token(self.jamf_url, pkg_id)
+                        # 4. upload the package
+                        self.post_pkg(
+                            self.jamf_url,
+                            self.pkg_name,
+                            self.pkg_path,
+                            x_auth_token,
+                            pkg_upload_url,
+                        )
+                        # 5. record the package in Jamf Pro
+                        self.create_pkg_object(
+                            self.jamf_url,
+                            self.pkg_name,
+                            pkg_id,
+                            session_token,
+                            pkg_category_id,
+                        )
+                        self.pkg_uploaded = True  # TODO - needs to be validated
+                        self.pkg_metadata_updated = True  # TODO - needs to be validated
                 else:
-                    # check HTTP response
-                    if (
-                        not self.status_check(r, "Package", self.pkg_name, "POST")
-                        == "break"
-                    ):
-                        raise ProcessorError("ERROR: Package upload failed.")
+                    # post the package (won't run if the pkg exists and replace is False)
+                    r = self.curl_pkg(
+                        self.pkg_name, self.pkg_path, self.jamf_url, enc_creds, obj_id
+                    )
+                    try:
+                        pkg_id = ElementTree.fromstring(r.output).findtext("id")
+                        success = ElementTree.fromstring(r.output).findtext(
+                            "successful"
+                        )
+                        if pkg_id:
+                            if success == "true":
+                                self.output(
+                                    "Package uploaded successfully, ID={}".format(
+                                        pkg_id
+                                    )
+                                )
+                                self.pkg_uploaded = True
+                            else:
+                                raise ProcessorError(
+                                    "WARNING: Response reported 'Error uploading file to the JSS'"
+                                )
+                    except ElementTree.ParseError:
+                        self.output("Could not parse XML. Raw output:", verbose_level=2)
+                        self.output(r.output.decode("ascii"), verbose_level=2)
+                        raise ProcessorError(
+                            "WARNING: Could not read HTTP response. The package was probably not "
+                            "uploaded successfully"
+                        )
+                    else:
+                        # check HTTP response
+                        if (
+                            not self.status_check(r, "Package", self.pkg_name, "POST")
+                            == "break"
+                        ):
+                            raise ProcessorError("ERROR: Package upload failed.")
             else:
                 self.output(
                     (
@@ -579,8 +797,12 @@ class JamfPackageUploader(JamfUploaderBase):
                 )
                 self.pkg_uploaded = False
 
-        # now process the package metadata if specified
-        if pkg_id and (self.pkg_uploaded or self.replace_metadata):
+        # now process the package metadata if specified (not applicable with v3 mode)
+        if (
+            int(pkg_id) > 0
+            and (self.pkg_uploaded or self.replace_metadata)
+            and not self.v3_mode
+        ):
             self.output(
                 "Updating package metadata for {}".format(pkg_id),
                 verbose_level=1,
@@ -609,7 +831,7 @@ class JamfPackageUploader(JamfUploaderBase):
                 token=token,
             )
             self.pkg_metadata_updated = True
-        else:
+        elif not self.v3_mode:
             self.output(
                 "Not updating package metadata",
                 verbose_level=1,

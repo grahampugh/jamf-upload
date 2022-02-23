@@ -129,7 +129,7 @@ curl "$UPLOAD_BASE_URL/$pkg_name" \
     -H 'accept: */*' \
     -H "origin: $url" \
     -H "referer: $url" \
-    -F "file=@$pkg_path;name=file;filename=$pkg_name" \
+    -F "file='@$pkg_path';name=file;filename='$pkg_name'" \
     -D "$headers_file_upload" \
     --output "$output_file_upload" \
     --cookie "$cookie_jar" \

@@ -21,7 +21,6 @@ Valid object types:
     logflush
     patch
     pkg | package
-    pkg-direct
     policy
     restriction | softwarerestriction
     script
@@ -92,6 +91,7 @@ Package arguments:
     --send-notification     Set to send a notification when the package is installed
     --replace-pkg-metadata  Set to replace the pkg metadata if no package is uploaded
     --replace               Replace existing item
+    --v3                    Use v3 API for package upload
 
 Policy arguments:
     --name <string>         The name
@@ -589,14 +589,14 @@ while test $# -gt 0 ; do
             ;;
         --required_processor|--required-processor)
             shift
-            if [[ $processor == "JamfPackageUploader" || $processor == "JamfPackageUploaderGUI" ]]; then
+            if [[ $processor == "JamfPackageUploader" ]]; then
                 if defaults write "$temp_processor_plist" required_processor "$1"; then
                     echo "   [jamf-upload] Wrote required_processor='$1' into $temp_processor_plist"
                 fi
             fi
             ;;
         --send_notification|--send-notification) 
-            if [[ $processor == "JamfPackageUploader" || $processor == "JamfPackageUploaderGUI" ]]; then
+            if [[ $processor == "JamfPackageUploader" ]]; then
                 if defaults write "$temp_processor_plist" send_notification -string "true"; then
                     echo "   [jamf-upload] Wrote send_notification='true' into $temp_processor_plist"
                 fi
@@ -607,9 +607,16 @@ while test $# -gt 0 ; do
             fi
             ;;
         --replace_pkg_metadata|--replace-pkg-metadata) 
-            if [[ $processor == "JamfPackageUploader" || $processor == "JamfPackageUploaderGUI" ]]; then
+            if [[ $processor == "JamfPackageUploader" ]]; then
                 if defaults write "$temp_processor_plist" replace_pkg_metadata "true"; then
                     echo "   [jamf-upload] Wrote replace_pkg_metadata='True' into $temp_processor_plist"
+                fi
+            fi
+            ;;
+        --v3) 
+            if [[ $processor == "JamfPackageUploader" ]]; then
+                if defaults write "$temp_processor_plist" v3_mode "true"; then
+                    echo "   [jamf-upload] Wrote v3_mode='True' into $temp_processor_plist"
                 fi
             fi
             ;;
