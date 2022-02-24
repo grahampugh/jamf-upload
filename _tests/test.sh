@@ -132,8 +132,10 @@ elif [[ $test_type == "package" || $test_type == "pkg" ]]; then
     "$DIR"/../jamf-upload.sh pkg \
         --prefs "$prefs" \
         --recipe-dir /Users/gpugh/sourcecode/jamf-upload/_tests \
-        --pkg "/Users/gpugh/Library/AutoPkg/Cache/com.github.grahampugh.recipes.pkg.EclipseTemurin-8/EclipseTemurin_8_jdk_x64_hotspot-1.8.0_302.pkg" \
+        --pkg "/Users/gpugh/sourcecode/erase-install/pkg/erase-install-depnotify/build/erase-install-depnotify-26.0.pkg" \
         --category JamfUploadTest \
+        --info "Uploaded directly by JamfUploader" \
+        --notes "$(date)" \
         "$verbosity" \
         "$jss_url" \
         --v3 \

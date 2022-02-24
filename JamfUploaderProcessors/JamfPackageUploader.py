@@ -20,7 +20,7 @@ import xml.etree.ElementTree as ElementTree
 from shutil import copyfile
 from time import sleep
 from zipfile import ZipFile, ZIP_DEFLATED
-from urllib.parse import urlparse, quote
+from urllib.parse import urlparse, quote, quote_plus
 from xml.sax.saxutils import escape
 from autopkglib import ProcessorError  # pylint: disable=import-error
 
@@ -370,6 +370,7 @@ class JamfPackageUploader(JamfUploaderBase):
             f"password={password}",
             "--cookie-jar",
             cookie_jar,
+            "--location",
         ]
         request = "POST"
         r = self.curl(
@@ -385,10 +386,14 @@ class JamfPackageUploader(JamfUploaderBase):
         """get a session token, x-auth token and pkg upload URL
         for the package upload endpoint"""
         url = f"{jamf_url}/legacy/packages.html?id={pkg_id}&o=c"
+        additional_headers = [
+            "--location",
+        ]
         request = "GET"
         r = self.curl(
             request=request,
             url=url,
+            additional_headers=additional_headers,
         )
         self.output(f"HTTP response: {r.status_code}", verbose_level=1)
         self.output(str(r.output), verbose_level=3)
@@ -457,12 +462,12 @@ class JamfPackageUploader(JamfUploaderBase):
             "--header",
             f"referer: {jamf_url}/legacy/packages.html?id={pkg_id}&o=c",
             "--header",
-            "Content-Type: application/x-www-form-urlencoded",
+            "content-type: application/x-www-form-urlencoded",
             "--header",
             (
                 "accept: text/html,application/xhtml+xml,application/xml;"
-                "q=0.9,image/avif,image/webp,image/apng,*/*;"
-                "q=0.8,application/signed-exchange;v=b3;q=0.9"
+                + "q=0.9,image/avif,image/webp,image/apng,*/*;"
+                + "q=0.8,application/signed-exchange;v=b3;q=0.9"
             ),
             "--data-raw",
             (
@@ -471,10 +476,10 @@ class JamfPackageUploader(JamfUploaderBase):
                 + "&lastSideTab=null"
                 + "&lastSubTab=null"
                 + "&lastSubTabSet=null"
-                + f"&name={pkg_name}"
+                + f"&name={quote_plus(pkg_name)}"
                 + f"&categoryID={pkg_category_id}"
-                + f"&fileInputfileName={pkg_name}"
-                + f"&fileName={pkg_name}"
+                + f"&fileInputfileName={quote_plus(pkg_name)}"
+                + f"&fileName={quote_plus(pkg_name)}"
                 + "&resetFIELD_MANIFEST_INPUT="
                 + "&info="
                 + self.pkg_metadata["info"]

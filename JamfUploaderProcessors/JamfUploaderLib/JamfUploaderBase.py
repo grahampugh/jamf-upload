@@ -272,7 +272,6 @@ class JamfUploaderBase(Processor):
                 headers_file,
                 "--output",
                 output_file,
-                "--location",
                 url,
             ]
         else:
@@ -324,7 +323,7 @@ class JamfUploaderBase(Processor):
             if "JSSResource" in url:
                 # Jamf Pro API and Slack posts json, but Classic API posts xml
                 curl_cmd.extend(["--header", "Content-type: application/xml"])
-            elif "/api/" in url or "/uapi/" in url:
+            elif ("/api/" in url or "/uapi/" in url) and "/file/v2/" not in url:
                 curl_cmd.extend(["--header", "Content-type: application/json"])
             # note: other endpoints should supply their headers via 'additional_headers'
         else:
