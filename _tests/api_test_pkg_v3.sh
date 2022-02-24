@@ -124,22 +124,19 @@ echo
 # 3. post a package 
 pkg_name=$(basename "$pkg_path")
 
-curl "$UPLOAD_BASE_URL/$pkg_name" \
+pkg_name_url="${pkg_name// /%20}"
+
+curl "$UPLOAD_BASE_URL/$pkg_name_url" \
     -H "x-auth-token: $X_AUTH_TOKEN" \
     -H 'accept: */*' \
     -H "origin: $url" \
     -H "referer: $url" \
-    -F "file='@$pkg_path';name=file;filename='$pkg_name'" \
+    -F "file=@$pkg_path;filename=$pkg_name" \
     -D "$headers_file_upload" \
     --output "$output_file_upload" \
     --cookie "$cookie_jar" \
     --cookie-jar "$cookie_jar" \
     --compressed
-    # -H 'authority: use1-jcds.services.jamfcloud.com' \
-    # -H 'sec-ch-ua: " Not A;Brand";v="99", "Chromium";v="98", "Google Chrome";v="98"' \
-    # -H 'sec-ch-ua-mobile: ?0' \
-    # -H 'user-agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/98.0.4758.80 Safari/537.36' \
-    # -H 'sec-ch-ua-platform: "macOS"' \
 
 echo
 echo "---------------------------------------------------"
@@ -149,12 +146,13 @@ echo
 
 
 # 4. Record the file in Jamf
+pkg_name_data_raw="${pkg_name// /+}"
 curl "$url/legacy/packages.html?id=$pkg_id&o=c" \
     -H "origin: $url" \
     -H 'content-type: application/x-www-form-urlencoded' \
     -H 'accept: text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.9' \
     -H "referer: $url/legacy/packages.html?id=$pkg_id&o=c" \
-    --data-raw "session-token=$SESSION_TOKEN&lastTab=General&lastSideTab=null&lastSubTab=null&lastSubTabSet=null&&name=$pkg_name&categoryID=12&fileInputfileName=$pkg_name&fileName=$pkg_name&resetFIELD_MANIFEST_INPUT=&info=JamfUploader&notes=$(date)&priority=9&uninstall_disabled=false&osRequirements=&action=Save" \
+    --data-raw "session-token=$SESSION_TOKEN&lastTab=General&lastSideTab=null&lastSubTab=null&lastSubTabSet=null&name=$pkg_name_data_raw&categoryID=12&fileInputfileName=$pkg_name_data_raw&fileName=$pkg_name_data_raw&resetFIELD_MANIFEST_INPUT=&info=JamfUploader&notes=$(date)&priority=9&uninstall_disabled=false&osRequirements=&action=Save" \
     -D "$headers_file_record" \
     --output "$output_file_record" \
     --compressed \
