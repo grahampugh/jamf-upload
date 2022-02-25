@@ -30,7 +30,7 @@ if [[ $test_type == "category" ]]; then
         --name JamfUploadTest \
         --priority 18 \
         "$verbosity" \
-        "$jss_url" \
+        "$url" \
         --replace
 
 elif [[ $test_type == "group" ]]; then
@@ -42,7 +42,7 @@ elif [[ $test_type == "group" ]]; then
         --template "SmartGroupTemplate-test-users.xml" \
         --key POLICY_NAME="Firefox" \
         "$verbosity" \
-        "$jss_url" \
+        "$url" \
         --replace
 
 elif [[ $test_type == "profile" ]]; then
@@ -59,7 +59,7 @@ elif [[ $test_type == "profile" ]]; then
         --description "Amazing test profile" \
         --computergroup "Testing" \
         "$verbosity" \
-        "$jss_url" \
+        "$url" \
         --key REGISTRATION_CODE="FAKE-CODE" \
         --key REGISTRATION_EMAIL="yes@yes.com" \
         --key REGISTRATION_NAME="ETH License Administration" \
@@ -74,7 +74,7 @@ elif [[ $test_type == "ea" ]]; then
         --name "Microsoft AutoUpdate Version" \
         --script "MicrosoftAutoUpdate-EA.sh" \
         "$verbosity" \
-        "$jss_url" \
+        "$url" \
         --replace
 
 elif [[ $test_type == "policy" ]]; then
@@ -89,7 +89,7 @@ elif [[ $test_type == "policy" ]]; then
         --key CATEGORY="JamfUploadTest" \
         --key pkg_name="Authy Desktop-1.8.4.pkg" \
         "$verbosity" \
-        "$jss_url" \
+        "$url" \
         --replace
 
 elif [[ $test_type == "policy_delete" ]]; then
@@ -99,7 +99,7 @@ elif [[ $test_type == "policy_delete" ]]; then
         --recipe-dir /Users/gpugh/sourcecode/jamf-upload/_tests \
         --name "Install Firefox" \
         "$verbosity" \
-        "$jss_url"
+        "$url"
 
 elif [[ $test_type == "policy_flush" ]]; then
     # upload a policy
@@ -109,7 +109,7 @@ elif [[ $test_type == "policy_flush" ]]; then
         --name "0001 - Install Rosetta 2" \
         --interval "Zero Days" \
         "$verbosity" \
-        "$jss_url"
+        "$url"
 
 elif [[ $test_type == "restriction" ]]; then
     # upload a software restriction
@@ -124,7 +124,7 @@ elif [[ $test_type == "restriction" ]]; then
         --kill_process \
         --computergroup Testing \
         "$verbosity" \
-        "$jss_url" \
+        "$url" \
         --replace
 
 elif [[ $test_type == "package" || $test_type == "pkg" ]]; then
@@ -137,7 +137,7 @@ elif [[ $test_type == "package" || $test_type == "pkg" ]]; then
         --info "Uploaded directly by JamfPackageUploader in JCDS mode" \
         --notes "$(date)" \
         "$verbosity" \
-        "$jss_url" \
+        "$url" \
         --jcds \
         --replace
     
@@ -150,7 +150,7 @@ elif [[ $test_type == "script" ]]; then
         --script "Microsoft Office License Type.sh" \
         --script_parameter4 "License Type" \
         "$verbosity" \
-        "$jss_url" \
+        "$url" \
         --replace
 
 # elif [[ $test_type == "patch" ]]; then
@@ -165,7 +165,7 @@ elif [[ $test_type == "script" ]]; then
 #         --pkg-name "Google Chrome-91.0.4472.77.pkg" \
 #         --version "91.0.4472.77" \
 #         "$verbosity" \
-#         "$jss_url" \
+#         "$url" \
 #         --replace
 
 elif [[ $test_type == "patch" ]]; then
@@ -181,7 +181,7 @@ elif [[ $test_type == "patch" ]]; then
         --policy-name "Install Latest Firefox" \
         --key PATCH_ENABLED="true" \
         "$verbosity" \
-        "$jss_url" \
+        "$url" \
         --replace
 
 
@@ -193,7 +193,7 @@ elif [[ $test_type == "dock" ]]; then
         --type "App" \
         --path "/Applications/ETH Self Service.app/" \
         "$verbosity" \
-        "$jss_url" \
+        "$url" \
         --replace
 
 elif [[ $test_type == "slack" ]]; then
@@ -211,7 +211,7 @@ elif [[ $test_type == "slack" ]]; then
         --slack-user "JamfUploader Test User" \
         --icon "https://resources.jamf.com/images/logos/Jamf-Icon-color.png" \
         "$verbosity" \
-        "$jss_url" \
+        "$url" \
         --replace
 
 elif [[ $test_type == "teams" ]]; then
@@ -231,7 +231,7 @@ elif [[ $test_type == "teams" ]]; then
         --patch-uploaded \
         --patch_name "Test Patch Policy" \
         "$verbosity" \
-        "$jss_url" \
+        "$url" \
         --replace
 
 else

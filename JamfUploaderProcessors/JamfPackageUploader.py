@@ -358,7 +358,7 @@ class JamfPackageUploader(JamfUploaderBase):
 
     def create_session(self, jamf_url, user, password):
         """create session cookies for the package upload endpoint"""
-        url = jamf_url
+        url = jamf_url + "/?failover"
         tmp_dir = self.make_tmp_dir()
         cookie_jar = os.path.join(tmp_dir, "curl_cookies_from_jamf_upload.txt")
         additional_headers = [
@@ -596,7 +596,6 @@ class JamfPackageUploader(JamfUploaderBase):
             self.pkg_name = os.path.basename(self.pkg_path)
         self.version = self.env.get("version")
         self.replace = self.env.get("replace_pkg")
-        self.jcds_mode = self.env.get("jcds_mode")
         # handle setting replace in overrides
         if not self.replace or self.replace == "False":
             self.replace = False
@@ -604,6 +603,10 @@ class JamfPackageUploader(JamfUploaderBase):
         # handle setting replace_metadata in overrides
         if not self.replace_metadata or self.replace_metadata == "False":
             self.replace_metadata = False
+        self.jcds_mode = self.env.get("jcds_mode")
+        # handle setting jcds_mode in overrides
+        if not self.jcds_mode or self.jcds_mode == "False":
+            self.jcds_mode = False
         self.jamf_url = self.env.get("JSS_URL")
         self.jamf_user = self.env.get("API_USERNAME")
         self.jamf_password = self.env.get("API_PASSWORD")
@@ -728,34 +731,36 @@ class JamfPackageUploader(JamfUploaderBase):
                             enc_creds=enc_creds,
                             token=token,
                         )
-                        # 2. start the session
-                        self.create_session(
-                            self.jamf_url, self.jamf_user, self.jamf_password
-                        )
-                        # 3. get the required tokens and URL
-                        (
-                            session_token,
-                            x_auth_token,
-                            pkg_upload_url,
-                        ) = self.get_session_token(self.jamf_url, pkg_id)
-                        # 4. upload the package
-                        self.post_pkg(
-                            self.jamf_url,
-                            self.pkg_name,
-                            self.pkg_path,
-                            x_auth_token,
-                            pkg_upload_url,
-                        )
-                        # 5. record the package in Jamf Pro
-                        self.create_pkg_object(
-                            self.jamf_url,
-                            self.pkg_name,
-                            pkg_id,
-                            session_token,
-                            pkg_category_id,
-                        )
-                        self.pkg_uploaded = True  # TODO - needs to be validated
-                        self.pkg_metadata_updated = True  # TODO - needs to be validated
+                    else:
+                        pkg_category_id = -1
+                    # 2. start the session
+                    self.create_session(
+                        self.jamf_url, self.jamf_user, self.jamf_password
+                    )
+                    # 3. get the required tokens and URL
+                    (
+                        session_token,
+                        x_auth_token,
+                        pkg_upload_url,
+                    ) = self.get_session_token(self.jamf_url, pkg_id)
+                    # 4. upload the package
+                    self.post_pkg(
+                        self.jamf_url,
+                        self.pkg_name,
+                        self.pkg_path,
+                        x_auth_token,
+                        pkg_upload_url,
+                    )
+                    # 5. record the package in Jamf Pro
+                    self.create_pkg_object(
+                        self.jamf_url,
+                        self.pkg_name,
+                        pkg_id,
+                        session_token,
+                        pkg_category_id,
+                    )
+                    self.pkg_uploaded = True  # TODO - needs to be validated
+                    self.pkg_metadata_updated = True  # TODO - needs to be validated
                 else:
                     # post the package (won't run if the pkg exists and replace is False)
                     r = self.curl_pkg(
