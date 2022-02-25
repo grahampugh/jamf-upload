@@ -281,12 +281,7 @@ class JamfUploaderBase(Processor):
             curl_cmd.extend(["--request", request])
 
         if "legacy/packages" not in url and "api/file/v2" not in url:
-            curl_cmd.extend(
-                [
-                    "--silent",
-                    "--show-error",
-                ]
-            )
+            curl_cmd.extend(["--silent", "--show-error"])
 
         # Jamf Pro API authentication
         if enc_creds:

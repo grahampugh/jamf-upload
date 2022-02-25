@@ -110,9 +110,9 @@ class JamfPackageUploader(JamfUploaderBase):
             "description": "Overwrite an existing package if True.",
             "default": "False",
         },
-        "v3_mode": {
+        "jcds_mode": {
             "required": False,
-            "description": "Use private API v3 mode if True.",
+            "description": "Use private API jcds mode if True.",
             "default": "False",
         },
         "replace_pkg_metadata": {
@@ -339,7 +339,7 @@ class JamfPackageUploader(JamfUploaderBase):
         self.output(f"HTTP response: {r.status_code}", verbose_level=1)
         return r
 
-    # Section for upload to Jamf Cloud using v3 endpoint
+    # Section for upload to Jamf Cloud using jcds endpoint
 
     def get_pkg_category_id(self, url, category, enc_creds="", token=""):
         """get the pkg category ID - required for API v3 uploads"""
@@ -596,7 +596,7 @@ class JamfPackageUploader(JamfUploaderBase):
             self.pkg_name = os.path.basename(self.pkg_path)
         self.version = self.env.get("version")
         self.replace = self.env.get("replace_pkg")
-        self.v3_mode = self.env.get("v3_mode")
+        self.jcds_mode = self.env.get("jcds_mode")
         # handle setting replace in overrides
         if not self.replace or self.replace == "False":
             self.replace = False
@@ -671,7 +671,7 @@ class JamfPackageUploader(JamfUploaderBase):
             pkg_id = obj_id  # assign pkg_id for smb runs - JCDS runs get it from the pkg upload
         else:
             self.output("Package '{}' not found on server".format(self.pkg_name))
-            if self.v3_mode:
+            if self.jcds_mode:
                 pkg_id = -1
             else:
                 pkg_id = 0
@@ -718,8 +718,8 @@ class JamfPackageUploader(JamfUploaderBase):
                         ),
                         verbose_level=1,
                     )
-                if self.v3_mode:
-                    # use direct upload method if v3_mode is True
+                if self.jcds_mode:
+                    # use direct upload method if jcds_mode is True
                     if self.pkg_category:
                         # 1. get the ID of a category
                         pkg_category_id = self.get_pkg_category_id(
@@ -802,11 +802,11 @@ class JamfPackageUploader(JamfUploaderBase):
                 )
                 self.pkg_uploaded = False
 
-        # now process the package metadata if specified (not applicable with v3 mode)
+        # now process the package metadata if specified (not applicable with jcds mode)
         if (
             int(pkg_id) > 0
             and (self.pkg_uploaded or self.replace_metadata)
-            and not self.v3_mode
+            and not self.jcds_mode
         ):
             self.output(
                 "Updating package metadata for {}".format(pkg_id),
@@ -836,7 +836,7 @@ class JamfPackageUploader(JamfUploaderBase):
                 token=token,
             )
             self.pkg_metadata_updated = True
-        elif not self.v3_mode:
+        elif not self.jcds_mode:
             self.output(
                 "Not updating package metadata",
                 verbose_level=1,

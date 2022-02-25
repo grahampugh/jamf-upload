@@ -91,7 +91,7 @@ Package arguments:
     --send-notification     Set to send a notification when the package is installed
     --replace-pkg-metadata  Set to replace the pkg metadata if no package is uploaded
     --replace               Replace existing item
-    --v3                    Use v3 API for package upload
+    --jcds                  Use v3 API for package upload to JCDS 
 
 Policy arguments:
     --name <string>         The name
@@ -613,10 +613,10 @@ while test $# -gt 0 ; do
                 fi
             fi
             ;;
-        --v3) 
+        --jcds) 
             if [[ $processor == "JamfPackageUploader" ]]; then
-                if defaults write "$temp_processor_plist" v3_mode "true"; then
-                    echo "   [jamf-upload] Wrote v3_mode='True' into $temp_processor_plist"
+                if defaults write "$temp_processor_plist" jcds_mode "true"; then
+                    echo "   [jamf-upload] Wrote jcds_mode='True' into $temp_processor_plist"
                 fi
             fi
             ;;
