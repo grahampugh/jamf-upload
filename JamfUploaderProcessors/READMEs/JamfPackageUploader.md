@@ -55,6 +55,10 @@ The pkg recipe must output pkg_path or this will fail.
   - **required:** False
   - **description:** Overwrite existing package metadata and continue if True, even if the package object is not re-uploaded.
   - **default:** False
+- **jcds_mode:**
+  - **required:** False
+  - **description:** Upload package using JCDS mode.
+  - **default:** False
 - **JSS_URL:**
   - **required:** True
   - **description:** URL to a Jamf Pro server that the API user has write access to, optionally set as a key in the com.github.autopkg preference file.
