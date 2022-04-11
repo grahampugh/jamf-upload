@@ -531,7 +531,7 @@ class JamfUploaderBase(Processor):
                 ):
                     self.output(f"Matching dir: {override_dir_path}", verbose_level=3)
                     matched_override_dir = override_dir_path
-                for path in Path(d).rglob(filename):
+                for path in Path(os.path.expanduser(d)).rglob(filename):
                     matched_filepath = str(path)
                     break
             if matched_filepath:
@@ -555,7 +555,7 @@ class JamfUploaderBase(Processor):
                 ):
                     # matching search dir, look for file in here
                     self.output(f"Matching dir: {search_dir_path}", verbose_level=3)
-                    for path in Path(d).rglob(filename):
+                    for path in Path(os.path.expanduser(d)).rglob(filename):
                         matched_filepath = str(path)
                         break
                 if matched_filepath:
@@ -579,7 +579,7 @@ class JamfUploaderBase(Processor):
                     ):
                         # matching parent dir, look for file in here
                         self.output(f"Matching dir: {search_dir_path}", verbose_level=3)
-                        for path in Path(d).rglob(filename):
+                        for path in Path(os.path.expanduser(d)).rglob(filename):
                             matched_filepath = str(path)
                             break
                     if matched_filepath:
