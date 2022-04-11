@@ -19,6 +19,7 @@ Valid object types:
     profile | computerprofile
     ea | extensionattribute
     logflush
+    macapp
     patch
     pkg | package
     policy
@@ -71,12 +72,17 @@ Extension Attribute arguments:
     --key X=Y               Substitutable values in the template. Multiple values can be supplied
     --replace               Replace existing item
 
+Mac App Store App arguments:
+    --name <string>         The name
+    --template <path>       XML template
+    --replace               Replace existing item
+
 Package arguments:
     --name <string>         The name
     --pkg <path>            Full path to the package to upload
     --priority <int>        The priority
     --category <string>     The category. Must exist.
-    --smb-url <url>         URL of the fileshare distribution point (on prem only)
+    --smb-url <url>         URL of the fileshare distribution point (on premises Jamf Pro only)
     --smb-user <SMB_USERNAME>
                             Username with share access
     --smb_pass <SMB_PASSWORD>
@@ -206,6 +212,8 @@ elif [[ $object == "dock" || $object == "dockitem" ]]; then
     processor="JamfDockItemUploader"
 elif [[ $object == "ea" || $object == "extensionattribute" ]]; then
     processor="JamfExtensionAttributeUploader"
+elif [[ $object == "macapp" ]]; then
+    processor="JamfMacAppUploader"
 elif [[ $object == "pkg" || $object == "package" ]]; then
     processor="JamfPackageUploader"
 elif [[ $object == "pkg-direct" ]]; then
@@ -319,6 +327,10 @@ while test $# -gt 0 ; do
                 if defaults write "$temp_processor_plist" replace_ea "True"; then
                     echo "   [jamf-upload] Wrote replace_ea='True' into $temp_processor_plist"
                 fi
+            elif [[ $processor == "JamfMacAppUploader" ]]; then
+                if defaults write "$temp_processor_plist" replace_macapp "True"; then
+                    echo "   [jamf-upload] Wrote replace_macapp='True' into $temp_processor_plist"
+                fi
             elif [[ $processor == "JamfPackageUploader" || $processor == "JamfPackageUploaderGUI" ]]; then
                 if defaults write "$temp_processor_plist" replace_pkg "True"; then
                     echo "   [jamf-upload] Wrote replace_pkg='True' into $temp_processor_plist"
@@ -363,6 +375,10 @@ while test $# -gt 0 ; do
                 if defaults write "$temp_processor_plist" ea_name "$1"; then
                     echo "   [jamf-upload] Wrote ea_name='$1' into $temp_processor_plist"
                 fi
+            elif [[ $processor == "JamfMacAppUploader" ]]; then
+                if defaults write "$temp_processor_plist" macapp_name "$1"; then
+                    echo "   [jamf-upload] Wrote macapp_name='$1' into $temp_processor_plist"
+                fi
             elif [[ $processor == "JamfPackageUploader" ]]; then
                 if defaults write "$temp_processor_plist" pkg_name "$1"; then
                     echo "   [jamf-upload] Wrote pkg_name='$1' into $temp_processor_plist"
@@ -398,6 +414,10 @@ while test $# -gt 0 ; do
             elif [[ $processor == "JamfComputerProfileUploader" ]]; then
                 if defaults write "$temp_processor_plist" profile_template "$1"; then
                     echo "   [jamf-upload] Wrote profile_template='$1' into $temp_processor_plist"
+                fi
+            elif [[ $processor == "JamfMacAppUploader" ]]; then
+                if defaults write "$temp_processor_plist" macapp_template "$1"; then
+                    echo "   [jamf-upload] Wrote macapp_template='$1' into $temp_processor_plist"
                 fi
             elif [[ $processor == "JamfPatchUploader" ]]; then
                 if defaults write "$temp_processor_plist" patch_template "$1"; then

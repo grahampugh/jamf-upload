@@ -723,6 +723,10 @@ class JamfPackageUploader(JamfUploaderBase):
                     )
                 if self.jcds_mode:
                     # use direct upload method if jcds_mode is True
+                    self.output(
+                        "Uploading package using experimental JCDS mode",
+                        verbose_level=1,
+                    )
                     if self.pkg_category:
                         # 1. get the ID of a category
                         pkg_category_id = self.get_pkg_category_id(

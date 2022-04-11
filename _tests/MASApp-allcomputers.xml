@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mac_application>
+    <general>
+        <name>%macapp_name%</name>
+        <bundle_id>%bundleid%</bundle_id>
+        <url>%appstore_url%</url>
+        <category>
+            <name>%CATEGORY%</name>
+        </category>
+        <site>
+            <name>None</name>
+        </site>
+        <deployment_type>%DEPLOYMENT_TYPE%</deployment_type>
+    </general>
+    <scope>
+        <all_computers>true</all_computers>
+        <computer_groups/>
+        <exclusions>
+            <computer_groups/>
+        </exclusions>
+    </scope>
+    <self_service>
+        <install_button_text>Install</install_button_text>
+        <force_users_to_view_description>false</force_users_to_view_description>
+        <self_service_icon>
+            <uri>%selfservice_icon_uri%</uri>
+        </self_service_icon>
+        <feature_on_main_page>false</feature_on_main_page>
+        <self_service_categories>
+            <category>
+                <name>%CATEGORY%</name>
+                <display_in>true</display_in>
+                <feature_in>false</feature_in>
+            </category>
+        </self_service_categories>
+        <notification>false</notification>
+        <notification>Self Service</notification>
+        <notification_subject/>
+        <notification_message/>
+    </self_service>
+    <vpp_codes/>
+    <vpp>
+        <assign_vpp_device_based_licenses>true</assign_vpp_device_based_licenses>
+        <vpp_admin_account_id>1</vpp_admin_account_id>
+    </vpp>
+</mac_application>
