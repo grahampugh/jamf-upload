@@ -1,7 +1,7 @@
 #!/usr/local/autopkg/python
 
 """
-JamfSoftwareRestrictionUploaderTest processor for uploading computer restrictions
+JamfSoftwareRestrictionUploader processor for uploading computer restrictions
 to Jamf Pro using AutoPkg
     by G Pugh
 """
@@ -19,10 +19,10 @@ sys.path.insert(0, os.path.dirname(__file__))
 
 from JamfUploaderLib.JamfUploaderBase import JamfUploaderBase  # noqa: E402
 
-__all__ = ["JamfSoftwareRestrictionUploaderTest"]
+__all__ = ["JamfSoftwareRestrictionUploader"]
 
 
-class JamfSoftwareRestrictionUploaderTest(JamfUploaderBase):
+class JamfSoftwareRestrictionUploader(JamfUploaderBase):
     """A processor for AutoPkg that will upload an item to a Jamf Cloud or on-prem server."""
 
     input_variables = {
@@ -246,7 +246,11 @@ class JamfSoftwareRestrictionUploaderTest(JamfUploaderBase):
         obj_type = "restricted_software"
         obj_name = self.restriction_name
         obj_id = self.get_api_obj_id_from_name(
-            self.jamf_url, obj_name, obj_type, enc_creds=send_creds, token=token,
+            self.jamf_url,
+            obj_name,
+            obj_type,
+            enc_creds=send_creds,
+            token=token,
         )
         if obj_id:
             self.output(
@@ -301,5 +305,5 @@ class JamfSoftwareRestrictionUploaderTest(JamfUploaderBase):
 
 
 if __name__ == "__main__":
-    PROCESSOR = JamfSoftwareRestrictionUploaderTest()
+    PROCESSOR = JamfSoftwareRestrictionUploader()
     PROCESSOR.execute_shell()
