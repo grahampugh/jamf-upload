@@ -77,18 +77,33 @@ elif [[ $test_type == "ea" ]]; then
         "$url" \
         --replace
 
+# elif [[ $test_type == "macapp" ]]; then
+#     # upload a policy
+#     "$DIR"/../jamf-upload.sh macapp \
+#         --prefs "$prefs" \
+#         --recipe-dir /Users/gpugh/sourcecode/jamf-upload/_tests \
+#         --name "Numbers" \
+#         --template "MacApp-allcomputers.xml" \
+#         --key CATEGORY="Applications" \
+#         --key DEPLOYMENT_TYPE="Make Available in Self Service" \
+#         "$verbosity" \
+#         "$url" \
+#         --replace
+
 elif [[ $test_type == "macapp" ]]; then
     # upload a policy
     "$DIR"/../jamf-upload.sh macapp \
         --prefs "$prefs" \
         --recipe-dir /Users/gpugh/sourcecode/jamf-upload/_tests \
-        --name "Numbers" \
-        --template "MASApp-allcomputers.xml" \
+        --name "Numbers - auto-install" \
+        --clone-from "Numbers" \
+        --template "MacApp-noscope.xml" \
         --key CATEGORY="Applications" \
-        --key DEPLOYMENT_TYPE="Make Available in Self Service" \
+        --key DEPLOYMENT_TYPE="Install Automatically/Prompt Users to Install" \
         "$verbosity" \
         "$url" \
         --replace
+
 
 elif [[ $test_type == "policy" ]]; then
     # upload a policy

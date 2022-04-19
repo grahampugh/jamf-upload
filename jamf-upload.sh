@@ -74,6 +74,7 @@ Extension Attribute arguments:
 
 Mac App Store App arguments:
     --name <string>         The name
+    --cloned-from           The name of the Mac App Store app from which to clone
     --template <path>       XML template
     --replace               Replace existing item
 
@@ -526,6 +527,14 @@ while test $# -gt 0 ; do
             elif [[ $processor == "JamfScriptUploader" ]]; then
                 if defaults write "$temp_processor_plist" script_path "$1"; then
                     echo "   [jamf-upload] Wrote script_path='$1' into $temp_processor_plist"
+                fi
+            fi
+            ;;
+        --clone-from|--clone_from)
+            shift
+            if [[ $processor == "JamfMacAppUploader" ]]; then
+                if defaults write "$temp_processor_plist" clone_from "$1"; then
+                    echo "   [jamf-upload] Wrote clone_from='$1' into $temp_processor_plist"
                 fi
             fi
             ;;
