@@ -23,9 +23,10 @@ __all__ = ["JamfPolicyDeleter"]
 
 
 class JamfPolicyDeleter(JamfUploaderBase):
-    """A processor for AutoPkg that will delete a policy from a Jamf Cloud or
-    on-prem server."""
-
+    description = (
+        "A processor for AutoPkg that will delete a policy from a Jamf Cloud "
+        "or on-prem server."
+    )
     input_variables = {
         "JSS_URL": {
             "required": True,

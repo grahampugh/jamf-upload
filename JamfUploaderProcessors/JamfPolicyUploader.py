@@ -23,9 +23,11 @@ __all__ = ["JamfPolicyUploader"]
 
 
 class JamfPolicyUploader(JamfUploaderBase):
-    """A processor for AutoPkg that will upload a policy to a Jamf Cloud or on-prem
-    server. Optionally, an icon can be uploaded and associated with the policy."""
-
+    description = (
+        "A processor for AutoPkg that will upload a policy to a Jamf Cloud or "
+        "on-prem server. Optionally, an icon can be uploaded and associated "
+        "with the policy."
+    )
     input_variables = {
         "JSS_URL": {
             "required": True,

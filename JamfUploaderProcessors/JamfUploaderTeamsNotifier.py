@@ -36,7 +36,9 @@ __all__ = ["JamfUploaderTeamsNotifier"]
 
 class JamfUploaderTeamsNotifier(JamfUploaderBase):
     description = (
-        "Posts to Teams via webhook based on output of a JamfPolicyUploader process. "
+        "A postprocessor for AutoPkg that will send details about a recipe run "
+        "to a Microsoft Teams webhook based on the output of a "
+        "JamfPolicyUploader process."
     )
     input_variables = {
         "JSS_URL": {"required": False, "description": ("JSS_URL.")},

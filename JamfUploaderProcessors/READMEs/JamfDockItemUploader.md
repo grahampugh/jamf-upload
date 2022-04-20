@@ -2,7 +2,7 @@
 
 ## Description
 
-A processor for AutoPkg that will upload a Dock Item to a Jamf Cloud or on-prem server.
+A processor for AutoPkg that will upload a Dock item to a Jamf Cloud or on-prem server.
 
 ## Input variables
 

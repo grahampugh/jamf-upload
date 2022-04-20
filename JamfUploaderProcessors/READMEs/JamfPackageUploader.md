@@ -2,11 +2,9 @@
 
 ## Description
 
-A processor for AutoPkg that will upload a package to a JCDS or
-File Share Distribution Point.
+A processor for AutoPkg that will upload a package to a JCDS or File Share Distribution Point.
 
-Can be run as a post-processor for a pkg recipe or in a child recipe.
-The pkg recipe must output pkg_path or this will fail.
+Can be run as a post-processor for a pkg recipe or in a child recipe. The pkg recipe must output pkg_path or this will fail.
 
 ## Input variables
 

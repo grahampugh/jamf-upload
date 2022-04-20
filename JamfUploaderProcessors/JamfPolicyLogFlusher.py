@@ -24,9 +24,10 @@ __all__ = ["JamfPolicyLogFlusher"]
 
 
 class JamfPolicyLogFlusher(JamfUploaderBase):
-    """A processor for AutoPkg that will flush a policy from a Jamf Cloud or
-    on-prem server."""
-
+    description = (
+        "A processor for AutoPkg that will flush logs for a policy on a Jamf "
+        "Cloud or on-prem server."
+    )
     input_variables = {
         "JSS_URL": {
             "required": True,
