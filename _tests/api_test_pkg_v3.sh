@@ -72,7 +72,7 @@ curl --request POST \
     --data-urlencode "password=$pass" \
     --location \
     --cookie-jar "$cookie_jar" \
-    -D "$headers_file_session" \
+    --dump-header "$headers_file_session" \
     --output "$output_file_session" \
     "$url"
 
