@@ -53,6 +53,11 @@ class JamfMacAppUploader(JamfUploaderBase):
             "description": "Mac App Store app name from which to clone this entry",
             "default": "",
         },
+        "selfservice_icon_uri": {
+            "required": False,
+            "description": "Mac App Store app icon URI",
+            "default": "",
+        },
         "macapp_template": {
             "required": False,
             "description": "Full path to the XML template",
@@ -71,9 +76,7 @@ class JamfMacAppUploader(JamfUploaderBase):
         "macapp_name": {
             "description": "Jamf object name of the newly created or modified macapp.",
         },
-        "macapp_updated": {
-            "description": "Boolean - True if the macapp was changed.",
-        },
+        "macapp_updated": {"description": "Boolean - True if the macapp was changed."},
         "changed_macapp_id": {
             "description": "Jamf object ID of the newly created or modified macapp.",
         },
