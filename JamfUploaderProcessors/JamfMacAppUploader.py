@@ -147,6 +147,7 @@ class JamfMacAppUploader(JamfUploaderBase):
         self.jamf_password = self.env.get("API_PASSWORD")
         self.macapp_name = self.env.get("macapp_name")
         self.clone_from = self.env.get("clone_from")
+        self.selfservice_icon_uri = self.env.get("selfservice_icon_uri")
         self.macapp_template = self.env.get("macapp_template")
         self.replace = self.env.get("replace_macapp")
         # handle setting replace in overrides
@@ -253,21 +254,22 @@ class JamfMacAppUploader(JamfUploaderBase):
                         "Existing MAS URL is '{}'".format(appstore_url), verbose_level=1
                     )
                 # obtain the MAS app icon
-                selfservice_icon_uri = self.get_api_obj_value_from_id(
-                    self.jamf_url,
-                    "mac_application",
-                    obj_id,
-                    "self_service/self_service_icon/uri",
-                    enc_creds=send_creds,
-                    token=token,
-                )
-                if selfservice_icon_uri:
-                    self.output(
-                        "Existing Self Service icon is '{}'".format(
-                            selfservice_icon_uri
-                        ),
-                        verbose_level=1,
+                if not self.selfservice_icon_uri:
+                    self.selfservice_icon_uri = self.get_api_obj_value_from_id(
+                        self.jamf_url,
+                        "mac_application",
+                        obj_id,
+                        "self_service/self_service_icon/uri",
+                        enc_creds=send_creds,
+                        token=token,
                     )
+                    if self.selfservice_icon_uri:
+                        self.output(
+                            "Existing Self Service icon is '{}'".format(
+                                self.selfservice_icon_uri
+                            ),
+                            verbose_level=1,
+                        )
 
                 # we need to substitute the values in the MAS app name and template now to
                 # account for URL and Bundle ID
@@ -276,7 +278,7 @@ class JamfMacAppUploader(JamfUploaderBase):
                 self.env["macapp_is_free"] = str(macapp_is_free)
                 self.env["bundleid"] = bundleid
                 self.env["appstore_url"] = appstore_url
-                self.env["selfservice_icon_uri"] = selfservice_icon_uri
+                self.env["selfservice_icon_uri"] = self.selfservice_icon_uri
                 self.macapp_name, template_xml = self.prepare_macapp_template(
                     self.macapp_name, self.macapp_template
                 )
