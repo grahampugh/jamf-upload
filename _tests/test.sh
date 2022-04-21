@@ -97,7 +97,7 @@ elif [[ $test_type == "macapp" ]]; then
         --recipe-dir /Users/gpugh/sourcecode/jamf-upload/_tests \
         --name "Numbers - auto-install" \
         --clone-from "Numbers" \
-        --template "MacApp-noscope.xml" \
+        --template "MacApp-noscope-autoinstall.xml" \
         --key CATEGORY="Applications" \
         --key DEPLOYMENT_TYPE="Install Automatically/Prompt Users to Install" \
         "$verbosity" \

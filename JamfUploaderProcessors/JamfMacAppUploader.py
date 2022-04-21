@@ -82,6 +82,21 @@ class JamfMacAppUploader(JamfUploaderBase):
         },
     }
 
+    def get_vpp_id(self, jamf_url, token):
+        """Get the first Volume Purchasing Location ID."""
+        url_filter = "?page=0&page-size=1000&sort=id"
+        object_type = "volume_purchasing_locations"
+        url = jamf_url + "/" + self.api_endpoints(object_type) + url_filter
+        r = self.curl(request="GET", url=url, token=token)
+        if r.status_code == 200:
+            obj_id = 0
+            # output = json.loads(r.output)
+            output = r.output
+            for obj in output["results"]:
+                self.output(f"ID: {obj['id']} NAME: {obj['name']}", verbose_level=3)
+                obj_id = obj["id"]
+            return obj_id
+
     def prepare_macapp_template(self, macapp_name, macapp_template):
         """prepare the macapp contents"""
         # import template from file and replace any keys in the template
@@ -273,6 +288,15 @@ class JamfMacAppUploader(JamfUploaderBase):
                             ),
                             verbose_level=1,
                         )
+                # obtain the VPP location
+                vpp_id = self.get_vpp_id(self.jamf_url, token)
+                if self.selfservice_icon_uri:
+                    self.output(
+                        "Existing Self Service icon is '{}'".format(
+                            self.selfservice_icon_uri
+                        ),
+                        verbose_level=1,
+                    )
 
                 # we need to substitute the values in the MAS app name and template now to
                 # account for URL and Bundle ID
@@ -282,6 +306,7 @@ class JamfMacAppUploader(JamfUploaderBase):
                 self.env["bundleid"] = bundleid
                 self.env["appstore_url"] = appstore_url
                 self.env["selfservice_icon_uri"] = self.selfservice_icon_uri
+                self.env["vpp_id"] = vpp_id
                 self.macapp_name, template_xml = self.prepare_macapp_template(
                     self.macapp_name, self.macapp_template
                 )

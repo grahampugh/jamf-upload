@@ -21,25 +21,7 @@
             <computer_groups/>
         </exclusions>
     </scope>
-    <self_service>
-        <install_button_text>Install</install_button_text>
-        <force_users_to_view_description>false</force_users_to_view_description>
-        <self_service_icon>
-            <uri>%selfservice_icon_uri%</uri>
-        </self_service_icon>
-        <feature_on_main_page>false</feature_on_main_page>
-        <self_service_categories>
-            <category>
-                <name>%CATEGORY%</name>
-                <display_in>true</display_in>
-                <feature_in>false</feature_in>
-            </category>
-        </self_service_categories>
-        <notification>false</notification>
-        <notification>Self Service</notification>
-        <notification_subject/>
-        <notification_message/>
-    </self_service>
+    <self_service/>
     <vpp_codes/>
     <vpp>
         <assign_vpp_device_based_licenses>true</assign_vpp_device_based_licenses>

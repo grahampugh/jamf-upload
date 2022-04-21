@@ -54,6 +54,7 @@ class JamfUploaderBase(Processor):
             "restricted_software": "JSSResource/restrictedsoftware",
             "script": "uapi/v1/scripts",
             "token": "api/v1/auth/token",
+            "volume_purchasing_locations": "api/v1/volume-purchasing-locations",
         }
         return api_endpoints[object_type]
 

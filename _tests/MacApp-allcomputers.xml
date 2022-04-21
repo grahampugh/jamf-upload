@@ -41,6 +41,6 @@
     <vpp_codes/>
     <vpp>
         <assign_vpp_device_based_licenses>true</assign_vpp_device_based_licenses>
-        <vpp_admin_account_id>1</vpp_admin_account_id>
+        <vpp_admin_account_id>%vpp_id%</vpp_admin_account_id>
     </vpp>
 </mac_application>
