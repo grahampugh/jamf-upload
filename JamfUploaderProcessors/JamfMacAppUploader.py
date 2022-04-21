@@ -96,6 +96,8 @@ class JamfMacAppUploader(JamfUploaderBase):
                 self.output(f"ID: {obj['id']} NAME: {obj['name']}", verbose_level=3)
                 obj_id = obj["id"]
             return obj_id
+        else:
+            self.output(f"Return code: {r.status_code}", verbose_level=2)
 
     def prepare_macapp_template(self, macapp_name, macapp_template):
         """prepare the macapp contents"""
@@ -290,11 +292,9 @@ class JamfMacAppUploader(JamfUploaderBase):
                         )
                 # obtain the VPP location
                 vpp_id = self.get_vpp_id(self.jamf_url, token)
-                if self.selfservice_icon_uri:
+                if vpp_id:
                     self.output(
-                        "Existing Self Service icon is '{}'".format(
-                            self.selfservice_icon_uri
-                        ),
+                        "Existing VPP ID is '{}'".format(vpp_id),
                         verbose_level=1,
                     )
 
