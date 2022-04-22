@@ -23,8 +23,10 @@ __all__ = ["JamfExtensionAttributeUploader"]
 
 
 class JamfExtensionAttributeUploader(JamfUploaderBase):
-    """A processor for AutoPkg that will upload an item to a Jamf Cloud or on-prem server."""
-
+    description = (
+        "A processor for AutoPkg that will upload an Extension Attribute item to a "
+        "Jamf Cloud or on-prem server."
+    )
     input_variables = {
         "JSS_URL": {
             "required": True,

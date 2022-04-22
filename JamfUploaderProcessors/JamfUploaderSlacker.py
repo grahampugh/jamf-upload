@@ -40,11 +40,13 @@ __all__ = ["JamfUploaderSlacker"]
 
 class JamfUploaderSlacker(JamfUploaderBase):
     description = (
-        "Posts to Slack via webhook based on output of a JamfPolicyUploader process. "
+        "A postprocessor for AutoPkg that will send details about a recipe run "
+        "to a Slack webhook based on the output of a JamfPolicyUploader "
+        "process."
         "Takes elements from "
         "https://gist.github.com/devStepsize/b1b795309a217d24566dcc0ad136f784 "
         "and "
-        "https://github.com/autopkg/nmcspadden-recipes/blob/master/PostProcessors/Yo.py"
+        "https://github.com/autopkg/nmcspadden-recipes/blob/master/PostProcessors/Yo.py."
     )
     input_variables = {
         "JSS_URL": {"required": False, "description": ("JSS_URL.")},

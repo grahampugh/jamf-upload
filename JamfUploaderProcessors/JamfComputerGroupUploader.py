@@ -22,8 +22,10 @@ __all__ = ["JamfComputerGroupUploader"]
 
 
 class JamfComputerGroupUploader(JamfUploaderBase):
-    """A processor for AutoPkg that will upload an item to a Jamf Cloud or on-prem server."""
-
+    description = (
+        "A processor for AutoPkg that will upload a computer group (smart or "
+        "static) to a Jamf Cloud or on-prem server."
+    )
     input_variables = {
         "JSS_URL": {
             "required": True,

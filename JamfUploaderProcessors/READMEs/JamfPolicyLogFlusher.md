@@ -2,7 +2,7 @@
 
 ## Description
 
-A processor for AutoPkg that will flush the logs of a policy on a Jamf Cloud or on-prem server.
+A processor for AutoPkg that will flush logs for a policy on a Jamf Cloud or on-prem server.
 
 ## Input variables
 
