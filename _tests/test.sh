@@ -97,7 +97,7 @@ elif [[ $test_type == "macapp" ]]; then
         --recipe-dir /Users/gpugh/sourcecode/jamf-upload/_tests \
         --name "Numbers - auto-install" \
         --clone-from "Numbers" \
-        --template "MacApp-noscope.xml" \
+        --template "MacApp-noscope-autoinstall.xml" \
         --key CATEGORY="Applications" \
         --key DEPLOYMENT_TYPE="Install Automatically/Prompt Users to Install" \
         "$verbosity" \
@@ -223,6 +223,22 @@ elif [[ $test_type == "dock" ]]; then
         "$verbosity" \
         "$url" \
         --replace
+
+# elif [[ $test_type == "icon" ]]; then
+#     # upload an icon
+#     "$DIR"/../jamf-upload.sh icon \
+#         --prefs "$prefs" \
+#         --icon-uri "https://ics.services.jamfcloud.com/icon/hash_13139b4d9732a8b2fa3bbe25e6c6373e8ef6b85a7c7ba2bd15615195d63bc648" \
+#         "$verbosity" \
+#         "$url"
+
+elif [[ $test_type == "icon" ]]; then
+    # upload an icon
+    "$DIR"/../jamf-upload.sh icon \
+        --prefs "$prefs" \
+        --icon "/tmp/Apple Configurator.png" \
+        "$verbosity" \
+        "$url"
 
 elif [[ $test_type == "slack" ]]; then
     # send a webhook to slack

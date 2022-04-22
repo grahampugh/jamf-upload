@@ -18,6 +18,7 @@ Valid object types:
     group | computergroup
     profile | computerprofile
     ea | extensionattribute
+    icon
     logflush
     macapp
     patch
@@ -71,6 +72,10 @@ Extension Attribute arguments:
     --script <path>         Full path of the script to be uploaded
     --key X=Y               Substitutable values in the template. Multiple values can be supplied
     --replace               Replace existing item
+
+Icon arguments:
+    --icon <path>           Full path to an icon file
+    --icon-uri <url>        The icon URI from https://ics.services.jamfcloud.com/icon
 
 Mac App Store App arguments:
     --name <string>         The name
@@ -213,6 +218,8 @@ elif [[ $object == "dock" || $object == "dockitem" ]]; then
     processor="JamfDockItemUploader"
 elif [[ $object == "ea" || $object == "extensionattribute" ]]; then
     processor="JamfExtensionAttributeUploader"
+elif [[ $object == "icon" ]]; then
+    processor="JamfIconUploader"
 elif [[ $object == "macapp" ]]; then
     processor="JamfMacAppUploader"
 elif [[ $object == "pkg" || $object == "package" ]]; then
@@ -530,6 +537,34 @@ while test $# -gt 0 ; do
                 fi
             fi
             ;;
+        --icon)
+            shift
+            if [[ $processor == "JamfIconUploader" ]]; then
+                if defaults write "$temp_processor_plist" icon_file "$1"; then
+                    echo "   [jamf-upload] Wrote icon_file='$1' into $temp_processor_plist"
+                fi
+            elif [[ $processor == "JamfPolicyUploader" ]]; then
+                if defaults write "$temp_processor_plist" icon "$1"; then
+                    echo "   [jamf-upload] Wrote icon='$1' into $temp_processor_plist"
+                fi
+            elif [[ $processor == "JamfUploaderSlacker" ]]; then
+                if defaults write "$temp_processor_plist" slack_icon_url "$1"; then
+                    echo "   [jamf-upload] Wrote slack_icon_url='$1' into $temp_processor_plist"
+                fi
+            elif [[ $processor == "JamfUploaderTeamsNotifier" ]]; then
+                if defaults write "$temp_processor_plist" teams_icon_url "$1"; then
+                    echo "   [jamf-upload] Wrote teams_icon_url='$1' into $temp_processor_plist"
+                fi
+            fi
+            ;;
+        --icon-uri|--icon-url)
+            shift
+            if [[ $processor == "JamfIconUploader" ]]; then
+                if defaults write "$temp_processor_plist" icon_uri "$1"; then
+                    echo "   [jamf-upload] Wrote icon_uri='$1' into $temp_processor_plist"
+                fi
+            fi
+            ;;
         --clone-from|--clone_from)
             shift
             if [[ $processor == "JamfMacAppUploader" ]]; then
@@ -674,22 +709,6 @@ while test $# -gt 0 ; do
             if [[ $processor == "JamfPatchUploader" || $processor == "JamfUploaderSlacker" || $processor == "JamfUploaderTeamsNotifier" ]]; then
                 if defaults write "$temp_processor_plist" version "$1"; then
                     echo "   [jamf-upload] Wrote version='$1' into $temp_processor_plist"
-                fi
-            fi
-            ;;
-        --icon)
-            shift
-            if [[ $processor == "JamfPolicyUploader" ]]; then
-                if defaults write "$temp_processor_plist" icon "$1"; then
-                    echo "   [jamf-upload] Wrote icon='$1' into $temp_processor_plist"
-                fi
-            elif [[ $processor == "JamfUploaderSlacker" ]]; then
-                if defaults write "$temp_processor_plist" slack_icon_url "$1"; then
-                    echo "   [jamf-upload] Wrote slack_icon_url='$1' into $temp_processor_plist"
-                fi
-            elif [[ $processor == "JamfUploaderTeamsNotifier" ]]; then
-                if defaults write "$temp_processor_plist" teams_icon_url "$1"; then
-                    echo "   [jamf-upload] Wrote teams_icon_url='$1' into $temp_processor_plist"
                 fi
             fi
             ;;

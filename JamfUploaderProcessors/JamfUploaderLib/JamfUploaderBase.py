@@ -41,6 +41,7 @@ class JamfUploaderBase(Processor):
             "extension_attribute": "JSSResource/computerextensionattributes",
             "computer_group": "JSSResource/computergroups",
             "dock_item": "JSSResource/dockitems",
+            "icon": "api/v1/icon",
             "jamf_pro_version": "api/v1/jamf-pro-version",
             "logflush": "JSSResource/logflush",
             "mac_application": "JSSResource/macapplications",
@@ -54,6 +55,7 @@ class JamfUploaderBase(Processor):
             "restricted_software": "JSSResource/restrictedsoftware",
             "script": "uapi/v1/scripts",
             "token": "api/v1/auth/token",
+            "volume_purchasing_locations": "api/v1/volume-purchasing-locations",
         }
         return api_endpoints[object_type]
 
@@ -270,10 +272,8 @@ class JamfUploaderBase(Processor):
         if url:
             curl_cmd = [
                 "/usr/bin/curl",
-                "-D",
+                "--dump-header",
                 headers_file,
-                "--output",
-                output_file,
                 url,
             ]
         else:
@@ -288,42 +288,55 @@ class JamfUploaderBase(Processor):
         # Jamf Pro API authentication
         if enc_creds:
             curl_cmd.extend(["--header", f"authorization: Basic {enc_creds}"])
+            curl_cmd.extend(["--output", output_file])
         elif token:
             curl_cmd.extend(["--header", f"authorization: Bearer {token}"])
+            curl_cmd.extend(["--output", output_file])
 
-        # set either Accept or Content-Type depending on request
-        if (request == "GET" or request == "DELETE") and "legacy/packages" not in url:
-            # 'Accept' for GET and DELETE requests
-            # By default, we obtain json as its easier to parse. However,
-            # some endpoints (For example the 'patchsoftwaretitle' endpoint)
-            # do not return complete json, so we have to get the xml instead.
+        # icon download
+        if request == "GET" and "ics.services.jamfcloud.com" in url:
+            output_file = os.path.join(tmp_dir, "icon_download.png")
+            curl_cmd.extend(["--output", output_file])
+
+        # 'Accept' for GET and DELETE requests
+        # By default, we obtain json as its easier to parse. However,
+        # some endpoints (For example the 'patchsoftwaretitle' endpoint)
+        # do not return complete json, so we have to get the xml instead.
+        elif (request == "GET" or request == "DELETE") and "legacy/packages" not in url:
+            curl_cmd.extend(["--output", output_file])
             if force_xml:
                 curl_cmd.extend(["--header", "Accept: application/xml"])
             else:
                 curl_cmd.extend(["--header", "Accept: application/json"])
 
-        # icon upload requires special method
+        # icon upload (Classic API) requires special method
         elif request == "POST" and "fileuploads" in url:
             curl_cmd.extend(["--header", "Content-type: multipart/form-data"])
             curl_cmd.extend(["--form", f"name=@{data}"])
 
+        # icon upload (Jamf Pro API) requires special method
+        elif request == "POST" and "icon" in url:
+            curl_cmd.extend(["--header", "Content-type: multipart/form-data"])
+            curl_cmd.extend(["--form", f"file=@{data};type=image/png"])
+
         # Content-Type for POST/PUT
         elif request == "POST" or request == "PUT":
-            if data:
-                if "slack" in url or "webhook.office" in url:
-                    # slack and teams require a data argument
-                    curl_cmd.extend(["--data", data])
-                    curl_cmd.extend(["--header", "Content-type: application/json"])
-                else:
-                    # jamf data upload requires upload-file argument
-                    curl_cmd.extend(["--upload-file", data])
+            if data and "slack" in url or "webhook.office" in url:
+                # slack and teams require a data argument
+                curl_cmd.extend(["--data", data])
+                curl_cmd.extend(["--header", "Content-type: application/json"])
+                curl_cmd.extend(["--output", output_file])
+            elif data:
+                # jamf data upload requires upload-file argument
+                curl_cmd.extend(["--upload-file", data])
+
             if "JSSResource" in url:
                 # Jamf Pro API and Slack posts json, but Classic API posts xml
                 curl_cmd.extend(["--header", "Content-type: application/xml"])
             elif ("/api/" in url or "/uapi/" in url) and "/file/v2/" not in url:
                 curl_cmd.extend(["--header", "Content-type: application/json"])
             # note: other endpoints should supply their headers via 'additional_headers'
-        else:
+        elif request != "GET" and request != "DELETE":
             self.output(f"WARNING: HTTP method {request} not supported")
 
         # write session for jamf requests
@@ -367,11 +380,14 @@ class JamfUploaderBase(Processor):
         except IOError:
             raise ProcessorError(f"WARNING: {headers_file} not found")
         if os.path.exists(output_file) and os.path.getsize(output_file) > 0:
-            with open(output_file, "rb") as file:
-                if "/api/" in url or "/uapi/" in url:
-                    r.output = json.load(file)
-                else:
-                    r.output = file.read()
+            if "ics.services.jamfcloud.com" in url:
+                r.output = output_file
+            else:
+                with open(output_file, "rb") as file:
+                    if "/api/" in url or "/uapi/" in url:
+                        r.output = json.load(file)
+                    else:
+                        r.output = file.read()
         else:
             self.output(f"No output from request ({output_file} not found or empty)")
         return r()
@@ -384,6 +400,8 @@ class JamfUploaderBase(Processor):
             action = "update"
         elif request == "POST":
             action = "upload"
+        elif request == "GET":
+            action = "download"
 
         if r.status_code == 200 or r.status_code == 201:
             self.output(f"{endpoint_type} '{obj_name}' {action} successful")
