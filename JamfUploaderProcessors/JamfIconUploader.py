@@ -22,7 +22,9 @@ __all__ = ["JamfIconUploader"]
 
 
 class JamfIconUploader(JamfUploaderBase):
-    """A processor for AutoPkg that will upload an icon to a Jamf Cloud or on-prem server."""
+    """A processor for AutoPkg that will upload an icon to a Jamf Cloud or on-prem server.
+    Note that an icon can only be successsfully injected into a Mac App Store app item if
+    Cloud Services Connection is enabled."""
 
     input_variables = {
         "JSS_URL": {
@@ -55,8 +57,8 @@ class JamfIconUploader(JamfUploaderBase):
     }
 
     output_variables = {
-        "icon_uri": {"description": "The created/updated category."},
-        "icon_id": {"description": "The created/updated category."},
+        "selfservice_icon_uri": {"description": "The uploaded icon's URI."},
+        "icon_id": {"description": "The cuploaded icon's ID."},
         "jamficonuploader_summary_result": {
             "description": "Description of interesting results.",
         },
@@ -71,7 +73,7 @@ class JamfIconUploader(JamfUploaderBase):
         while True:
             count += 1
             self.output(
-                f"Icon upload attempt {count}",
+                f"Icon download attempt {count}",
                 verbose_level=2,
             )
             request = "GET"
@@ -150,15 +152,19 @@ class JamfIconUploader(JamfUploaderBase):
         )
 
         # get the uri from the output
-        selfservice_icon_uri = r.output["url"]
-        icon_id = r.output["id"]
+        self.selfservice_icon_uri = r.output["url"]
+        self.icon_id = r.output["id"]
 
         # output the summary
-        self.env["selfservice_icon_uri"] = selfservice_icon_uri
+        self.env["selfservice_icon_uri"] = self.selfservice_icon_uri
+        self.env["icon_id"] = str(self.icon_id)
         self.env["jamficonuploader_summary_result"] = {
             "summary_text": "The following icons were uploaded in Jamf Pro:",
             "report_fields": ["selfservice_icon_uri", "icon_id"],
-            "data": {"selfservice_icon_uri": selfservice_icon_uri, "icon_id": icon_id},
+            "data": {
+                "selfservice_icon_uri": self.selfservice_icon_uri,
+                "icon_id": str(self.icon_id),
+            },
         }
 
 
