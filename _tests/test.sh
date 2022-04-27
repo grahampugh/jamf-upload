@@ -160,7 +160,7 @@ elif [[ $test_type == "package" || $test_type == "pkg" ]]; then
     "$DIR"/../jamf-upload.sh pkg \
         --prefs "$prefs" \
         --recipe-dir /Users/gpugh/sourcecode/jamf-upload/_tests \
-        --pkg "/Users/gpugh/Library/AutoPkg/Cache/com.github.ahousseini-recipes.pkg.Mersive Solstice/Mersive Solstice-5.3.28573.pkg" \
+        --pkg "/Users/gpugh/Library/AutoPkg/Cache/com.github.mlbz521.pkg.Solstice/Solstice-5.4.30427.pkg" \
         --category Applications \
         --info "Uploaded directly by JamfPackageUploader in JCDS mode" \
         --notes "$(date)" \

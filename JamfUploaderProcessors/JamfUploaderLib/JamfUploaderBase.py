@@ -302,12 +302,13 @@ class JamfUploaderBase(Processor):
         # By default, we obtain json as its easier to parse. However,
         # some endpoints (For example the 'patchsoftwaretitle' endpoint)
         # do not return complete json, so we have to get the xml instead.
-        elif (request == "GET" or request == "DELETE") and "legacy/packages" not in url:
+        elif request == "GET" or request == "DELETE":
             curl_cmd.extend(["--output", output_file])
-            if force_xml:
-                curl_cmd.extend(["--header", "Accept: application/xml"])
-            else:
-                curl_cmd.extend(["--header", "Accept: application/json"])
+            if "legacy/packages" not in url:
+                if force_xml:
+                    curl_cmd.extend(["--header", "Accept: application/xml"])
+                else:
+                    curl_cmd.extend(["--header", "Accept: application/json"])
 
         # icon upload (Classic API) requires special method
         elif request == "POST" and "fileuploads" in url:
@@ -321,11 +322,11 @@ class JamfUploaderBase(Processor):
 
         # Content-Type for POST/PUT
         elif request == "POST" or request == "PUT":
+            curl_cmd.extend(["--output", output_file])
             if data and "slack" in url or "webhook.office" in url:
                 # slack and teams require a data argument
                 curl_cmd.extend(["--data", data])
                 curl_cmd.extend(["--header", "Content-type: application/json"])
-                curl_cmd.extend(["--output", output_file])
             elif data:
                 # jamf data upload requires upload-file argument
                 curl_cmd.extend(["--upload-file", data])
