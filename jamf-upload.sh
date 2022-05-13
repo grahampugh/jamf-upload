@@ -199,10 +199,12 @@ processors_directory="$DIR/JamfUploaderProcessors"
 ## ARGUMENTS ##
 ###############
 
-echo "" > "$temp_processor_plist"  # ensure an empty processor at the start of the run
+rm -rf "$temp_processor_plist" # delete any existing file (or folder) at temp_processor_plist path
+/usr/libexec/PlistBuddy -c 'Clear dict' "$temp_processor_plist" # ensure an empty processor at the start of the run
+# NOTE: DO NOT use "plutil -create" to create a new empty plist since that option is only available on macOS 12 Monterey and newer.
 
 # set default for RECIPE_DIR (required for templates)
-if defaults write "$temp_processor_plist" RECIPE_DIR "."; then
+if plutil -replace RECIPE_DIR -string "." "$temp_processor_plist"; then
     echo "   [jamf-upload] Wrote RECIPE_DIR='.' into $temp_processor_plist"
 fi
 
@@ -261,102 +263,102 @@ while test $# -gt 0 ; do
         --prefs)
             shift
             autopkg_prefs="$1"
-            if defaults write "$temp_processor_plist" ''"$(defaults read "$autopkg_prefs")"''; then
+            if /usr/libexec/PlistBuddy -c 'Merge /dev/stdin' "$temp_processor_plist" <<< "$(defaults export "$autopkg_prefs" -)"; then # Existing keys in temp_processor_plist will be preserved, only non-existent keys from autopkg_prefs will be added to temp_processor_plist. Any existing duplicate keys WILL NOT be overwritten.
                 echo "   [jamf-upload] Wrote autopkg prefs into $temp_processor_plist"
             fi
             ;;
         -v*)
             verbose="${#1}"
             verbosity=$(( verbose-1 ))
-            if defaults write "$temp_processor_plist" verbose -int $verbosity; then
+            if plutil -replace verbose -integer $verbosity "$temp_processor_plist"; then
                 echo "   [jamf-upload] Wrote verbose='$verbosity' into $temp_processor_plist"
             fi
             ;;
         --url) 
             shift
-            if defaults write "$temp_processor_plist" JSS_URL "$1"; then
+            if plutil -replace JSS_URL -string "$1" "$temp_processor_plist"; then
                 echo "   [jamf-upload] Wrote JSS_URL='$1' into $temp_processor_plist"
             fi
             ;;
         --recipe-dir) 
             shift
-            if defaults write "$temp_processor_plist" RECIPE_DIR "$1"; then
+            if plutil -replace RECIPE_DIR -string "$1" "$temp_processor_plist"; then
                 echo "   [jamf-upload] Wrote RECIPE_DIR='$1' into $temp_processor_plist"
             fi
             ;;
         --user*)  
             ## allows --user or --username
             shift
-            if defaults write "$temp_processor_plist" API_USERNAME "$1"; then
+            if plutil -replace API_USERNAME -string "$1" "$temp_processor_plist"; then
                 echo "   [jamf-upload] Wrote API_USERNAME='$1' into $temp_processor_plist"
             fi
             ;;
         --pass*)  
             ## allows --pass or --password
             shift
-            if defaults write "$temp_processor_plist" API_PASSWORD "$1"; then
+            if plutil -replace API_PASSWORD -string "$1" "$temp_processor_plist"; then
                 echo "   [jamf-upload] Wrote API_PASSWORD='[redacted]' into $temp_processor_plist"
             fi
             ;;
         --priority) 
             shift
             if [[ $processor == "JamfCategoryUploader" ]]; then
-                if defaults write "$temp_processor_plist" category_priority "$1"; then
+                if plutil -replace category_priority -string "$1" "$temp_processor_plist"; then
                     echo "   [jamf-upload] Wrote category_priority='$1' into $temp_processor_plist"
                 fi
             elif [[ $processor == "JamfPackageUploader" || $processor == "JamfPackageUploaderGUI" ]]; then
-                if defaults write "$temp_processor_plist" pkg_priority "$1"; then
+                if plutil -replace pkg_priority -string "$1" "$temp_processor_plist"; then
                     echo "   [jamf-upload] Wrote pkg_priority='$1' into $temp_processor_plist"
                 fi
             elif [[ $processor == "JamfScriptUploader" ]]; then
-                if defaults write "$temp_processor_plist" script_priority "$1"; then
+                if plutil -replace script_priority -string "$1" "$temp_processor_plist"; then
                     echo "   [jamf-upload] Wrote script_priority='$1' into $temp_processor_plist"
                 fi
             fi
             ;;
         --replace) 
             if [[ $processor == "JamfCategoryUploader" ]]; then
-                if defaults write "$temp_processor_plist" replace_category "True"; then
+                if plutil -replace replace_category -string "True" "$temp_processor_plist"; then
                     echo "   [jamf-upload] Wrote replace_category='True' into $temp_processor_plist"
                 fi
             elif [[ $processor == "JamfComputerGroupUploader" ]]; then
-                if defaults write "$temp_processor_plist" replace_group "True"; then
+                if plutil -replace replace_group -string "True" "$temp_processor_plist"; then
                     echo "   [jamf-upload] Wrote replace_group='True' into $temp_processor_plist"
                 fi
             elif [[ $processor == "JamfComputerProfileUploader" ]]; then
-                if defaults write "$temp_processor_plist" replace_profile "True"; then
+                if plutil -replace replace_profile -string "True" "$temp_processor_plist"; then
                     echo "   [jamf-upload] Wrote replace_profile='True' into $temp_processor_plist"
                 fi
             elif [[ $processor == "JamfDockItemUploader" ]]; then
-                if defaults write "$temp_processor_plist" replace_dock_item "True"; then
+                if plutil -replace replace_dock_item -string "True" "$temp_processor_plist"; then
                     echo "   [jamf-upload] Wrote replace_dock_item='True' into $temp_processor_plist"
                 fi
             elif [[ $processor == "JamfExtensionAttributeUploader" ]]; then
-                if defaults write "$temp_processor_plist" replace_ea "True"; then
+                if plutil -replace replace_ea -string "True" "$temp_processor_plist"; then
                     echo "   [jamf-upload] Wrote replace_ea='True' into $temp_processor_plist"
                 fi
             elif [[ $processor == "JamfMacAppUploader" ]]; then
-                if defaults write "$temp_processor_plist" replace_macapp "True"; then
+                if plutil -replace replace_macapp -string "True" "$temp_processor_plist"; then
                     echo "   [jamf-upload] Wrote replace_macapp='True' into $temp_processor_plist"
                 fi
             elif [[ $processor == "JamfPackageUploader" || $processor == "JamfPackageUploaderGUI" ]]; then
-                if defaults write "$temp_processor_plist" replace_pkg "True"; then
+                if plutil -replace replace_pkg -string "True" "$temp_processor_plist"; then
                     echo "   [jamf-upload] Wrote replace_pkg='True' into $temp_processor_plist"
                 fi
             elif [[ $processor == "JamfPatchUploader" ]]; then
-                if defaults write "$temp_processor_plist" replace_patch "True"; then
+                if plutil -replace replace_patch -string "True" "$temp_processor_plist"; then
                     echo "   [jamf-upload] Wrote replace_patch='True' into $temp_processor_plist"
                 fi
             elif [[ $processor == "JamfPolicyUploader" ]]; then
-                if defaults write "$temp_processor_plist" replace_policy "True"; then
+                if plutil -replace replace_policy -string "True" "$temp_processor_plist"; then
                     echo "   [jamf-upload] Wrote replace_policy='True' into $temp_processor_plist"
                 fi
             elif [[ $processor == "JamfSoftwareRestrictionUploader" ]]; then
-                if defaults write "$temp_processor_plist" replace_restriction "True"; then
+                if plutil -replace replace_restriction -string "True" "$temp_processor_plist"; then
                     echo "   [jamf-upload] Wrote replace_restriction='True' into $temp_processor_plist"
                 fi
             elif [[ $processor == "JamfScriptUploader" ]]; then
-                if defaults write "$temp_processor_plist" replace_script "True"; then
+                if plutil -replace replace_script -string "True" "$temp_processor_plist"; then
                     echo "   [jamf-upload] Wrote replace_script='True' into $temp_processor_plist"
                 fi
             fi
@@ -364,51 +366,51 @@ while test $# -gt 0 ; do
         -n|--name) 
             shift
             if [[ $processor == "JamfCategoryUploader" ]]; then
-                if defaults write "$temp_processor_plist" category_name "$1"; then
+                if plutil -replace category_name -string "$1" "$temp_processor_plist"; then
                     echo "   [jamf-upload] Wrote category_name='$1' into $temp_processor_plist"
                 fi
             elif [[ $processor == "JamfComputerGroupUploader" ]]; then
-                if defaults write "$temp_processor_plist" computergroup_name "$1"; then
+                if plutil -replace computergroup_name -string "$1" "$temp_processor_plist"; then
                     echo "   [jamf-upload] Wrote computergroup_name='$1' into $temp_processor_plist"
                 fi
             elif [[ $processor == "JamfComputerProfileUploader" ]]; then
-                if defaults write "$temp_processor_plist" profile_name "$1"; then
+                if plutil -replace profile_name -string "$1" "$temp_processor_plist"; then
                     echo "   [jamf-upload] Wrote profile_name='$1' into $temp_processor_plist"
                 fi
             elif [[ $processor == "JamfDockItemUploader" ]]; then
-                if defaults write "$temp_processor_plist" dock_item_name "$1"; then
+                if plutil -replace dock_item_name -string "$1" "$temp_processor_plist"; then
                     echo "   [jamf-upload] Wrote dock_item_name='$1' into $temp_processor_plist"
                 fi
             elif [[ $processor == "JamfExtensionAttributeUploader" ]]; then
-                if defaults write "$temp_processor_plist" ea_name "$1"; then
+                if plutil -replace ea_name -string "$1" "$temp_processor_plist"; then
                     echo "   [jamf-upload] Wrote ea_name='$1' into $temp_processor_plist"
                 fi
             elif [[ $processor == "JamfMacAppUploader" ]]; then
-                if defaults write "$temp_processor_plist" macapp_name "$1"; then
+                if plutil -replace macapp_name -string "$1" "$temp_processor_plist"; then
                     echo "   [jamf-upload] Wrote macapp_name='$1' into $temp_processor_plist"
                 fi
             elif [[ $processor == "JamfPackageUploader" ]]; then
-                if defaults write "$temp_processor_plist" pkg_name "$1"; then
+                if plutil -replace pkg_name -string "$1" "$temp_processor_plist"; then
                     echo "   [jamf-upload] Wrote pkg_name='$1' into $temp_processor_plist"
                 fi
             elif [[ $processor == "JamfPatchUploader" ]]; then
-                if defaults write "$temp_processor_plist" patch_name "$1"; then
+                if plutil -replace patch_name -string "$1" "$temp_processor_plist"; then
                     echo "   [jamf-upload] Wrote patch_name='$1' into $temp_processor_plist"
                 fi
             elif [[ $processor == "JamfPolicyUploader" || $processor == "JamfPolicyDeleter" || $processor == "JamfPolicyLogFlusher" ]]; then
-                if defaults write "$temp_processor_plist" policy_name "$1"; then
+                if plutil -replace policy_name -string "$1" "$temp_processor_plist"; then
                     echo "   [jamf-upload] Wrote policy_name='$1' into $temp_processor_plist"
                 fi
             elif [[ $processor == "JamfSoftwareRestrictionUploader" ]]; then
-                if defaults write "$temp_processor_plist" restriction_name "$1"; then
+                if plutil -replace restriction_name -string "$1" "$temp_processor_plist"; then
                     echo "   [jamf-upload] Wrote restriction_name='$1' into $temp_processor_plist"
                 fi
             elif [[ $processor == "JamfScriptUploader" ]]; then
-                if defaults write "$temp_processor_plist" script_name "$1"; then
+                if plutil -replace script_name -string "$1" "$temp_processor_plist"; then
                     echo "   [jamf-upload] Wrote script_name='$1' into $temp_processor_plist"
                 fi
             elif [[ $processor == "JamfUploaderSlacker" || $processor == "JamfUploaderTeamsNotifier" ]]; then
-                if defaults write "$temp_processor_plist" NAME "$1"; then
+                if plutil -replace NAME -string "$1" "$temp_processor_plist"; then
                     echo "   [jamf-upload] Wrote NAME='$1' into $temp_processor_plist"
                 fi
             fi
@@ -416,27 +418,27 @@ while test $# -gt 0 ; do
         --template) 
             shift
             if [[ $processor == "JamfComputerGroupUploader" ]]; then
-                if defaults write "$temp_processor_plist" computergroup_template "$1"; then
+                if plutil -replace computergroup_template -string "$1" "$temp_processor_plist"; then
                     echo "   [jamf-upload] Wrote computergroup_template='$1' into $temp_processor_plist"
                 fi
             elif [[ $processor == "JamfComputerProfileUploader" ]]; then
-                if defaults write "$temp_processor_plist" profile_template "$1"; then
+                if plutil -replace profile_template -string "$1" "$temp_processor_plist"; then
                     echo "   [jamf-upload] Wrote profile_template='$1' into $temp_processor_plist"
                 fi
             elif [[ $processor == "JamfMacAppUploader" ]]; then
-                if defaults write "$temp_processor_plist" macapp_template "$1"; then
+                if plutil -replace macapp_template -string "$1" "$temp_processor_plist"; then
                     echo "   [jamf-upload] Wrote macapp_template='$1' into $temp_processor_plist"
                 fi
             elif [[ $processor == "JamfPatchUploader" ]]; then
-                if defaults write "$temp_processor_plist" patch_template "$1"; then
+                if plutil -replace patch_template -string "$1" "$temp_processor_plist"; then
                     echo "   [jamf-upload] Wrote patch_template='$1' into $temp_processor_plist"
                 fi
             elif [[ $processor == "JamfPolicyUploader" ]]; then
-                if defaults write "$temp_processor_plist" policy_template "$1"; then
+                if plutil -replace policy_template -string "$1" "$temp_processor_plist"; then
                     echo "   [jamf-upload] Wrote policy_template='$1' into $temp_processor_plist"
                 fi
             elif [[ $processor == "JamfSoftwareRestrictionUploader" ]]; then
-                if defaults write "$temp_processor_plist" restriction_template "$1"; then
+                if plutil -replace restriction_template -string "$1" "$temp_processor_plist"; then
                     echo "   [jamf-upload] Wrote restriction_template='$1' into $temp_processor_plist"
                 fi
             fi
@@ -444,7 +446,7 @@ while test $# -gt 0 ; do
         --payload)
             shift
             if [[ $processor == "JamfComputerProfileUploader" ]]; then
-                if defaults write "$temp_processor_plist" payload "$1"; then
+                if plutil -replace payload -string "$1" "$temp_processor_plist"; then
                     echo "   [jamf-upload] Wrote payload='$1' into $temp_processor_plist"
                 fi
             fi
@@ -452,7 +454,7 @@ while test $# -gt 0 ; do
         --mobileconfig)
             shift
             if [[ $processor == "JamfComputerProfileUploader" ]]; then
-                if defaults write "$temp_processor_plist" mobileconfig "$1"; then
+                if plutil -replace mobileconfig -string "$1" "$temp_processor_plist"; then
                     echo "   [jamf-upload] Wrote mobileconfig='$1' into $temp_processor_plist"
                 fi
             fi
@@ -460,7 +462,7 @@ while test $# -gt 0 ; do
         --identifier)
             shift
             if [[ $processor == "JamfComputerProfileUploader" ]]; then
-                if defaults write "$temp_processor_plist" identifier "$1"; then
+                if plutil -replace identifier -string "$1" "$temp_processor_plist"; then
                     echo "   [jamf-upload] Wrote identifier='$1' into $temp_processor_plist"
                 fi
             fi
@@ -468,15 +470,15 @@ while test $# -gt 0 ; do
         --category)
             shift
             if [[ $processor == "JamfComputerProfileUploader" ]]; then
-                if defaults write "$temp_processor_plist" profile_category "$1"; then
+                if plutil -replace profile_category -string "$1" "$temp_processor_plist"; then
                     echo "   [jamf-upload] Wrote profile_category='$1' into $temp_processor_plist"
                 fi
             elif [[ $processor == "JamfPackageUploader" ]]; then
-                if defaults write "$temp_processor_plist" pkg_category "$1"; then
+                if plutil -replace pkg_category -string "$1" "$temp_processor_plist"; then
                     echo "   [jamf-upload] Wrote pkg_category='$1' into $temp_processor_plist"
                 fi
             elif [[ $processor == "JamfScriptUploader" ]]; then
-                if defaults write "$temp_processor_plist" script_category "$1"; then
+                if plutil -replace script_category -string "$1" "$temp_processor_plist"; then
                     echo "   [jamf-upload] Wrote script_category='$1' into $temp_processor_plist"
                 fi
             fi
@@ -484,7 +486,7 @@ while test $# -gt 0 ; do
         --organization)
             shift
             if [[ $processor == "JamfComputerProfileUploader" ]]; then
-                if defaults write "$temp_processor_plist" organization "$1"; then
+                if plutil -replace organization -string "$1" "$temp_processor_plist"; then
                     echo "   [jamf-upload] Wrote organization='$1' into $temp_processor_plist"
                 fi
             fi
@@ -492,7 +494,7 @@ while test $# -gt 0 ; do
         --description)
             shift
             if [[ $processor == "JamfComputerProfileUploader" ]]; then
-                if defaults write "$temp_processor_plist" profile_description "$1"; then
+                if plutil -replace profile_description -string "$1" "$temp_processor_plist"; then
                     echo "   [jamf-upload] Wrote profile_description='$1' into $temp_processor_plist"
                 fi
             fi
@@ -500,11 +502,11 @@ while test $# -gt 0 ; do
         --computergroup)
             shift
             if [[ $processor == "JamfComputerProfileUploader" ]]; then
-                if defaults write "$temp_processor_plist" profile_computergroup "$1"; then
+                if plutil -replace profile_computergroup -string "$1" "$temp_processor_plist"; then
                     echo "   [jamf-upload] Wrote profile_computergroup='$1' into $temp_processor_plist"
                 fi
             elif [[ $processor == "JamfSoftwareRestrictionUploader" ]]; then
-                if defaults write "$temp_processor_plist" restriction_computergroup "$1"; then
+                if plutil -replace restriction_computergroup -string "$1" "$temp_processor_plist"; then
                     echo "   [jamf-upload] Wrote restriction_computergroup='$1' into $temp_processor_plist"
                 fi
             fi
@@ -512,7 +514,7 @@ while test $# -gt 0 ; do
         --path)
             shift
             if [[ $processor == "JamfDockItemUploader" ]]; then
-                if defaults write "$temp_processor_plist" dock_item_path "$1"; then
+                if plutil -replace dock_item_path -string "$1" "$temp_processor_plist"; then
                     echo "   [jamf-upload] Wrote dock_item_path='$1' into $temp_processor_plist"
                 fi
             fi
@@ -520,7 +522,7 @@ while test $# -gt 0 ; do
         --type)
             shift
             if [[ $processor == "JamfDockItemUploader" ]]; then
-                if defaults write "$temp_processor_plist" dock_item_type "$1"; then
+                if plutil -replace dock_item_type -string "$1" "$temp_processor_plist"; then
                     echo "   [jamf-upload] Wrote dock_item_type='$1' into $temp_processor_plist"
                 fi
             fi
@@ -528,11 +530,11 @@ while test $# -gt 0 ; do
         --script|--script_path)
             shift
             if [[ $processor == "JamfExtensionAttributeUploader" ]]; then
-                if defaults write "$temp_processor_plist" ea_script_path "$1"; then
+                if plutil -replace ea_script_path -string "$1" "$temp_processor_plist"; then
                     echo "   [jamf-upload] Wrote ea_script_path='$1' into $temp_processor_plist"
                 fi
             elif [[ $processor == "JamfScriptUploader" ]]; then
-                if defaults write "$temp_processor_plist" script_path "$1"; then
+                if plutil -replace script_path -string "$1" "$temp_processor_plist"; then
                     echo "   [jamf-upload] Wrote script_path='$1' into $temp_processor_plist"
                 fi
             fi
@@ -540,19 +542,19 @@ while test $# -gt 0 ; do
         --icon)
             shift
             if [[ $processor == "JamfIconUploader" ]]; then
-                if defaults write "$temp_processor_plist" icon_file "$1"; then
+                if plutil -replace icon_file -string "$1" "$temp_processor_plist"; then
                     echo "   [jamf-upload] Wrote icon_file='$1' into $temp_processor_plist"
                 fi
             elif [[ $processor == "JamfPolicyUploader" ]]; then
-                if defaults write "$temp_processor_plist" icon "$1"; then
+                if plutil -replace icon -string "$1" "$temp_processor_plist"; then
                     echo "   [jamf-upload] Wrote icon='$1' into $temp_processor_plist"
                 fi
             elif [[ $processor == "JamfUploaderSlacker" ]]; then
-                if defaults write "$temp_processor_plist" slack_icon_url "$1"; then
+                if plutil -replace slack_icon_url -string "$1" "$temp_processor_plist"; then
                     echo "   [jamf-upload] Wrote slack_icon_url='$1' into $temp_processor_plist"
                 fi
             elif [[ $processor == "JamfUploaderTeamsNotifier" ]]; then
-                if defaults write "$temp_processor_plist" teams_icon_url "$1"; then
+                if plutil -replace teams_icon_url -string "$1" "$temp_processor_plist"; then
                     echo "   [jamf-upload] Wrote teams_icon_url='$1' into $temp_processor_plist"
                 fi
             fi
@@ -560,7 +562,7 @@ while test $# -gt 0 ; do
         --icon-uri|--icon-url)
             shift
             if [[ $processor == "JamfIconUploader" ]]; then
-                if defaults write "$temp_processor_plist" icon_uri "$1"; then
+                if plutil -replace icon_uri -string "$1" "$temp_processor_plist"; then
                     echo "   [jamf-upload] Wrote icon_uri='$1' into $temp_processor_plist"
                 fi
             fi
@@ -568,7 +570,7 @@ while test $# -gt 0 ; do
         --clone-from|--clone_from)
             shift
             if [[ $processor == "JamfMacAppUploader" ]]; then
-                if defaults write "$temp_processor_plist" clone_from "$1"; then
+                if plutil -replace clone_from -string "$1" "$temp_processor_plist"; then
                     echo "   [jamf-upload] Wrote clone_from='$1' into $temp_processor_plist"
                 fi
             fi
@@ -576,7 +578,7 @@ while test $# -gt 0 ; do
         --smb_url|--smb-url)
             shift
             if [[ $processor == "JamfPackageUploader" ]]; then
-                if defaults write "$temp_processor_plist" SMB_URL "$1"; then
+                if plutil -replace SMB_URL -string "$1" "$temp_processor_plist"; then
                     echo "   [jamf-upload] Wrote SMB_URL='$1' into $temp_processor_plist"
                 fi
             fi
@@ -585,7 +587,7 @@ while test $# -gt 0 ; do
             ## allows --smb_user, --smb_username, --smb-user, --smb-username
             shift
             if [[ $processor == "JamfPackageUploader" ]]; then
-                if defaults write "$temp_processor_plist" SMB_USERNAME "$1"; then
+                if plutil -replace SMB_USERNAME -string "$1" "$temp_processor_plist"; then
                     echo "   [jamf-upload] Wrote SMB_USERNAME='$1' into $temp_processor_plist"
                 fi
             fi
@@ -594,7 +596,7 @@ while test $# -gt 0 ; do
             ## allows --smb_pass, --smb_password, --smb-pass, --smb-password
             shift
             if [[ $processor == "JamfPackageUploader" || $processor == "JamfPackageUploaderGUI" ]]; then
-                if defaults write "$temp_processor_plist" SMB_PASSWORD "$1"; then
+                if plutil -replace SMB_PASSWORD -string "$1" "$temp_processor_plist"; then
                     echo "   [jamf-upload] Wrote SMB_PASSWORD='$1' into $temp_processor_plist"
                 fi
             fi
@@ -602,7 +604,7 @@ while test $# -gt 0 ; do
         --pkg|--pkg_path)
             shift
             if [[ $processor == "JamfPackageUploader" ]]; then
-                if defaults write "$temp_processor_plist" pkg_path "$1"; then
+                if plutil -replace pkg_path -string "$1" "$temp_processor_plist"; then
                     echo "   [jamf-upload] Wrote pkg_path='$1' into $temp_processor_plist"
                 fi
             fi
@@ -610,11 +612,11 @@ while test $# -gt 0 ; do
         --info)
             shift
             if [[ $processor == "JamfPackageUploader" || $processor == "JamfPackageUploaderGUI" ]]; then
-                if defaults write "$temp_processor_plist" pkg_info "$1"; then
+                if plutil -replace pkg_info -string "$1" "$temp_processor_plist"; then
                     echo "   [jamf-upload] Wrote pkg_info='$1' into $temp_processor_plist"
                 fi
             elif [[ $processor == "JamfScriptUploader" ]]; then
-                if defaults write "$temp_processor_plist" script_info "$1"; then
+                if plutil -replace script_info -string "$1" "$temp_processor_plist"; then
                     echo "   [jamf-upload] Wrote script_info='$1' into $temp_processor_plist"
                 fi
             fi
@@ -622,18 +624,18 @@ while test $# -gt 0 ; do
         --notes)
             shift
             if [[ $processor == "JamfPackageUploader" || $processor == "JamfPackageUploaderGUI" ]]; then
-                if defaults write "$temp_processor_plist" pkg_notes "$1"; then
+                if plutil -replace pkg_notes -string "$1" "$temp_processor_plist"; then
                     echo "   [jamf-upload] Wrote pkg_notes='$1' into $temp_processor_plist"
                 fi
             elif [[ $processor == "JamfScriptUploader" ]]; then
-                if defaults write "$temp_processor_plist" script_notes "$1"; then
+                if plutil -replace script_notes -string "$1" "$temp_processor_plist"; then
                     echo "   [jamf-upload] Wrote script_notes='$1' into $temp_processor_plist"
                 fi
             fi
             ;;
         --reboot_required|--reboot-required) 
             if [[ $processor == "JamfPackageUploader" || $processor == "JamfPackageUploaderGUI" ]]; then
-                if defaults write "$temp_processor_plist" reboot_required "$1"; then
+                if plutil -replace reboot_required -string "$1" "$temp_processor_plist"; then
                     echo "   [jamf-upload] Wrote reboot_required='$1' into $temp_processor_plist"
                 fi
             fi
@@ -642,11 +644,11 @@ while test $# -gt 0 ; do
             ## allows --os_requirement, --os-requirement, --osrequirements
             shift
             if [[ $processor == "JamfPackageUploader" ]]; then
-                if defaults write "$temp_processor_plist" os_requirements "$1"; then
+                if plutil -replace os_requirements -string "$1" "$temp_processor_plist"; then
                     echo "   [jamf-upload] Wrote os_requirements='$1' into $temp_processor_plist"
                 fi
             elif [[ $processor == "JamfScriptUploader" ]]; then
-                if defaults write "$temp_processor_plist" osrequirements "$1"; then
+                if plutil -replace osrequirements -string "$1" "$temp_processor_plist"; then
                     echo "   [jamf-upload] Wrote osrequirements='$1' into $temp_processor_plist"
                 fi
             fi
@@ -654,32 +656,32 @@ while test $# -gt 0 ; do
         --required_processor|--required-processor)
             shift
             if [[ $processor == "JamfPackageUploader" ]]; then
-                if defaults write "$temp_processor_plist" required_processor "$1"; then
+                if plutil -replace required_processor -string "$1" "$temp_processor_plist"; then
                     echo "   [jamf-upload] Wrote required_processor='$1' into $temp_processor_plist"
                 fi
             fi
             ;;
         --send_notification|--send-notification) 
             if [[ $processor == "JamfPackageUploader" ]]; then
-                if defaults write "$temp_processor_plist" send_notification -string "true"; then
+                if plutil -replace send_notification -string "true" "$temp_processor_plist"; then
                     echo "   [jamf-upload] Wrote send_notification='true' into $temp_processor_plist"
                 fi
             elif [[ $processor == "JamfSoftwareRestrictionUploader" ]]; then
-                if defaults write "$temp_processor_plist" restriction_send_notification -string "true"; then
+                if plutil -replace restriction_send_notification -string "true" "$temp_processor_plist"; then
                     echo "   [jamf-upload] Wrote restriction_send_notification='true' into $temp_processor_plist"
                 fi
             fi
             ;;
         --replace_pkg_metadata|--replace-pkg-metadata) 
             if [[ $processor == "JamfPackageUploader" ]]; then
-                if defaults write "$temp_processor_plist" replace_pkg_metadata "true"; then
+                if plutil -replace replace_pkg_metadata -string "true" "$temp_processor_plist"; then
                     echo "   [jamf-upload] Wrote replace_pkg_metadata='True' into $temp_processor_plist"
                 fi
             fi
             ;;
         --jcds) 
             if [[ $processor == "JamfPackageUploader" ]]; then
-                if defaults write "$temp_processor_plist" jcds_mode "true"; then
+                if plutil -replace jcds_mode -string "true" "$temp_processor_plist"; then
                     echo "   [jamf-upload] Wrote jcds_mode='True' into $temp_processor_plist"
                 fi
             fi
@@ -687,7 +689,7 @@ while test $# -gt 0 ; do
         --title)
             shift
             if [[ $processor == "JamfPatchUploader" ]]; then
-                if defaults write "$temp_processor_plist" patch_softwaretitle "$1"; then
+                if plutil -replace patch_softwaretitle -string "$1" "$temp_processor_plist"; then
                     echo "   [jamf-upload] Wrote patch_softwaretitle='$1' into $temp_processor_plist"
                 fi
             fi
@@ -695,11 +697,11 @@ while test $# -gt 0 ; do
         --policy-name)
             shift
             if [[ $processor == "JamfPatchUploader" ]]; then
-                if defaults write "$temp_processor_plist" patch_icon_policy_name "$1"; then
+                if plutil -replace patch_icon_policy_name -string "$1" "$temp_processor_plist"; then
                     echo "   [jamf-upload] Wrote patch_icon_policy_name='$1' into $temp_processor_plist"
                 fi
             elif [[ $processor == "JamfUploaderSlacker" || $processor == "JamfUploaderTeamsNotifier" ]]; then
-                if defaults write "$temp_processor_plist" policy_name "$1"; then
+                if plutil -replace policy_name -string "$1" "$temp_processor_plist"; then
                     echo "   [jamf-upload] Wrote policy_name='$1' into $temp_processor_plist"
                 fi
             fi
@@ -707,14 +709,14 @@ while test $# -gt 0 ; do
         --version) 
             shift
             if [[ $processor == "JamfPatchUploader" || $processor == "JamfUploaderSlacker" || $processor == "JamfUploaderTeamsNotifier" ]]; then
-                if defaults write "$temp_processor_plist" version "$1"; then
+                if plutil -replace version -string "$1" "$temp_processor_plist"; then
                     echo "   [jamf-upload] Wrote version='$1' into $temp_processor_plist"
                 fi
             fi
             ;;
         --replace_icon|--replace-icon) 
             if [[ $processor == "JamfPolicyUploader" ]]; then
-                if defaults write "$temp_processor_plist" replace_icon "True"; then
+                if plutil -replace replace_icon -string "True" "$temp_processor_plist"; then
                     echo "   [jamf-upload] Wrote replace_icon='True' into $temp_processor_plist"
                 fi
             fi
@@ -722,7 +724,7 @@ while test $# -gt 0 ; do
         --interval)
             shift
             if [[ $processor == "JamfPolicyLogFlusher" ]]; then
-                if defaults write "$temp_processor_plist" logflush_interval "$1"; then
+                if plutil -replace logflush_interval -string "$1" "$temp_processor_plist"; then
                     echo "   [jamf-upload] Wrote logflush_interval='$1' into $temp_processor_plist"
                 fi
             fi
@@ -731,7 +733,7 @@ while test $# -gt 0 ; do
             param_number="${key_value_pair#--script_parameter}"
             shift
             if [[ $processor == "JamfScriptUploader" ]]; then
-                if defaults write "$temp_processor_plist" "script_parameter$param_number" "$1"; then
+                if plutil -replace "script_parameter$param_number" -string "$1" "$temp_processor_plist"; then
                     echo "   [jamf-upload] Wrote script_parameter$param_number='$1' into $temp_processor_plist"
                 fi
             fi
@@ -739,7 +741,7 @@ while test $# -gt 0 ; do
         --process_name|--process-name) 
             shift
             if [[ $processor == "JamfSoftwareRestrictionUploader" ]]; then
-                if defaults write "$temp_processor_plist" process_name "$1"; then
+                if plutil -replace process_name -string "$1" "$temp_processor_plist"; then
                     echo "   [jamf-upload] Wrote process_name='$1' into $temp_processor_plist"
                 fi
             fi
@@ -747,28 +749,28 @@ while test $# -gt 0 ; do
         --display_message|--display-message) 
             shift
             if [[ $processor == "JamfSoftwareRestrictionUploader" ]]; then
-                if defaults write "$temp_processor_plist" display_message "$1"; then
+                if plutil -replace display_message -string "$1" "$temp_processor_plist"; then
                     echo "   [jamf-upload] Wrote display_message='$1' into $temp_processor_plist"
                 fi
             fi
             ;;
         --match_exact_process_name|--match-exact-process-name) 
             if [[ $processor == "JamfSoftwareRestrictionUploader" ]]; then
-                if defaults write "$temp_processor_plist" match_exact_process_name -string "true"; then
+                if plutil -replace match_exact_process_name -string "true" "$temp_processor_plist"; then
                     echo "   [jamf-upload] Wrote match_exact_process_name='true' into $temp_processor_plist"
                 fi
             fi
             ;;
         --kill_process|--kill-process) 
             if [[ $processor == "JamfSoftwareRestrictionUploader" ]]; then
-                if defaults write "$temp_processor_plist" kill_process -string "true"; then
+                if plutil -replace kill_process -string "true" "$temp_processor_plist"; then
                     echo "   [jamf-upload] Wrote kill_process='true' into $temp_processor_plist"
                 fi
             fi
             ;;
         --delete_executable|--delete-executable) 
             if [[ $processor == "JamfSoftwareRestrictionUploader" ]]; then
-                if defaults write "$temp_processor_plist" delete_executable -string "true"; then
+                if plutil -replace delete_executable -string "true" "$temp_processor_plist"; then
                     echo "   [jamf-upload] Wrote delete_executable='true' into $temp_processor_plist"
                 fi
             fi
@@ -776,7 +778,7 @@ while test $# -gt 0 ; do
         --pkg-category)
             shift
             if [[ $processor == "JamfUploaderSlacker" || $processor == "JamfUploaderTeamsNotifier" ]]; then
-                if defaults write "$temp_processor_plist" PKG_CATEGORY "$1"; then
+                if plutil -replace PKG_CATEGORY -string "$1" "$temp_processor_plist"; then
                     echo "   [jamf-upload] Wrote PKG_CATEGORY='$1' into $temp_processor_plist"
                 fi
             fi
@@ -784,7 +786,7 @@ while test $# -gt 0 ; do
         --policy-category)
             shift
             if [[ $processor == "JamfUploaderSlacker" || $processor == "JamfUploaderTeamsNotifier" ]]; then
-                if defaults write "$temp_processor_plist" POLICY_CATEGORY "$1"; then
+                if plutil -replace POLICY_CATEGORY -string "$1" "$temp_processor_plist"; then
                     echo "   [jamf-upload] Wrote POLICY_CATEGORY='$1' into $temp_processor_plist"
                 fi
             fi
@@ -792,28 +794,28 @@ while test $# -gt 0 ; do
         --pkg-name) 
             shift
             if [[ $processor == "JamfUploaderSlacker" || $processor == "JamfUploaderTeamsNotifier" || $processor == "JamfPatchUploader" ]]; then
-                if defaults write "$temp_processor_plist" pkg_name "$1"; then
+                if plutil -replace pkg_name -string "$1" "$temp_processor_plist"; then
                     echo "   [jamf-upload] Wrote pkg_name='$1' into $temp_processor_plist"
                 fi
             fi
            ;;
         --patch-uploaded) 
             if [[ $processor == "JamfUploaderTeamsNotifier" ]]; then
-                if defaults write "$temp_processor_plist" jamfpatchuploader_summary_result -string "true"; then
+                if plutil -replace jamfpatchuploader_summary_result -string "true" "$temp_processor_plist"; then
                     echo "   [jamf-upload] Wrote jamfpatchuploader_summary_result='true' into $temp_processor_plist"
                 fi
             fi
             ;;
         --pkg-uploaded) 
             if [[ $processor == "JamfUploaderSlacker" || $processor == "JamfUploaderTeamsNotifier" ]]; then
-                if defaults write "$temp_processor_plist" jamfpackageuploader_summary_result -string "true"; then
+                if plutil -replace jamfpackageuploader_summary_result -string "true" "$temp_processor_plist"; then
                     echo "   [jamf-upload] Wrote jamfpackageuploader_summary_result='true' into $temp_processor_plist"
                 fi
             fi
             ;;
         --policy-uploaded) 
             if [[ $processor == "JamfUploaderSlacker" || $processor == "JamfUploaderTeamsNotifier" ]]; then
-                if defaults write "$temp_processor_plist" jamfpolicyuploader_summary_result -string "true"; then
+                if plutil -replace jamfpolicyuploader_summary_result -string "true" "$temp_processor_plist"; then
                     echo "   [jamf-upload] Wrote jamfpolicyuploader_summary_result='true' into $temp_processor_plist"
                 fi
             fi
@@ -821,7 +823,7 @@ while test $# -gt 0 ; do
         --slack-url) 
             shift
             if [[ $processor == "JamfUploaderSlacker" ]]; then
-                if defaults write "$temp_processor_plist" slack_webhook_url "$1"; then
+                if plutil -replace slack_webhook_url -string "$1" "$temp_processor_plist"; then
                     echo "   [jamf-upload] Wrote slack_webhook_url='$1' into $temp_processor_plist"
                 fi
             fi
@@ -829,7 +831,7 @@ while test $# -gt 0 ; do
         --slack-user) 
             shift
             if [[ $processor == "JamfUploaderSlacker" ]]; then
-                if defaults write "$temp_processor_plist" slack_username "$1"; then
+                if plutil -replace slack_username -string "$1" "$temp_processor_plist"; then
                     echo "   [jamf-upload] Wrote slack_username='$1' into $temp_processor_plist"
                 fi
             fi
@@ -837,7 +839,7 @@ while test $# -gt 0 ; do
         --channel) 
             shift
             if [[ $processor == "JamfUploaderSlacker" ]]; then
-                if defaults write "$temp_processor_plist" slack_channel "$1"; then
+                if plutil -replace slack_channel -string "$1" "$temp_processor_plist"; then
                     echo "   [jamf-upload] Wrote slack_channel='$1' into $temp_processor_plist"
                 fi
             fi
@@ -845,7 +847,7 @@ while test $# -gt 0 ; do
         --emoji) 
             shift
             if [[ $processor == "JamfUploaderSlacker" ]]; then
-                if defaults write "$temp_processor_plist" slack_icon_emoji "$1"; then
+                if plutil -replace slack_icon_emoji -string "$1" "$temp_processor_plist"; then
                     echo "   [jamf-upload] Wrote slack_icon_emoji='$1' into $temp_processor_plist"
                 fi
             fi
@@ -853,7 +855,7 @@ while test $# -gt 0 ; do
         --teams-url) 
             shift
             if [[ $processor == "JamfUploaderTeamsNotifier" ]]; then
-                if defaults write "$temp_processor_plist" teams_webhook_url "$1"; then
+                if plutil -replace teams_webhook_url -string "$1" "$temp_processor_plist"; then
                     echo "   [jamf-upload] Wrote teams_webhook_url='$1' into $temp_processor_plist"
                 fi
             fi
@@ -861,7 +863,7 @@ while test $# -gt 0 ; do
         --teams-user) 
             shift
             if [[ $processor == "JamfUploaderTeamsNotifier" ]]; then
-                if defaults write "$temp_processor_plist" teams_username "$1"; then
+                if plutil -replace teams_username -string "$1" "$temp_processor_plist"; then
                     echo "   [jamf-upload] Wrote teams_username='$1' into $temp_processor_plist"
                 fi
             fi
@@ -869,7 +871,7 @@ while test $# -gt 0 ; do
         --patch_name) 
             shift
             if [[ $processor == "JamfUploaderTeamsNotifier" ]]; then
-                if defaults write "$temp_processor_plist" patch_name "$1"; then
+                if plutil -replace patch_name -string "$1" "$temp_processor_plist"; then
                     echo "   [jamf-upload] Wrote patch_name='$1' into $temp_processor_plist"
                 fi
             fi
@@ -879,7 +881,7 @@ while test $# -gt 0 ; do
             key_value_pair="$1"
             key="${key_value_pair%%=*}"
             value="${key_value_pair#$key=}"
-            if defaults write "$temp_processor_plist" "$key" "$value"; then
+            if plutil -replace "$key" -string "$value" "$temp_processor_plist"; then
                 echo "   [jamf-upload] Wrote '$key'='$value' into $temp_processor_plist"
             fi
             ;;
