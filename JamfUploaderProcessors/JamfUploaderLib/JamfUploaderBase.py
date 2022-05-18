@@ -311,12 +311,12 @@ class JamfUploaderBase(Processor):
                     curl_cmd.extend(["--header", "Accept: application/json"])
 
         # icon upload (Classic API) requires special method
-        elif request == "POST" and "fileuploads" in url:
+        elif request == "POST" and self.api_endpoints("policy_icon") in url:
             curl_cmd.extend(["--header", "Content-type: multipart/form-data"])
             curl_cmd.extend(["--form", f"name=@{data}"])
 
         # icon upload (Jamf Pro API) requires special method
-        elif request == "POST" and "icon" in url:
+        elif request == "POST" and self.api_endpoints("icon") in url:
             curl_cmd.extend(["--header", "Content-type: multipart/form-data"])
             curl_cmd.extend(["--form", f"file=@{data};type=image/png"])
 
@@ -345,7 +345,7 @@ class JamfUploaderBase(Processor):
             "/api/" in url
             or "/uapi/" in url
             or "JSSResource" in url
-            or "dbfileupload" in url
+            or self.api_endpoints("package_upload") in url
             or "legacy/packages" in url
         ):
             curl_cmd.extend(["--cookie-jar", cookie_jar])
