@@ -11,6 +11,7 @@ Developed from an idea posted at
 
 import os
 import re
+import shutil
 import sys
 import hashlib
 import json
@@ -19,7 +20,8 @@ import xml.etree.ElementTree as ElementTree
 
 from shutil import copyfile
 from time import sleep
-from zipfile import ZipFile, ZIP_DEFLATED
+
+# from zipfile import ZipFile, ZIP_DEFLATED
 from urllib.parse import urlparse, quote, quote_plus
 from xml.sax.saxutils import escape
 from autopkglib import ProcessorError  # pylint: disable=import-error
@@ -254,7 +256,7 @@ class JamfPackageUploader(JamfUploaderBase):
         else:
             self.output("Package copy failed")
 
-    def zip_pkg_path(self, bundle_path):
+    def zip_pkg_path(self, bundle_path, recipe_cache_dir):
         """Add files from path to a zip file handle.
 
         Args:
@@ -263,21 +265,20 @@ class JamfPackageUploader(JamfUploaderBase):
         Returns:
             (str) name of resulting zip file.
         """
-        zip_name = f"{bundle_path}.zip"
 
-        if os.path.exists(zip_name):
+        if os.path.exists(f"{bundle_path}.zip"):
             self.output("Package object is a bundle. Zipped archive already exists.")
-            return zip_name
+            return f"{bundle_path}.zip"
 
-        self.output("Package object is a bundle. Converting to zip...")
-        with ZipFile(zip_name, "w", ZIP_DEFLATED, allowZip64=True) as zip_handle:
-            for root, _, files in os.walk(bundle_path):
-                for member in files:
-                    zip_handle.write(os.path.join(root, member))
-            self.output(
-                f"Closing: {zip_name}",
-                verbose_level=2,
-            )
+        self.output(
+            f"Package object is a bundle. Converting to zip, will be placed at {recipe_cache_dir}"
+        )
+        zip_name = shutil.make_archive(
+            bundle_path,
+            "zip",
+            bundle_path,
+        )
+        self.output(f"Zip file {zip_name} created.")
         return zip_name
 
     def check_pkg(self, pkg_name, jamf_url, enc_creds="", token=""):
@@ -614,6 +615,7 @@ class JamfPackageUploader(JamfUploaderBase):
         self.smb_url = self.env.get("SMB_URL")
         self.smb_user = self.env.get("SMB_USERNAME")
         self.smb_password = self.env.get("SMB_PASSWORD")
+        self.recipe_cache_dir = self.env.get("RECIPE_CACHE_DIR")
         self.pkg_uploaded = False
         self.pkg_metadata_updated = False
 
@@ -646,7 +648,7 @@ class JamfPackageUploader(JamfUploaderBase):
         # If that doesn't exist, it will create the zip and return the pkg_path with .zip added
         # In that case, we need to add .zip to the pkg_name key too, if we don't already have it
         if os.path.isdir(self.pkg_path):
-            self.pkg_path = self.zip_pkg_path(self.pkg_path)
+            self.pkg_path = self.zip_pkg_path(self.pkg_path, self.recipe_cache_dir)
             if ".zip" not in self.pkg_name:
                 self.pkg_name += ".zip"
 
