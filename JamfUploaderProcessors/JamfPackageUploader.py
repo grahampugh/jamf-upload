@@ -266,18 +266,37 @@ class JamfPackageUploader(JamfUploaderBase):
             (str) name of resulting zip file.
         """
 
-        if os.path.exists(f"{bundle_path}.zip"):
-            self.output("Package object is a bundle. Zipped archive already exists.")
-            return f"{bundle_path}.zip"
+        zip_name = f"{bundle_path}.zip"
 
+        if os.path.exists(zip_name):
+            self.output("Package object is a bundle. Zipped archive already exists.")
+            return zip_name
+
+        # we need to create a zip that contains the package (not just the contents of the package)
+        # to do this, me copy the package into it's own folder, and then zip that folder.
         self.output(
             f"Package object is a bundle. Converting to zip, will be placed at {recipe_cache_dir}"
         )
-        zip_name = shutil.make_archive(
-            bundle_path,
+        pkg_basename = os.path.basename(bundle_path)
+        # make a subdirectory
+        pkg_dir = os.path.join(recipe_cache_dir, "temp", "pkg")
+        os.makedirs(pkg_dir, mode=0o777)
+        # copy the package into pkg_dir
+        shutil.copytree(bundle_path, os.path.join(pkg_dir, pkg_basename))
+        # now rename pkg_dir to the package name (I know, weird)
+        temp_dir = os.path.join(recipe_cache_dir, "temp", pkg_basename)
+        shutil.move(pkg_dir, temp_dir)
+        # now make the zip archive
+        zip_path = shutil.make_archive(
+            temp_dir,
             "zip",
-            bundle_path,
+            temp_dir,
         )
+        # move it to the recipe_cache_dir
+        shutil.move(zip_path, zip_name)
+        # clean up
+        shutil.rmtree(os.path.join(recipe_cache_dir, "temp"))
+
         self.output(f"Zip file {zip_name} created.")
         return zip_name
 
