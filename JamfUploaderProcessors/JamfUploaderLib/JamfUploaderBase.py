@@ -359,7 +359,7 @@ class JamfUploaderBase(Processor):
                 )
         # insecure mode
         if self.env.get("insecure_mode"):
-            curl_cmd.insert(0, "--insecure")
+            curl_cmd.insert(1, "--insecure")
         # additional headers for advanced requests
         if additional_headers:
             curl_cmd.extend(additional_headers)
