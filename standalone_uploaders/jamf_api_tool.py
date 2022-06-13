@@ -44,7 +44,7 @@ def handle_computers(jamf_url, enc_creds, args, slack_webhook, verbosity):
     compliant = []
 
     if args.all:
-        """ fill up computers []"""
+        """fill up computers []"""
         obj = api_get.get_api_obj_list(jamf_url, "computer", enc_creds, verbosity)
 
         try:
@@ -58,14 +58,14 @@ def handle_computers(jamf_url, enc_creds, args, slack_webhook, verbosity):
         print(f"{len(computers)} computers found on {jamf_url}")
 
     for x in computers:
-        """ load full computer info now """
+        """load full computer info now"""
         print(f"...loading info for computer {x}")
         obj = api_get.get_api_obj_value_from_id(
             jamf_url, "computer", x, "", enc_creds, verbosity
         )
 
         if obj:
-            """ this is now computer object """
+            """this is now computer object"""
             try:
                 macos = obj["hardware"]["os_version"]
                 name = obj["general"]["name"]
@@ -125,7 +125,7 @@ def handle_computers(jamf_url, enc_creds, args, slack_webhook, verbosity):
     print(bcolors.OKCYAN + "Loading complete...\n\nSummary:" + bcolors.ENDC)
 
     if args.os:
-        """ summarise os """
+        """summarise os"""
         if compliant:
             print(f"{len(compliant)} compliant and recent:")
             for x in compliant:
@@ -139,7 +139,7 @@ def handle_computers(jamf_url, enc_creds, args, slack_webhook, verbosity):
             for x in old_computers:
                 print(bcolors.FAIL + x + bcolors.ENDC)
     else:
-        """ regular summary """
+        """regular summary"""
         print(f"{len(recent_computers)} last check-in within the past 10 days")
         for x in recent_computers:
             print(bcolors.OKGREEN + x + bcolors.ENDC)
@@ -464,7 +464,7 @@ def handle_scripts(jamf_url, enc_creds, token, args, verbosity):
     unused_scripts = {}
     used_scripts = {}
     if args.unused:
-        #  get a list of scripts in policies
+        # get a list of scripts in policies
         scripts_in_policies = api_get.get_scripts_in_policies(
             jamf_url, enc_creds, verbosity
         )
@@ -698,7 +698,7 @@ def handle_groups(jamf_url, enc_creds, args, verbosity):
         groups_in_patch_policies = api_get.get_groups_in_patch_policies(
             jamf_url, enc_creds, verbosity
         )
-        #  look in the scope of restricted software
+        # look in the scope of restricted software
         groups_in_restricted_software = api_get.get_groups_in_api_objs(
             jamf_url, enc_creds, "restricted_software", verbosity
         )
