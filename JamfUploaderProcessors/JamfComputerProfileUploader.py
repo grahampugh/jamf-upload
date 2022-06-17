@@ -266,6 +266,14 @@ class JamfComputerProfileUploader(JamfUploaderBase):
             template_contents, replaceable_keys, xml_escape=True
         )
 
+        self.output(
+            "Configuration Profile with intermediate substitution:", verbose_level=2
+        )
+        self.output(template_contents, verbose_level=2)
+
+        # substitute user-assignable keys
+        template_contents = self.substitute_assignable_keys(template_contents)
+
         self.output("Configuration Profile to be uploaded:", verbose_level=2)
         self.output(template_contents, verbose_level=2)
 
@@ -451,7 +459,11 @@ class JamfComputerProfileUploader(JamfUploaderBase):
         obj_type = "os_x_configuration_profile"
         obj_name = mobileconfig_name
         obj_id = self.get_api_obj_id_from_name(
-            self.jamf_url, obj_name, obj_type, enc_creds=send_creds, token=token,
+            self.jamf_url,
+            obj_name,
+            obj_type,
+            enc_creds=send_creds,
+            token=token,
         )
         if obj_id:
             self.output(

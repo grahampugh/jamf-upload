@@ -51,7 +51,7 @@ elif [[ $test_type == "profile" ]]; then
         --prefs "$prefs" \
         --name "Carbon Copy Cloner" \
         --recipe-dir /Users/gpugh/sourcecode/jamf-upload/_tests \
-        --template ProfileTemplate-test-users.xml \
+        --template ProfileTemplate-1-group-1-exclusion.xml \
         --payload com.bombich.ccc.plist \
         --identifier com.bombich.ccc \
         --category JamfUploadTest \
@@ -64,6 +64,7 @@ elif [[ $test_type == "profile" ]]; then
         --key REGISTRATION_EMAIL="yes@yes.com" \
         --key REGISTRATION_NAME="ETH License Administration" \
         --key REGISTRATION_PRODUCT_NAME='Carbon Copy Cloner 6 Volume License' \
+        --key EXCLUSION_GROUP_NAME="Firefox test users" \
         --replace
 
 elif [[ $test_type == "ea" ]]; then

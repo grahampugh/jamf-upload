@@ -529,6 +529,39 @@ class JamfUploaderBase(Processor):
                     raise ProcessorError("Unsubstitutable key in template found")
         return data
 
+    def substitute_limited_assignable_keys(
+        self, data, cli_custom_keys, xml_escape=False
+    ):
+        """substitutes any key in the inputted text using the %MY_KEY% nomenclature, limited to
+        an assigned set of replacement keys. This can be used in advance of using
+        substitute_assignable_keys, to ensure that a specific set of keys are substituted in the
+        right order.
+        Whenever %MY_KEY% is found in the provided data, it is replaced with the assigned
+        value of MY_KEY. A five-times pass-through is done to ensure that all keys are substituted.
+
+        Optionally, if the xml_escape key is set, the value is escaped for XML special characters.
+        This is designed primarily to account for ampersands in the substituted strings."""
+        loop = 5
+        while loop > 0:
+            loop = loop - 1
+            found_keys = re.findall(r"\%\w+\%", data)
+            if not found_keys:
+                break
+            found_keys = [i.replace("%", "") for i in found_keys]
+            for found_key in found_keys:
+                if cli_custom_keys.get(found_key):
+                    self.output(
+                        f"Replacing any instances of '{found_key}' with "
+                        f"'{str(cli_custom_keys[found_key])}'",
+                        verbose_level=2,
+                    )
+                    if xml_escape:
+                        replacement_key = escape(cli_custom_keys[found_key])
+                    else:
+                        replacement_key = cli_custom_keys[found_key]
+                    data = data.replace(f"%{found_key}%", replacement_key)
+        return data
+
     def get_path_to_file(self, filename):
         """Find a file in a recipe without requiring a path. Looks in the following places
         in the following order:
@@ -636,40 +669,6 @@ class JamfUploaderBase(Processor):
                     "Value of '{}': {}".format(obj_path, value), verbose_level=2
                 )
             return value
-
-    def substitute_limited_assignable_keys(
-        self, data, cli_custom_keys, xml_escape=False
-    ):
-        """substitutes any key in the inputted text using the %MY_KEY% nomenclature.
-        Whenever %MY_KEY% is found in the provided data, it is replaced with the assigned
-        value of MY_KEY. A five-times passa through is done to ensure that all keys are substituted.
-
-        Optionally, if the xml_escape key is set, the value is escaped for XML special characters.
-        This is designed primarily to account for ampersands in the substituted strings."""
-        loop = 5
-        while loop > 0:
-            loop = loop - 1
-            found_keys = re.findall(r"\%\w+\%", data)
-            if not found_keys:
-                break
-            found_keys = [i.replace("%", "") for i in found_keys]
-            for found_key in found_keys:
-                if cli_custom_keys[found_key]:
-                    self.output(
-                        f"Replacing any instances of '{found_key}' with "
-                        f"'{str(cli_custom_keys[found_key])}'",
-                        verbose_level=2,
-                    )
-                    if xml_escape:
-                        replacement_key = escape(cli_custom_keys[found_key])
-                    else:
-                        replacement_key = cli_custom_keys[found_key]
-                    data = data.replace(f"%{found_key}%", replacement_key)
-                else:
-                    self.output(
-                        f"WARNING: '{found_key}' has no replacement object!",
-                    )
-        return data
 
     def pretty_print_xml(self, xml):
         proc = subprocess.Popen(
