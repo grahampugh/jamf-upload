@@ -381,8 +381,10 @@ class JamfPatchUploader(JamfUploaderBase):
             else:
                 # Name was given, but no matching id could be found
                 self.output(
-                    f"No policy with the given name '{self.patch_icon_policy_name}' was found.",
-                    "Not able to extract an icon. Continuing...",
+                    (
+                        f"No policy with the given name '{self.patch_icon_policy_name}' was found."
+                        "Not able to extract an icon. Continuing..."
+                    )
                 )
         else:
             self.patch_icon_policy_id = 0
