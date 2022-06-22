@@ -102,6 +102,7 @@ Package arguments:
                             Set CPU type requirement for the pkg
     --send-notification     Set to send a notification when the package is installed
     --replace-pkg-metadata  Set to replace the pkg metadata if no package is uploaded
+    --skip-metadata-upload  Set to skip pkg metadata upload
     --replace               Replace existing item
     --jcds                  Use v3 API for package upload to JCDS 
 
@@ -676,6 +677,13 @@ while test $# -gt 0 ; do
             if [[ $processor == "JamfPackageUploader" ]]; then
                 if plutil -replace replace_pkg_metadata -string "true" "$temp_processor_plist"; then
                     echo "   [jamf-upload] Wrote replace_pkg_metadata='True' into $temp_processor_plist"
+                fi
+            fi
+            ;;
+        --skip_metadata_upload|--skip-metadata-upload) 
+            if [[ $processor == "JamfPackageUploader" ]]; then
+                if plutil -replace skip_metadata_upload -string "true" "$temp_processor_plist"; then
+                    echo "   [jamf-upload] Wrote skip_metadata_upload='True' into $temp_processor_plist"
                 fi
             fi
             ;;

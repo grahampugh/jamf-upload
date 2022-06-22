@@ -124,6 +124,12 @@ class JamfPackageUploader(JamfUploaderBase):
             "even if the package object is not re-uploaded.",
             "default": "False",
         },
+        "skip_metadata_upload": {
+            "required": False,
+            "description": "Skip processing package metadata and continue if True. "
+            "Designed for organisations where amending packages is not allowed.",
+            "default": "False",
+        },
         "JSS_URL": {
             "required": True,
             "description": "URL to a Jamf Pro server that the API user has write access "
@@ -624,6 +630,10 @@ class JamfPackageUploader(JamfUploaderBase):
         # handle setting replace_metadata in overrides
         if not self.replace_metadata or self.replace_metadata == "False":
             self.replace_metadata = False
+        self.skip_metadata_upload = self.env.get("skip_metadata_upload")
+        # handle setting replace_metadata in overrides
+        if not self.skip_metadata_upload or self.skip_metadata_upload == "False":
+            self.skip_metadata_upload = False
         self.jcds_mode = self.env.get("jcds_mode")
         # handle setting jcds_mode in overrides
         if not self.jcds_mode or self.jcds_mode == "False":
@@ -838,6 +848,7 @@ class JamfPackageUploader(JamfUploaderBase):
             int(pkg_id) > 0
             and (self.pkg_uploaded or self.replace_metadata)
             and not self.jcds_mode
+            and not self.skip_metadata_upload
         ):
             self.output(
                 "Updating package metadata for {}".format(pkg_id),
@@ -867,7 +878,7 @@ class JamfPackageUploader(JamfUploaderBase):
                 token=token,
             )
             self.pkg_metadata_updated = True
-        elif not self.jcds_mode:
+        elif not self.jcds_mode and not self.skip_metadata_upload:
             self.output(
                 "Not updating package metadata",
                 verbose_level=1,

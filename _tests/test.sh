@@ -156,20 +156,30 @@ elif [[ $test_type == "restriction" ]]; then
         "$url" \
         --replace
 
+# elif [[ $test_type == "package" || $test_type == "pkg" ]]; then
+#     # upload a package
+#     "$DIR"/../jamf-upload.sh pkg \
+#         --prefs "$prefs" \
+#         --recipe-dir /Users/gpugh/sourcecode/jamf-upload/_tests \
+#         --pkg "/Users/gpugh/Library/AutoPkg/Cache/com.github.mlbz521.pkg.Solstice/Solstice-5.4.30427.pkg" \
+#         --category Applications \
+#         --info "Uploaded directly by JamfPackageUploader in JCDS mode" \
+#         --notes "$(date)" \
+#         "$verbosity" \
+#         "$url" \
+#         --jcds \
+#         --replace
+
 elif [[ $test_type == "package" || $test_type == "pkg" ]]; then
     # upload a package
     "$DIR"/../jamf-upload.sh pkg \
         --prefs "$prefs" \
         --recipe-dir /Users/gpugh/sourcecode/jamf-upload/_tests \
-        --pkg "/Users/gpugh/Library/AutoPkg/Cache/com.github.mlbz521.pkg.Solstice/Solstice-5.4.30427.pkg" \
-        --category Applications \
-        --info "Uploaded directly by JamfPackageUploader in JCDS mode" \
-        --notes "$(date)" \
+        --pkg "/Users/gpugh/Library/AutoPkg/Cache/com.github.eth-its-recipes.pkg.DisplayLinkManager/DisplayLink_Manager-5.9.135.0.pkg" \
         "$verbosity" \
         "$url" \
-        --jcds \
-        --replace
-    
+        --skip-metadata-upload
+
 elif [[ $test_type == "script" ]]; then
     # upload a script
     "$DIR"/../jamf-upload.sh script \
