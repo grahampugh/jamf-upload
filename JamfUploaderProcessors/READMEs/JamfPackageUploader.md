@@ -53,6 +53,10 @@ Can be run as a post-processor for a pkg recipe or in a child recipe. The pkg re
   - **required:** False
   - **description:** Overwrite existing package metadata and continue if True, even if the package object is not re-uploaded.
   - **default:** False
+- **skip_metadata_upload:**
+  - **required:** False
+  - **description:** For Jamf Cloud customers, skip the upload of package metadata. This allows a new package to be uploaded but will not write any metadata such as SHA512 hash, category, info, etc. This allows upload of packages with just `create` and `read` privileges on package objects (otherwise `update` rights are also required). Not for use by self-hosted Jamf customers, and not relevant in conjunction with `jcds_mode`. Note that `replace_package` key is not functional if `skip_metadata_upload` is set.
+  - **default:** False
 - **jcds_mode:**
   - **required:** False
   - **description:** Upload package using JCDS mode.
