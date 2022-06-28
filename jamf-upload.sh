@@ -14,6 +14,7 @@ Usage:
 ./jamf-upload.sh [object_type] [--help] [arguments]
 
 Valid object types:
+    account
     category
     group | computergroup
     profile | computerprofile
@@ -36,6 +37,13 @@ Arguments:
     --user <API_USERNAME>   The API username
     --pass <API_PASSWORD>   The API user's password
     --recipe-dir <RECIPE_DIR>
+
+Account arguments:
+    --name <string>         The name
+    --type <string>         The account type. Must be 'user' or 'group'.
+    --template <path>       XML template
+    --key X=Y               Substitutable values in the template. Multiple values can be supplied
+    --replace               Replace existing item
 
 Category arguments:
     --name <string>         The name
@@ -211,7 +219,9 @@ fi
 
 
 object="$1"
-if [[ $object == "category" ]]; then 
+if [[ $object == "account" ]]; then 
+    processor="JamfAccountUploader"
+elif [[ $object == "category" ]]; then 
     processor="JamfCategoryUploader"
 elif [[ $object == "group" || $object == "computergroup" ]]; then
     processor="JamfComputerGroupUploader"
@@ -301,6 +311,18 @@ while test $# -gt 0 ; do
                 echo "   [jamf-upload] Wrote API_PASSWORD='[redacted]' into $temp_processor_plist"
             fi
             ;;
+        --type)
+            shift
+            if [[ $processor == "JamfAccountUploader" ]]; then
+                if plutil -replace account_type -string "$1" "$temp_processor_plist"; then
+                    echo "   [jamf-upload] Wrote account_type='$1' into $temp_processor_plist"
+                fi
+            elif [[ $processor == "JamfDockItemUploader" ]]; then
+                if plutil -replace dock_item_type -string "$1" "$temp_processor_plist"; then
+                    echo "   [jamf-upload] Wrote dock_item_type='$1' into $temp_processor_plist"
+                fi
+            fi
+            ;;
         --priority) 
             shift
             if [[ $processor == "JamfCategoryUploader" ]]; then
@@ -318,7 +340,11 @@ while test $# -gt 0 ; do
             fi
             ;;
         --replace) 
-            if [[ $processor == "JamfCategoryUploader" ]]; then
+            if [[ $processor == "JamfAccountUploader" ]]; then
+                if plutil -replace replace_account -string "True" "$temp_processor_plist"; then
+                    echo "   [jamf-upload] Wrote replace_account='True' into $temp_processor_plist"
+                fi
+            elif [[ $processor == "JamfCategoryUploader" ]]; then
                 if plutil -replace replace_category -string "True" "$temp_processor_plist"; then
                     echo "   [jamf-upload] Wrote replace_category='True' into $temp_processor_plist"
                 fi
@@ -366,7 +392,11 @@ while test $# -gt 0 ; do
             ;;
         -n|--name) 
             shift
-            if [[ $processor == "JamfCategoryUploader" ]]; then
+            if [[ $processor == "JamfAccountUploader" ]]; then
+                if plutil -replace account_name -string "$1" "$temp_processor_plist"; then
+                    echo "   [jamf-upload] Wrote account_name='$1' into $temp_processor_plist"
+                fi
+            elif [[ $processor == "JamfCategoryUploader" ]]; then
                 if plutil -replace category_name -string "$1" "$temp_processor_plist"; then
                     echo "   [jamf-upload] Wrote category_name='$1' into $temp_processor_plist"
                 fi
@@ -418,7 +448,11 @@ while test $# -gt 0 ; do
             ;;
         --template) 
             shift
-            if [[ $processor == "JamfComputerGroupUploader" ]]; then
+            if [[ $processor == "JamfAccountUploader" ]]; then
+                if plutil -replace account_template -string "$1" "$temp_processor_plist"; then
+                    echo "   [jamf-upload] Wrote account_template='$1' into $temp_processor_plist"
+                fi
+            elif [[ $processor == "JamfComputerGroupUploader" ]]; then
                 if plutil -replace computergroup_template -string "$1" "$temp_processor_plist"; then
                     echo "   [jamf-upload] Wrote computergroup_template='$1' into $temp_processor_plist"
                 fi
@@ -517,14 +551,6 @@ while test $# -gt 0 ; do
             if [[ $processor == "JamfDockItemUploader" ]]; then
                 if plutil -replace dock_item_path -string "$1" "$temp_processor_plist"; then
                     echo "   [jamf-upload] Wrote dock_item_path='$1' into $temp_processor_plist"
-                fi
-            fi
-            ;;
-        --type)
-            shift
-            if [[ $processor == "JamfDockItemUploader" ]]; then
-                if plutil -replace dock_item_type -string "$1" "$temp_processor_plist"; then
-                    echo "   [jamf-upload] Wrote dock_item_type='$1' into $temp_processor_plist"
                 fi
             fi
             ;;
@@ -888,7 +914,7 @@ while test $# -gt 0 ; do
             shift
             key_value_pair="$1"
             key="${key_value_pair%%=*}"
-            value="${key_value_pair#$key=}"
+            value="${key_value_pair#"$key"=}"
             if plutil -replace "$key" -string "$value" "$temp_processor_plist"; then
                 echo "   [jamf-upload] Wrote '$key'='$value' into $temp_processor_plist"
             fi

@@ -37,6 +37,7 @@ class JamfUploaderBase(Processor):
     def api_endpoints(self, object_type):
         """Return the endpoint URL from the object type"""
         api_endpoints = {
+            "account": "JSSResource/accounts",
             "category": "uapi/v1/categories",
             "extension_attribute": "JSSResource/computerextensionattributes",
             "computer_group": "JSSResource/computergroups",
@@ -75,6 +76,7 @@ class JamfUploaderBase(Processor):
     def object_list_types(self, object_type):
         """Return a XML dictionary type from the object type"""
         object_list_types = {
+            "account": "accounts",
             "computer_group": "computer_groups",
             "dock_item": "dock_items",
             "extension_attribute": "computer_extension_attributes",
@@ -303,7 +305,7 @@ class JamfUploaderBase(Processor):
         # some endpoints (For example the 'patchsoftwaretitle' endpoint)
         # do not return complete json, so we have to get the xml instead.
         elif request == "GET" or request == "DELETE":
-            curl_cmd.extend(["--output", output_file])
+            # curl_cmd.extend(["--output", output_file])
             if "legacy/packages" not in url:
                 if force_xml:
                     curl_cmd.extend(["--header", "Accept: application/xml"])
@@ -322,7 +324,7 @@ class JamfUploaderBase(Processor):
 
         # Content-Type for POST/PUT
         elif request == "POST" or request == "PUT":
-            curl_cmd.extend(["--output", output_file])
+            # curl_cmd.extend(["--output", output_file])
             if data and "slack" in url or "webhook.office" in url:
                 # slack and teams require a data argument
                 curl_cmd.extend(["--data", data])

@@ -140,6 +140,47 @@ elif [[ $test_type == "policy_flush" ]]; then
         "$verbosity" \
         "$url"
 
+# elif [[ $test_type == "account" ]]; then
+#     # upload an account
+#     "$DIR"/../jamf-upload.sh account \
+#         --prefs "$prefs" \
+#         --recipe-dir /Users/gpugh/sourcecode/jamf-upload/_tests \
+#         --name "Test Group" \
+#         --type "group" \
+#         --template "Account-Group-local.xml" \
+#         "$verbosity" \
+#         "$url"
+
+# elif [[ $test_type == "account" ]]; then
+#     # upload an account
+#     "$DIR"/../jamf-upload.sh account \
+#         --prefs "$prefs" \
+#         --recipe-dir /Users/gpugh/sourcecode/jamf-upload/_tests \
+#         --name "graham" \
+#         --type "user" \
+#         --template "Account-User-groupaccess.xml" \
+#         --key ACCOUNT_FULLNAME="Graham Pugh Test Account" \
+#         --key ACCOUNT_PASSWORD="GrahamsPassword" \
+#         --key ACCOUNT_EMAIL="graham@pugh.com" \
+#         --key GROUP_NAME="Test Group" \
+#         "$verbosity" \
+#         "$url"
+
+elif [[ $test_type == "account" ]]; then
+    # upload an account
+    "$DIR"/../jamf-upload.sh account \
+        --prefs "$prefs" \
+        --recipe-dir /Users/gpugh/sourcecode/jamf-upload/_tests \
+        --name "graham" \
+        --type "user" \
+        --template "Account-User-fullaccess.xml" \
+        --key ACCOUNT_FULLNAME="Graham Pugh Test Account" \
+        --key ACCOUNT_EMAIL="graham@pugh.com" \
+        "$verbosity" \
+        "$url" \
+        --replace
+
+
 elif [[ $test_type == "restriction" ]]; then
     # upload a software restriction
     "$DIR"/../jamf-upload.sh restriction \
