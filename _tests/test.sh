@@ -175,7 +175,7 @@ elif [[ $test_type == "package" || $test_type == "pkg" ]]; then
     "$DIR"/../jamf-upload.sh pkg \
         --prefs "$prefs" \
         --recipe-dir /Users/gpugh/sourcecode/jamf-upload/_tests \
-        --pkg "/Users/gpugh/Library/AutoPkg/Cache/com.github.eth-its-recipes.pkg.DisplayLinkManager/DisplayLink_Manager-5.9.135.0.pkg" \
+        --pkg "/Users/gpugh/Library/AutoPkg/Cache/com.github.eth-its-recipes.jamf.DisplayLinkManager/DisplayLink_Manager-1.7.0.pkg" \
         "$verbosity" \
         "$url" \
         --skip-metadata-upload
