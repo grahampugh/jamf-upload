@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<account>
+  <name>%account_name%</name>
+  <password>%ACCOUNT_PASSWORD%</password>
+  <directory_user>false</directory_user>
+  <full_name>%ACCOUNT_FULLNAME%</full_name>
+  <email>%ACCOUNT_EMAIL%</email>
+  <email_address>%ACCOUNT_EMAIL%</email_address>
+  <enabled>Enabled</enabled>
+  <force_password_change>false</force_password_change>
+  <access_level>Group Access</access_level>
+  <privilege_set>Custom</privilege_set>
+  <groups>
+    <group>
+      <name>%GROUP_NAME%</name>
+      <site>
+        <id>-1</id>
+        <name>None</name>
+      </site>
+    </group>
+  </groups>
+</account>

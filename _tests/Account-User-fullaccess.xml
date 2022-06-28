@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<account>
+  <name>%account_name%</name>
+  <directory_user>false</directory_user>
+  <full_name>%ACCOUNT_FULLNAME%</full_name>
+  <email>%ACCOUNT_EMAIL%</email>
+  <email_address>%ACCOUNT_EMAIL%</email_address>
+  <enabled>Enabled</enabled>
+  <force_password_change>false</force_password_change>
+  <access_level>Full Access</access_level>
+  <privilege_set>Custom</privilege_set>
+  <privileges>
+    <jss_objects>
+      <privilege/>
+      <privilege>Create Categories</privilege>
+      <privilege>Read Categories</privilege>
+      <privilege>Update Categories</privilege>
+      <privilege>Delete Categories</privilege>
+      <privilege>Create Computer Extension Attributes</privilege>
+      <privilege>Read Computer Extension Attributes</privilege>
+      <privilege>Update Computer Extension Attributes</privilege>
+      <privilege>Read Distribution Points</privilege>
+      <privilege>Create Packages</privilege>
+      <privilege>Read Packages</privilege>
+      <privilege>Update Packages</privilege>
+      <privilege>Create Policies</privilege>
+      <privilege>Read Policies</privilege>
+      <privilege>Update Policies</privilege>
+      <privilege>Delete Policies</privilege>
+      <privilege>Create Scripts</privilege>
+      <privilege>Read Scripts</privilege>
+      <privilege>Update Scripts</privilege>
+      <privilege>Create Dock Items</privilege>
+      <privilege>Read Dock Items</privilege>
+      <privilege>Update Dock Items</privilege>
+      <privilege>Create Smart Computer Groups</privilege>
+      <privilege>Read Smart Computer Groups</privilege>
+      <privilege>Update Smart Computer Groups</privilege>
+      <privilege>Create Static Computer Groups</privilege>
+      <privilege>Read Static Computer Groups</privilege>
+      <privilege>Update Static Computer Groups</privilege>
+      <privilege>Create macOS Configuration Profiles</privilege>
+      <privilege>Read macOS Configuration Profiles</privilege>
+      <privilege>Update macOS Configuration Profiles</privilege>
+      <privilege>Create Mac Applications</privilege>
+      <privilege>Read Mac Applications</privilege>
+      <privilege>Update Mac Applications</privilege>
+      <privilege>Read Volume Purchasing Administrator Accounts</privilege>
+    </jss_objects>
+    <jss_settings/>
+    <jss_actions/>
+    <recon/>
+    <casper_admin/>
+    <casper_remote/>
+    <casper_imaging/>
+  </privileges>
+</account>
