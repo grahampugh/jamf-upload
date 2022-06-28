@@ -35,7 +35,7 @@ A processor for AutoPkg that will upload a policy to a Jamf Cloud or on-prem ser
 
 ## Output variables
 
-- **jamfextensionattributeuploader_summary_result:**
+- **jamfpolicyuploader_summary_result:**
   - **description:** Description of interesting results.
 - **policy_name:**
   - **description:** Policy name.
