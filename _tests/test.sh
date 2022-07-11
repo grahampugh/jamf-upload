@@ -219,7 +219,8 @@ elif [[ $test_type == "package" || $test_type == "pkg" ]]; then
         --pkg "/Users/gpugh/Library/AutoPkg/Cache/com.github.eth-its-recipes.jamf.DisplayLinkManager/DisplayLink_Manager-1.7.0.pkg" \
         "$verbosity" \
         "$url" \
-        --skip-metadata-upload
+        --jcds \
+        --replace
 
 elif [[ $test_type == "script" ]]; then
     # upload a script

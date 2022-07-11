@@ -1,7 +1,7 @@
 #!/usr/local/autopkg/python
 
 """
-JamfIconUploader processor for uploading an icon to Jamf Pro using AutoPkg
+JamfIconUploader processor for uploading a category to Jamf Pro using AutoPkg
     by G Pugh
 """
 

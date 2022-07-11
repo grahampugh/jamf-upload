@@ -2,7 +2,7 @@
 
 ## Description
 
-A processor for AutoPkg that will update or clone a Mac App Store app object on a Jamf Pro server.
+A processor for AutoPkg that will update or clone a Mac App Store app object on a Jamf Pro server. A new one cannot be created.
 
 ## Input variables
 

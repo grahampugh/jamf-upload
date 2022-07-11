@@ -2,7 +2,7 @@
 
 ## Description
 
-A processor for AutoPkg that will upload an accounty to a Jamf Cloud or on-prem server.
+A processor for AutoPkg that will upload an account to a Jamf Cloud or on-prem server, with privileges supplied by a template xml file.
 
 ## Input variables
 

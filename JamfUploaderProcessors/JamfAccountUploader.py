@@ -1,7 +1,8 @@
 #!/usr/local/autopkg/python
 
 """
-JamfAccountUploader processor for uploading policies to Jamf Pro using AutoPkg
+JamfAccountUploader processor for uploading accounts (users and groups)
+to Jamf Pro using AutoPkg
     by G Pugh
 """
 
@@ -96,8 +97,7 @@ class JamfAccountUploader(JamfUploaderBase):
         if r.status_code == 200:
             object_list = json.loads(r.output)
             self.output(
-                object_list,
-                verbose_level=4,
+                object_list, verbose_level=4,
             )
             obj_id = 0
             if account_type == "user":
