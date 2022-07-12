@@ -100,8 +100,9 @@ class JamfUploaderBase(Processor):
         return tf
 
     def write_token_to_json_file(self, url, data, token_file="/tmp/jamf_upload_token"):
-        """dump the token and expiry as json to a temporary file"""
+        """dump the token, expiry, url and user as json to a temporary token file"""
         data["url"] = url
+        data["user"] = self.jamf_user
         with open(token_file, "w") as fp:
             json.dump(data, fp)
 
@@ -129,7 +130,7 @@ class JamfUploaderBase(Processor):
 
     def get_enc_creds(self, user, password):
         """encode the username and password into a b64-encoded string"""
-        credentials = f"{self.jamf_user}:{self.jamf_password}"
+        credentials = f"{user}:{password}"
         enc_creds_bytes = b64encode(credentials.encode("utf-8"))
         enc_creds = str(enc_creds_bytes, "utf-8")
         return enc_creds
@@ -144,9 +145,10 @@ class JamfUploaderBase(Processor):
                     self.output(
                         f"Checking {data['url']} against {url}", verbose_level=2
                     )
-                    if data["url"] == url:
+                    if data["url"] == url and data["user"] == self.jamf_user:
                         self.output(
-                            "URL for token matches current request", verbose_level=2
+                            "URL and user for token matches current request",
+                            verbose_level=2,
                         )
                         if data["token"]:
                             # check if it's expired or not
@@ -158,6 +160,11 @@ class JamfUploaderBase(Processor):
                                 return data["token"]
                         else:
                             self.output("Token not found in file", verbose_level=2)
+                    else:
+                        self.output(
+                            "URL or user do not match current token request",
+                            verbose_level=2,
+                        )
                 except KeyError:
                     pass
         self.output("No existing valid token found", verbose_level=2)
