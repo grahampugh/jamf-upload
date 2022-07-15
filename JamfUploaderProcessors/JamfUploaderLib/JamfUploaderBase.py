@@ -151,13 +151,21 @@ class JamfUploaderBase(Processor):
                             verbose_level=2,
                         )
                         if data["token"]:
-                            # check if it's expired or not
-                            expires = datetime.strptime(
-                                data["expires"].split(".")[0], "%Y-%m-%dT%H:%M:%S"
-                            )
-                            if expires > datetime.utcnow():
-                                self.output("Existing token is valid")
-                                return data["token"]
+                            try:
+                                # check if it's expired or not
+                                # this may not always work due to inconsistent
+                                # ISO 8601 time format in the expiry token,
+                                # so we look for a ValueError
+                                expires = datetime.strptime(
+                                    data["expires"], "%Y-%m-%dT%H:%M:%S.%fZ"
+                                )
+                                if expires > datetime.utcnow():
+                                    self.output("Existing token is valid")
+                                    return data["token"]
+                            except ValueError:
+                                self.output(
+                                    "Token expiry could not be parsed", verbose_level=2
+                                )
                         else:
                             self.output("Token not found in file", verbose_level=2)
                     else:
