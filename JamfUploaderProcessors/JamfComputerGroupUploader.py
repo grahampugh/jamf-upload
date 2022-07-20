@@ -58,6 +58,11 @@ class JamfComputerGroupUploader(JamfUploaderBase):
             "description": "Overwrite an existing Computer Group if True.",
             "default": False,
         },
+        "sleep": {
+            "required": False,
+            "description": "Pause after running this processor for specified seconds.",
+            "default": "2",
+        },
     }
 
     output_variables = {
@@ -143,6 +148,7 @@ class JamfComputerGroupUploader(JamfUploaderBase):
         self.computergroup_name = self.env.get("computergroup_name")
         self.computergroup_template = self.env.get("computergroup_template")
         self.replace = self.env.get("replace_group")
+        self.sleep = self.env.get("sleep")
         # handle setting replace in overrides
         if not self.replace or self.replace == "False":
             self.replace = False
@@ -176,7 +182,11 @@ class JamfComputerGroupUploader(JamfUploaderBase):
         obj_type = "computer_group"
         obj_name = self.computergroup_name
         obj_id = self.get_api_obj_id_from_name(
-            self.jamf_url, obj_name, obj_type, enc_creds=send_creds, token=token,
+            self.jamf_url,
+            obj_name,
+            obj_type,
+            enc_creds=send_creds,
+            token=token,
         )
 
         if obj_id:
@@ -206,6 +216,9 @@ class JamfComputerGroupUploader(JamfUploaderBase):
             token=token,
         )
         group_uploaded = True
+
+        if int(self.sleep) > 0:
+            sleep(int(self.sleep))
 
         # output the summary
         self.env["group_uploaded"] = group_uploaded
