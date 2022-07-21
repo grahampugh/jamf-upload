@@ -61,7 +61,7 @@ class JamfComputerGroupUploader(JamfUploaderBase):
         "sleep": {
             "required": False,
             "description": "Pause after running this processor for specified seconds.",
-            "default": "2",
+            "default": "0",
         },
     }
 
