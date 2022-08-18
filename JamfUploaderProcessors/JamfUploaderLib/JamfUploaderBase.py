@@ -374,6 +374,9 @@ class JamfUploaderBase(Processor):
                 self.output(
                     "No existing cookie found - starting new session", verbose_level=2
                 )
+
+        # allow use of a self-signed certificate
+
         # insecure mode
         if self.env.get("insecure_mode"):
             curl_cmd.insert(1, "--insecure")
