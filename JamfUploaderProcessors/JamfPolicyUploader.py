@@ -239,10 +239,10 @@ class JamfPolicyUploader(JamfUploaderBase):
                     print("WARNING: Icon upload did not succeed after 5 attempts")
                     print("\nHTTP POST Response Code: {}".format(r.status_code))
                     raise ProcessorError("ERROR: Icon upload failed")
-            if int(self.sleep) > 30:
-                sleep(int(self.sleep))
-            else:
-                sleep(30)
+                if int(self.sleep) > 30:
+                    sleep(int(self.sleep))
+                else:
+                    sleep(30)
         else:
             self.output("Not replacing icon. Set replace_icon='True' to enforce...")
         return policy_icon_name

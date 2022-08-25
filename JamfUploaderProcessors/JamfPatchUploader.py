@@ -303,7 +303,10 @@ class JamfPatchUploader(JamfUploaderBase):
                 )
                 self.output("\nHTTP POST Response Code: {}".format(r.status_code))
                 raise ProcessorError("ERROR: Policy upload failed.")
-            sleep(30)
+            if int(self.sleep) > 30:
+                sleep(int(self.sleep))
+            else:
+                sleep(30)
         return r
 
     def main(self):
