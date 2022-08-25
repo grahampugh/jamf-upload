@@ -901,12 +901,13 @@ class JamfPackageUploader(JamfUploaderBase):
         if self.pkg_metadata_updated or self.pkg_uploaded:
             self.env["jamfpackageuploader_summary_result"] = {
                 "summary_text": "The following packages were uploaded to or updated in Jamf Pro:",
-                "report_fields": ["pkg_path", "pkg_name", "version", "category"],
+                "report_fields": ["category", "name", "pkg_name", "pkg_path", "version"],
                 "data": {
-                    "pkg_path": self.pkg_path,
-                    "pkg_name": self.pkg_name,
-                    "version": self.version,
                     "category": self.pkg_category,
+                    "name": self.env.get("NAME"),
+                    "pkg_name": self.pkg_name,
+                    "pkg_path": self.pkg_path,
+                    "version": self.version,
                 },
             }
 
