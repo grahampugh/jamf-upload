@@ -318,6 +318,7 @@ class JamfPatchUploader(JamfUploaderBase):
         self.patch_template = self.env.get("patch_template")
         self.patch_icon_policy_name = self.env.get("patch_icon_policy_name")
         self.replace = self.env.get("replace_patch")
+        self.sleep = self.env.get("sleep")
         if not self.replace or self.replace == "False":
             self.replace = False
 

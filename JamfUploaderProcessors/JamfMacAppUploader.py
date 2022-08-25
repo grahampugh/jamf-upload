@@ -181,6 +181,7 @@ class JamfMacAppUploader(JamfUploaderBase):
         self.selfservice_icon_uri = self.env.get("selfservice_icon_uri")
         self.macapp_template = self.env.get("macapp_template")
         self.replace = self.env.get("replace_macapp")
+        self.sleep = self.env.get("sleep")
         # handle setting replace in overrides
         if not self.replace or self.replace == "False":
             self.replace = False

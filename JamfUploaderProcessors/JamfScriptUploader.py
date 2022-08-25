@@ -260,6 +260,7 @@ class JamfScriptUploader(JamfUploaderBase):
         self.script_parameter10 = self.env.get("script_parameter10")
         self.script_parameter11 = self.env.get("script_parameter11")
         self.replace = self.env.get("replace_script")
+        self.sleep = self.env.get("sleep")
         # handle setting replace in overrides
         if not self.replace or self.replace == "False":
             self.replace = False

@@ -202,6 +202,7 @@ class JamfAccountUploader(JamfUploaderBase):
         self.account_type = self.env.get("account_type")
         self.account_template = self.env.get("account_template")
         self.replace = self.env.get("replace_account")
+        self.sleep = self.env.get("sleep")
         # handle setting replace in overrides
         if not self.replace or self.replace == "False":
             self.replace = False

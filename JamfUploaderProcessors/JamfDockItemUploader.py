@@ -144,6 +144,7 @@ class JamfDockItemUploader(JamfUploaderBase):
         self.dock_item_type = self.env.get("dock_item_type")
         self.dock_item_path = self.env.get("dock_item_path")
         self.replace = self.env.get("replace_dock_item")
+        self.sleep = self.env.get("sleep")
         # handle setting replace_pkg in overrides
         if not self.replace or self.replace == "False":
             self.replace = False

@@ -256,6 +256,7 @@ class JamfPolicyUploader(JamfUploaderBase):
         self.policy_template = self.env.get("policy_template")
         self.icon = self.env.get("icon")
         self.replace = self.env.get("replace_policy")
+        self.sleep = self.env.get("sleep")
         # handle setting replace in overrides
         if not self.replace or self.replace == "False":
             self.replace = False

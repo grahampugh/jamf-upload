@@ -116,6 +116,7 @@ class JamfCategoryUploader(JamfUploaderBase):
         self.category_name = self.env.get("category_name")
         self.category_priority = self.env.get("category_priority")
         self.replace = self.env.get("replace_category")
+        self.sleep = self.env.get("sleep")
         # handle setting replace_pkg in overrides
         if not self.replace or self.replace == "False":
             self.replace = False

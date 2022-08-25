@@ -166,6 +166,7 @@ class JamfExtensionAttributeUploader(JamfUploaderBase):
         self.ea_script_path = self.env.get("ea_script_path")
         self.ea_name = self.env.get("ea_name")
         self.replace = self.env.get("replace_ea")
+        self.sleep = self.env.get("sleep")
         # handle setting replace in overrides
         if not self.replace or self.replace == "False":
             self.replace = False
