@@ -94,6 +94,11 @@ class JamfPatchUploader(JamfUploaderBase):
             "description": "Overwrite an existing patch policy if True.",
             "default": False,
         },
+        "sleep": {
+            "required": False,
+            "description": "Pause after running this processor for specified seconds.",
+            "default": "0",
+        },
     }
 
     output_variables = {
@@ -248,7 +253,10 @@ class JamfPatchUploader(JamfUploaderBase):
                     "ERROR: Uploading updated Patch Softwaretitle did not succeed after 5 attempts."
                 )
                 raise ProcessorError("ERROR: Patch Softwaretitle upload failed.")
-            sleep(10)
+            if self.sleep > 30:
+                sleep(self.sleep)
+            else:
+                sleep(30)
 
     def upload_patch(
         self,

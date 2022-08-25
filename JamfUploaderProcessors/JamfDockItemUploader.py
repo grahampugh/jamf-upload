@@ -65,6 +65,11 @@ class JamfDockItemUploader(JamfUploaderBase):
             "description": "Overwrite an existing dock item if True.",
             "default": False,
         },
+        "sleep": {
+            "required": False,
+            "description": "Pause after running this processor for specified seconds.",
+            "default": "0",
+        },
     }
 
     output_variables = {
@@ -105,7 +110,8 @@ class JamfDockItemUploader(JamfUploaderBase):
         while True:
             count += 1
             self.output(
-                f"Dock Item upload attempt {count}", verbose_level=2,
+                f"Dock Item upload attempt {count}",
+                verbose_level=2,
             )
             request = "PUT" if obj_id else "POST"
             r = self.curl(
@@ -124,7 +130,10 @@ class JamfDockItemUploader(JamfUploaderBase):
                 )
                 self.output(f"\nHTTP POST Response Code: {r.status_code}")
                 raise ProcessorError("ERROR: dock item upload failed ")
-            sleep(10)
+            if self.sleep > 30:
+                sleep(self.sleep)
+            else:
+                sleep(30)
 
     def main(self):
         """Do the main thing here"""
@@ -156,7 +165,11 @@ class JamfDockItemUploader(JamfUploaderBase):
         obj_type = "dock_item"
         obj_name = self.dock_item_name
         obj_id = self.get_api_obj_id_from_name(
-            self.jamf_url, obj_name, obj_type, enc_creds=send_creds, token=token,
+            self.jamf_url,
+            obj_name,
+            obj_type,
+            enc_creds=send_creds,
+            token=token,
         )
 
         if obj_id:

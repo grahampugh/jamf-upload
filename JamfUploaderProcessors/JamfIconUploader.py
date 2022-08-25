@@ -54,6 +54,11 @@ class JamfIconUploader(JamfUploaderBase):
             "description": "An icon to upload directly from a Jamf Cloud URI",
             "default": "",
         },
+        "sleep": {
+            "required": False,
+            "description": "Pause after running this processor for specified seconds.",
+            "default": "0",
+        },
     }
 
     output_variables = {
@@ -85,7 +90,10 @@ class JamfIconUploader(JamfUploaderBase):
                 self.output("ERROR: Icon download did not succeed after 5 attempts")
                 self.output(f"\nHTTP POST Response Code: {r.status_code}")
                 raise ProcessorError("ERROR: Icon download failed ")
-            sleep(10)
+            if self.sleep > 30:
+                sleep(self.sleep)
+            else:
+                sleep(30)
         return r
 
     def upload_icon(self, jamf_url, icon_file, token):
@@ -115,7 +123,10 @@ class JamfIconUploader(JamfUploaderBase):
                 self.output("ERROR: Icon upload did not succeed after 5 attempts")
                 self.output(f"\nHTTP POST Response Code: {r.status_code}")
                 raise ProcessorError("ERROR: Icon upload failed ")
-            sleep(10)
+            if self.sleep > 30:
+                sleep(self.sleep)
+            else:
+                sleep(30)
         return r
 
     def main(self):

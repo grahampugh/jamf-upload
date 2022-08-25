@@ -138,7 +138,10 @@ class JamfComputerGroupUploader(JamfUploaderBase):
                 )
                 self.output(f"\nHTTP POST Response Code: {r.status_code}")
                 raise ProcessorError("ERROR: Computer Group upload failed ")
-            sleep(30)
+            if self.sleep > 30:
+                sleep(self.sleep)
+            else:
+                sleep(30)
 
     def main(self):
         """Do the main thing here"""

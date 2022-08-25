@@ -66,6 +66,11 @@ class JamfAccountUploader(JamfUploaderBase):
             "description": "Overwrite an existing account if True.",
             "default": False,
         },
+        "sleep": {
+            "required": False,
+            "description": "Pause after running this processor for specified seconds.",
+            "default": "0",
+        },
     }
 
     output_variables = {
@@ -97,7 +102,8 @@ class JamfAccountUploader(JamfUploaderBase):
         if r.status_code == 200:
             object_list = json.loads(r.output)
             self.output(
-                object_list, verbose_level=4,
+                object_list,
+                verbose_level=4,
             )
             obj_id = 0
             if account_type == "user":
@@ -181,7 +187,10 @@ class JamfAccountUploader(JamfUploaderBase):
                 )
                 self.output("\nHTTP POST Response Code: {}".format(r.status_code))
                 raise ProcessorError(f"ERROR: {object_type} upload failed ")
-            sleep(30)
+            if self.sleep > 30:
+                sleep(self.sleep)
+            else:
+                sleep(30)
         return r
 
     def main(self):

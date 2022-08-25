@@ -167,6 +167,11 @@ class JamfPackageUploader(JamfUploaderBase):
             "the com.github.autopkg preference file.",
             "default": "",
         },
+        "sleep": {
+            "required": False,
+            "description": "Pause after running this processor for specified seconds.",
+            "default": "0",
+        },
     }
 
     output_variables = {
@@ -605,7 +610,10 @@ class JamfPackageUploader(JamfUploaderBase):
                     verbose_level=1,
                 )
                 raise ProcessorError("ERROR: Package metadata upload failed ")
-            sleep(30)
+            if self.sleep > 30:
+                sleep(self.sleep)
+            else:
+                sleep(30)
 
     def main(self):
         """Do the main thing here"""

@@ -70,6 +70,11 @@ class JamfMacAppUploader(JamfUploaderBase):
             "description": "Overwrite an existing Mac App Store app if True.",
             "default": False,
         },
+        "sleep": {
+            "required": False,
+            "description": "Pause after running this processor for specified seconds.",
+            "default": "0",
+        },
     }
 
     output_variables = {
@@ -125,7 +130,13 @@ class JamfMacAppUploader(JamfUploaderBase):
         return macapp_name, template_xml
 
     def upload_macapp(
-        self, jamf_url, macapp_name, template_xml, obj_id=0, enc_creds="", token="",
+        self,
+        jamf_url,
+        macapp_name,
+        template_xml,
+        obj_id=0,
+        enc_creds="",
+        token="",
     ):
         """Upload MAS app"""
 
@@ -154,7 +165,10 @@ class JamfMacAppUploader(JamfUploaderBase):
                 self.output("WARNING: MAS app upload did not succeed after 5 attempts")
                 self.output("\nHTTP POST Response Code: {}".format(r.status_code))
                 raise ProcessorError("ERROR: Policy upload failed ")
-            sleep(30)
+            if self.sleep > 30:
+                sleep(self.sleep)
+            else:
+                sleep(30)
         return r
 
     def main(self):
@@ -197,7 +211,11 @@ class JamfMacAppUploader(JamfUploaderBase):
         obj_type = "mac_application"
         obj_name = self.macapp_name
         obj_id = self.get_api_obj_id_from_name(
-            self.jamf_url, obj_name, obj_type, enc_creds=send_creds, token=token,
+            self.jamf_url,
+            obj_name,
+            obj_type,
+            enc_creds=send_creds,
+            token=token,
         )
 
         if obj_id:
@@ -287,7 +305,8 @@ class JamfMacAppUploader(JamfUploaderBase):
                 vpp_id = self.get_vpp_id(self.jamf_url, token)
                 if vpp_id:
                     self.output(
-                        "Existing VPP ID is '{}'".format(vpp_id), verbose_level=1,
+                        "Existing VPP ID is '{}'".format(vpp_id),
+                        verbose_level=1,
                     )
 
                 # we need to substitute the values in the MAS app name and template now to
@@ -337,7 +356,11 @@ class JamfMacAppUploader(JamfUploaderBase):
             obj_type = "mac_application"
             obj_name = self.clone_from
             obj_id = self.get_api_obj_id_from_name(
-                self.jamf_url, obj_name, obj_type, enc_creds=send_creds, token=token,
+                self.jamf_url,
+                obj_name,
+                obj_type,
+                enc_creds=send_creds,
+                token=token,
             )
             if obj_id:
                 self.output(

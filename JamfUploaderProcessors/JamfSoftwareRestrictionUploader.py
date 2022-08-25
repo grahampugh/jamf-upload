@@ -90,6 +90,11 @@ class JamfSoftwareRestrictionUploader(JamfUploaderBase):
             "description": "overwrite an existing Software Restriction if True",
             "default": False,
         },
+        "sleep": {
+            "required": False,
+            "description": "Pause after running this processor for specified seconds.",
+            "default": "0",
+        },
     }
 
     output_variables = {
@@ -170,7 +175,10 @@ class JamfSoftwareRestrictionUploader(JamfUploaderBase):
                 )
                 self.output(f"\nHTTP POST Response Code: {r.status_code}")
                 break
-            sleep(10)
+            if self.sleep > 30:
+                sleep(self.sleep)
+            else:
+                sleep(30)
 
         return r
 
