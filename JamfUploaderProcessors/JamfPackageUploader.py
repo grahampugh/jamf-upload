@@ -610,8 +610,8 @@ class JamfPackageUploader(JamfUploaderBase):
                     verbose_level=1,
                 )
                 raise ProcessorError("ERROR: Package metadata upload failed ")
-            if self.sleep > 30:
-                sleep(self.sleep)
+            if int(self.sleep) > 30:
+                sleep(int(self.sleep))
             else:
                 sleep(30)
 

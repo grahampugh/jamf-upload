@@ -90,8 +90,8 @@ class JamfIconUploader(JamfUploaderBase):
                 self.output("ERROR: Icon download did not succeed after 5 attempts")
                 self.output(f"\nHTTP POST Response Code: {r.status_code}")
                 raise ProcessorError("ERROR: Icon download failed ")
-            if self.sleep > 30:
-                sleep(self.sleep)
+            if int(self.sleep) > 30:
+                sleep(int(self.sleep))
             else:
                 sleep(30)
         return r
@@ -123,8 +123,8 @@ class JamfIconUploader(JamfUploaderBase):
                 self.output("ERROR: Icon upload did not succeed after 5 attempts")
                 self.output(f"\nHTTP POST Response Code: {r.status_code}")
                 raise ProcessorError("ERROR: Icon upload failed ")
-            if self.sleep > 30:
-                sleep(self.sleep)
+            if int(self.sleep) > 30:
+                sleep(int(self.sleep))
             else:
                 sleep(30)
         return r

@@ -103,8 +103,8 @@ class JamfCategoryUploader(JamfUploaderBase):
                 self.output("ERROR: Category creation did not succeed after 5 attempts")
                 self.output(f"\nHTTP POST Response Code: {r.status_code}")
                 raise ProcessorError("ERROR: Category upload failed ")
-            if self.sleep > 30:
-                sleep(self.sleep)
+            if int(self.sleep) > 30:
+                sleep(int(self.sleep))
             else:
                 sleep(30)
 

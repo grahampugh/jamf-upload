@@ -233,8 +233,8 @@ class JamfScriptUploader(JamfUploaderBase):
                 self.output("Script upload did not succeed after 5 attempts")
                 self.output("\nHTTP POST Response Code: {}".format(r.status_code))
                 raise ProcessorError("ERROR: Script upload failed ")
-            if self.sleep > 30:
-                sleep(self.sleep)
+            if int(self.sleep) > 30:
+                sleep(int(self.sleep))
             else:
                 sleep(30)
         return r

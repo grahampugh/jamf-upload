@@ -253,8 +253,8 @@ class JamfPatchUploader(JamfUploaderBase):
                     "ERROR: Uploading updated Patch Softwaretitle did not succeed after 5 attempts."
                 )
                 raise ProcessorError("ERROR: Patch Softwaretitle upload failed.")
-            if self.sleep > 30:
-                sleep(self.sleep)
+            if int(self.sleep) > 30:
+                sleep(int(self.sleep))
             else:
                 sleep(30)
 
