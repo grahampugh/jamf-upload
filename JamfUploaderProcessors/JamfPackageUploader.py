@@ -170,7 +170,7 @@ class JamfPackageUploader(JamfUploaderBase):
         "SMB_AND_CLOUD_DP": {
             "required": False,
             "description": "Boolean if we should process SMB and cloud DP shares.",
-            "default": "False",
+            "default": "",
         },
         "SMB2_URL": {
             "required": False,
@@ -843,7 +843,7 @@ class JamfPackageUploader(JamfUploaderBase):
                     # Don't set this property if
                     # 1. We need to upload to the cloud (self.smb_and_cloud_dp = true)
                     # 2. We have more SMB shares to process
-                    if (not self.smb_and_cloud_dp and (array_len - 1) == entry):
+                    if ((not self.smb_and_cloud_dp or self.smb_and_cloud_dp == "False") and (array_len - 1) == entry):
                         self.pkg_uploaded = True
                 else:
                     self.output(
