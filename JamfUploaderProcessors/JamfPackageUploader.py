@@ -167,15 +167,10 @@ class JamfPackageUploader(JamfUploaderBase):
             "the com.github.autopkg preference file.",
             "default": "",
         },
-        "SMB_MULTIPLE": {
-            "required": False,
-            "description": "Boolean if we should process multiple SMB shares",
-            "default": False,
-        },
         "SMB_AND_CLOUD_DP": {
             "required": False,
             "description": "Boolean if we should process SMB and cloud DP shares.",
-            "default": False,
+            "default": "False",
         },
         "SMB2_URL": {
             "required": False,
@@ -723,7 +718,6 @@ class JamfPackageUploader(JamfUploaderBase):
         self.smb_url = self.env.get("SMB_URL")
         self.smb_user = self.env.get("SMB_USERNAME")
         self.smb_password = self.env.get("SMB_PASSWORD")
-        self.smb_multiple = self.env.get("SMB_MULTIPLE")
         self.smb_and_cloud_dp = self.env.get("SMB_AND_CLOUD_DP")
         self.smb2_url = self.env.get("SMB2_URL")
         self.smb2_user = self.env.get("SMB2_USERNAME")
