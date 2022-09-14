@@ -167,6 +167,76 @@ class JamfPackageUploader(JamfUploaderBase):
             "the com.github.autopkg preference file.",
             "default": "",
         },
+        "SMB_MULTIPLE": {
+            "required": False,
+            "description": "Boolean if we should process multiple SMB shares",
+            "default": False,
+        },
+        "SMB_AND_CLOUD_DP": {
+            "required": False,
+            "description": "Boolean if we should process SMB and cloud DP shares.",
+            "default": False,
+        },
+        "SMB2_URL": {
+            "required": False,
+            "description": "URL to a Jamf Pro fileshare distribution point "
+            "which should be in the form smb://server "
+            "preference file.",
+            "default": "",
+        },
+        "SMB2_USERNAME": {
+            "required": False,
+            "description": "Username of account with appropriate access to "
+            "jss, optionally set as a key in the com.github.autopkg "
+            "preference file.",
+            "default": "",
+        },
+        "SMB2_PASSWORD": {
+            "required": False,
+            "description": "Password of api user, optionally set as a key in "
+            "the com.github.autopkg preference file.",
+            "default": "",
+        },
+        "SMB3_URL": {
+            "required": False,
+            "description": "URL to a Jamf Pro fileshare distribution point "
+            "which should be in the form smb://server "
+            "preference file.",
+            "default": "",
+        },
+        "SMB3_USERNAME": {
+            "required": False,
+            "description": "Username of account with appropriate access to "
+            "jss, optionally set as a key in the com.github.autopkg "
+            "preference file.",
+            "default": "",
+        },
+        "SMB3_PASSWORD": {
+            "required": False,
+            "description": "Password of api user, optionally set as a key in "
+            "the com.github.autopkg preference file.",
+            "default": "",
+        },
+        "SMB4_URL": {
+            "required": False,
+            "description": "URL to a Jamf Pro fileshare distribution point "
+            "which should be in the form smb://server "
+            "preference file.",
+            "default": "",
+        },
+        "SMB4_USERNAME": {
+            "required": False,
+            "description": "Username of account with appropriate access to "
+            "jss, optionally set as a key in the com.github.autopkg "
+            "preference file.",
+            "default": "",
+        },
+        "SMB4_PASSWORD": {
+            "required": False,
+            "description": "Password of api user, optionally set as a key in "
+            "the com.github.autopkg preference file.",
+            "default": "",
+        },
         "sleep": {
             "required": False,
             "description": "Pause after running this processor for specified seconds.",
@@ -653,6 +723,17 @@ class JamfPackageUploader(JamfUploaderBase):
         self.smb_url = self.env.get("SMB_URL")
         self.smb_user = self.env.get("SMB_USERNAME")
         self.smb_password = self.env.get("SMB_PASSWORD")
+        self.smb_multiple = self.env.get("SMB_MULTIPLE")
+        self.smb_and_cloud_dp = self.env.get("SMB_AND_CLOUD_DP")
+        self.smb2_url = self.env.get("SMB2_URL")
+        self.smb2_user = self.env.get("SMB2_USERNAME")
+        self.smb2_password = self.env.get("SMB2_PASSWORD")
+        self.smb3_url = self.env.get("SMB3_URL")
+        self.smb3_user = self.env.get("SMB3_USERNAME")
+        self.smb3_password = self.env.get("SMB3_PASSWORD")
+        self.smb4_url = self.env.get("SMB4_URL")
+        self.smb4_user = self.env.get("SMB4_USERNAME")
+        self.smb4_password = self.env.get("SMB4_PASSWORD")
         self.recipe_cache_dir = self.env.get("RECIPE_CACHE_DIR")
         self.pkg_uploaded = False
         self.pkg_metadata_updated = False
