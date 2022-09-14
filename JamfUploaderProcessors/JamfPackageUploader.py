@@ -803,38 +803,69 @@ class JamfPackageUploader(JamfUploaderBase):
 
         # process for SMB shares if defined
         if self.smb_url:
-            # mount the share
-            self.mount_smb(self.smb_url, self.smb_user, self.smb_password)
-            # check for existing package
-            local_pkg = self.check_local_pkg(self.smb_url, self.pkg_name)
-            if not local_pkg or self.replace:
-                if self.replace:
-                    self.output(
-                        "Replacing existing package as 'replace_pkg' is set to {}".format(
-                            self.replace
-                        ),
-                        verbose_level=1,
-                    )
-                # copy the file
-                self.copy_pkg(self.smb_url, self.pkg_path, self.pkg_name)
-                # unmount the share
-                self.umount_smb(self.smb_url)
-                self.pkg_uploaded = True
-            else:
+            # Enumerate mutiple shares into an array
+            smburl_list = []
+            smbuser_list = []
+            smbpass_list = []
+            # Populate the first entries
+            smburl_list.append(self.smb_url)
+            smbuser_list.append(self.smb_user)
+            smbpass_list.append(self.smb_password)
+            if self.smb2_url:
+                smburl_list.append(self.smb2_url)
+                smbuser_list.append(self.smb2_user)
+                smbpass_list.append(self.smb2_password)
+            if self.smb3_url:
+                smburl_list.append(self.smb3_url)
+                smbuser_list.append(self.smb3_user)
+                smbpass_list.append(self.smb3_password)
+            if self.smb4_url:
+                smburl_list.append(self.smb4_url)
+                smbuser_list.append(self.smb4_user)
+                smbpass_list.append(self.smb4_password)
+
+            array_len = len(smburl_list)
+            for entry in range(array_len):
                 self.output(
-                    f"Not replacing existing {self.pkg_name} as 'replace_pkg' is set to "
-                    f"{self.replace}. Use replace_pkg='True' to enforce."
+                    "Begin SMB upload to {}".format(smburl_list[entry]),
+                    verbose_level =1
                 )
-                # unmount the share
-                self.umount_smb(self.smb_url)
-                if not self.replace_metadata:
-                    # even if we don't upload a package, we still need to pass it on so that a
-                    # policy processor can use it
-                    self.env["pkg_name"] = self.pkg_name
-                    self.pkg_uploaded = False
+                # mount the share
+                self.mount_smb(smburl_list[entry], smbuser_list[entry], smbpass_list[entry])
+                # check for existing package
+                local_pkg = self.check_local_pkg(smburl_list[entry], self.pkg_name)
+                if not local_pkg or self.replace:
+                    if self.replace:
+                        self.output(
+                            "Replacing existing package as 'replace_pkg' is set to {}".format(
+                                self.replace
+                            ),
+                            verbose_level=1,
+                        )
+                    # copy the file
+                    self.copy_pkg(smburl_list[entry], self.pkg_path, self.pkg_name)
+                    # unmount the share
+                    self.umount_smb(smburl_list[entry])
+                    # Don't set this property if
+                    # 1. We need to upload to the cloud (self.smb_and_cloud_dp = true)
+                    # 2. We have more SMB shares to process
+                    if (not self.smb_and_cloud_dp and (array_len - 1) == entry):
+                        self.pkg_uploaded = True
+                else:
+                    self.output(
+                        f"Not replacing existing {self.pkg_name} as 'replace_pkg' is set to "
+                        f"{self.replace}. Use replace_pkg='True' to enforce."
+                    )
+                    # unmount the share
+                    self.umount_smb(smburl_list[entry])
+                    if not self.replace_metadata:
+                        # even if we don't upload a package, we still need to pass it on so that a
+                        # policy processor can use it
+                        self.env["pkg_name"] = self.pkg_name
+                        self.pkg_uploaded = False
 
         # otherwise process for cloud DP
-        else:
+        if not self.smb_url or self.smb_and_cloud_dp:
             if obj_id == "-1" or self.replace:
                 if self.replace:
                     self.output(
