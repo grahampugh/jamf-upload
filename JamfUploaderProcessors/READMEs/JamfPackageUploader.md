@@ -70,16 +70,45 @@ Can be run as a post-processor for a pkg recipe or in a child recipe. The parent
 - **API_PASSWORD:**
   - **required:** True
   - **description:** Password of api user, optionally set as a key in the com.github.autopkg preference file.
+- **SMB_AND_CLOUD_DP:**
+  - **required:** False
+  - **description:** True/False if we should process both SMB and Cloud DP shares. (Default: False).
 - **SMB_URL:**
   - **required:** False
   - **description:** URL to a Jamf Pro fileshare distribution point which should be in the form `smb://server/share`.
 - **SMB_USERNAME:**
   - **required:** False
-  - **description:** Username of account with appropriate access to jss, optionally set as a key in the com.github.autopkg preference file.
+  - **description:** Username of account with appropriate access to the SMB share, optionally set as a key in the com.github.autopkg preference file.
 - **SMB_PASSWORD:**
   - **required:** False
-  - **description:** Password of api user, optionally set as a key in the com.github.autopkg preference file.
-
+  - **description:** Password of the SMB share user, optionally set as a key in the com.github.autopkg preference file.
+- **SMB2_URL:**
+  - **required:** False
+  - **description:** Second URL to a Jamf Pro fileshare distribution point which should be in the form `smb://server/share`.
+- **SMB2_USERNAME:**
+  - **required:** False
+  - **description:** Username of account with appropriate access to the second SMB share, optionally set as a key in the com.github.autopkg preference file.
+- **SMB2_PASSWORD:**
+  - **required:** False
+  - **description:** Password of second SMB share user, optionally set as a key in the com.github.autopkg preference file.
+- **SMB3_URL:**
+  - **required:** False
+  - **description:** Third URL to a Jamf Pro fileshare distribution point which should be in the form `smb://server/share`.
+- **SMB3_USERNAME:**
+  - **required:** False
+  - **description:** Username of account with appropriate access to the third SMB share, optionally set as a key in the com.github.autopkg preference file.
+- **SMB3_PASSWORD:**
+  - **required:** False
+  - **description:** Password of third SMB share user, optionally set as a key in the com.github.autopkg preference file.
+- **SMB4_URL:**
+  - **required:** False
+  - **description:** Fourth URL to a Jamf Pro fileshare distribution point which should be in the form `smb://server/share`.
+- **SMB4_USERNAME:**
+  - **required:** False
+  - **description:** Username of account with appropriate access to the fourth SMB share, optionally set as a key in the com.github.autopkg preference file.
+- **SMB4_PASSWORD:**
+  - **required:** False
+  - **description:** Password of fourth SMB share user, optionally set as a key in the com.github.autopkg preference file.
 ## Output variables
 
 - **pkg_path:**
