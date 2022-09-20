@@ -245,7 +245,7 @@ class JamfPolicyUploader(JamfUploaderBase):
                     sleep(30)
         else:
             self.output("Not replacing icon. Set replace_icon='True' to enforce...")
-        return policy_icon_name
+        return policy_icon_name, policy_icon_path
 
     def main(self):
         """Do the main thing here"""
@@ -357,7 +357,7 @@ class JamfPolicyUploader(JamfUploaderBase):
             # get the policy_id returned from the HTTP response
             try:
                 policy_id = ElementTree.fromstring(r.output).findtext("id")
-                policy_icon_name = self.upload_policy_icon(
+                policy_icon_name, policy_icon_path = self.upload_policy_icon(
                     self.jamf_url,
                     self.policy_name,
                     self.icon,
@@ -367,7 +367,7 @@ class JamfPolicyUploader(JamfUploaderBase):
                     token=token,
                 )
             except UnboundLocalError:
-                policy_icon_name = self.upload_policy_icon(
+                policy_icon_name, policy_icon_path = self.upload_policy_icon(
                     self.jamf_url,
                     self.policy_name,
                     self.icon,
@@ -387,6 +387,7 @@ class JamfPolicyUploader(JamfUploaderBase):
                     "policy": self.policy_name,
                     "template": self.policy_template,
                     "icon": policy_icon_name,
+                    "icon_path": policy_icon_path
                 },
             }
 
