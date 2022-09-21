@@ -518,7 +518,7 @@ class JamfUploaderBase(Processor):
                 "ERROR: Jamf returned status code '401' - Access denied."
             )
 
-    def substitute_assignable_keys(self, data, xml_escape=False):
+    def substitute_assignable_keys(self, data, xml_escape=False, no_xml_escape=[]):
         """substitutes any key in the inputted text using the %MY_KEY% nomenclature"""
         # do a four-pass to ensure that all keys are substituted
         loop = 5
@@ -537,7 +537,7 @@ class JamfUploaderBase(Processor):
                         ),
                         verbose_level=2,
                     )
-                    if xml_escape:
+                    if xml_escape and found_key not in no_xml_escape:
                         replacement_key = escape(self.env.get(found_key))
                     else:
                         replacement_key = self.env.get(found_key)
