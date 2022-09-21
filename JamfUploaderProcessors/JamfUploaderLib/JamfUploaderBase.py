@@ -529,7 +529,7 @@ class JamfUploaderBase(Processor):
                 break
             found_keys = [i.replace("%", "") for i in found_keys]
             for found_key in found_keys:
-                if self.env.get(found_key):
+                if self.env.get(found_key) is not None:
                     self.output(
                         (
                             f"Replacing any instances of '{found_key}' with",
