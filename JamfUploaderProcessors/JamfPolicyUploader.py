@@ -75,6 +75,10 @@ class JamfPolicyUploader(JamfUploaderBase):
             "description": "Pause after running this processor for specified seconds.",
             "default": "0",
         },
+        "JAMF_NO_XML_ESCAPE": {
+            "required": False,
+            "description": "A list of keys to NOT xml escape."
+        }
     }
 
     output_variables = {
@@ -92,7 +96,7 @@ class JamfPolicyUploader(JamfUploaderBase):
         },
     }
 
-    def prepare_policy_template(self, policy_name, policy_template):
+    def prepare_policy_template(self, policy_name, policy_template, no_xml_escape):
         """prepare the policy contents"""
         # import template from file and replace any keys in the template
         if os.path.exists(policy_template):
@@ -102,9 +106,11 @@ class JamfPolicyUploader(JamfUploaderBase):
             raise ProcessorError("Template does not exist!")
 
         # substitute user-assignable keys
-        policy_name = self.substitute_assignable_keys(policy_name)
+        policy_name = self.substitute_assignable_keys(
+            policy_name, no_xml_escape=no_xml_escape
+        )
         template_contents = self.substitute_assignable_keys(
-            template_contents, xml_escape=True
+            template_contents, xml_escape=True, no_xml_escape=no_xml_escape
         )
 
         self.output("Policy data:", verbose_level=2)
@@ -257,6 +263,12 @@ class JamfPolicyUploader(JamfUploaderBase):
         self.icon = self.env.get("icon")
         self.replace = self.env.get("replace_policy")
         self.sleep = self.env.get("sleep")
+        self.no_xml_escape = self.env.get("JAMF_NO_XML_ESCAPE", [])
+
+        # if value is passed as a string, convert to a list containing the string
+        if isinstance(self.no_xml_escape, str):
+            self.no_xml_escape = [self.no_xml_escape]
+
         # handle setting replace in overrides
         if not self.replace or self.replace == "False":
             self.replace = False
@@ -283,7 +295,7 @@ class JamfPolicyUploader(JamfUploaderBase):
         # we need to substitute the values in the policy name and template now to
         # account for version strings in the name
         self.policy_name, template_xml = self.prepare_policy_template(
-            self.policy_name, self.policy_template
+            self.policy_name, self.policy_template, self.no_xml_escape
         )
 
         # now start the process of uploading the object
