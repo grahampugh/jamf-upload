@@ -805,14 +805,15 @@ class JamfPackageUploader(JamfUploaderBase):
 
         # Process for SMB shares if defined
         for smb_share in smb_shares:
+                smb_url, smb_user, smb_password = smb_share[0], smb_share[1], smb_share[2]
                 self.output(
-                    "Begin SMB upload to {}".format(smb_share[0]),
+                    "Begin SMB upload to {}".format(smb_url),
                     verbose_level =1
                 )
                 # mount the share
-                self.mount_smb(smb_share[0], smb_share[1], smb_share[2])
+                self.mount_smb(smb_url, smb_user, smb_password)
                 # check for existing package
-                local_pkg = self.check_local_pkg(smb_share[0], self.pkg_name)
+                local_pkg = self.check_local_pkg(smb_url, self.pkg_name)
                 if not local_pkg or self.replace:
                     if self.replace:
                         self.output(
@@ -822,9 +823,9 @@ class JamfPackageUploader(JamfUploaderBase):
                             verbose_level=1,
                         )
                     # copy the file
-                    self.copy_pkg(smb_share[0], self.pkg_path, self.pkg_name)
+                    self.copy_pkg(smb_url, self.pkg_path, self.pkg_name)
                     # unmount the share
-                    self.umount_smb(smb_share[0])
+                    self.umount_smb(smb_url)
                     # Don't set this property if
                     # 1. We need to upload to the cloud (self.smb_and_cloud_dp = true)
                     # 2. We have more SMB shares to process
@@ -839,7 +840,7 @@ class JamfPackageUploader(JamfUploaderBase):
                         f"{self.replace}. Use replace_pkg='True' to enforce."
                     )
                     # unmount the share
-                    self.umount_smb(smb_share[0])
+                    self.umount_smb(smb_url)
                     if not self.replace_metadata:
                         # even if we don't upload a package, we still need to pass it on so that a
                         # policy processor can use it
