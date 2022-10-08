@@ -462,9 +462,9 @@ class JamfUploaderBase(Processor):
                 jamf_pro_version = str(r.output["version"])
                 self.output(f"Jamf Pro Version: {jamf_pro_version}")
                 return jamf_pro_version
-            except KeyError:
-                self.output("ERROR: No version received")
-                return
+            except (KeyError, AttributeError) as error:
+                self.output(f"ERROR: No version received.  Error:\n{error}")
+                raise ProcessorError("Unable to determine version of Jamf Pro") from error
 
     def validate_jamf_pro_version(self, jamf_url, token):
         """return true if Jamf Pro version is 10.35 or greater"""
