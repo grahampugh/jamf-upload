@@ -546,7 +546,7 @@ class JamfUploaderBase(Processor):
                     self.output(
                         f"WARNING: '{found_key}' has no replacement object!",
                     )
-                    raise ProcessorError("Unsubstitutable key in template found")
+                    raise ProcessorError(f"Unsubstitutable key in template found: '{found_key}'")
         return data
 
     def substitute_limited_assignable_keys(
