@@ -795,39 +795,25 @@ class JamfPackageUploader(JamfUploaderBase):
             else:
                 pkg_id = 0
 
-        # process for SMB shares if defined
-        if self.smb_url:
-            # Enumerate mutiple shares into an array
-            smburl_list = []
-            smbuser_list = []
-            smbpass_list = []
-            # Populate the first entries
-            smburl_list.append(self.smb_url)
-            smbuser_list.append(self.smb_user)
-            smbpass_list.append(self.smb_password)
-            if self.smb2_url:
-                smburl_list.append(self.smb2_url)
-                smbuser_list.append(self.smb2_user)
-                smbpass_list.append(self.smb2_password)
-            if self.smb3_url:
-                smburl_list.append(self.smb3_url)
-                smbuser_list.append(self.smb3_user)
-                smbpass_list.append(self.smb3_password)
-            if self.smb4_url:
-                smburl_list.append(self.smb4_url)
-                smbuser_list.append(self.smb4_user)
-                smbpass_list.append(self.smb4_password)
+        # Create a list of smb shares in tuples
+        smb_shares = [ smb for smb in [
+            (self.smb_url, self.smb_user, self.smb_password),
+            (self.smb2_url, self.smb2_user, self.smb2_password),
+            (self.smb3_url, self.smb3_user, self.smb3_password),
+            (self.smb4_url, self.smb4_user, self.smb4_password)
+        ] if None not in smb and "" not in smb ]
 
-            array_len = len(smburl_list)
-            for entry in range(array_len):
+        # Process for SMB shares if defined
+        for smb_share in smb_shares:
+                smb_url, smb_user, smb_password = smb_share[0], smb_share[1], smb_share[2]
                 self.output(
-                    "Begin SMB upload to {}".format(smburl_list[entry]),
+                    "Begin SMB upload to {}".format(smb_url),
                     verbose_level =1
                 )
                 # mount the share
-                self.mount_smb(smburl_list[entry], smbuser_list[entry], smbpass_list[entry])
+                self.mount_smb(smb_url, smb_user, smb_password)
                 # check for existing package
-                local_pkg = self.check_local_pkg(smburl_list[entry], self.pkg_name)
+                local_pkg = self.check_local_pkg(smb_url, self.pkg_name)
                 if not local_pkg or self.replace:
                     if self.replace:
                         self.output(
@@ -837,13 +823,16 @@ class JamfPackageUploader(JamfUploaderBase):
                             verbose_level=1,
                         )
                     # copy the file
-                    self.copy_pkg(smburl_list[entry], self.pkg_path, self.pkg_name)
+                    self.copy_pkg(smb_url, self.pkg_path, self.pkg_name)
                     # unmount the share
-                    self.umount_smb(smburl_list[entry])
+                    self.umount_smb(smb_url)
                     # Don't set this property if
                     # 1. We need to upload to the cloud (self.smb_and_cloud_dp = true)
                     # 2. We have more SMB shares to process
-                    if ((not self.smb_and_cloud_dp or self.smb_and_cloud_dp == "False") and (array_len - 1) == entry):
+                    if (
+                        (not self.smb_and_cloud_dp or self.smb_and_cloud_dp == "False")
+                        and (len(smb_shares) - 1) == smb_shares.index(smb_share)
+                    ):
                         self.pkg_uploaded = True
                 else:
                     self.output(
@@ -851,7 +840,7 @@ class JamfPackageUploader(JamfUploaderBase):
                         f"{self.replace}. Use replace_pkg='True' to enforce."
                     )
                     # unmount the share
-                    self.umount_smb(smburl_list[entry])
+                    self.umount_smb(smb_url)
                     if not self.replace_metadata:
                         # even if we don't upload a package, we still need to pass it on so that a
                         # policy processor can use it
