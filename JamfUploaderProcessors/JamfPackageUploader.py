@@ -167,6 +167,71 @@ class JamfPackageUploader(JamfUploaderBase):
             "the com.github.autopkg preference file.",
             "default": "",
         },
+        "SMB_AND_CLOUD_DP": {
+            "required": False,
+            "description": "Boolean if we should process SMB and cloud DP shares.",
+            "default": "",
+        },
+        "SMB2_URL": {
+            "required": False,
+            "description": "URL to a Jamf Pro fileshare distribution point "
+            "which should be in the form smb://server "
+            "preference file.",
+            "default": "",
+        },
+        "SMB2_USERNAME": {
+            "required": False,
+            "description": "Username of account with appropriate access to "
+            "jss, optionally set as a key in the com.github.autopkg "
+            "preference file.",
+            "default": "",
+        },
+        "SMB2_PASSWORD": {
+            "required": False,
+            "description": "Password of api user, optionally set as a key in "
+            "the com.github.autopkg preference file.",
+            "default": "",
+        },
+        "SMB3_URL": {
+            "required": False,
+            "description": "URL to a Jamf Pro fileshare distribution point "
+            "which should be in the form smb://server "
+            "preference file.",
+            "default": "",
+        },
+        "SMB3_USERNAME": {
+            "required": False,
+            "description": "Username of account with appropriate access to "
+            "jss, optionally set as a key in the com.github.autopkg "
+            "preference file.",
+            "default": "",
+        },
+        "SMB3_PASSWORD": {
+            "required": False,
+            "description": "Password of api user, optionally set as a key in "
+            "the com.github.autopkg preference file.",
+            "default": "",
+        },
+        "SMB4_URL": {
+            "required": False,
+            "description": "URL to a Jamf Pro fileshare distribution point "
+            "which should be in the form smb://server "
+            "preference file.",
+            "default": "",
+        },
+        "SMB4_USERNAME": {
+            "required": False,
+            "description": "Username of account with appropriate access to "
+            "jss, optionally set as a key in the com.github.autopkg "
+            "preference file.",
+            "default": "",
+        },
+        "SMB4_PASSWORD": {
+            "required": False,
+            "description": "Password of api user, optionally set as a key in "
+            "the com.github.autopkg preference file.",
+            "default": "",
+        },
         "sleep": {
             "required": False,
             "description": "Pause after running this processor for specified seconds.",
@@ -653,6 +718,16 @@ class JamfPackageUploader(JamfUploaderBase):
         self.smb_url = self.env.get("SMB_URL")
         self.smb_user = self.env.get("SMB_USERNAME")
         self.smb_password = self.env.get("SMB_PASSWORD")
+        self.smb_and_cloud_dp = self.env.get("SMB_AND_CLOUD_DP")
+        self.smb2_url = self.env.get("SMB2_URL")
+        self.smb2_user = self.env.get("SMB2_USERNAME")
+        self.smb2_password = self.env.get("SMB2_PASSWORD")
+        self.smb3_url = self.env.get("SMB3_URL")
+        self.smb3_user = self.env.get("SMB3_USERNAME")
+        self.smb3_password = self.env.get("SMB3_PASSWORD")
+        self.smb4_url = self.env.get("SMB4_URL")
+        self.smb4_user = self.env.get("SMB4_USERNAME")
+        self.smb4_password = self.env.get("SMB4_PASSWORD")
         self.recipe_cache_dir = self.env.get("RECIPE_CACHE_DIR")
         self.pkg_uploaded = False
         self.pkg_metadata_updated = False
@@ -720,40 +795,60 @@ class JamfPackageUploader(JamfUploaderBase):
             else:
                 pkg_id = 0
 
-        # process for SMB shares if defined
-        if self.smb_url:
-            # mount the share
-            self.mount_smb(self.smb_url, self.smb_user, self.smb_password)
-            # check for existing package
-            local_pkg = self.check_local_pkg(self.smb_url, self.pkg_name)
-            if not local_pkg or self.replace:
-                if self.replace:
-                    self.output(
-                        "Replacing existing package as 'replace_pkg' is set to {}".format(
-                            self.replace
-                        ),
-                        verbose_level=1,
-                    )
-                # copy the file
-                self.copy_pkg(self.smb_url, self.pkg_path, self.pkg_name)
-                # unmount the share
-                self.umount_smb(self.smb_url)
-                self.pkg_uploaded = True
-            else:
+        # Create a list of smb shares in tuples
+        smb_shares = [ smb for smb in [
+            (self.smb_url, self.smb_user, self.smb_password),
+            (self.smb2_url, self.smb2_user, self.smb2_password),
+            (self.smb3_url, self.smb3_user, self.smb3_password),
+            (self.smb4_url, self.smb4_user, self.smb4_password)
+        ] if None not in smb and "" not in smb ]
+
+        # Process for SMB shares if defined
+        for smb_share in smb_shares:
+                smb_url, smb_user, smb_password = smb_share[0], smb_share[1], smb_share[2]
                 self.output(
-                    f"Not replacing existing {self.pkg_name} as 'replace_pkg' is set to "
-                    f"{self.replace}. Use replace_pkg='True' to enforce."
+                    "Begin SMB upload to {}".format(smb_url),
+                    verbose_level =1
                 )
-                # unmount the share
-                self.umount_smb(self.smb_url)
-                if not self.replace_metadata:
-                    # even if we don't upload a package, we still need to pass it on so that a
-                    # policy processor can use it
-                    self.env["pkg_name"] = self.pkg_name
-                    self.pkg_uploaded = False
+                # mount the share
+                self.mount_smb(smb_url, smb_user, smb_password)
+                # check for existing package
+                local_pkg = self.check_local_pkg(smb_url, self.pkg_name)
+                if not local_pkg or self.replace:
+                    if self.replace:
+                        self.output(
+                            "Replacing existing package as 'replace_pkg' is set to {}".format(
+                                self.replace
+                            ),
+                            verbose_level=1,
+                        )
+                    # copy the file
+                    self.copy_pkg(smb_url, self.pkg_path, self.pkg_name)
+                    # unmount the share
+                    self.umount_smb(smb_url)
+                    # Don't set this property if
+                    # 1. We need to upload to the cloud (self.smb_and_cloud_dp = true)
+                    # 2. We have more SMB shares to process
+                    if (
+                        (not self.smb_and_cloud_dp or self.smb_and_cloud_dp == "False")
+                        and (len(smb_shares) - 1) == smb_shares.index(smb_share)
+                    ):
+                        self.pkg_uploaded = True
+                else:
+                    self.output(
+                        f"Not replacing existing {self.pkg_name} as 'replace_pkg' is set to "
+                        f"{self.replace}. Use replace_pkg='True' to enforce."
+                    )
+                    # unmount the share
+                    self.umount_smb(smb_url)
+                    if not self.replace_metadata:
+                        # even if we don't upload a package, we still need to pass it on so that a
+                        # policy processor can use it
+                        self.env["pkg_name"] = self.pkg_name
+                        self.pkg_uploaded = False
 
         # otherwise process for cloud DP
-        else:
+        if not self.smb_url or self.smb_and_cloud_dp:
             if obj_id == "-1" or self.replace:
                 if self.replace:
                     self.output(
