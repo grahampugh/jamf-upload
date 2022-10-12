@@ -147,17 +147,18 @@ class JamfPackageUploader(JamfUploaderBase):
         },
         "SMB_AND_CLOUD_DP": {
             "required": False,
-            "description": "Process both SMB and cloud DP shares if True and if at "
+            "description": "Process both file share and Cloud DP shares if True and if at "
             "least one SMB DP is configured.",
             "default": "False",
         },
         "SMB_URL": {
             "required": False,
-            "description": "URL to a Jamf Pro fileshare distribution point "
-            "which should be in the form smb://server/share",
+            "description": "URL to a Jamf Pro file share distribution point "
+            "which should be in the form smb://server/share"
+            "or a local DP in the form file://path"
             "Subsequent DPs can be configured using SMB2_URL, SMB3_URL etc. "
             "Accompanying username and password must be supplied for each DP, e.g. "
-            "SMB2_USERNAME, SMB2_PASSWORD etc."
+            "SMB2_USERNAME, SMB2_PASSWORD etc.",
             "default": "",
         },
         "SMB_USERNAME": {
@@ -777,12 +778,15 @@ class JamfPackageUploader(JamfUploaderBase):
                 pkg_id = 0
 
         # Process for SMB shares if defined
-        self.output("Number of SMB DPs: " + str(len(self.smb_shares)), verbose_level=2)
+        self.output(
+            "Number of File Share DPs: " + str(len(self.smb_shares)), verbose_level=2
+        )
         for smb_share in self.smb_shares:
             smb_url, smb_user, smb_password = smb_share[0], smb_share[1], smb_share[2]
-            self.output(f"Begin SMB upload to {smb_url}", verbose_level=1)
-            # mount the share
-            self.mount_smb(smb_url, smb_user, smb_password)
+            self.output(f"Begin upload to File Share DP {smb_url}", verbose_level=1)
+            if "smb://" in smb_url:
+                # mount the share
+                self.mount_smb(smb_url, smb_user, smb_password)
             # check for existing package
             local_pkg = self.check_local_pkg(smb_url, self.pkg_name)
             if not local_pkg or self.replace:
@@ -795,8 +799,9 @@ class JamfPackageUploader(JamfUploaderBase):
                     )
                 # copy the file
                 self.copy_pkg(smb_url, self.pkg_path, self.pkg_name)
-                # unmount the share
-                self.umount_smb(smb_url)
+                if "smb://" in smb_url:
+                    # unmount the share
+                    self.umount_smb(smb_url)
                 # Don't set this property if
                 # 1. We need to upload to the cloud (self.smb_and_cloud_dp = true)
                 # 2. We have more SMB shares to process
@@ -809,8 +814,9 @@ class JamfPackageUploader(JamfUploaderBase):
                     f"Not replacing existing {self.pkg_name} as 'replace_pkg' is set to "
                     f"{self.replace}. Use replace_pkg='True' to enforce."
                 )
-                # unmount the share
-                self.umount_smb(smb_url)
+                if "smb://" in smb_url:
+                    # unmount the share
+                    self.umount_smb(smb_url)
                 if self.smb_shares and not self.replace_metadata:
                     # even if we don't upload a package, we still need to pass it on so that a
                     # subsequent processor can use it
