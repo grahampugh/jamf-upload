@@ -197,30 +197,38 @@ elif [[ $test_type == "restriction" ]]; then
         "$url" \
         --replace
 
-# elif [[ $test_type == "package" || $test_type == "pkg" ]]; then
-#     # upload a package
-#     "$DIR"/../jamf-upload.sh pkg \
-#         --prefs "$prefs" \
-#         --recipe-dir /Users/gpugh/sourcecode/jamf-upload/_tests \
-#         --pkg "/Users/gpugh/Library/AutoPkg/Cache/com.github.mlbz521.pkg.Solstice/Solstice-5.4.30427.pkg" \
-#         --category Applications \
-#         --info "Uploaded directly by JamfPackageUploader in JCDS mode" \
-#         --notes "$(date)" \
-#         "$verbosity" \
-#         "$url" \
-#         --jcds \
-#         --replace
-
 elif [[ $test_type == "package" || $test_type == "pkg" ]]; then
     # upload a package
     "$DIR"/../jamf-upload.sh pkg \
         --prefs "$prefs" \
         --recipe-dir /Users/gpugh/sourcecode/jamf-upload/_tests \
-        --pkg "/Users/gpugh/Library/AutoPkg/Cache/com.github.eth-its-recipes.jamf.DisplayLinkManager/DisplayLink_Manager-1.7.0.pkg" \
+        --pkg "/Users/gpugh/Library/AutoPkg/Cache/com.github.mlbz521.pkg.Solstice/Solstice-5.4.30427.pkg" \
+        --category Applications \
+        --info "Uploaded directly by JamfPackageUploader in JCDS mode" \
+        --notes "$(date)" \
         "$verbosity" \
         "$url" \
         --jcds \
         --replace
+
+# elif [[ $test_type == "package" || $test_type == "pkg" ]]; then
+#     # upload a package
+#     "$DIR"/../jamf-upload.sh pkg \
+#         --prefs "$prefs" \
+#         --recipe-dir /Users/gpugh/sourcecode/jamf-upload/_tests \
+#         --pkg "/Users/gpugh/Library/AutoPkg/Cache/com.github.eth-its-recipes.jamf.DisplayLinkManager/DisplayLink_Manager-1.7.0.pkg" \
+#         --category "Testing" \
+#         "$verbosity" \
+#         "$url" \
+#         --key "API_USERNAME=jamfadmin" \
+#         --key "API_PASSWORD=" \
+#         --key "SMB_URL=smb://id-jds-dev.ethz.ch/JPShare" \
+#         --key "SMB_USERNAME=jamfadmin" \
+#         --key "SMB_PASSWORD=" \
+#         --key "SMB2_URL=smb://id-jds-tst.ethz.ch/JPShare" \
+#         --key "SMB2_USERNAME=jamfadmin" \
+#         --key "SMB2_PASSWORD=" \
+#         --replace
 
 elif [[ $test_type == "script" ]]; then
     # upload a script
