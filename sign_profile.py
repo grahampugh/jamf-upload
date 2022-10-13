@@ -101,15 +101,15 @@ def unsign_profile(signed_profile, output_path, verbosity):
     sout, serr = proc.communicate()
     if verbosity:
         if sout:
-            print(f"Output of signing command: {sout}")
+            print(f"Output of unsigning command: {sout}")
             print()
         elif serr:
-            print("Error: Profile was not signed:")
+            print("Error: Profile was not unsigned:")
             print(serr)
             print()
+            exit(1)
     # prettify the profile if it was successfully unsigned
-    if sout:
-        prettify_profile(output_path, verbosity)
+    prettify_profile(output_path, verbosity)
     return output_path
 
 
