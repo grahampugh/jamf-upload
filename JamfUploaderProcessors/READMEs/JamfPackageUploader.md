@@ -63,52 +63,29 @@ Can be run as a post-processor for a pkg recipe or in a child recipe. The parent
   - **default:** False
 - **JSS_URL:**
   - **required:** True
-  - **description:** URL to a Jamf Pro server that the API user has write access to, optionally set as a key in the com.github.autopkg preference file.
+  - **description:** URL to a Jamf Pro server to which the API user has write access.
 - **API_USERNAME:**
   - **required:** True
-  - **description:** Username of account with appropriate access to jss, optionally set as a key in the com.github.autopkg preference file.
+  - **description:** Username of account with appropriate API access to the Jamf Pro Server.
 - **API_PASSWORD:**
   - **required:** True
-  - **description:** Password of api user, optionally set as a key in the com.github.autopkg preference file.
-- **SMB_AND_CLOUD_DP:**
+  - **description:** Password of account with appropriate API access to the Jamf Pro Server..
+- **CLOUD_DP:**
   - **required:** False
-  - **description:** True/False if we should process both SMB and Cloud DP shares. (Default: False).
+  - **description:** Indicates the presence of a Cloud Distribution Point. The default is deliberately blank. If no SMB DP is configured, the default setting assumes that the Cloud DP has been enabled. If at least one SMB DP is configured, the default setting assumes that no Cloud DP has been set. This can be overridden by setting `CLOUD_DP` to Enabled, in which case packages will be uploaded to both a Cloud DP plus the SMB DP(s)."
 - **SMB_URL:**
   - **required:** False
-  - **description:** URL to a Jamf Pro fileshare distribution point which should be in the form `smb://server/share`.
+  - **description:** URL to a Jamf Pro file share distribution point which should be in the form `smb://server/share` or a local DP in the form `file://path`. Subsequent DPs can be configured using `SMB2_URL`, `SMB3_URL` etc. Accompanying username and password must be supplied for each DP, e.g. `SMB2_USERNAME`, `SMB2_PASSWORD` etc.
 - **SMB_USERNAME:**
   - **required:** False
-  - **description:** Username of account with appropriate access to the SMB share, optionally set as a key in the com.github.autopkg preference file.
+  - **description:** Username of account with appropriate access to a Jamf Pro fileshare distribution point.
 - **SMB_PASSWORD:**
   - **required:** False
-  - **description:** Password of the SMB share user, optionally set as a key in the com.github.autopkg preference file.
-- **SMB2_URL:**
+  - **description:** Password of account with appropriate access to a Jamf Pro fileshare distribution point.
+- **SMB_SHARES:**
   - **required:** False
-  - **description:** Second URL to a Jamf Pro fileshare distribution point which should be in the form `smb://server/share`.
-- **SMB2_USERNAME:**
-  - **required:** False
-  - **description:** Username of account with appropriate access to the second SMB share, optionally set as a key in the com.github.autopkg preference file.
-- **SMB2_PASSWORD:**
-  - **required:** False
-  - **description:** Password of second SMB share user, optionally set as a key in the com.github.autopkg preference file.
-- **SMB3_URL:**
-  - **required:** False
-  - **description:** Third URL to a Jamf Pro fileshare distribution point which should be in the form `smb://server/share`.
-- **SMB3_USERNAME:**
-  - **required:** False
-  - **description:** Username of account with appropriate access to the third SMB share, optionally set as a key in the com.github.autopkg preference file.
-- **SMB3_PASSWORD:**
-  - **required:** False
-  - **description:** Password of third SMB share user, optionally set as a key in the com.github.autopkg preference file.
-- **SMB4_URL:**
-  - **required:** False
-  - **description:** Fourth URL to a Jamf Pro fileshare distribution point which should be in the form `smb://server/share`.
-- **SMB4_USERNAME:**
-  - **required:** False
-  - **description:** Username of account with appropriate access to the fourth SMB share, optionally set as a key in the com.github.autopkg preference file.
-- **SMB4_PASSWORD:**
-  - **required:** False
-  - **description:** Password of fourth SMB share user, optionally set as a key in the com.github.autopkg preference file.
+  - **description:** An array of dictionaries containing `SMB_URL`, `SMB_USERNAME` and `SMB_PASSWORD`, as an alternative to individual keys. Any individual keys will override this complete array. The array can only be provided via the AutoPkg preferences file.
+
 ## Output variables
 
 - **pkg_path:**
