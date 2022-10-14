@@ -673,10 +673,10 @@ class JamfPackageUploader(JamfUploaderBase):
         self.pkg_metadata_updated = False
 
         # Create a list of smb shares in tuples
+        self.smb_shares = []
         if self.env.get("SMB_URL"):
             if not self.env.get("SMB_USERNAME") or not self.env.get("SMB_PASSWORD"):
                 raise ProcessorError("SMB_URL defined but no credentials supplied.")
-            self.smb_shares = []
             self.output(
                 "DP 1: {}, {}, pass len: {}".format(
                     self.env.get("SMB_URL"),
@@ -722,7 +722,6 @@ class JamfPackageUploader(JamfUploaderBase):
                     self.output(f"DP {n}: not defined", verbose_level=3)
                     n = 0
         elif self.env.get("SMB_SHARES"):
-            self.smb_shares = []
             smb_share_array = self.env.get("SMB_SHARES")
             for share in smb_share_array:
                 if (
@@ -850,6 +849,7 @@ class JamfPackageUploader(JamfUploaderBase):
 
         # otherwise process for cloud DP
         if not self.smb_shares or self.cloud_dp == "Enabled" or self.cloud_dp == "True":
+            self.output("Handling Cloud Distribution Point", verbose_level=2)
             if obj_id == "-1" or self.replace:
                 if self.replace:
                     self.output(
