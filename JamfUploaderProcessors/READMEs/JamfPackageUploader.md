@@ -72,7 +72,7 @@ Can be run as a post-processor for a pkg recipe or in a child recipe. The parent
   - **description:** Password of account with appropriate API access to the Jamf Pro Server..
 - **CLOUD_DP:**
   - **required:** False
-  - **description:** Indicates the presence of a Cloud Distribution Point. The default is deliberately blank. If no SMB DP is configured, the default setting assumes that the Cloud DP has been enabled. If at least one SMB DP is configured, the default setting assumes that no Cloud DP has been set. This can be overridden by setting `CLOUD_DP` to `Enabled`, in which case packages will be uploaded to both a Cloud DP plus the SMB DP(s)."
+  - **description:** Indicates the presence of a Cloud Distribution Point. The default is deliberately blank. If no SMB DP is configured, the default setting assumes that the Cloud DP has been enabled. If at least one SMB DP is configured, the default setting assumes that no Cloud DP has been set. This can be overridden by setting `CLOUD_DP` to `True`, in which case packages will be uploaded to both a Cloud DP plus the SMB DP(s)."
 - **SMB_URL:**
   - **required:** False
   - **description:** URL to a Jamf Pro file share distribution point which should be in the form `smb://server/share` or a local DP in the form `file://path`. Subsequent DPs can be configured using `SMB2_URL`, `SMB3_URL` etc. Accompanying username and password must be supplied for each DP, e.g. `SMB2_USERNAME`, `SMB2_PASSWORD` etc.

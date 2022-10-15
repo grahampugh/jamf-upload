@@ -151,9 +151,9 @@ class JamfPackageUploader(JamfUploaderBase):
             "the default setting assumes that the Cloud DP has been enabled. "
             "If at least one SMB DP is configured, the default setting assumes "
             "that no Cloud DP has been set. "
-            "This can be overridden by setting CLOUD_DP to Enabled, in which case "
+            "This can be overridden by setting CLOUD_DP to True, in which case "
             "packages will be uploaded to both a Cloud DP plus the SMB DP(s).",
-            "default": "",
+            "default": False,
         },
         "SMB_URL": {
             "required": False,
@@ -668,6 +668,9 @@ class JamfPackageUploader(JamfUploaderBase):
         self.jamf_user = self.env.get("API_USERNAME")
         self.jamf_password = self.env.get("API_PASSWORD")
         self.cloud_dp = self.env.get("CLOUD_DP")
+        # handle setting jcds_mode in overrides
+        if not self.cloud_dp or self.cloud_dp == "False":
+            self.cloud_dp = False
         self.recipe_cache_dir = self.env.get("RECIPE_CACHE_DIR")
         self.pkg_uploaded = False
         self.pkg_metadata_updated = False
@@ -827,9 +830,9 @@ class JamfPackageUploader(JamfUploaderBase):
                     # unmount the share
                     self.umount_smb(smb_url)
                 # Don't set this property if
-                # 1. We need to upload to the cloud (self.cloud_dp = True or Enabled)
+                # 1. We need to upload to the cloud (self.cloud_dp == True)
                 # 2. We have more SMB shares to process
-                if (self.cloud_dp != "True" and self.cloud_dp != "Enabled") and (
+                if not self.cloud_dp and (
                     len(self.smb_shares) - 1
                 ) == self.smb_shares.index(smb_share):
                     self.pkg_uploaded = True
@@ -848,7 +851,7 @@ class JamfPackageUploader(JamfUploaderBase):
                     self.pkg_uploaded = False
 
         # otherwise process for cloud DP
-        if not self.smb_shares or self.cloud_dp == "Enabled" or self.cloud_dp == "True":
+        if self.cloud_dp or not self.smb_shares:
             self.output("Handling Cloud Distribution Point", verbose_level=2)
             if obj_id == "-1" or self.replace:
                 if self.replace:

@@ -2,6 +2,7 @@
 
 | Date       | Notes                                                                                            |
 | ---------- | ------------------------------------------------------------------------------------------------ |
+| 2022-10-15 | Allow multiple SMB repos plus SMB + Cloud in `JamfPackageUploader`.                                                       |
 | 2022-10-08 | Fail properly for unsubstitutable variables.                                                     |
 | 2022-10-08 | Fail properly if cannot detemine the Jamf Pro version.                                           |
 | 2022-09-21 | Allow empty values for substitutable variables.                                                  |

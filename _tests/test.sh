@@ -39,7 +39,7 @@ elif [[ $test_type == "group" ]]; then
         --prefs "$prefs" \
         --recipe-dir /Users/gpugh/sourcecode/jamf-upload/_tests \
         --name "Firefox test users" \
-        --template "SmartGroupTemplate-test-users.xml" \
+        --template "templates/SmartGroupTemplate-test-users.xml" \
         --key POLICY_NAME="Firefox" \
         "$verbosity" \
         "$url" \
@@ -51,8 +51,8 @@ elif [[ $test_type == "profile" ]]; then
         --prefs "$prefs" \
         --name "Carbon Copy Cloner" \
         --recipe-dir /Users/gpugh/sourcecode/jamf-upload/_tests \
-        --template ProfileTemplate-1-group-1-exclusion.xml \
-        --payload com.bombich.ccc.plist \
+        --template "templates/ProfileTemplate-1-group-1-exclusion.xml" \
+        --payload "templates/com.bombich.ccc.plist" \
         --identifier com.bombich.ccc \
         --category JamfUploadTest \
         --organization "Graham Pugh Inc." \
@@ -73,7 +73,7 @@ elif [[ $test_type == "ea" ]]; then
         --prefs "$prefs" \
         --recipe-dir /Users/gpugh/sourcecode/jamf-upload/_tests \
         --name "Microsoft AutoUpdate Version" \
-        --script "MicrosoftAutoUpdate-EA.sh" \
+        --script "templates/MicrosoftAutoUpdate-EA.sh" \
         "$verbosity" \
         "$url" \
         --replace
@@ -84,7 +84,7 @@ elif [[ $test_type == "ea" ]]; then
 #         --prefs "$prefs" \
 #         --recipe-dir /Users/gpugh/sourcecode/jamf-upload/_tests \
 #         --name "Numbers" \
-#         --template "MacApp-allcomputers.xml" \
+#         --template "templates/MacApp-allcomputers.xml" \
 #         --key CATEGORY="Applications" \
 #         --key DEPLOYMENT_TYPE="Make Available in Self Service" \
 #         "$verbosity" \
@@ -98,7 +98,7 @@ elif [[ $test_type == "macapp" ]]; then
         --recipe-dir /Users/gpugh/sourcecode/jamf-upload/_tests \
         --name "Numbers - auto-install" \
         --clone-from "Numbers" \
-        --template "MacApp-noscope-autoinstall.xml" \
+        --template "templates/MacApp-noscope-autoinstall.xml" \
         --key CATEGORY="Applications" \
         --key DEPLOYMENT_TYPE="Install Automatically/Prompt Users to Install" \
         "$verbosity" \
@@ -112,7 +112,7 @@ elif [[ $test_type == "policy" ]]; then
         --prefs "$prefs" \
         --recipe-dir /Users/gpugh/sourcecode/jamf-upload/_tests \
         --name "Install Authy Desktop" \
-        --template "PolicyTemplate-trigger.xml" \
+        --template "templates/PolicyTemplate-trigger.xml" \
         --key POLICY_NAME="Install Authy Desktop" \
         --key TRIGGER_NAME="Authy Desktop-install" \
         --key CATEGORY="JamfUploadTest" \
@@ -147,7 +147,7 @@ elif [[ $test_type == "policy_flush" ]]; then
 #         --recipe-dir /Users/gpugh/sourcecode/jamf-upload/_tests \
 #         --name "Test Group" \
 #         --type "group" \
-#         --template "Account-Group-local.xml" \
+#         --template "templates/Account-Group-local.xml" \
 #         "$verbosity" \
 #         "$url"
 
@@ -158,7 +158,7 @@ elif [[ $test_type == "policy_flush" ]]; then
 #         --recipe-dir /Users/gpugh/sourcecode/jamf-upload/_tests \
 #         --name "graham" \
 #         --type "user" \
-#         --template "Account-User-groupaccess.xml" \
+#         --template "templates/Account-User-groupaccess.xml" \
 #         --key ACCOUNT_FULLNAME="Graham Pugh Test Account" \
 #         --key ACCOUNT_PASSWORD="GrahamsPassword" \
 #         --key ACCOUNT_EMAIL="graham@pugh.com" \
@@ -173,7 +173,7 @@ elif [[ $test_type == "account" ]]; then
         --recipe-dir /Users/gpugh/sourcecode/jamf-upload/_tests \
         --name "graham" \
         --type "user" \
-        --template "Account-User-fullaccess.xml" \
+        --template "templates/Account-User-fullaccess.xml" \
         --key ACCOUNT_FULLNAME="Graham Pugh Test Account" \
         --key ACCOUNT_EMAIL="graham@pugh.com" \
         "$verbosity" \
@@ -187,7 +187,7 @@ elif [[ $test_type == "restriction" ]]; then
         --prefs "$prefs" \
         --name "Restrict Carbon Copy Cloner" \
         --recipe-dir /Users/gpugh/sourcecode/jamf-upload/_tests \
-        --template RestrictionTemplate-singlegroup.xml \
+        --template "templates/RestrictionTemplate-singlegroup.xml" \
         --process_name "Carbon Copy Cloner" \
         --display_message "Carbon Copy Cloner is not allowed." \
         --match_exact_process_name \
@@ -216,11 +216,10 @@ elif [[ $test_type == "package" || $test_type == "pkg" ]]; then
     "$DIR"/../jamf-upload.sh pkg \
         --prefs "$prefs" \
         --recipe-dir /Users/gpugh/sourcecode/jamf-upload/_tests \
-        --pkg "/Users/gpugh/Library/AutoPkg/Cache/com.github.eth-its-recipes.jamf.DisplayLinkManager/DisplayLink_Manager-1.7.0.pkg" \
+        --pkg "/Users/gpugh/Library/AutoPkg/Cache/com.github.smithjw.pkg.Nessus_Agent/Nessus_Agent-10.1.3.pkg" \
         --category "Testing" \
         "$verbosity" \
         "$url" \
-        --key "CLOUD_DP=True" \
         --jcds \
         --replace
 
@@ -244,7 +243,7 @@ elif [[ $test_type == "script" ]]; then
 #         --name "Google Chrome" \
 #         --title "Google Chrome" \
 #         --policy-name "Install Latest Google Chrome" \
-#         --template "PatchTemplate-selfservice.xml" \
+#         --template "templates/PatchTemplate-selfservice.xml" \
 #         --pkg-name "Google Chrome-91.0.4472.77.pkg" \
 #         --version "91.0.4472.77" \
 #         "$verbosity" \
@@ -258,7 +257,7 @@ elif [[ $test_type == "patch" ]]; then
         --recipe-dir /Users/gpugh/sourcecode/jamf-upload/_tests \
         --name "Firefox" \
         --title "Firefox" \
-        --template "PatchTemplate-selfservice.xml" \
+        --template "templates/PatchTemplate-selfservice.xml" \
         --pkg-name "Firefox-96.0.pkg" \
         --version "96.0" \
         --policy-name "Install Latest Firefox" \
