@@ -15,6 +15,7 @@ import xml.etree.cElementTree as ET
 from base64 import b64encode
 from collections import namedtuple
 from datetime import datetime
+from html.parser import HTMLParser
 from pathlib import Path
 from shutil import rmtree
 from urllib.parse import quote
@@ -429,28 +430,38 @@ class JamfUploaderBase(Processor):
         if r.status_code == 200 or r.status_code == 201:
             self.output(f"{endpoint_type} '{obj_name}' {action} successful")
             return "break"
-        elif r.status_code == 409:
-            self.output(r.output, verbose_level=2)
-            raise ProcessorError(
-                f"WARNING: {endpoint_type} '{obj_name}' {action} failed due to a conflict"
-            )
-        elif r.status_code == 401:
-            raise ProcessorError(
-                f"ERROR: {endpoint_type} '{obj_name}' {action} failed due to permissions error"
-            )
-        elif r.status_code == 405:
-            raise ProcessorError(
-                f"ERROR: {endpoint_type} '{obj_name}' {action} failed due to a "
-                "'method not allowed' error"
-            )
-        elif r.status_code == 500:
-            raise ProcessorError(
-                f"ERROR: {endpoint_type} '{obj_name}' {action} failed due to an "
-                "internal server error"
-            )
         else:
-            self.output(f"WARNING: {endpoint_type} '{obj_name}' {action} failed")
-            self.output(r.output, verbose_level=2)
+            parser = self.ParseHTMLForError()
+            parser.feed(r.output.decode())
+            if parser.error:
+                self.output(f"API {parser.error}", verbose_level=2)
+            self.output(f"API response:\n{r.output}", verbose_level=3)
+            if r.status_code == 409:
+                raise ProcessorError(
+                    f"WARNING: {endpoint_type} '{obj_name}' {action} failed due to the following "
+                    f"conflict: {parser.error.replace('Error: ', '')}"
+                )
+            elif r.status_code == 400:
+                raise ProcessorError(
+                    f"WARNING: {endpoint_type} '{obj_name}' {action} failed due to the following "
+                    f"{parser.data[6]}: {parser.data[8]}"
+                )
+            elif r.status_code == 401:
+                raise ProcessorError(
+                    f"ERROR: {endpoint_type} '{obj_name}' {action} failed due to permissions error"
+                )
+            elif r.status_code == 405:
+                raise ProcessorError(
+                    f"ERROR: {endpoint_type} '{obj_name}' {action} failed due to a "
+                    "'method not allowed' error"
+                )
+            elif r.status_code == 500:
+                raise ProcessorError(
+                    f"ERROR: {endpoint_type} '{obj_name}' {action} failed due to an "
+                    "internal server error"
+                )
+            else:
+                raise ProcessorError(f"UNKNOWN ERROR: {endpoint_type} '{obj_name}' {action} failed")
 
     def get_jamf_pro_version(self, jamf_url, token):
         """get the Jamf Pro version so that we can figure out which auth method to use for the
@@ -699,6 +710,17 @@ class JamfUploaderBase(Processor):
         (output, _) = proc.communicate(xml)
         return output
 
+    class ParseHTMLForError(HTMLParser):
+
+        def __init__(self):
+            HTMLParser.__init__(self)
+            self.error = None
+            self.data = []
+
+        def handle_data(self, data):
+            self.data.append(data)
+            if "Error:" in data:
+                self.error = data
 
 if __name__ == "__main__":
     PROCESSOR = JamfUploaderBase()
