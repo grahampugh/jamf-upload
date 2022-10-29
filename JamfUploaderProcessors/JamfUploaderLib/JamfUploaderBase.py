@@ -462,17 +462,21 @@ class JamfUploaderBase(Processor):
                 jamf_pro_version = str(r.output["version"])
                 self.output(f"Jamf Pro Version: {jamf_pro_version}")
                 return jamf_pro_version
-            except (KeyError, AttributeError) as error:
+            except KeyError as error:
                 self.output(f"ERROR: No version received.  Error:\n{error}")
-                raise ProcessorError("Unable to determine version of Jamf Pro") from error
+                raise ProcessorError("No version received") from error
 
     def validate_jamf_pro_version(self, jamf_url, token):
         """return true if Jamf Pro version is 10.35 or greater"""
         jamf_pro_version = self.get_jamf_pro_version(jamf_url, token)
-        if APLooseVersion(jamf_pro_version) >= APLooseVersion("10.35.0"):
-            return True
-        else:
-            return False
+        try:
+            if APLooseVersion(jamf_pro_version) >= APLooseVersion("10.35.0"):
+                return True
+            else:
+                return False
+        except AttributeError as error:
+            self.output(f"ERROR: Unable to determine version of Jamf Pro.  Error:\n{error}")
+            raise ProcessorError("Unable to determine version of Jamf Pro") from error
 
     def get_uapi_obj_id_from_name(self, jamf_url, object_type, object_name, token):
         """Get the Jamf Pro API object by name. This requires use of RSQL filtering"""
