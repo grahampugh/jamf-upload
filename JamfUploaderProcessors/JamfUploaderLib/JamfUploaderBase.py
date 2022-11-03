@@ -461,7 +461,9 @@ class JamfUploaderBase(Processor):
                     "internal server error"
                 )
             else:
-                raise ProcessorError(f"UNKNOWN ERROR: {endpoint_type} '{obj_name}' {action} failed")
+                self.output(f"UNKNOWN ERROR: {endpoint_type} '{obj_name}' {action} failed. "
+                    "Will try again."
+                )
 
     def get_jamf_pro_version(self, jamf_url, token):
         """get the Jamf Pro version so that we can figure out which auth method to use for the
