@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>PayloadContent</key>
+	<array>
+		<dict>
+			<key>PayloadDisplayName</key>
+			<string>Spotlight</string>
+			<key>PayloadIdentifier</key>
+			<string>com.apple.Spotlight.56235E14-85C7-43C3-9485-ABDF869B8CC9</string>
+			<key>PayloadType</key>
+			<string>com.apple.Spotlight</string>
+			<key>PayloadUUID</key>
+			<string>56235E14-85C7-43C3-9485-ABDF869B8CC9</string>
+			<key>PayloadVersion</key>
+			<integer>1</integer>
+			<key>orderedItems</key>
+			<array>
+				<dict>
+					<key>enabled</key>
+					<true/>
+					<key>name</key>
+					<string>APPLICATIONS</string>
+				</dict>
+			</array>
+		</dict>
+	</array>
+	<key>PayloadDisplayName</key>
+	<string>Test Profile for Identifiers</string>
+	<key>PayloadIdentifier</key>
+	<string>5c914056-766c-4b8c-94ba-fd5186784355</string>
+	<key>PayloadOrganization</key>
+	<string>memyselfandi.com</string>
+	<key>PayloadType</key>
+	<string>Configuration</string>
+	<key>PayloadUUID</key>
+	<string>5c914056-766c-4b8c-94ba-fd5186784355</string>
+	<key>PayloadVersion</key>
+	<integer>1</integer>
+</dict>
+</plist>

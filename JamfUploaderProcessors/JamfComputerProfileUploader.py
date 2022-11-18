@@ -111,7 +111,9 @@ class JamfComputerProfileUploader(JamfUploaderBase):
         },
     }
 
-    def get_existing_uuid(self, jamf_url, obj_id, enc_creds="", token=""):
+    def get_existing_uuid_and_identifier(
+        self, jamf_url, obj_id, enc_creds="", token=""
+    ):
         """return the existing UUID to ensure we don't change it"""
         # first grab the payload from the xml object
         obj_type = "os_x_configuration_profile"
@@ -141,8 +143,19 @@ class JamfComputerProfileUploader(JamfUploaderBase):
         self.output("Imported payload", verbose_level=2)
         self.output(existing_payload, verbose_level=2)
         existing_uuid = existing_payload["PayloadUUID"]
-        self.output(f"Existing UUID found: {existing_uuid}")
-        return existing_uuid
+        self.output(f"Existing PayloadUUID found: {existing_uuid}")
+        existing_identifier = existing_payload["PayloadIdentifier"]
+        self.output(f"Existing PayloadIdentifier found: {existing_uuid}")
+
+        return existing_uuid, existing_identifier
+
+    def replace_uuid_and_identifier_in_mobileconfig(
+        self, mobileconfig_contents, existing_uuid, existing_identifier
+    ):
+        mobileconfig_contents["PayloadIdentifier"] = existing_identifier
+        mobileconfig_contents["PayloadUUID"] = existing_uuid
+        with open(self.mobileconfig, "wb") as file:
+            plistlib.dump(mobileconfig_contents, file)
 
     def make_mobileconfig_from_payload(
         self,
@@ -480,11 +493,20 @@ class JamfComputerProfileUploader(JamfUploaderBase):
             )
             if self.replace:
                 # grab existing UUID from profile as it MUST match on the destination
-                existing_uuid = self.get_existing_uuid(
+                (
+                    existing_uuid,
+                    existing_identifier,
+                ) = self.get_existing_uuid_and_identifier(
                     self.jamf_url, obj_id, enc_creds=send_creds, token=token
                 )
-
-                if not self.mobileconfig:
+                if self.mobileconfig:
+                    # need to inject the existing payload identifier to prevent ghost profiles
+                    self.replace_uuid_and_identifier_in_mobileconfig(
+                        mobileconfig_contents, existing_uuid, existing_identifier
+                    )
+                    with open(self.mobileconfig, "rb") as file:
+                        mobileconfig_plist = file.read()
+                else:
                     # generate the mobileconfig from the supplied payload
                     mobileconfig_plist = self.make_mobileconfig_from_payload(
                         self.payload,
