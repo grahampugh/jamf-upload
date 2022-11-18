@@ -71,12 +71,11 @@ elif [[ $test_type == "profile" ]]; then
     # upload a profile (mobileconfig)
     "$DIR"/../jamf-upload.sh profile \
         --prefs "$prefs" \
-        --name "Test for Identifiers" \
         --recipe-dir /Users/gpugh/sourcecode/jamf-upload/_tests \
         --template "templates/ProfileTemplate-test-users.xml" \
         --category JamfUploadTest \
         --computergroup "Testing" \
-        --mobileconfig "templates/TestProfileIdentifiers2.mobileconfig" \
+        --mobileconfig "templates/TestProfileIdentifiers.mobileconfig" \
         "$verbosity" \
         "$url" \
         --replace

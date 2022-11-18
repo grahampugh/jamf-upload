@@ -27,15 +27,15 @@
 		</dict>
 	</array>
 	<key>PayloadDisplayName</key>
-	<string>Test Profile for Identifiers</string>
+	<string>Another Test Profile for Identifiers</string>
 	<key>PayloadIdentifier</key>
-	<string>Test.F6140AE5-100A-4916-B2E7-28B7598CB217</string>
+	<string>49d6f994-0271-497e-9d83-d18932b2a809</string>
 	<key>PayloadOrganization</key>
 	<string>memyselfandi.com</string>
 	<key>PayloadType</key>
 	<string>Configuration</string>
 	<key>PayloadUUID</key>
-	<string>F6140AE5-100A-4916-B2E7-28B7598CB217</string>
+	<string>49d6f994-0271-497e-9d83-d18932b2a809</string>
 	<key>PayloadVersion</key>
 	<integer>1</integer>
 </dict>
