@@ -416,25 +416,6 @@ class JamfComputerProfileUploader(JamfUploaderBase):
                 organization = mobileconfig_contents["PayloadOrganization"]
             except KeyError:
                 organization = ""
-            try:
-                mobileconfig_identifier = mobileconfig_contents["PayloadIdentifier"]
-            except KeyError:
-                raise ProcessorError(
-                    "ERROR: Invalid mobileconfig file supplied - no PayloadIdentifier in file found"
-                )
-
-            # Check if PayloadIdentifier matches supplied Identifier
-            if not self.identifier:
-                self.output(f"WARNING: Recommended to provide `identifier` in recipe, to check if `PayloadIdentifier` "
-                            "of the mobileconfig file changed to avoid deployment problems!")
-            else:
-                if self.identifier == mobileconfig_identifier:
-                    self.output(f"Provided identifier '{self.identifier}' also found in mobileconfig. Continue...")
-                else:
-                    raise ProcessorError(
-                        f"ERROR: PayloadIdentifier '{mobileconfig_identifier}' in mobileconfig does not match recipe " \
-                            "provided identifier '{self.identifier}'! Aborting to avoid duplicate profile deployment"
-                    )
 
         # otherwise we are dealing with a payload plist and we need a few other bits of info
         else:
