@@ -23,8 +23,8 @@ A processor for AutoPkg that will upload a Patch Policy to a Jamf Cloud or on-pr
   - **description**: Name of the patch policy (e.g. 'Mozilla Firefox - 93.02.10').
   - **default**: '%patch_softwaretitle% - %version%'
 - **patch_template**:
-  - **required**: True
-  - **description**: XML-Template used for the patch policy.
+  - **required**: False
+  - **description**: XML-Template used for the patch policy. If none is provided, only the installer will be linked to the corresponding version and no patch policy will be created.
 - **patch_icon_policy_name**:
   - **required**: False
   - **description**: Name of an already existing (!) policy (not a patch policy). The icon of this policy will be extracted and can be used in the patch template with the variable `%patch_icon_id%`. There is currently no reasonable way to upload a custom icon for patch policies.

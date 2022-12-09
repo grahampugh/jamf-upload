@@ -15,6 +15,7 @@ import xml.etree.cElementTree as ET
 from base64 import b64encode
 from collections import namedtuple
 from datetime import datetime
+from html.parser import HTMLParser
 from pathlib import Path
 from shutil import rmtree
 from urllib.parse import quote
@@ -312,22 +313,18 @@ class JamfUploaderBase(Processor):
         # Jamf Pro API authentication
         if enc_creds:
             curl_cmd.extend(["--header", f"authorization: Basic {enc_creds}"])
-            curl_cmd.extend(["--output", output_file])
         elif token:
             curl_cmd.extend(["--header", f"authorization: Bearer {token}"])
-            curl_cmd.extend(["--output", output_file])
 
         # icon download
         if request == "GET" and "ics.services.jamfcloud.com" in url:
             output_file = os.path.join(tmp_dir, "icon_download.png")
-            curl_cmd.extend(["--output", output_file])
 
         # 'Accept' for GET and DELETE requests
         # By default, we obtain json as its easier to parse. However,
         # some endpoints (For example the 'patchsoftwaretitle' endpoint)
         # do not return complete json, so we have to get the xml instead.
         elif request == "GET" or request == "DELETE":
-            curl_cmd.extend(["--output", output_file])
             if "legacy/packages" not in url:
                 if force_xml:
                     curl_cmd.extend(["--header", "Accept: application/xml"])
@@ -346,7 +343,6 @@ class JamfUploaderBase(Processor):
 
         # Content-Type for POST/PUT
         elif request == "POST" or request == "PUT":
-            curl_cmd.extend(["--output", output_file])
             if data and "slack" in url or "webhook.office" in url:
                 # slack and teams require a data argument
                 curl_cmd.extend(["--data", data])
@@ -365,6 +361,8 @@ class JamfUploaderBase(Processor):
             self.output(f"WARNING: HTTP method {request} not supported")
 
         self.output(f"Output file is:  {output_file}", verbose_level=3)
+        curl_cmd.extend(["--output", output_file])
+
         # write session for jamf requests
         if (
             "/api/" in url
@@ -437,28 +435,40 @@ class JamfUploaderBase(Processor):
         if r.status_code == 200 or r.status_code == 201:
             self.output(f"{endpoint_type} '{obj_name}' {action} successful")
             return "break"
-        elif r.status_code == 409:
-            self.output(r.output, verbose_level=2)
-            raise ProcessorError(
-                f"WARNING: {endpoint_type} '{obj_name}' {action} failed due to a conflict"
-            )
-        elif r.status_code == 401:
-            raise ProcessorError(
-                f"ERROR: {endpoint_type} '{obj_name}' {action} failed due to permissions error"
-            )
-        elif r.status_code == 405:
-            raise ProcessorError(
-                f"ERROR: {endpoint_type} '{obj_name}' {action} failed due to a "
-                "'method not allowed' error"
-            )
-        elif r.status_code == 500:
-            raise ProcessorError(
-                f"ERROR: {endpoint_type} '{obj_name}' {action} failed due to an "
-                "internal server error"
-            )
         else:
-            self.output(f"WARNING: {endpoint_type} '{obj_name}' {action} failed")
-            self.output(r.output, verbose_level=2)
+            parser = self.ParseHTMLForError()
+            parser.feed(r.output.decode())
+            if parser.error:
+                self.output(f"API {parser.error}", verbose_level=2)
+            self.output(f"API response:\n{r.output}", verbose_level=3)
+            if r.status_code == 409:
+                raise ProcessorError(
+                    f"WARNING: {endpoint_type} '{obj_name}' {action} failed due to the following "
+                    f"conflict: {parser.error.replace('Error: ', '')}"
+                )
+            elif r.status_code == 400:
+                raise ProcessorError(
+                    f"WARNING: {endpoint_type} '{obj_name}' {action} failed due to the following "
+                    f"{parser.data[6]}: {parser.data[8]}"
+                )
+            elif r.status_code == 401:
+                raise ProcessorError(
+                    f"ERROR: {endpoint_type} '{obj_name}' {action} failed due to permissions error"
+                )
+            elif r.status_code == 405:
+                raise ProcessorError(
+                    f"ERROR: {endpoint_type} '{obj_name}' {action} failed due to a "
+                    "'method not allowed' error"
+                )
+            elif r.status_code == 500:
+                raise ProcessorError(
+                    f"ERROR: {endpoint_type} '{obj_name}' {action} failed due to an "
+                    "internal server error"
+                )
+            else:
+                self.output(f"UNKNOWN ERROR: {endpoint_type} '{obj_name}' {action} failed. "
+                    "Will try again."
+                )
 
     def get_jamf_pro_version(self, jamf_url, token):
         """get the Jamf Pro version so that we can figure out which auth method to use for the
@@ -470,17 +480,21 @@ class JamfUploaderBase(Processor):
                 jamf_pro_version = str(r.output["version"])
                 self.output(f"Jamf Pro Version: {jamf_pro_version}")
                 return jamf_pro_version
-            except (KeyError, AttributeError) as error:
-                self.output(f"ERROR: No version received.  Error:\n{error}")
-                raise ProcessorError("Unable to determine version of Jamf Pro") from error
+            except KeyError as error:
+                self.output(f"ERROR: No version of Jamf Pro received.  Error:\n{error}")
+                raise ProcessorError("No version of Jamf Pro received") from error
 
     def validate_jamf_pro_version(self, jamf_url, token):
         """return true if Jamf Pro version is 10.35 or greater"""
         jamf_pro_version = self.get_jamf_pro_version(jamf_url, token)
-        if APLooseVersion(jamf_pro_version) >= APLooseVersion("10.35.0"):
-            return True
-        else:
-            return False
+        try:
+            if APLooseVersion(jamf_pro_version) >= APLooseVersion("10.35.0"):
+                return True
+            else:
+                return False
+        except AttributeError as error:
+            self.output(f"ERROR: Unable to determine version of Jamf Pro.  Error:\n{error}")
+            raise ProcessorError("Unable to determine version of Jamf Pro") from error
 
     def get_uapi_obj_id_from_name(self, jamf_url, object_type, object_name, token):
         """Get the Jamf Pro API object by name. This requires use of RSQL filtering"""
@@ -707,6 +721,17 @@ class JamfUploaderBase(Processor):
         (output, _) = proc.communicate(xml)
         return output
 
+    class ParseHTMLForError(HTMLParser):
+
+        def __init__(self):
+            HTMLParser.__init__(self)
+            self.error = None
+            self.data = []
+
+        def handle_data(self, data):
+            self.data.append(data)
+            if "Error:" in data:
+                self.error = data
 
 if __name__ == "__main__":
     PROCESSOR = JamfUploaderBase()
