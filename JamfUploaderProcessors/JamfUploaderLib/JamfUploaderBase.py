@@ -9,7 +9,7 @@ import json
 import os
 import re
 import subprocess
-import uuid
+import tempfile
 import xml.etree.cElementTree as ET
 
 from base64 import b64encode
@@ -21,9 +21,7 @@ from shutil import rmtree
 from urllib.parse import quote
 from xml.sax.saxutils import escape
 
-# from base64 import b64encode
 # from time import sleep
-# from urllib.parse import quote
 
 from autopkglib import (
     APLooseVersion,
@@ -92,42 +90,51 @@ class JamfUploaderBase(Processor):
         }
         return object_list_types[object_type]
 
-    def write_json_file(self, data, tmp_dir="/tmp/jamf_upload"):
+    def write_json_file(self, data):
         """dump some json to a temporary file"""
-        self.make_tmp_dir(tmp_dir)
-        tf = os.path.join(tmp_dir, f"jamf_upload_{str(uuid.uuid4())}.json")
+        tf = self.init_temp_file(suffix=".json")
         with open(tf, "w") as fp:
             json.dump(data, fp)
         return tf
 
-    def write_token_to_json_file(self, url, data, token_file="/tmp/jamf_upload_token"):
+    def write_token_to_json_file(self, url, data):
         """dump the token, expiry, url and user as json to a temporary token file"""
         data["url"] = url
         data["user"] = self.jamf_user
-        with open(token_file, "w") as fp:
+        if not self.env.get("jamfupload_token"):
+            self.env["jamfupload_token"] = self.init_temp_file(prefix="jamf_upload_token_")
+        with open(self.env["jamfupload_token"], "w") as fp:
             json.dump(data, fp)
 
-    def write_xml_file(self, data, tmp_dir="/tmp/jamf_upload"):
+    def write_xml_file(self, data):
         """dump some xml to a temporary file"""
-        self.make_tmp_dir(tmp_dir)
         xml_tree = ET.ElementTree(data)
-        tf = os.path.join(tmp_dir, f"jamf_upload_{str(uuid.uuid4())}.xml")
+        tf = self.init_temp_file(suffix=".xml")
         xml_tree.write(tf)
         return tf
 
-    def write_temp_file(self, data, tmp_dir="/tmp/jamf_upload"):
+    def write_temp_file(self, data):
         """dump some text to a temporary file"""
-        self.make_tmp_dir(tmp_dir)
-        tf = os.path.join(tmp_dir, f"jamf_upload_{str(uuid.uuid4())}.txt")
+        tf = self.init_temp_file(suffix=".txt")
         with open(tf, "w") as fp:
             fp.write(data)
         return tf
 
-    def make_tmp_dir(self, tmp_dir="/tmp/jamf_upload"):
+    def make_tmp_dir(self, tmp_dir="/tmp/jamf_upload_"):
         """make the tmp directory"""
-        if not os.path.exists(tmp_dir):
-            os.mkdir(tmp_dir)
-        return tmp_dir
+        if not self.env.get("jamfupload_tmp_dir"):
+            base_dir, dir = tmp_dir.rsplit("/", 1)
+            self.env["jamfupload_tmp_dir"] = tempfile.mkdtemp(prefix=dir, dir=base_dir)
+        return self.env["jamfupload_tmp_dir"]
+
+    def init_temp_file(self, prefix="jamf_upload_", suffix=None, dir=None, text=True):
+        """dump some text to a temporary file"""
+        return tempfile.mkstemp(
+            prefix=prefix, 
+            suffix=suffix, 
+            dir=self.make_tmp_dir() if dir is None else dir, 
+            text=text
+        )[1]
 
     def get_enc_creds(self, user, password):
         """encode the username and password into a b64-encoded string"""
@@ -283,7 +290,7 @@ class JamfUploaderBase(Processor):
         """
         tmp_dir = self.make_tmp_dir()
         headers_file = os.path.join(tmp_dir, "curl_headers_from_jamf_upload.txt")
-        output_file = os.path.join(tmp_dir, "curl_output_from_jamf_upload.txt")
+        output_file = self.init_temp_file(prefix="jamf_upload_", suffix=".txt")
         cookie_jar = os.path.join(tmp_dir, "curl_cookies_from_jamf_upload.txt")
 
         # build the curl command
@@ -353,6 +360,7 @@ class JamfUploaderBase(Processor):
         elif request != "GET" and request != "DELETE":
             self.output(f"WARNING: HTTP method {request} not supported")
 
+        self.output(f"Output file is:  {output_file}", verbose_level=3)
         curl_cmd.extend(["--output", output_file])
 
         # write session for jamf requests
