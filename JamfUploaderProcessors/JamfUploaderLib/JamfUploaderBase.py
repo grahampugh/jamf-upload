@@ -306,22 +306,18 @@ class JamfUploaderBase(Processor):
         # Jamf Pro API authentication
         if enc_creds:
             curl_cmd.extend(["--header", f"authorization: Basic {enc_creds}"])
-            curl_cmd.extend(["--output", output_file])
         elif token:
             curl_cmd.extend(["--header", f"authorization: Bearer {token}"])
-            curl_cmd.extend(["--output", output_file])
 
         # icon download
         if request == "GET" and "ics.services.jamfcloud.com" in url:
             output_file = os.path.join(tmp_dir, "icon_download.png")
-            curl_cmd.extend(["--output", output_file])
 
         # 'Accept' for GET and DELETE requests
         # By default, we obtain json as its easier to parse. However,
         # some endpoints (For example the 'patchsoftwaretitle' endpoint)
         # do not return complete json, so we have to get the xml instead.
         elif request == "GET" or request == "DELETE":
-            curl_cmd.extend(["--output", output_file])
             if "legacy/packages" not in url:
                 if force_xml:
                     curl_cmd.extend(["--header", "Accept: application/xml"])
@@ -340,7 +336,6 @@ class JamfUploaderBase(Processor):
 
         # Content-Type for POST/PUT
         elif request == "POST" or request == "PUT":
-            curl_cmd.extend(["--output", output_file])
             if data and "slack" in url or "webhook.office" in url:
                 # slack and teams require a data argument
                 curl_cmd.extend(["--data", data])
@@ -357,6 +352,8 @@ class JamfUploaderBase(Processor):
             # note: other endpoints should supply their headers via 'additional_headers'
         elif request != "GET" and request != "DELETE":
             self.output(f"WARNING: HTTP method {request} not supported")
+
+        curl_cmd.extend(["--output", output_file])
 
         # write session for jamf requests
         if (
