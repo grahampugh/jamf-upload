@@ -67,6 +67,19 @@ elif [[ $test_type == "group" ]]; then
 #         --key EXCLUSION_GROUP_NAME="Firefox test users" \
 #         --replace
 
+# elif [[ $test_type == "profile" ]]; then
+#     # upload a profile (mobileconfig)
+#     "$DIR"/../jamf-upload.sh profile \
+#         --prefs "$prefs" \
+#         --recipe-dir /Users/gpugh/sourcecode/jamf-upload/_tests \
+#         --template "templates/ProfileTemplate-test-users.xml" \
+#         --category JamfUploadTest \
+#         --computergroup "Testing" \
+#         --mobileconfig "templates/TestProfileIdentifiers.mobileconfig" \
+#         "$verbosity" \
+#         "$url" \
+#         --replace
+
 elif [[ $test_type == "profile" ]]; then
     # upload a profile (mobileconfig)
     "$DIR"/../jamf-upload.sh profile \
@@ -75,7 +88,10 @@ elif [[ $test_type == "profile" ]]; then
         --template "templates/ProfileTemplate-test-users.xml" \
         --category JamfUploadTest \
         --computergroup "Testing" \
-        --mobileconfig "templates/TestProfileIdentifiers.mobileconfig" \
+        --mobileconfig "templates/MicrosoftAutoUpdate-notifications.mobileconfig" \
+        --key PROFILE_NAME="Microsoft AutoUpdate Notifications" \
+        --key PROFILE_DESCRIPTION="Enables notifications for Microsoft AutoUpdate" \
+        --key ORGANIZATION="Microsoft" \
         "$verbosity" \
         "$url" \
         --replace

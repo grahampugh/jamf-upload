@@ -394,7 +394,7 @@ class JamfComputerProfileUploader(JamfUploaderBase):
                 )
 
         # if an unsigned mobileconfig file is supplied we can get the name, organization and
-        # description from it
+        # description from it, but allowing the values to be substituted by Input keys
         if self.mobileconfig:
             self.output(f"mobileconfig file supplied: {self.mobileconfig}")
             # check if the file is signed
@@ -409,9 +409,14 @@ class JamfComputerProfileUploader(JamfUploaderBase):
 
             # import mobileconfig
             with open(self.mobileconfig, "rb") as file:
-                mobileconfig_contents = plistlib.load(file)
-            with open(self.mobileconfig, "rb") as file:
                 mobileconfig_plist = file.read()
+                # substitute user-assignable keys (requires decode to string)
+                mobileconfig_plist = str.encode(
+                    self.substitute_assignable_keys(
+                        (mobileconfig_plist.decode()), xml_escape=True
+                    )
+                )
+                mobileconfig_contents = plistlib.loads(mobileconfig_plist)
             try:
                 mobileconfig_name = mobileconfig_contents["PayloadDisplayName"]
                 self.output(f"Configuration Profile name: {mobileconfig_name}")
