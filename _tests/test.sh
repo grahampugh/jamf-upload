@@ -45,26 +45,55 @@ elif [[ $test_type == "group" ]]; then
         "$url" \
         --replace
 
+# elif [[ $test_type == "profile" ]]; then
+#     # upload a profile (payload plist)
+#     "$DIR"/../jamf-upload.sh profile \
+#         --prefs "$prefs" \
+#         --name "Carbon Copy Cloner" \
+#         --recipe-dir /Users/gpugh/sourcecode/jamf-upload/_tests \
+#         --template "templates/ProfileTemplate-1-group-1-exclusion.xml" \
+#         --payload "templates/com.bombich.ccc.plist" \
+#         --identifier com.bombich.ccc \
+#         --category JamfUploadTest \
+#         --organization "Graham Pugh Inc." \
+#         --description "Amazing test profile" \
+#         --computergroup "Testing" \
+#         "$verbosity" \
+#         "$url" \
+#         --key REGISTRATION_CODE="FAKE-CODE" \
+#         --key REGISTRATION_EMAIL="yes@yes.com" \
+#         --key REGISTRATION_NAME="ETH License Administration" \
+#         --key REGISTRATION_PRODUCT_NAME='Carbon Copy Cloner 6 Volume License' \
+#         --key EXCLUSION_GROUP_NAME="Firefox test users" \
+#         --replace
+
+# elif [[ $test_type == "profile" ]]; then
+#     # upload a profile (mobileconfig)
+#     "$DIR"/../jamf-upload.sh profile \
+#         --prefs "$prefs" \
+#         --recipe-dir /Users/gpugh/sourcecode/jamf-upload/_tests \
+#         --template "templates/ProfileTemplate-test-users.xml" \
+#         --category JamfUploadTest \
+#         --computergroup "Testing" \
+#         --mobileconfig "templates/TestProfileIdentifiers.mobileconfig" \
+#         "$verbosity" \
+#         "$url" \
+#         --replace
+
 elif [[ $test_type == "profile" ]]; then
-    # upload a profile
+    # upload a profile (mobileconfig)
     "$DIR"/../jamf-upload.sh profile \
         --prefs "$prefs" \
-        --name "Carbon Copy Cloner" \
         --recipe-dir /Users/gpugh/sourcecode/jamf-upload/_tests \
-        --template "templates/ProfileTemplate-1-group-1-exclusion.xml" \
-        --payload "templates/com.bombich.ccc.plist" \
-        --identifier com.bombich.ccc \
+        --template "templates/ProfileTemplate-test-users.xml" \
         --category JamfUploadTest \
-        --organization "Graham Pugh Inc." \
-        --description "Amazing test profile" \
         --computergroup "Testing" \
+        --mobileconfig "templates/MicrosoftAutoUpdate-notifications.mobileconfig" \
+        --key PROFILE_NAME="Microsoft AutoUpdate Notifications" \
+        --key PROFILE_DESCRIPTION="Enables notifications for Microsoft AutoUpdate" \
+        --key ORGANIZATION="Microsoft" \
         "$verbosity" \
         "$url" \
-        --key REGISTRATION_CODE="FAKE-CODE" \
-        --key REGISTRATION_EMAIL="yes@yes.com" \
-        --key REGISTRATION_NAME="ETH License Administration" \
-        --key REGISTRATION_PRODUCT_NAME='Carbon Copy Cloner 6 Volume License' \
-        --key EXCLUSION_GROUP_NAME="Firefox test users" \
         --replace
 
 elif [[ $test_type == "ea" ]]; then
