@@ -75,8 +75,11 @@ class JamfPatchUploader(JamfUploaderBase):
             "default": "",
         },
         "patch_template": {
-            "required": True,
-            "description": "XML-Template used for the patch policy.",
+            "required": False,
+            "description": (
+                "XML-Template used for the patch policy. If none is provided, only the "
+                "installer will be linked to the corresponding version."
+            ),
             "default": "",
         },
         "patch_icon_policy_name": {
@@ -329,14 +332,21 @@ class JamfPatchUploader(JamfUploaderBase):
         if "jamfpatchuploader_summary_result" in self.env:
             del self.env["jamfpatchuploader_summary_result"]
 
-        if "/" not in self.patch_template:
-            found_template = self.get_path_to_file(self.patch_template)
-            if found_template:
-                self.patch_template = found_template
-            else:
-                raise ProcessorError(
-                    f"ERROR: Patch Template file {self.patch_template} not found"
-                )
+        if self.patch_template:
+            patch_policy_enabled = True
+            if "/" not in self.patch_template:
+                found_template = self.get_path_to_file(self.patch_template)
+                if found_template:
+                    self.patch_template = found_template
+                else:
+                    raise ProcessorError(
+                        f"ERROR: Patch Template file {self.patch_template} not found"
+                    )
+        else:
+            patch_policy_enabled = False
+            self.output(
+                f"No patch template provided. Patch policy will be skipped and only installer will be linked."
+            )
 
         self.output(
             f"Checking for existing '{self.patch_softwaretitle}' on {self.jamf_url}"
@@ -443,61 +453,65 @@ class JamfPatchUploader(JamfUploaderBase):
         )
 
         # Patch Policy
-        if not self.patch_name:
-            self.patch_name = self.patch_softwaretitle + " - " + self.version
-            self.output(
-                f"Set `patch_name` to '{self.patch_name}' since no name was provided."
+        if patch_policy_enabled:
+            if not self.patch_name:
+                self.patch_name = self.patch_softwaretitle + " - " + self.version
+                self.output(
+                    f"Set `patch_name` to '{self.patch_name}' since no name was provided."
+                )
+
+            self.patch_template, patch_template_xml = self.prepare_patch_template(
+                self.patch_name, self.patch_template
             )
 
-        self.patch_template, patch_template_xml = self.prepare_patch_template(
-            self.patch_name, self.patch_template
-        )
-
-        obj_type = "patch_policy"
-        obj_name = self.patch_name
-        patch_id = self.get_api_obj_id_from_name(
-            self.jamf_url,
-            obj_name,
-            obj_type,
-            enc_creds=send_creds,
-            token=token,
-        )
-
-        if patch_id:
-            self.output(
-                "Patch '{}' already exists: ID {}".format(self.patch_name, patch_id)
+            obj_type = "patch_policy"
+            obj_name = self.patch_name
+            patch_id = self.get_api_obj_id_from_name(
+                self.jamf_url,
+                obj_name,
+                obj_type,
+                enc_creds=send_creds,
+                token=token,
             )
-            if self.replace:
-                self.output(
-                    "Replacing existing patch as 'replace_patch' is set to {}".format(
-                        self.replace
-                    ),
-                    verbose_level=1,
-                )
-            else:
-                self.output(
-                    "Not replacing existing patch. Use replace_patch='True' to enforce.",
-                    verbose_level=1,
-                )
-                return
 
-        # Upload the patch
-        r = self.upload_patch(
-            self.jamf_url,
-            self.patch_name,
-            self.patch_softwaretitle_id,
-            patch_template=patch_template_xml,
-            patch_id=patch_id,
-            enc_creds=send_creds,
-            token=token,
-        )
+            if patch_id:
+                self.output(
+                    "Patch '{}' already exists: ID {}".format(self.patch_name, patch_id)
+                )
+                if self.replace:
+                    self.output(
+                        "Replacing existing patch as 'replace_patch' is set to {}".format(
+                            self.replace
+                        ),
+                        verbose_level=1,
+                    )
+                else:
+                    self.output(
+                        "Not replacing existing patch. Use replace_patch='True' to enforce.",
+                        verbose_level=1,
+                    )
+                    return
 
-        # Parse xml output to get patch id of freshly created patch policy.
-        try:
-            patch_xml = ET.fromstring(r.output)
-            patch_id = patch_xml.find("id").text
-        except ET.ParseError as xml_error:
-            raise ProcessorError from xml_error
+            # Upload the patch
+            r = self.upload_patch(
+                self.jamf_url,
+                self.patch_name,
+                self.patch_softwaretitle_id,
+                patch_template=patch_template_xml,
+                patch_id=patch_id,
+                enc_creds=send_creds,
+                token=token,
+            )
+
+            # Parse xml output to get patch id of freshly created patch policy.
+            try:
+                patch_xml = ET.fromstring(r.output)
+                patch_id = patch_xml.find("id").text
+            except ET.ParseError as xml_error:
+                raise ProcessorError from xml_error
+        else:
+            self.patch_name = "Not created - missing template"
+            patch_id = 0
 
         # Summary
         self.env["patch"] = self.patch_name
