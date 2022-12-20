@@ -212,8 +212,8 @@ class JamfAccountUploader(JamfUploaderBase):
         if "JamfAccountUploader_summary_result" in self.env:
             del self.env["JamfAccountUploader_summary_result"]
 
-        # handle files with no path
-        if "/" not in self.account_template:
+        # handle files with a relative path
+        if not self.account_template.startswith("/"):
             found_template = self.get_path_to_file(self.account_template)
             if found_template:
                 self.account_template = found_template

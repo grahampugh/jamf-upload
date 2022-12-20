@@ -298,8 +298,8 @@ class JamfScriptUploader(JamfUploaderBase):
             self.script_category = ""
             category_id = "-1"
 
-        # handle files with no path
-        if "/" not in self.script_path:
+        # handle files with a relative path
+        if not self.script_path.startswith("/"):
             found_template = self.get_path_to_file(self.script_path)
             if found_template:
                 self.script_path = found_template

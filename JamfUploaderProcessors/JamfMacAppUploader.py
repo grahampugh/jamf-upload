@@ -191,8 +191,8 @@ class JamfMacAppUploader(JamfUploaderBase):
         if "jamfmacappuploader_summary_result" in self.env:
             del self.env["jamfmacappuploader_summary_result"]
 
-        # handle files with no path
-        if "/" not in self.macapp_template:
+        # handle files with a relative path
+        if not self.macapp_template.startswith("/"):
             found_template = self.get_path_to_file(self.macapp_template)
             if found_template:
                 self.macapp_template = found_template

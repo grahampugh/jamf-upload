@@ -176,8 +176,8 @@ class JamfExtensionAttributeUploader(JamfUploaderBase):
             del self.env["jamfextensionattributeuploader_summary_result"]
         ea_uploaded = False
 
-        # handle files with no path
-        if "/" not in self.ea_script_path:
+        # handle files with a relative path
+        if not self.ea_script_path.startswith("/"):
             found_template = self.get_path_to_file(self.ea_script_path)
             if found_template:
                 self.ea_script_path = found_template

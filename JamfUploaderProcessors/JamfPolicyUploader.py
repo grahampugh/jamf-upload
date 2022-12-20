@@ -270,8 +270,8 @@ class JamfPolicyUploader(JamfUploaderBase):
         if "jamfpolicyuploader_summary_result" in self.env:
             del self.env["jamfpolicyuploader_summary_result"]
 
-        # handle files with no path
-        if "/" not in self.policy_template:
+        # handle files with a relative path
+        if not self.policy_template.startswith("/"):
             found_template = self.get_path_to_file(self.policy_template)
             if found_template:
                 self.policy_template = found_template
@@ -344,8 +344,8 @@ class JamfPolicyUploader(JamfUploaderBase):
         # now upload the icon to the policy if specified in the args
         policy_icon_name = ""
         if self.icon:
-            # handle files with no path
-            if "/" not in self.icon:
+            # handle files with a relative path
+            if not self.icon.startswith("/"):
                 found_icon = self.get_path_to_file(self.icon)
                 if found_icon:
                     self.icon = found_icon

@@ -161,8 +161,8 @@ class JamfComputerGroupUploader(JamfUploaderBase):
             del self.env["jamfcomputergroupuploader_summary_result"]
         group_uploaded = False
 
-        # handle files with no path
-        if "/" not in self.computergroup_template:
+        # handle files with a relative path
+        if not self.computergroup_template.startswith("/"):
             found_template = self.get_path_to_file(self.computergroup_template)
             if found_template:
                 self.computergroup_template = found_template

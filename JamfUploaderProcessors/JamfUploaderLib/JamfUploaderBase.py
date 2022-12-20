@@ -617,7 +617,8 @@ class JamfUploaderBase(Processor):
         1. RecipeOverrides directory/ies
         2. Same directory as the recipe
         3. Same repo (recipe search directory) as the recipe
-        4. Parent recipe's repo (recipe search directory) if recipe is an override"""
+        4. Parent recipe's repo (recipe search directory) if recipe is an override
+        Relative paths also work."""
         recipe_dir = self.env.get("RECIPE_DIR")
         recipe_dir_path = Path(os.path.expanduser(recipe_dir))
         filepath = os.path.join(recipe_dir, filename)
