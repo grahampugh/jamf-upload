@@ -102,7 +102,9 @@ class JamfUploaderBase(Processor):
         data["url"] = url
         data["user"] = self.jamf_user
         if not self.env.get("jamfupload_token"):
-            self.env["jamfupload_token"] = self.init_temp_file(prefix="jamf_upload_token_")
+            self.env["jamfupload_token"] = self.init_temp_file(
+                prefix="jamf_upload_token_"
+            )
         with open(self.env["jamfupload_token"], "w") as fp:
             json.dump(data, fp)
 
@@ -130,10 +132,10 @@ class JamfUploaderBase(Processor):
     def init_temp_file(self, prefix="jamf_upload_", suffix=None, dir=None, text=True):
         """dump some text to a temporary file"""
         return tempfile.mkstemp(
-            prefix=prefix, 
-            suffix=suffix, 
-            dir=self.make_tmp_dir() if dir is None else dir, 
-            text=text
+            prefix=prefix,
+            suffix=suffix,
+            dir=self.make_tmp_dir() if dir is None else dir,
+            text=text,
         )[1]
 
     def get_enc_creds(self, user, password):
@@ -466,7 +468,8 @@ class JamfUploaderBase(Processor):
                     "internal server error"
                 )
             else:
-                self.output(f"UNKNOWN ERROR: {endpoint_type} '{obj_name}' {action} failed. "
+                self.output(
+                    f"UNKNOWN ERROR: {endpoint_type} '{obj_name}' {action} failed. "
                     "Will try again."
                 )
 
@@ -493,7 +496,9 @@ class JamfUploaderBase(Processor):
             else:
                 return False
         except AttributeError as error:
-            self.output(f"ERROR: Unable to determine version of Jamf Pro.  Error:\n{error}")
+            self.output(
+                f"ERROR: Unable to determine version of Jamf Pro.  Error:\n{error}"
+            )
             raise ProcessorError("Unable to determine version of Jamf Pro") from error
 
     def get_uapi_obj_id_from_name(self, jamf_url, object_type, object_name, token):
@@ -568,7 +573,9 @@ class JamfUploaderBase(Processor):
                     self.output(
                         f"WARNING: '{found_key}' has no replacement object!",
                     )
-                    raise ProcessorError(f"Unsubstitutable key in template found: '{found_key}'")
+                    raise ProcessorError(
+                        f"Unsubstitutable key in template found: '{found_key}'"
+                    )
         return data
 
     def substitute_limited_assignable_keys(
@@ -722,7 +729,6 @@ class JamfUploaderBase(Processor):
         return output
 
     class ParseHTMLForError(HTMLParser):
-
         def __init__(self):
             HTMLParser.__init__(self)
             self.error = None
@@ -732,6 +738,7 @@ class JamfUploaderBase(Processor):
             self.data.append(data)
             if "Error:" in data:
                 self.error = data
+
 
 if __name__ == "__main__":
     PROCESSOR = JamfUploaderBase()

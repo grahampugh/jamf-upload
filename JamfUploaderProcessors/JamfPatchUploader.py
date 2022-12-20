@@ -334,10 +334,13 @@ class JamfPatchUploader(JamfUploaderBase):
 
         if self.patch_template:
             patch_policy_enabled = True
-            if "/" not in self.patch_template:
+            if not self.patch_template.startswith("/"):
                 found_template = self.get_path_to_file(self.patch_template)
                 if found_template:
                     self.patch_template = found_template
+                    self.output(
+                        f"Patch template: {self.patch_template}", verbose_level=2
+                    )
                 else:
                     raise ProcessorError(
                         f"ERROR: Patch Template file {self.patch_template} not found"
@@ -345,7 +348,8 @@ class JamfPatchUploader(JamfUploaderBase):
         else:
             patch_policy_enabled = False
             self.output(
-                f"No patch template provided. Patch policy will be skipped and only installer will be linked."
+                "No patch template provided. Patch policy will be skipped and only installer will "
+                "be linked."
             )
 
         self.output(
@@ -460,7 +464,7 @@ class JamfPatchUploader(JamfUploaderBase):
                     f"Set `patch_name` to '{self.patch_name}' since no name was provided."
                 )
 
-            self.patch_template, patch_template_xml = self.prepare_patch_template(
+            self.patch_name, patch_template_xml = self.prepare_patch_template(
                 self.patch_name, self.patch_template
             )
 
