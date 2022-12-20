@@ -48,7 +48,7 @@ class JamfPolicyLogFlusher(JamfUploaderBase):
         },
         "policy_name": {
             "required": True,
-            "description": "Policy to delete",
+            "description": "Policy whose log is to be flushed",
             "default": "",
         },
         "logflush_interval": {
