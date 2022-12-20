@@ -17,11 +17,11 @@ A processor for AutoPkg that will flush logs for a policy on a Jamf Cloud or on-
   - **description:** Password of api user, optionally set as a key in the com.github.autopkg preference file.
 - **policy_name:**
   - **required:** True
-  - **description:** Policy name
+  - **description:** Policy whose log is to be flushed
 - **interval:**
   - **required:** False
   - **description:** Interval of log to flush
-  - **default:** "Six Years"
+  - **default:** "Zero Days"
 
 ## Output variables
 
