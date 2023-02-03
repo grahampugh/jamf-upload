@@ -547,6 +547,16 @@ class JamfUploaderBase(Processor):
 
     def substitute_assignable_keys(self, data, xml_escape=False):
         """substitutes any key in the inputted text using the %MY_KEY% nomenclature"""
+        # if JSS_INVENTORY_NAME is not given, make it equivalent to %NAME%.app
+        # (this is to allow use of legacy JSSImporter group templates)
+        try:
+            self.env["JSS_INVENTORY_NAME"]
+        except KeyError:
+            try:
+                self.env["JSS_INVENTORY_NAME"] = self.env["NAME"] + ".app"
+            except KeyError:
+                pass
+
         # do a four-pass to ensure that all keys are substituted
         loop = 5
         while loop > 0:
