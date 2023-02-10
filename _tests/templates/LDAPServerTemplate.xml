@@ -1,0 +1,63 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ldap_server>
+    <connection>
+        <name>%NAME%</name>
+        <hostname>%HOSTNAME%</hostname>
+        <server_type>Active Directory</server_type>
+        <port>636</port>
+        <use_ssl>true</use_ssl>
+        <authentication_type>simple</authentication_type>
+        <certificate_used>%Base64EncodedCertificateData%</certificate_used>
+        <account>
+            <distinguished_username>%DOMAIN_ACCOUNT_DN%</distinguished_username>
+            <password>%DOMAIN_ACCOUNT_PW%</password>
+        </account>
+        <open_close_timeout>15</open_close_timeout>
+        <search_timeout>60</search_timeout>
+        <use_wildcards>true</use_wildcards>
+    </connection>
+    <mappings_for_users>
+        <user_mappings>
+            <map_object_class_to_any_or_all>all</map_object_class_to_any_or_all>
+            <object_classes>organizationalPerson, user</object_classes>
+            <search_base>%USERS_SEARCH_BASE%</search_base>
+            <search_scope>All Subtrees</search_scope>
+            <map_user_id>uSNCreated</map_user_id>
+            <map_username>sAMAccountName</map_username>
+            <map_realname>displayName</map_realname>
+            <map_email_address>mail</map_email_address>
+            <append_to_email_results/>
+            <map_department/>
+            <map_building/>
+            <map_room/>
+            <map_phone/>
+            <map_position/>
+            <map_user_uuid>objectGUID</map_user_uuid>
+        </user_mappings>
+        <user_group_mappings>
+            <map_object_class_to_any_or_all>all</map_object_class_to_any_or_all>
+            <object_classes>top, group</object_classes>
+            <search_base>%GROUPS_SEARCH_BASE%</search_base>
+            <search_scope>All Subtrees</search_scope>
+            <map_group_id>uSNCreated</map_group_id>
+            <map_group_name>name</map_group_name>
+            <map_group_uuid>objectGUID</map_group_uuid>
+        </user_group_mappings>
+        <user_group_membership_mappings>
+            <user_group_membership_stored_in>user object</user_group_membership_stored_in>
+            <map_group_membership_to_user_field>memberOf</map_group_membership_to_user_field>
+            <append_to_username/>
+            <use_dn>true</use_dn>
+            <recursive_lookups>true</recursive_lookups>
+            <map_user_membership_to_group_field/>
+            <map_user_membership_use_dn>false</map_user_membership_use_dn>
+            <map_object_class_to_any_or_all>all</map_object_class_to_any_or_all>
+            <object_classes/>
+            <search_base/>
+            <search_scope>All Subtrees</search_scope>
+            <username/>
+            <group_id/>
+            <user_group_membership_use_ldap_compare>true</user_group_membership_use_ldap_compare>
+        </user_group_membership_mappings>
+    </mappings_for_users>
+</ldap_server>

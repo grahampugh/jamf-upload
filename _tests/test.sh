@@ -11,8 +11,8 @@ verbosity="$2"
 url="$3"
 
 # other variables
-prefs="$HOME/Library/Preferences/com.github.autopkg.plist"
-# prefs="/Users/Shared/com.github.autopkg.plist"
+# prefs="$HOME/Library/Preferences/com.github.autopkg.plist"
+prefs="/Users/Shared/com.github.autopkg.plist"
 
 if [[ ! $verbosity ]]; then
     verbosity="-v"
@@ -23,7 +23,17 @@ if [[ $url ]]; then
     defaults write "$prefs" JSS_URL "$url"
 fi
 
-if [[ $test_type == "category" ]]; then
+if [[ $test_type == "ldap_server" ]]; then
+    # upload a category
+    "$DIR"/../jamf-upload.sh ldap_server \
+        --prefs "$prefs" \
+        --name "d.ethz.ch" \
+        --template "/Users/gpugh/sourcecode/id-mac-tools/jamf-api-tools/templates/LDAPServerETH.xml" \
+        "$verbosity" \
+        "$url" \
+        --replace
+
+elif [[ $test_type == "category" ]]; then
     # upload a category
     "$DIR"/../jamf-upload.sh category \
         --prefs "$prefs" \

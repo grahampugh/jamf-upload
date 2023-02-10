@@ -74,7 +74,7 @@ class JamfAccountUploader(JamfUploaderBase):
     }
 
     output_variables = {
-        "JamfAccountUploader_summary_result": {
+        "jamfaccountuploader_summary_result": {
             "description": "Description of interesting results.",
         },
         "account_name": {
@@ -209,8 +209,8 @@ class JamfAccountUploader(JamfUploaderBase):
         self.account_updated = False
 
         # clear any pre-existing summary result
-        if "JamfAccountUploader_summary_result" in self.env:
-            del self.env["JamfAccountUploader_summary_result"]
+        if "jamfaccountuploader_summary_result" in self.env:
+            del self.env["jamfaccountuploader_summary_result"]
 
         # handle files with a relative path
         if not self.account_template.startswith("/"):
@@ -222,9 +222,9 @@ class JamfAccountUploader(JamfUploaderBase):
                     f"ERROR: Policy file {self.account_template} not found"
                 )
 
-        # we need to substitute the values in the policy name and template now to
+        # we need to substitute the values in the account name and template now to
         # account for version strings in the name
-        self.policy_name, template_xml = self.prepare_account_template(
+        self.account_name, template_xml = self.prepare_account_template(
             self.account_name, self.account_template
         )
 
@@ -279,7 +279,7 @@ class JamfAccountUploader(JamfUploaderBase):
         self.env["account_type"] = self.account_type
         self.env["account_updated"] = self.account_updated
         if self.account_updated:
-            self.env["JamfAccountUploader_summary_result"] = {
+            self.env["jamfaccountuploader_summary_result"] = {
                 "summary_text": "The following accounts were updated in Jamf Pro:",
                 "report_fields": ["account", "template"],
                 "data": {

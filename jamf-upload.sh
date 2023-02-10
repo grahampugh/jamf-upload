@@ -20,6 +20,7 @@ Valid object types:
     profile | computerprofile
     ea | extensionattribute
     icon
+    ldap_server
     logflush
     macapp
     patch
@@ -85,10 +86,17 @@ Icon arguments:
     --icon <path>           Full path to an icon file
     --icon-uri <url>        The icon URI from https://ics.services.jamfcloud.com/icon
 
+LDAP Server arguments:
+    --name <string>         The name
+    --template <path>       XML template
+    --key X=Y               Substitutable values in the template. Multiple values can be supplied
+    --replace               Replace existing item
+
 Mac App Store App arguments:
     --name <string>         The name
     --cloned-from           The name of the Mac App Store app from which to clone
     --template <path>       XML template
+    --key X=Y               Substitutable values in the template. Multiple values can be supplied
     --replace               Replace existing item
 
 Package arguments:
@@ -136,6 +144,7 @@ Patch Policy arguments:
     --title <string>        The patch software title
     --template <path>       XML template
     --policy <string>       Name of an existing policy containing the desired icon for the patch policy
+    --key X=Y               Substitutable values in the template. Multiple values can be supplied
     --replace               Replace existing item
 
 Script arguments:
@@ -156,6 +165,7 @@ Software Restriction arguments
     --send-notification     Send a notification when the restriction is invoked if True
     --kill-process          Kill the process when the restriction is invoked if True
     --delete-executable     Delete the executable when the restriction is invoked if True
+    --key X=Y               Substitutable values in the template. Multiple values can be supplied
     --replace               Replace existing item
 
 Slack arguments:
@@ -233,6 +243,8 @@ elif [[ $object == "ea" || $object == "extensionattribute" ]]; then
     processor="JamfExtensionAttributeUploader"
 elif [[ $object == "icon" ]]; then
     processor="JamfIconUploader"
+elif [[ $object == "ldap_server" ]]; then
+    processor="JamfClassicAPIObjectUploader"
 elif [[ $object == "macapp" ]]; then
     processor="JamfMacAppUploader"
 elif [[ $object == "pkg" || $object == "package" ]]; then
@@ -348,6 +360,10 @@ while test $# -gt 0 ; do
                 if plutil -replace replace_category -string "True" "$temp_processor_plist"; then
                     echo "   [jamf-upload] Wrote replace_category='True' into $temp_processor_plist"
                 fi
+            elif [[ $processor == "JamfClassicAPIObjectUploader" ]]; then
+                if plutil -replace replace_object -string "True" "$temp_processor_plist"; then
+                    echo "   [jamf-upload] Wrote replace_object='True' into $temp_processor_plist"
+                fi
             elif [[ $processor == "JamfComputerGroupUploader" ]]; then
                 if plutil -replace replace_group -string "True" "$temp_processor_plist"; then
                     echo "   [jamf-upload] Wrote replace_group='True' into $temp_processor_plist"
@@ -400,6 +416,10 @@ while test $# -gt 0 ; do
                 if plutil -replace category_name -string "$1" "$temp_processor_plist"; then
                     echo "   [jamf-upload] Wrote category_name='$1' into $temp_processor_plist"
                 fi
+            elif [[ $processor == "JamfClassicAPIObjectUploader" ]]; then
+                if plutil -replace object_name -string "$1" "$temp_processor_plist"; then
+                    echo "   [jamf-upload] Wrote object_name='$1' into $temp_processor_plist"
+                fi
             elif [[ $processor == "JamfComputerGroupUploader" ]]; then
                 if plutil -replace computergroup_name -string "$1" "$temp_processor_plist"; then
                     echo "   [jamf-upload] Wrote computergroup_name='$1' into $temp_processor_plist"
@@ -451,6 +471,10 @@ while test $# -gt 0 ; do
             if [[ $processor == "JamfAccountUploader" ]]; then
                 if plutil -replace account_template -string "$1" "$temp_processor_plist"; then
                     echo "   [jamf-upload] Wrote account_template='$1' into $temp_processor_plist"
+                fi
+            elif [[ $processor == "JamfClassicAPIObjectUploader" ]]; then
+                if plutil -replace object_template -string "$1" "$temp_processor_plist"; then
+                    echo "   [jamf-upload] Wrote object_template='$1' into $temp_processor_plist"
                 fi
             elif [[ $processor == "JamfComputerGroupUploader" ]]; then
                 if plutil -replace computergroup_template -string "$1" "$temp_processor_plist"; then
@@ -929,6 +953,14 @@ while test $# -gt 0 ; do
     esac
     shift
 done
+
+# add the object type for items using the generic JamfClassicAPIObjectUploader processor
+if [[ $processor == "JamfClassicAPIObjectUploader" ]]; then
+    if plutil -replace object_type -string "$object" "$temp_processor_plist"; then
+        echo "   [jamf-upload] Wrote account_type='$object' into $temp_processor_plist"
+    fi
+fi
+
 echo
 
 ###############
