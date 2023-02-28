@@ -7,8 +7,8 @@ JamfScriptUploader processor for uploading items to Jamf Pro using AutoPkg
 
 import os.path
 import sys
-
 from time import sleep
+
 from autopkglib import ProcessorError  # pylint: disable=import-error
 
 # to use a base module in AutoPkg we need to add this path to the sys.path.
@@ -117,6 +117,11 @@ class JamfScriptUploader(JamfUploaderBase):
             "description": "Script parameter 11 title",
             "default": "",
         },
+        "script_is_template": {
+            "required": False,
+            "description": "Process the script for user-defined substituations.",
+            "default": True,
+        },
         "replace_script": {
             "required": False,
             "description": "Overwrite an existing script if True.",
@@ -158,6 +163,7 @@ class JamfScriptUploader(JamfUploaderBase):
         script_parameter10,
         script_parameter11,
         script_os_requirements,
+        script_is_template,
         token,
         obj_id=0,
     ):
@@ -171,7 +177,8 @@ class JamfScriptUploader(JamfUploaderBase):
             raise ProcessorError("Script does not exist!")
 
         # substitute user-assignable keys
-        script_contents = self.substitute_assignable_keys(script_contents)
+        if script_is_template:
+            script_contents = self.substitute_assignable_keys(script_contents)
 
         # priority has to be in upper case. Let's make it nice for the user
         if script_priority:
@@ -259,11 +266,14 @@ class JamfScriptUploader(JamfUploaderBase):
         self.script_parameter9 = self.env.get("script_parameter9")
         self.script_parameter10 = self.env.get("script_parameter10")
         self.script_parameter11 = self.env.get("script_parameter11")
+        self.script_is_template = self.env.get("script_is_template")
         self.replace = self.env.get("replace_script")
         self.sleep = self.env.get("sleep")
         # handle setting replace in overrides
         if not self.replace or self.replace == "False":
             self.replace = False
+        if not self.script_is_template or self.script_is_template == "False":
+            self.script_is_template = False
 
         # clear any pre-existing summary result
         if "jamfscriptuploader_summary_result" in self.env:
@@ -364,6 +374,7 @@ class JamfScriptUploader(JamfUploaderBase):
             self.script_parameter10,
             self.script_parameter11,
             self.osrequirements,
+            self.script_is_template,
             token,
             obj_id,
         )
