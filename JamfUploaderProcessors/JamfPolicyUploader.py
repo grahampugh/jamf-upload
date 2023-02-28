@@ -270,6 +270,17 @@ class JamfPolicyUploader(JamfUploaderBase):
         if "jamfpolicyuploader_summary_result" in self.env:
             del self.env["jamfpolicyuploader_summary_result"]
 
+        if self.policy_template == "False":
+            self.env['policy_uploaded'] = False
+            self.output(
+                "Skipping '{}' policy as 'policy_template' is set to '{}'".format(
+                    self.policy_name,
+                    self.policy_template
+                ),
+                verbose_level=1,
+            )
+            return 0
+
         # handle files with a relative path
         if not self.policy_template.startswith("/"):
             found_template = self.get_path_to_file(self.policy_template)
