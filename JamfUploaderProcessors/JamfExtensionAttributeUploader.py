@@ -59,6 +59,11 @@ class JamfExtensionAttributeUploader(JamfUploaderBase):
             "description": "Overwrite an existing category if True.",
             "default": False,
         },
+        "ea_inventory_display": {
+            "required": False,
+            "description": "Inventory Display value for the EA.",
+            "default": "Extension Attributes",
+        },
         "ea_data_type": {
             "required": False,
             "description": "Data type for the EA. One of String, Integer or Date.",
@@ -82,6 +87,7 @@ class JamfExtensionAttributeUploader(JamfUploaderBase):
         jamf_url,
         ea_name,
         ea_data_type,
+        ea_inventory_display,
         script_path,
         obj_id=None,
         enc_creds="",
@@ -113,7 +119,7 @@ class JamfExtensionAttributeUploader(JamfUploaderBase):
             + "  <platform>Mac</platform>"
             + "  <script>{}</script>".format(script_contents_escaped)
             + "</input_type>"
-            + "<inventory_display>Extension Attributes</inventory_display>"
+            + "<inventory_display>{}</inventory_display>".format(ea_inventory_display)
             + "<recon_display>Extension Attributes</recon_display>"
             + "</computer_extension_attribute>"
         )
@@ -173,6 +179,7 @@ class JamfExtensionAttributeUploader(JamfUploaderBase):
         self.ea_name = self.env.get("ea_name")
         self.replace = self.env.get("replace_ea")
         self.ea_data_type = self.env.get("ea_data_type")
+        self.ea_inventory_display = self.env.get("ea_inventory_display")
         self.sleep = self.env.get("sleep")
         # handle setting replace in overrides
         if not self.replace or self.replace == "False":
@@ -235,6 +242,7 @@ class JamfExtensionAttributeUploader(JamfUploaderBase):
             self.jamf_url,
             self.ea_name,
             self.ea_data_type,
+            self.ea_inventory_display,
             self.ea_script_path,
             obj_id=obj_id,
             enc_creds=send_creds,
