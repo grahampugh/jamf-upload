@@ -2,6 +2,7 @@
 
 | Date       | Notes                                                                                            |
 | ---------- | ------------------------------------------------------------------------------------------------ |
+| 2023-04-12 | Allow randomised failover URL for `jcds_mode` in `JamfPackageUploader`.                          |
 | 2022-12-20 | Allow relative paths to templates.                                                               |
 | 2022-12-20 | Allow skip template in `JamfPatchUploader`.                                                      |
 | 2022-11-14 | All shebangs updated to use the AutoPkg python distribution.                                     |
@@ -11,6 +12,7 @@
 | 2022-09-21 | Allow empty values for substitutable variables.                                                  |
 | 2022-08-25 | Add `sleep` to all relevant processors.                                                          |
 | 2022-06-24 | skip_metadata_upload in `JamfPackageUploader`.                                                   |
+| 2022-02-25 | add `jcds_mode` in `JamfPackageUploader`.                                                        |
 | 2022-01-31 | fix script url and add 405 error.                                                                |
 | 2021-10-22 | Switch to token auth for Jamf Classic API, and move common functions into `JamfUploaderBase.py`. |
 | 2021-10-22 | url fixes.                                                                                       |

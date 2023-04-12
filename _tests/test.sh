@@ -11,8 +11,8 @@ verbosity="$2"
 url="$3"
 
 # other variables
-# prefs="$HOME/Library/Preferences/com.github.autopkg.plist"
-prefs="/Users/Shared/com.github.autopkg.plist"
+prefs="$HOME/Library/Preferences/com.github.autopkg.plist"
+# prefs="/Users/Shared/com.github.autopkg.plist"
 
 if [[ ! $verbosity ]]; then
     verbosity="-v"
@@ -255,7 +255,7 @@ elif [[ $test_type == "package" || $test_type == "pkg" ]]; then
     "$DIR"/../jamf-upload.sh pkg \
         --prefs "$prefs" \
         --recipe-dir /Users/gpugh/sourcecode/jamf-upload/_tests \
-        --pkg "/Users/gpugh/Library/AutoPkg/Cache/com.github.smithjw.pkg.Nessus_Agent/Nessus_Agent-10.1.3.pkg" \
+        --pkg "/Users/gpugh/Library/AutoPkg/Cache/com.github.dataJAR-recipes.pkg.Rectangle/Rectangle-0.67.pkg" \
         --category "Testing" \
         "$verbosity" \
         "$url" \

@@ -41,6 +41,7 @@ class JamfUploaderBase(Processor):
             "extension_attribute": "JSSResource/computerextensionattributes",
             "computer_group": "JSSResource/computergroups",
             "dock_item": "JSSResource/dockitems",
+            "failover": "api/v1/sso/failover",
             "icon": "api/v1/icon",
             "jamf_pro_version": "api/v1/jamf-pro-version",
             "logflush": "JSSResource/logflush",
@@ -226,13 +227,13 @@ class JamfUploaderBase(Processor):
         # if token, verify Jamf Pro version
         if token:
             if self.validate_jamf_pro_version(url, token):
-                self.output("Token auth will be used, ", verbose_level=2)
+                self.output("Token auth will be used", verbose_level=2)
                 send_creds = ""
             else:
-                self.output("Basic auth will be used, ", verbose_level=2)
+                self.output("Basic auth will be used", verbose_level=2)
                 send_creds = enc_creds
         else:
-            self.output("No token found, basic auth will be used, ", verbose_level=2)
+            self.output("No token found, basic auth will be used", verbose_level=2)
             send_creds = enc_creds
 
         # return token and classic creds
@@ -601,7 +602,8 @@ class JamfUploaderBase(Processor):
         value of MY_KEY. A five-times pass-through is done to ensure that all keys are substituted.
 
         Optionally, if the xml_escape key is set, the value is escaped for XML special characters.
-        This is designed primarily to account for ampersands in the substituted strings."""
+        This is designed primarily to account for ampersands in the substituted strings.
+        """
         loop = 5
         while loop > 0:
             loop = loop - 1

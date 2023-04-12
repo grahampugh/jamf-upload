@@ -328,6 +328,31 @@ class JamfPackageUploader(JamfUploaderBase):
         self.output(f"Zip file {zip_name} created.")
         return zip_name
 
+    def get_failover_url(self, jamf_url, enc_creds="", token=""):
+        """get the failover string which is required for Jamf 10.45.0+"""
+
+        object_type = "failover"
+        url = "{}/{}".format(jamf_url, self.api_endpoints(object_type))
+
+        request = "GET"
+        r = self.curl(
+            request=request,
+            url=url,
+            enc_creds=enc_creds,
+            token=token,
+        )
+
+        if r.status_code == 200:
+            # obj = json.loads(r.output)
+            obj = r.output
+            try:
+                jamf_url = obj["failoverUrl"]
+                self.output(f"Failover URL obtained: {jamf_url}", verbose_level=2)
+            except KeyError:
+                self.output("No failover URL obtained", verbose_level=2)
+
+        return jamf_url
+
     def check_pkg(self, pkg_name, jamf_url, enc_creds="", token=""):
         """check if a package with the same name exists in the repo
         note that it is possible to have more than one with the same name
@@ -407,7 +432,7 @@ class JamfPackageUploader(JamfUploaderBase):
 
     def create_session(self, jamf_url, user, password):
         """create session cookies for the package upload endpoint"""
-        url = jamf_url + "/?failover"
+        url = jamf_url
         tmp_dir = self.make_tmp_dir()
         cookie_jar = os.path.join(tmp_dir, "curl_cookies_from_jamf_upload.txt")
         additional_headers = [
@@ -867,8 +892,8 @@ class JamfPackageUploader(JamfUploaderBase):
                         "Uploading package using experimental JCDS mode",
                         verbose_level=1,
                     )
+                    # 1. get the ID of a category
                     if self.pkg_category:
-                        # 1. get the ID of a category
                         pkg_category_id = self.get_pkg_category_id(
                             self.jamf_url,
                             self.pkg_category,
@@ -877,27 +902,34 @@ class JamfPackageUploader(JamfUploaderBase):
                         )
                     else:
                         pkg_category_id = -1
-                    # 2. start the session
-                    self.create_session(
-                        self.jamf_url, self.jamf_user, self.jamf_password
+
+                    # 2. get the failover URL
+                    failover_url = self.get_failover_url(
+                        self.jamf_url, enc_creds="", token=token
                     )
-                    # 3. get the required tokens and URL
+
+                    # 3. start the session
+                    self.create_session(
+                        failover_url, self.jamf_user, self.jamf_password
+                    )
+
+                    # 4. get the required tokens and URL
                     (
                         session_token,
                         x_auth_token,
                         pkg_upload_url,
                     ) = self.get_session_token(self.jamf_url, pkg_id)
-                    # 4. upload the package
+                    # 5. upload the package
                     self.post_pkg(
-                        self.jamf_url,
+                        failover_url,
                         self.pkg_name,
                         self.pkg_path,
                         x_auth_token,
                         pkg_upload_url,
                     )
-                    # 5. record the package in Jamf Pro
+                    # 6. record the package in Jamf Pro
                     self.create_pkg_object(
-                        self.jamf_url,
+                        failover_url,
                         self.pkg_name,
                         pkg_id,
                         session_token,
