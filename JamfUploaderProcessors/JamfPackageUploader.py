@@ -921,7 +921,7 @@ class JamfPackageUploader(JamfUploaderBase):
                     ) = self.get_session_token(self.jamf_url, pkg_id)
                     # 5. upload the package
                     self.post_pkg(
-                        failover_url,
+                        self.jamf_url,
                         self.pkg_name,
                         self.pkg_path,
                         x_auth_token,
@@ -929,7 +929,7 @@ class JamfPackageUploader(JamfUploaderBase):
                     )
                     # 6. record the package in Jamf Pro
                     self.create_pkg_object(
-                        failover_url,
+                        self.jamf_url,
                         self.pkg_name,
                         pkg_id,
                         session_token,
