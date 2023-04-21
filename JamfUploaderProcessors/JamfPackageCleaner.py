@@ -30,20 +30,15 @@ class JamfPackageCleaner(JamfUploaderBase):
     input_variables = {
         "JSS_URL": {
             "required": True,
-            "description": "URL to a Jamf Pro server that the API user has write access "
-            "to, optionally set as a key in the com.github.autopkg "
-            "preference file.",
+            "description": "URL to a Jamf Pro server that the API user has write access to.",
         },
         "API_USERNAME": {
             "required": True,
-            "description": "Username of account with appropriate access to "
-            "jss, optionally set as a key in the com.github.autopkg "
-            "preference file.",
+            "description": "Username of account with appropriate acces.",
         },
         "API_PASSWORD": {
             "required": True,
-            "description": "Password of api user, optionally set as a key in "
-            "the com.github.autopkg preference file.",
+            "description": "Password of api user.",
         },
         "pkg_name_match": {
             "required": False,
