@@ -25,6 +25,7 @@ Valid object types:
     macapp
     patch
     pkg | package
+    pkgclean
     policy
     restriction | softwarerestriction
     script
@@ -121,6 +122,14 @@ Package arguments:
     --skip-metadata-upload  Set to skip pkg metadata upload
     --replace               Replace existing item
     --jcds                  Use v3 API for package upload to JCDS 
+
+Package Clean arguments:
+    --name <string>         The name to match
+    --smb-url <url>         URL of the fileshare distribution point (on premises Jamf Pro only)
+    --smb-user <SMB_USERNAME>
+                            Username with share access
+    --smb_pass <SMB_PASSWORD>
+                            Password of the user
 
 Policy arguments:
     --name <string>         The name
@@ -249,6 +258,8 @@ elif [[ $object == "macapp" ]]; then
     processor="JamfMacAppUploader"
 elif [[ $object == "pkg" || $object == "package" ]]; then
     processor="JamfPackageUploader"
+elif [[ $object == "pkgclean" ]]; then
+    processor="JamfPackageCleaner"
 elif [[ $object == "pkg-direct" ]]; then
     processor="JamfPackageUploaderGUI"
 elif [[ $object == "policy" ]]; then
@@ -443,6 +454,10 @@ while test $# -gt 0 ; do
             elif [[ $processor == "JamfPackageUploader" ]]; then
                 if plutil -replace pkg_name -string "$1" "$temp_processor_plist"; then
                     echo "   [jamf-upload] Wrote pkg_name='$1' into $temp_processor_plist"
+                fi
+            elif [[ $processor == "JamfPackageCleaner" ]]; then
+                if plutil -replace pkg_name_match -string "$1" "$temp_processor_plist"; then
+                    echo "   [jamf-upload] Wrote pkg_name_match='$1' into $temp_processor_plist"
                 fi
             elif [[ $processor == "JamfPatchUploader" ]]; then
                 if plutil -replace patch_name -string "$1" "$temp_processor_plist"; then
@@ -741,6 +756,14 @@ while test $# -gt 0 ; do
             if [[ $processor == "JamfPackageUploader" ]]; then
                 if plutil -replace jcds_mode -string "true" "$temp_processor_plist"; then
                     echo "   [jamf-upload] Wrote jcds_mode='True' into $temp_processor_plist"
+                fi
+            fi
+            ;;
+        --keep) 
+            shift
+            if [[ $processor == "JamfPackageCleaner" ]]; then
+                if plutil -replace versions_to_keep -string "$1" "$temp_processor_plist"; then
+                    echo "   [jamf-upload] Wrote versions_to_keep='$1' into $temp_processor_plist"
                 fi
             fi
             ;;
