@@ -2,6 +2,7 @@
 
 | Date       | Notes                                                                                            |
 | ---------- | ------------------------------------------------------------------------------------------------ |
+| 2023-04-25 | Add `JamfPackageCleaner`.                                                                        |
 | 2023-04-12 | Allow randomised failover URL for `jcds_mode` in `JamfPackageUploader`.                          |
 | 2022-12-20 | Allow relative paths to templates.                                                               |
 | 2022-12-20 | Allow skip template in `JamfPatchUploader`.                                                      |
