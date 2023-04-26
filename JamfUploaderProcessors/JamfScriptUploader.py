@@ -7,8 +7,8 @@ JamfScriptUploader processor for uploading items to Jamf Pro using AutoPkg
 
 import os.path
 import sys
-
 from time import sleep
+
 from autopkglib import ProcessorError  # pylint: disable=import-error
 
 # to use a base module in AutoPkg we need to add this path to the sys.path.
@@ -117,6 +117,11 @@ class JamfScriptUploader(JamfUploaderBase):
             "description": "Script parameter 11 title",
             "default": "",
         },
+        "skip_script_key_substitution": {
+            "required": False,
+            "description": "Skip key substitution in processing the script",
+            "default": False,
+        },
         "replace_script": {
             "required": False,
             "description": "Overwrite an existing script if True.",
@@ -158,6 +163,7 @@ class JamfScriptUploader(JamfUploaderBase):
         script_parameter10,
         script_parameter11,
         script_os_requirements,
+        skip_script_key_substitution,
         token,
         obj_id=0,
     ):
@@ -170,8 +176,9 @@ class JamfScriptUploader(JamfUploaderBase):
         else:
             raise ProcessorError("Script does not exist!")
 
-        # substitute user-assignable keys
-        script_contents = self.substitute_assignable_keys(script_contents)
+        if not skip_script_key_substitution:
+            # substitute user-assignable keys
+            script_contents = self.substitute_assignable_keys(script_contents)
 
         # priority has to be in upper case. Let's make it nice for the user
         if script_priority:
@@ -259,11 +266,14 @@ class JamfScriptUploader(JamfUploaderBase):
         self.script_parameter9 = self.env.get("script_parameter9")
         self.script_parameter10 = self.env.get("script_parameter10")
         self.script_parameter11 = self.env.get("script_parameter11")
+        self.skip_script_key_substitution = self.env.get("skip_script_key_substitution")
         self.replace = self.env.get("replace_script")
         self.sleep = self.env.get("sleep")
         # handle setting replace in overrides
         if not self.replace or self.replace == "False":
             self.replace = False
+        if not self.skip_script_key_substitution or self.skip_script_key_substitution == "False":
+            self.skip_script_key_substitution = False
 
         # clear any pre-existing summary result
         if "jamfscriptuploader_summary_result" in self.env:
@@ -364,6 +374,7 @@ class JamfScriptUploader(JamfUploaderBase):
             self.script_parameter10,
             self.script_parameter11,
             self.osrequirements,
+            self.skip_script_key_substitution,
             token,
             obj_id,
         )
