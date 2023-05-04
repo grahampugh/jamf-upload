@@ -71,7 +71,7 @@ class JamfPackageCleaner(JamfUploaderBase):
             "dry_run": {
             "required": False,
             "description": "If set to True, nothing is deleted from Jamf Pro. "
-            "Use together with '-v' for detailed information. "
+            "Use together with '-vv' for detailed information. "
             "This is used for testing",
             "default": False,
         },
@@ -306,16 +306,20 @@ class JamfPackageCleaner(JamfUploaderBase):
             return
         
         #  Print the packages to keep and delete
+        self.output(f"Found {len(packages_to_keep)} packages to keep "
+                    f"and {len(packages_to_delete)} to delete", 
+                    verbose_level=1)
+        
         for package in packages_to_keep:
-            self.output(f"✅ {package['name']}", verbose_level=1)
+            self.output(f"✅ {package['name']}", verbose_level=2)
 
         for package in packages_to_delete:
-            self.output(f"❌ {package['name']} (will be deleted)", verbose_level=1)
+            self.output(f"❌ {package['name']} (will be deleted)", verbose_level=2)
     
         # If running dry, print intentions and abort.
         if self.dry_run:
             self.output(f"INFO: Argument 'dry_run' is set to True. Nothing will be deleted. "
-                        f"Use '-v' to see detailed information. "
+                        f"Use '-vv' to see detailed information. "
                         f"Aborting.")
             return
 

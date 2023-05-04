@@ -32,7 +32,7 @@ A processor for AutoPkg that will remove packages matching a pattern from a Jamf
   - **default**: 20
 - **dry_run**:
   - **required**: False
-  - **description**: If set to True, nothing is deleted from Jamf Pro. Use together with `-v` for detailed information. This is used for testing
+  - **description**: If set to True, nothing is deleted from Jamf Pro. Use together with `-vv` for detailed information. This is used for testing
   - **default**: False
 
 ## Output variables
