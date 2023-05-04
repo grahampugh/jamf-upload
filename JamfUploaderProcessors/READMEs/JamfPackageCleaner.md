@@ -30,6 +30,10 @@ A processor for AutoPkg that will remove packages matching a pattern from a Jamf
   - **required**: False
   - **description**: The maximum number of packages that can be deleted. This is used as a failsafe.
   - **default**: 20
+- **dry_run**:
+  - **required**: False
+  - **description**: If set to True, nothing is deleted from Jamf Pro. Use together with `-v` for detailed information. This is used for testing
+  - **default**: False
 
 ## Output variables
 
