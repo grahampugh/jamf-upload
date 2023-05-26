@@ -262,6 +262,16 @@ elif [[ $test_type == "package" || $test_type == "pkg" ]]; then
         --jcds \
         --replace
 
+elif [[ $test_type == "pkgclean" ]]; then
+    # cleanup a package type
+    "$DIR"/../jamf-upload.sh pkgclean \
+        --prefs "$prefs" \
+        --recipe-dir /Users/gpugh/sourcecode/jamf-upload/_tests \
+        --name "Rectangle" \
+        --keep "1" \
+        "$verbosity" \
+        "$url"
+
 elif [[ $test_type == "script" ]]; then
     # upload a script
     "$DIR"/../jamf-upload.sh script \
