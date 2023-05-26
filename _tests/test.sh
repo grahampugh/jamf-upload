@@ -255,7 +255,7 @@ elif [[ $test_type == "package" || $test_type == "pkg" ]]; then
     "$DIR"/../jamf-upload.sh pkg \
         --prefs "$prefs" \
         --recipe-dir /Users/gpugh/sourcecode/jamf-upload/_tests \
-        --pkg "/Users/gpugh/Library/AutoPkg/Cache/com.github.dataJAR-recipes.pkg.Rectangle/Rectangle-0.67.pkg" \
+        --pkg "/Users/gpugh/Downloads/erase-install-29.1.pkg" \
         --category "Testing" \
         "$verbosity" \
         "$url" \
@@ -267,8 +267,8 @@ elif [[ $test_type == "pkgclean" ]]; then
     "$DIR"/../jamf-upload.sh pkgclean \
         --prefs "$prefs" \
         --recipe-dir /Users/gpugh/sourcecode/jamf-upload/_tests \
-        --name "Rectangle" \
-        --keep "1" \
+        --name "erase-install" \
+        --keep "3" \
         "$verbosity" \
         "$url"
 
