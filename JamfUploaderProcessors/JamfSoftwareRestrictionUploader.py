@@ -95,6 +95,11 @@ class JamfSoftwareRestrictionUploader(JamfUploaderBase):
             "description": "Pause after running this processor for specified seconds.",
             "default": "0",
         },
+        "template_escape_xml": {
+            "required": False,
+            "description": "Disable xml escaping during substitution for the template if False.",
+            "default": True,
+        },
     }
 
     output_variables = {
@@ -135,7 +140,7 @@ class JamfSoftwareRestrictionUploader(JamfUploaderBase):
 
         # substitute user-assignable keys (escaping for XML)
         template_contents = self.substitute_limited_assignable_keys(
-            template_contents, replaceable_keys, xml_escape=True
+            template_contents, replaceable_keys, xml_escape=template_escape_xml
         )
 
         self.output("Software Restriction to be uploaded:", verbose_level=2)
@@ -193,6 +198,7 @@ class JamfSoftwareRestrictionUploader(JamfUploaderBase):
         self.restriction_computergroup = self.env.get("restriction_computergroup")
         self.sleep = self.env.get("sleep")
         self.replace = self.env.get("replace_restriction")
+        self.template_escape_xml = self.env.get("template_escape_xml")
         # handle setting display_message in overrides
         self.display_message = self.env.get("display_message")
         if not self.display_message:
@@ -218,6 +224,11 @@ class JamfSoftwareRestrictionUploader(JamfUploaderBase):
         # handle setting replace in overrides
         if not self.replace or self.replace == "False":
             self.replace = False
+        # handle escaping xml in overrides
+        if self.template_escape_xml == False or self.template_escape_xml == "False":
+            self.template_escape_xml = False
+        else:
+            self.template_escape_xml = True
 
         # clear any pre-existing summary result
         if "jamfsoftwarerestrictionuploader_summary_result" in self.env:

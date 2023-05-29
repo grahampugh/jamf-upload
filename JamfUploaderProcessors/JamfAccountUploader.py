@@ -71,6 +71,11 @@ class JamfAccountUploader(JamfUploaderBase):
             "description": "Pause after running this processor for specified seconds.",
             "default": "0",
         },
+        "template_escape_xml": {
+            "required": False,
+            "description": "Disable xml escaping during substitution for the template if False.",
+            "default": True,
+        },
     }
 
     output_variables = {
@@ -137,7 +142,7 @@ class JamfAccountUploader(JamfUploaderBase):
         # substitute user-assignable keys
         account_name = self.substitute_assignable_keys(account_name)
         template_contents = self.substitute_assignable_keys(
-            template_contents, xml_escape=True
+            template_contents, xml_escape=self.template_escape_xml
         )
 
         self.output("account data:", verbose_level=2)
@@ -203,10 +208,16 @@ class JamfAccountUploader(JamfUploaderBase):
         self.account_template = self.env.get("account_template")
         self.replace = self.env.get("replace_account")
         self.sleep = self.env.get("sleep")
+        self.template_escape_xml = self.env.get("template_escape_xml")
         # handle setting replace in overrides
         if not self.replace or self.replace == "False":
             self.replace = False
         self.account_updated = False
+        # handle escaping xml in overrides
+        if self.template_escape_xml == False or self.template_escape_xml == "False":
+            self.template_escape_xml = False
+        else:
+            self.template_escape_xml = True
 
         # clear any pre-existing summary result
         if "jamfaccountuploader_summary_result" in self.env:

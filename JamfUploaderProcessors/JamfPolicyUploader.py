@@ -75,6 +75,11 @@ class JamfPolicyUploader(JamfUploaderBase):
             "description": "Pause after running this processor for specified seconds.",
             "default": "0",
         },
+        "template_escape_xml": {
+            "required": False,
+            "description": "Disable xml escaping during substitution for the template if False.",
+            "default": True,
+        },
     }
 
     output_variables = {
@@ -104,7 +109,7 @@ class JamfPolicyUploader(JamfUploaderBase):
         # substitute user-assignable keys
         policy_name = self.substitute_assignable_keys(policy_name)
         template_contents = self.substitute_assignable_keys(
-            template_contents, xml_escape=True
+            template_contents, xml_escape=self.template_escape_xml
         )
 
         self.output("Policy data:", verbose_level=2)
@@ -257,6 +262,7 @@ class JamfPolicyUploader(JamfUploaderBase):
         self.icon = self.env.get("icon")
         self.replace = self.env.get("replace_policy")
         self.sleep = self.env.get("sleep")
+        self.template_escape_xml = self.env.get("template_escape_xml")
         # handle setting replace in overrides
         if not self.replace or self.replace == "False":
             self.replace = False
@@ -265,6 +271,11 @@ class JamfPolicyUploader(JamfUploaderBase):
         if not self.replace_icon or self.replace_icon == "False":
             self.replace_icon = False
         self.policy_updated = False
+        # handle escaping xml in overrides
+        if self.template_escape_xml == False or self.template_escape_xml == "False":
+            self.template_escape_xml = False
+        else:
+            self.template_escape_xml = True
 
         # clear any pre-existing summary result
         if "jamfpolicyuploader_summary_result" in self.env:

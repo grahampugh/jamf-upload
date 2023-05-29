@@ -28,6 +28,14 @@ A processor for AutoPkg that will upload an account to a Jamf Cloud or on-prem s
   - **required:** False
   - **description:** Overwrite an existing account if True.
   - **default:** False
+- **sleep:**
+  - **required:** False
+  - **description:** Pause after running this processor for specified seconds.
+  - **default:** "0"
+- **template_escape_xml:**
+  - **required:** False
+  - **description:** Disable xml escaping during substitution for the template if False.
+  - **default:** True
 
 ## Output variables
 
