@@ -18,9 +18,9 @@ A processor for AutoPkg that will flush logs for a policy on a Jamf Cloud or on-
 - **policy_name:**
   - **required:** True
   - **description:** Policy whose log is to be flushed
-- **interval:**
+- **logflush_interval:**
   - **required:** False
-  - **description:** Interval of log to flush
+  - **description:** Log interval to be flushed
   - **default:** "Zero Days"
 
 ## Output variables

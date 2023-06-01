@@ -27,13 +27,17 @@ A processor for AutoPkg that will update or clone a Mac App Store app object on 
   - **required:** False
   - **description:** Mac App Store app icon URI
   - **default:** ""
-- **macapp_template:
+- **macapp_template:**
   - **required:** False
   - **description:** Full path to the XML template
 - **replace_macapp:**
   - **required:** False
   - **description:** Overwrite an existing Mac App Store app if True.
   - **default:** False
+- **sleep:**
+  - **required:** False
+  - **description:** Pause after running this processor for specified seconds.
+  - **default:** "0"
 
 ## Output variables
 
