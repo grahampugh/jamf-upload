@@ -26,6 +26,10 @@ A processor for AutoPkg that will upload a category to a Jamf Cloud or on-prem s
   - **required**: False
   - **description**: Overwrite an existing category if True.
   - **default**: False
+- **sleep:**
+  - **required:** False
+  - **description:** Pause after running this processor for specified seconds.
+  - **default:** "0"
 
 ## Output variables
 

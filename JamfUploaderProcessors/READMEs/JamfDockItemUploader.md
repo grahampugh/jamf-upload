@@ -28,6 +28,10 @@ A processor for AutoPkg that will upload a Dock item to a Jamf Cloud or on-prem 
   - **required**: False
   - **description**: Overwrite an existing Dock Item if True.
   - **default**: False
+- **sleep:**
+  - **required:** False
+  - **description:** Pause after running this processor for specified seconds.
+  - **default:** "0"
 
 ## Output variables
 

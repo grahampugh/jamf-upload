@@ -25,6 +25,10 @@ A processor for AutoPkg that will upload a computer group (smart or static) to a
   - **required**: False
   - **description**: overwrite an existing Computer Group if True.
   - **default**: False
+- **sleep:**
+  - **required:** False
+  - **description:** Pause after running this processor for specified seconds.
+  - **default:** "0"
 
 ## Output variables
 

@@ -30,6 +30,9 @@ A postprocessor for AutoPkg that will send details about a recipe run to a Micro
 - **jamfpackageuploader_summary_result:**
   - **required:** False
   - **description:** Result of JamfPackageUploader.
+- **jamfpatchuploader_summary_result:**
+  - **required:** False
+  - **description:** Result of JamfPatchUploader.
 - **jamfpolicyuploader_summary_result:**
   - **required:** False
   - **description:** Result of JamfPolicyUploader.

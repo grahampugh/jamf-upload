@@ -23,6 +23,9 @@ Takes elements from [this gist](https://gist.github.com/devStepsize/b1b795309a21
 - **pkg_name:**
   - **required:** False
   - **description:** File name of the pkg being uploaded.
+- **version:**
+  - **required:** False
+  - **description:** Package version.
 - **policy_name:**
   - **required:** False
   - **description:** The uploaded policy name.
@@ -41,6 +44,9 @@ Takes elements from [this gist](https://gist.github.com/devStepsize/b1b795309a21
 - **slack_icon_url:**
   - **required:** False
   - **description:** Sets the icon shown in the Slack notification.
+- **slack_channel:**
+  - **required:** False
+  - **description:** Slack channel (for overriding the default).
 - **slack_icon_moji:**
   - **required:** False
   - **description:** Sets the icon shown in the Slack notification as an emoji.

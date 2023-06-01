@@ -50,6 +50,10 @@ A processor for AutoPkg that will upload a computer configuration profile to a J
   - **required**: False
   - **description**: overwrite an existing Configuration Profile if True.
   - **default**: False
+- **sleep:**
+  - **required:** False
+  - **description:** Pause after running this processor for specified seconds.
+  - **default:** "0"
 
 ## Output variables
 

@@ -25,6 +25,18 @@ A processor for AutoPkg that will upload an Extension Attribute item to a Jamf C
   - **required**: False
   - **description**: Overwrite an existing Extension Attribute if True.
   - **default**: False
+- **ea_inventory_display:**
+  - **required:** False
+  - **description:** Inventory Display value for the EA.
+  - **default:** "Extension Attributes"
+- **ea_data_type:**
+  - **required:** False
+  - **description:** Data type for the EA. One of String, Integer or Date.
+  - **default:** "String"
+- **sleep:**
+  - **required:** False
+  - **description:** Pause after running this processor for specified seconds.
+  - **default:** "0"
 
 ## Output variables
 

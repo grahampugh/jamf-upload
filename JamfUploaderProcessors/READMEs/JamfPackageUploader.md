@@ -85,6 +85,10 @@ Can be run as a post-processor for a pkg recipe or in a child recipe. The parent
 - **SMB_SHARES:**
   - **required:** False
   - **description:** An array of dictionaries containing `SMB_URL`, `SMB_USERNAME` and `SMB_PASSWORD`, as an alternative to individual keys. Any individual keys will override this complete array. The array can only be provided via the AutoPkg preferences file.
+- **sleep:**
+  - **required:** False
+  - **description:** Pause after running this processor for specified seconds.
+  - **default:** "0"
 
 ## Output variables
 
