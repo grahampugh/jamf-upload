@@ -68,6 +68,13 @@ class JamfPackageCleaner(JamfUploaderBase):
             "This is used as a failsafe.",
             "default": "20",
         },
+        "dry_run": {
+            "required": False,
+            "description": "If set to True, nothing is deleted from Jamf Pro. "
+            "Use together with '-vv' for detailed information. "
+            "This is used for testing",
+            "default": False,
+        },
     }
 
     output_variables = {
@@ -177,6 +184,7 @@ class JamfPackageCleaner(JamfUploaderBase):
         self.maximum_allowed_packages_to_delete = int(
             self.env.get("maximum_allowed_packages_to_delete")
         )
+        self.dry_run = self.env.get("dry_run")
 
         # Create a list of smb shares in tuples
         self.smb_shares = []
@@ -297,9 +305,27 @@ class JamfPackageCleaner(JamfUploaderBase):
             )
             return
 
-        # Print the packages to keep and delete
+        #  Print the packages to keep and delete
+        self.output(
+            f"Found {len(packages_to_keep)} packages to keep "
+            f"and {len(packages_to_delete)} to delete",
+            verbose_level=1,
+        )
+
         for package in packages_to_keep:
-            self.output(f"Keeping {package['name']}", verbose_level=2)
+            self.output(f"✅ {package['name']}", verbose_level=2)
+
+        for package in packages_to_delete:
+            self.output(f"❌ {package['name']} (will be deleted)", verbose_level=2)
+
+        # If running dry, print intentions and abort.
+        if self.dry_run:
+            self.output(
+                "INFO: Argument 'dry_run' is set to True. Nothing will be deleted. "
+                "Use '-vv' to see detailed information. "
+                "Aborting."
+            )
+            return
 
         for package in packages_to_delete:
             self.delete_package(
