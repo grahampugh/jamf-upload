@@ -50,6 +50,11 @@ class JamfPackageUploader(JamfUploaderBase):
             "in the pkg_path key when uploading it to the fileshare.",
             "default": "",
         },
+        "pkg_display_name": {
+            "required": False,
+            "description": "Package display name.",
+            "default": "",
+        },
         "pkg_path": {
             "required": False,
             "description": "Path to a pkg or dmg to import - provided by "
@@ -525,7 +530,13 @@ class JamfPackageUploader(JamfUploaderBase):
         self.output(r.output, verbose_level=3)
 
     def create_pkg_object(
-        self, jamf_url, pkg_name, pkg_id, session_token, pkg_category_id
+        self,
+        jamf_url,
+        pkg_name,
+        pkg_display_name,
+        pkg_id,
+        session_token,
+        pkg_category_id,
     ):
         """record the package in in the jamf server"""
         url = f"{jamf_url}/legacy/packages.html?id={pkg_id}&o=c"
@@ -550,7 +561,7 @@ class JamfPackageUploader(JamfUploaderBase):
                 + "&lastSideTab=null"
                 + "&lastSubTab=null"
                 + "&lastSubTabSet=null"
-                + f"&name={quote_plus(pkg_name)}"
+                + f"&name={quote_plus(pkg_display_name)}"
                 + f"&categoryID={pkg_category_id}"
                 + f"&fileInputfileName={quote_plus(pkg_name)}"
                 + f"&fileName={quote_plus(pkg_name)}"
@@ -582,6 +593,7 @@ class JamfPackageUploader(JamfUploaderBase):
         self,
         jamf_url,
         pkg_name,
+        pkg_display_name,
         pkg_metadata,
         hash_value,
         pkg_id=0,
@@ -598,7 +610,7 @@ class JamfPackageUploader(JamfUploaderBase):
         # build the package record XML
         pkg_data = (
             "<package>"
-            + f"<name>{pkg_name}</name>"
+            + f"<name>{pkg_display_name}</name>"
             + f"<filename>{pkg_name}</filename>"
             + f"<category>{escape(pkg_metadata['category'])}</category>"
             + f"<info>{escape(pkg_metadata['info'])}</info>"
@@ -671,6 +683,9 @@ class JamfPackageUploader(JamfUploaderBase):
         self.pkg_name = self.env.get("pkg_name")
         if not self.pkg_name:
             self.pkg_name = os.path.basename(self.pkg_path)
+        self.pkg_display_name = self.env.get("pkg_display_name")
+        if not self.pkg_display_name:
+            self.pkg_display_name = self.pkg_name
         self.version = self.env.get("version")
         self.replace = self.env.get("replace_pkg")
         self.sleep = self.env.get("sleep")
@@ -931,6 +946,7 @@ class JamfPackageUploader(JamfUploaderBase):
                     self.create_pkg_object(
                         self.jamf_url,
                         self.pkg_name,
+                        self.pkg_display_name,
                         pkg_id,
                         session_token,
                         pkg_category_id,
@@ -997,6 +1013,7 @@ class JamfPackageUploader(JamfUploaderBase):
             self.update_pkg_metadata(
                 self.jamf_url,
                 self.pkg_name,
+                self.pkg_display_name,
                 self.pkg_metadata,
                 self.sha512string,
                 pkg_id=pkg_id,
@@ -1012,6 +1029,7 @@ class JamfPackageUploader(JamfUploaderBase):
             self.update_pkg_metadata(
                 self.jamf_url,
                 self.pkg_name,
+                self.pkg_display_name,
                 self.pkg_metadata,
                 self.sha512string,
                 enc_creds=send_creds,
@@ -1027,6 +1045,7 @@ class JamfPackageUploader(JamfUploaderBase):
 
         # output the summary
         self.env["pkg_name"] = self.pkg_name
+        self.env["pkg_display_name"] = self.pkg_display_name
         self.env["pkg_uploaded"] = self.pkg_uploaded
         self.env["pkg_metadata_updated"] = self.pkg_metadata_updated
         if self.pkg_metadata_updated or self.pkg_uploaded:
@@ -1036,6 +1055,7 @@ class JamfPackageUploader(JamfUploaderBase):
                     "category",
                     "name",
                     "pkg_name",
+                    "pkg_display_name",
                     "pkg_path",
                     "version",
                 ],
@@ -1043,6 +1063,7 @@ class JamfPackageUploader(JamfUploaderBase):
                     "category": self.pkg_category,
                     "name": str(self.env.get("NAME")),
                     "pkg_name": self.pkg_name,
+                    "pkg_display_name": self.pkg_display_name,
                     "pkg_path": self.pkg_path,
                     "version": self.version,
                 },

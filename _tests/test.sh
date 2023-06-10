@@ -242,6 +242,8 @@ elif [[ $test_type == "restriction" ]]; then
 #         --prefs "$prefs" \
 #         --recipe-dir /Users/gpugh/sourcecode/jamf-upload/_tests \
 #         --pkg "/Users/gpugh/Library/AutoPkg/Cache/com.github.mlbz521.pkg.Solstice/Solstice-5.4.30427.pkg" \
+#         --pkg-name "Solstice-5.4.30427.pkg" \
+#         --nsme "Solstice-5.4.30427" \
 #         --category Applications \
 #         --info "Uploaded directly by JamfPackageUploader in JCDS mode" \
 #         --notes "$(date)" \
@@ -255,7 +257,9 @@ elif [[ $test_type == "package" || $test_type == "pkg" ]]; then
     "$DIR"/../jamf-upload.sh pkg \
         --prefs "$prefs" \
         --recipe-dir /Users/gpugh/sourcecode/jamf-upload/_tests \
-        --pkg "/Users/gpugh/Downloads/erase-install-29.1.pkg" \
+        --pkg-path "/Users/gpugh/sourcecode/erase-install/pkg/erase-install/build/erase-install-29.2.pkg" \
+        --pkg-name "erase-install-29.2.pkg" \
+        --name "erase-install-29.2" \
         --category "Testing" \
         "$verbosity" \
         "$url" \

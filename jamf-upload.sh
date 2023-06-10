@@ -101,7 +101,8 @@ Mac App Store App arguments:
     --replace               Replace existing item
 
 Package arguments:
-    --name <string>         The name
+    --name <string>         The package display name
+    --pkg_name <path>       The package filename
     --pkg <path>            Full path to the package to upload
     --priority <int>        The priority
     --category <string>     The category. Must exist.
@@ -452,8 +453,8 @@ while test $# -gt 0 ; do
                     echo "   [jamf-upload] Wrote macapp_name='$1' into $temp_processor_plist"
                 fi
             elif [[ $processor == "JamfPackageUploader" ]]; then
-                if plutil -replace pkg_name -string "$1" "$temp_processor_plist"; then
-                    echo "   [jamf-upload] Wrote pkg_name='$1' into $temp_processor_plist"
+                if plutil -replace pkg_display_name -string "$1" "$temp_processor_plist"; then
+                    echo "   [jamf-upload] Wrote pkg_display_name='$1' into $temp_processor_plist"
                 fi
             elif [[ $processor == "JamfPackageCleaner" ]]; then
                 if plutil -replace pkg_name_match -string "$1" "$temp_processor_plist"; then
@@ -667,7 +668,7 @@ while test $# -gt 0 ; do
                 fi
             fi
             ;;
-        --pkg|--pkg_path)
+        --pkg|--pkg_path|--pkg-path)
             shift
             if [[ $processor == "JamfPackageUploader" ]]; then
                 if plutil -replace pkg_path -string "$1" "$temp_processor_plist"; then
@@ -675,6 +676,14 @@ while test $# -gt 0 ; do
                 fi
             fi
             ;;
+        --pkg-name|--pkg_name) 
+            shift
+            if [[ $processor == "JamfPackageUploader" || $processor == "JamfUploaderSlacker" || $processor == "JamfUploaderTeamsNotifier" || $processor == "JamfPatchUploader" ]]; then
+                if plutil -replace pkg_name -string "$1" "$temp_processor_plist"; then
+                    echo "   [jamf-upload] Wrote pkg_name='$1' into $temp_processor_plist"
+                fi
+            fi
+           ;;
         --info)
             shift
             if [[ $processor == "JamfPackageUploader" || $processor == "JamfPackageUploaderGUI" ]]; then
@@ -872,14 +881,6 @@ while test $# -gt 0 ; do
                 fi
             fi
             ;;
-        --pkg-name) 
-            shift
-            if [[ $processor == "JamfUploaderSlacker" || $processor == "JamfUploaderTeamsNotifier" || $processor == "JamfPatchUploader" ]]; then
-                if plutil -replace pkg_name -string "$1" "$temp_processor_plist"; then
-                    echo "   [jamf-upload] Wrote pkg_name='$1' into $temp_processor_plist"
-                fi
-            fi
-           ;;
         --patch-uploaded) 
             if [[ $processor == "JamfUploaderTeamsNotifier" ]]; then
                 if plutil -replace jamfpatchuploader_summary_result -string "true" "$temp_processor_plist"; then
