@@ -11,6 +11,9 @@ Can be run as a post-processor for a pkg recipe or in a child recipe. The parent
 - **pkg_name:**
   - **required:** False
   - **description:** Package name. If supplied, will rename the package supplied in the pkg_path key when uploading it to the fileshare.
+- **pkg_display_name:**
+  - **required:** False
+  - **description:** Package display name, which may be different to the `pkg_name`. If not supplied, reverts to `pkg_name`.
 - **pkg_path:**
   - **required:** False
   - **description:** Path to a pkg or dmg to import - \*\*provided by previous pkg recipe/processor.
