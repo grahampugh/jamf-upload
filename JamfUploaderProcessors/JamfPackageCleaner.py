@@ -318,7 +318,7 @@ class JamfPackageCleaner(JamfUploaderBase):
         for package in packages_to_delete:
             self.output(f"❌ {package['name']} (will be deleted)", verbose_level=2)
 
-        # If running dry, print intentions and abort.
+        # If performing a dry_run, print intentions and abort.
         if self.dry_run:
             self.output(
                 "INFO: Argument 'dry_run' is set to True. Nothing will be deleted. "
@@ -328,6 +328,10 @@ class JamfPackageCleaner(JamfUploaderBase):
             return
 
         for package in packages_to_delete:
+            # package deletion could take time, so we check the token before each deletion
+            token, send_creds, _ = self.handle_classic_auth(
+                self.jamf_url, self.jamf_user, self.jamf_password
+            )
             self.delete_package(
                 jamf_url=self.jamf_url, obj_id=package["id"], token=token
             )

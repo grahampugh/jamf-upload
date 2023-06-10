@@ -2,6 +2,9 @@
 
 | Date       | Notes                                                                                            |
 | ---------- | ------------------------------------------------------------------------------------------------ |
+| 2023-06-10 | Check for token for every package processed by `JamfPackageCleaner`.                             |
+| 2023-06-10 | Add `pkg_display_name` key to `JamfPackageUploader`.                                             |
+| 2023-06-10 | Add `dry_run` key to `JamfPackageCleaner`.                                                       |
 | 2023-04-26 | Add `skip_script_key_substitution` key to `JamfScriptUploader`.                                  |
 | 2023-04-25 | Add `JamfPackageCleaner`.                                                                        |
 | 2023-04-12 | Allow randomised failover URL for `jcds_mode` in `JamfPackageUploader`.                          |
