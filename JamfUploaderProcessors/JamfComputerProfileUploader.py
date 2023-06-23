@@ -152,6 +152,7 @@ class JamfComputerProfileUploader(JamfUploaderBase):
     def replace_uuid_and_identifier_in_mobileconfig(
         self, mobileconfig_contents, existing_uuid, existing_identifier
     ):
+        self.output("Updating the UUIDs in the mobileconfig", verbose_level=2)
         mobileconfig_contents["PayloadIdentifier"] = existing_identifier
         mobileconfig_contents["PayloadUUID"] = existing_uuid
         # with open(self.mobileconfig, "wb") as file:
@@ -296,7 +297,7 @@ class JamfComputerProfileUploader(JamfUploaderBase):
         self.output("Configuration Profile to be uploaded:", verbose_level=2)
         self.output(template_contents, verbose_level=2)
 
-        self.output("Uploading Configuration Profile..")
+        self.output("Uploading Configuration Profile...")
         # write the template to temp file
         template_xml = self.write_temp_file(template_contents)
 
