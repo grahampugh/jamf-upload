@@ -154,8 +154,9 @@ class JamfComputerProfileUploader(JamfUploaderBase):
     ):
         mobileconfig_contents["PayloadIdentifier"] = existing_identifier
         mobileconfig_contents["PayloadUUID"] = existing_uuid
-        with open(self.mobileconfig, "wb") as file:
-            plistlib.dump(mobileconfig_contents, file)
+        # with open(self.mobileconfig, "wb") as file:
+        #     plistlib.dump(mobileconfig_contents, file)
+        return mobileconfig_contents
 
     def make_mobileconfig_from_payload(
         self,
@@ -506,11 +507,12 @@ class JamfComputerProfileUploader(JamfUploaderBase):
                 )
                 if self.mobileconfig:
                     # need to inject the existing payload identifier to prevent ghost profiles
-                    self.replace_uuid_and_identifier_in_mobileconfig(
-                        mobileconfig_contents, existing_uuid, existing_identifier
+                    mobileconfig_contents = (
+                        self.replace_uuid_and_identifier_in_mobileconfig(
+                            mobileconfig_contents, existing_uuid, existing_identifier
+                        )
                     )
-                    with open(self.mobileconfig, "rb") as file:
-                        mobileconfig_plist = file.read()
+                    mobileconfig_plist = plistlib.dumps(mobileconfig_contents)
                 else:
                     # generate the mobileconfig from the supplied payload
                     mobileconfig_plist = self.make_mobileconfig_from_payload(
