@@ -66,6 +66,11 @@ class JamfAccountUploader(JamfUploaderBase):
             "description": "Overwrite an existing account if True.",
             "default": False,
         },
+        "domain": {
+            "required": False,
+            "description": "LDAP domain, required if writing an LDAP group.",
+            "default": "",
+        },
         "sleep": {
             "required": False,
             "description": "Pause after running this processor for specified seconds.",
@@ -200,6 +205,7 @@ class JamfAccountUploader(JamfUploaderBase):
         self.jamf_password = self.env.get("API_PASSWORD")
         self.account_name = self.env.get("account_name")
         self.account_type = self.env.get("account_type")
+        self.domain = self.env.get("domain")
         self.account_template = self.env.get("account_template")
         self.replace = self.env.get("replace_account")
         self.sleep = self.env.get("sleep")
@@ -222,12 +228,6 @@ class JamfAccountUploader(JamfUploaderBase):
                     f"ERROR: Policy file {self.account_template} not found"
                 )
 
-        # we need to substitute the values in the account name and template now to
-        # account for version strings in the name
-        self.account_name, template_xml = self.prepare_account_template(
-            self.account_name, self.account_template
-        )
-
         # now start the process of uploading the object
         self.output(f"Checking for existing '{self.account_name}' on {self.jamf_url}")
 
@@ -235,13 +235,31 @@ class JamfAccountUploader(JamfUploaderBase):
             self.jamf_url, self.jamf_user, self.jamf_password
         )
 
-        # check for existing - requires obj_name and account type
+        # check for existing account - requires obj_name and account type
         obj_id = self.get_account_id_from_name(
             self.jamf_url,
             self.account_name,
             self.account_type,
             enc_creds=send_creds,
             token=token,
+        )
+
+        # check for existing domain - requires obj_name and account type
+        if self.domain:
+            domain_id = self.get_api_obj_id_from_name(
+                self.jamf_url,
+                self.domain,
+                "ldap_server",
+                enc_creds=send_creds,
+                token=token,
+            )
+            self.env["domain"] = self.domain
+            self.env["domain_id"] = domain_id
+
+        # we need to substitute the values in the account name and template now to
+        # account for version strings in the name
+        self.account_name, template_xml = self.prepare_account_template(
+            self.account_name, self.account_template
         )
 
         if obj_id:
