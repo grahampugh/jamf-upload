@@ -1,6 +1,6 @@
 #!/bin/bash
 
-:<<DOC
+: <<DOC
 Script for testing Jamf API direct (v3) endpoint using curl
 DOC
 

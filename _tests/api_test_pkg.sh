@@ -1,6 +1,6 @@
 #!/bin/bash
 
-:<<DOC
+: <<DOC
 Script for testing Jamf API dbfileupload endpoint using curl
 
 DOC

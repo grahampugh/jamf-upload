@@ -1,6 +1,6 @@
 #!/bin/bash
 
-:<<DOC
+: <<DOC
 Script for testing Jamf API endpoints using curl
 
 Actions:
