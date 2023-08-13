@@ -24,7 +24,6 @@ from xml.sax.saxutils import escape
 # from time import sleep
 
 from autopkglib import (
-    APLooseVersion,
     Processor,
     ProcessorError,
 )  # pylint: disable=import-error
@@ -44,6 +43,7 @@ class JamfUploaderBase(Processor):
             "failover": "api/v1/sso/failover",
             "icon": "api/v1/icon",
             "jamf_pro_version": "api/v1/jamf-pro-version",
+            "jcds": "api/v1/jcds",
             "logflush": "JSSResource/logflush",
             "ldap_server": "JSSResource/ldapservers",
             "mac_application": "JSSResource/macapplications",
@@ -51,6 +51,7 @@ class JamfUploaderBase(Processor):
             "package_upload": "dbfileupload",
             "patch_policy": "JSSResource/patchpolicies",
             "patch_software_title": "JSSResource/patchsoftwaretitles",
+            "oauth": "api/oauth/token",
             "os_x_configuration_profile": "JSSResource/osxconfigurationprofiles",
             "policy": "JSSResource/policies",
             "policy_icon": "JSSResource/fileuploads/policies",
@@ -190,10 +191,34 @@ class JamfUploaderBase(Processor):
                     pass
         self.output("No existing valid token found", verbose_level=2)
 
-    def get_api_token(self, jamf_url, enc_creds):
-        """get a token for the Jamf Pro API or Classic API for Jamf Pro 10.35+"""
-        url = jamf_url + "/" + self.api_endpoints("token")
-        r = self.curl(request="POST", url=url, enc_creds=enc_creds)
+    def get_api_token(self, jamf_url="", enc_creds="", client_id="", client_secret=""):
+        """get a token for the Jamf Pro API or Classic API using either basic auth or OAuth"""
+        if client_id and client_secret:
+            url = jamf_url + "/" + self.api_endpoints("oauth")
+            additional_curl_opts = [
+                "--data-urlencode",
+                f"client_id={client_id}",
+                "--data-urlencode",
+                "grant_type=client_credentials",
+                "--data-urlencode",
+                f"client_secret={client_secret}",
+            ]
+            r = self.curl(
+                request="POST",
+                url=url,
+                additional_curl_opts=additional_curl_opts,
+                endpoint_type="oauth",
+            )
+        elif enc_creds:
+            url = jamf_url + "/" + self.api_endpoints("token")
+            r = self.curl(
+                request="POST",
+                url=url,
+                enc_creds=enc_creds,
+            )
+        else:
+            raise ProcessorError("No credentials given, cannot continue")
+
         output = r.output
         if r.status_code == 200:
             try:
@@ -211,36 +236,8 @@ class JamfUploaderBase(Processor):
         else:
             self.output("ERROR: No token received")
 
-    def handle_classic_auth(self, url, user, password):
-        """figure out which auth to use"""
-        # check for existing token
-        self.output("Checking for existing authentication token", verbose_level=2)
-        token = self.check_api_token(url)
-
-        enc_creds = self.get_enc_creds(user, password)
-
-        # if no valid token, get one
-        if not token:
-            self.output("Getting an authentication token", verbose_level=2)
-            token = self.get_api_token(url, enc_creds)
-
-        # if token, verify Jamf Pro version
-        if token:
-            if self.validate_jamf_pro_version(url, token):
-                self.output("Token auth will be used", verbose_level=2)
-                send_creds = ""
-            else:
-                self.output("Basic auth will be used", verbose_level=2)
-                send_creds = enc_creds
-        else:
-            self.output("No token found, basic auth will be used", verbose_level=2)
-            send_creds = enc_creds
-
-        # return token and classic creds
-        return token, send_creds, enc_creds
-
-    def handle_uapi_auth(self, url, user, password):
-        """obtain token"""
+    def handle_api_auth(self, url, user, password):
+        """obtain token using basic auth"""
         # check for existing token
         self.output("Checking for existing authentication token", verbose_level=2)
         token = self.check_api_token(url)
@@ -248,8 +245,29 @@ class JamfUploaderBase(Processor):
         # if no valid token, get one
         if not token:
             enc_creds = self.get_enc_creds(user, password)
-            self.output("Getting an authentication token", verbose_level=2)
-            token = self.get_api_token(url, enc_creds)
+            self.output(
+                "Getting an authentication token using Basic Auth", verbose_level=2
+            )
+            token = self.get_api_token(url=url, enc_creds=enc_creds)
+
+        if not token:
+            raise ProcessorError("No token found, cannot continue")
+
+        # return token and classic creds
+        return token
+
+    def handle_oauth(self, url, client_id, client_secret):
+        """obtain token"""
+        # check for existing token using OAuth
+        self.output("Checking for existing authentication token", verbose_level=2)
+        token = self.check_api_token(url)
+
+        # if no valid token, get one
+        if not token:
+            self.output("Getting an authentication token using OAuth", verbose_level=2)
+            token = self.get_api_token(
+                url=url, client_id=client_id, client_secret=client_secret
+            )
 
         if not token:
             raise ProcessorError("No token found, cannot continue")
@@ -270,8 +288,8 @@ class JamfUploaderBase(Processor):
         token="",
         enc_creds="",
         data="",
-        additional_headers="",
-        force_xml=False,
+        additional_curl_opts="",
+        endpoint_type="",
     ):
         """
         Build a curl command based on request type (GET, POST, PUT, PATCH, DELETE).
@@ -298,7 +316,7 @@ class JamfUploaderBase(Processor):
         output_file = self.init_temp_file(prefix="jamf_upload_", suffix=".txt")
         cookie_jar = os.path.join(tmp_dir, "curl_cookies_from_jamf_upload.txt")
 
-        # build the curl command
+        # build the curl command based on supplied endpoint_types
         if url:
             curl_cmd = [
                 "/usr/bin/curl",
@@ -309,46 +327,53 @@ class JamfUploaderBase(Processor):
         else:
             raise ProcessorError("No URL supplied")
 
+        # allow use of a self-signed certificate
+
+        # insecure mode
+        if self.env.get("insecure_mode"):
+            curl_cmd.extend(["--insecure"])
+
+        # add request type if specified
         if request:
             curl_cmd.extend(["--request", request])
 
-        if "legacy/packages" not in url and "api/file/v2" not in url:
+        # all endpoints except the JCDS endpoint can be specified silent with show-error
+        if endpoint_type != "jcds":
             curl_cmd.extend(["--silent", "--show-error"])
 
-        # Jamf Pro API authentication
+        # Jamf Pro API authentication headers
         if enc_creds:
             curl_cmd.extend(["--header", f"authorization: Basic {enc_creds}"])
         elif token:
             curl_cmd.extend(["--header", f"authorization: Bearer {token}"])
 
         # icon download
-        if request == "GET" and "ics.services.jamfcloud.com" in url:
+        if endpoint_type == "icon_get":
             output_file = os.path.join(tmp_dir, "icon_download.png")
 
         # 'Accept' for GET and DELETE requests
         # By default, we obtain json as its easier to parse. However,
         # some endpoints (For example the 'patchsoftwaretitle' endpoint)
         # do not return complete json, so we have to get the xml instead.
-        elif request == "GET" or request == "DELETE":
-            if "legacy/packages" not in url:
-                if force_xml:
-                    curl_cmd.extend(["--header", "Accept: application/xml"])
-                else:
-                    curl_cmd.extend(["--header", "Accept: application/json"])
+        elif (request == "GET" or request == "DELETE") and endpoint_type != "jcds":
+            if endpoint_type == "patch_software_title":
+                curl_cmd.extend(["--header", "Accept: application/xml"])
+            else:
+                curl_cmd.extend(["--header", "Accept: application/json"])
 
-        # icon upload (Classic API) requires special method
-        elif request == "POST" and self.api_endpoints("policy_icon") in url:
+        # icon upload (Classic API)
+        elif endpoint_type == "policy_icon":
             curl_cmd.extend(["--header", "Content-type: multipart/form-data"])
             curl_cmd.extend(["--form", f"name=@{data}"])
 
-        # icon upload (Jamf Pro API) requires special method
-        elif request == "POST" and self.api_endpoints("icon") in url:
+        # icon upload (Jamf Pro API)
+        elif endpoint_type == "icon_upload":
             curl_cmd.extend(["--header", "Content-type: multipart/form-data"])
             curl_cmd.extend(["--form", f"file=@{data};type=image/png"])
 
         # Content-Type for POST/PUT
         elif request == "POST" or request == "PUT":
-            if data and "slack" in url or "webhook.office" in url:
+            if endpoint_type == "slack" or endpoint_type == "teams":
                 # slack and teams require a data argument
                 curl_cmd.extend(["--data", data])
                 curl_cmd.extend(["--header", "Content-type: application/json"])
@@ -359,22 +384,29 @@ class JamfUploaderBase(Processor):
             if "JSSResource" in url:
                 # Jamf Pro API and Slack posts json, but Classic API posts xml
                 curl_cmd.extend(["--header", "Content-type: application/xml"])
-            elif ("/api/" in url or "/uapi/" in url) and "/file/v2/" not in url:
+            elif endpoint_type == "oauth":
+                curl_cmd.extend(
+                    ["--header", "Content-Type: application/x-www-form-urlencoded"]
+                )
+            elif "/api/" in url or "/uapi/" in url:
                 curl_cmd.extend(["--header", "Content-type: application/json"])
-            # note: other endpoints should supply their headers via 'additional_headers'
+            # note: other endpoints should supply their headers via 'additional_curl_opts'
+
+        # fail other request types
         elif request != "GET" and request != "DELETE":
             self.output(f"WARNING: HTTP method {request} not supported")
 
-        self.output(f"Output file is:  {output_file}", verbose_level=3)
+        # direct output to a file
         curl_cmd.extend(["--output", output_file])
+        self.output(f"Output file is:  {output_file}", verbose_level=3)
 
-        # write session for jamf requests
+        # write session for jamf API requests
         if (
             "/api/" in url
             or "/uapi/" in url
             or "JSSResource" in url
-            or self.api_endpoints("package_upload") in url
-            or "legacy/packages" in url
+            or endpoint_type == "package_upload"
+            or endpoint_type == "jcds"
         ):
             curl_cmd.extend(["--cookie-jar", cookie_jar])
 
@@ -386,14 +418,9 @@ class JamfUploaderBase(Processor):
                     "No existing cookie found - starting new session", verbose_level=2
                 )
 
-        # allow use of a self-signed certificate
-
-        # insecure mode
-        if self.env.get("insecure_mode"):
-            curl_cmd.insert(1, "--insecure")
         # additional headers for advanced requests
-        if additional_headers:
-            curl_cmd.extend(additional_headers)
+        if additional_curl_opts:
+            curl_cmd.extend(additional_curl_opts)
 
         self.output(f"curl command: {' '.join(curl_cmd)}", verbose_level=3)
 
@@ -438,22 +465,28 @@ class JamfUploaderBase(Processor):
             action = "download"
 
         if r.status_code == 200 or r.status_code == 201:
-            self.output(f"{endpoint_type} '{obj_name}' {action} successful")
+            if endpoint_type == "jcds":
+                self.output("JCDS2 credentials successfully received", verbose_level=2)
+            else:
+                self.output(f"{endpoint_type} '{obj_name}' {action} successful")
             return "break"
         else:
             parser = self.ParseHTMLForError()
-            parser.feed(r.output.decode())
+            try:
+                parser.feed(r.output.decode())
+            except AttributeError:
+                self.output("Could not parse output for error type", verbose_level=2)
             if parser.error:
                 self.output(f"API {parser.error}", verbose_level=2)
-            self.output(f"API response:\n{r.output}", verbose_level=3)
+            self.output(f"API response:\n{r.output.decode()}", verbose_level=3)
             if r.status_code == 409:
                 raise ProcessorError(
-                    f"WARNING: {endpoint_type} '{obj_name}' {action} failed due to the following "
+                    f"ERROR: {endpoint_type} '{obj_name}' {action} failed due to the following "
                     f"conflict: {parser.error.replace('Error: ', '')}"
                 )
             elif r.status_code == 400:
                 raise ProcessorError(
-                    f"WARNING: {endpoint_type} '{obj_name}' {action} failed due to the following "
+                    f"ERROR: {endpoint_type} '{obj_name}' {action} failed due to the following "
                     f"{parser.data[6]}: {parser.data[8]}"
                 )
             elif r.status_code == 401:
@@ -490,20 +523,6 @@ class JamfUploaderBase(Processor):
                 self.output(f"ERROR: No version of Jamf Pro received.  Error:\n{error}")
                 raise ProcessorError("No version of Jamf Pro received") from error
 
-    def validate_jamf_pro_version(self, jamf_url, token):
-        """return true if Jamf Pro version is 10.35 or greater"""
-        jamf_pro_version = self.get_jamf_pro_version(jamf_url, token)
-        try:
-            if APLooseVersion(jamf_pro_version) >= APLooseVersion("10.35.0"):
-                return True
-            else:
-                return False
-        except AttributeError as error:
-            self.output(
-                f"ERROR: Unable to determine version of Jamf Pro.  Error:\n{error}"
-            )
-            raise ProcessorError("Unable to determine version of Jamf Pro") from error
-
     def get_uapi_obj_id_from_name(self, jamf_url, object_type, object_name, token):
         """Get the Jamf Pro API object by name. This requires use of RSQL filtering"""
         url_filter = f"?page=0&page-size=1000&sort=id&filter=name%3D%3D%22{quote(object_name)}%22"
@@ -519,13 +538,11 @@ class JamfUploaderBase(Processor):
                     obj_id = obj["id"]
             return obj_id
 
-    def get_api_obj_id_from_name(
-        self, jamf_url, object_name, object_type, enc_creds="", token=""
-    ):
+    def get_api_obj_id_from_name(self, jamf_url, object_name, object_type, token):
         """check if a Classic API object with the same name exists on the server"""
         # define the relationship between the object types and their URL
         url = jamf_url + "/" + self.api_endpoints(object_type)
-        r = self.curl(request="GET", url=url, enc_creds=enc_creds, token=token)
+        r = self.curl(request="GET", url=url, token=token)
 
         if r.status_code == 200:
             object_list = json.loads(r.output)
@@ -704,15 +721,13 @@ class JamfUploaderBase(Processor):
                         self.output(f"File found at: {matched_filepath}")
                         return matched_filepath
 
-    def get_api_obj_value_from_id(
-        self, jamf_url, object_type, obj_id, obj_path, enc_creds="", token=""
-    ):
+    def get_api_obj_value_from_id(self, jamf_url, object_type, obj_id, obj_path, token):
         """get the value of an item in a Classic API object"""
         # define the relationship between the object types and their URL
         # we could make this shorter with some regex but I think this way is clearer
         url = "{}/{}/id/{}".format(jamf_url, self.api_endpoints(object_type), obj_id)
         request = "GET"
-        r = self.curl(request=request, url=url, enc_creds=enc_creds, token=token)
+        r = self.curl(request=request, url=url, token=token)
         if r.status_code == 200:
             obj_content = json.loads(r.output)
             self.output(obj_content, verbose_level=4)

@@ -38,14 +38,25 @@ class JamfClassicAPIObjectUploader(JamfUploaderBase):
             "preference file.",
         },
         "API_USERNAME": {
-            "required": True,
+            "required": False,
             "description": "Username of account with appropriate access to "
             "jss, optionally set as a key in the com.github.autopkg "
             "preference file.",
         },
         "API_PASSWORD": {
-            "required": True,
+            "required": False,
             "description": "Password of api user, optionally set as a key in "
+            "the com.github.autopkg preference file.",
+        },
+        "CLIENT_ID": {
+            "required": False,
+            "description": "Client ID with access to "
+            "jss, optionally set as a key in the com.github.autopkg "
+            "preference file.",
+        },
+        "CLIENT_SECRET": {
+            "required": False,
+            "description": "Secret associated with the Client ID, optionally set as a key in "
             "the com.github.autopkg preference file.",
         },
         "object_name": {
@@ -115,9 +126,8 @@ class JamfClassicAPIObjectUploader(JamfUploaderBase):
         object_name,
         object_type,
         template_xml,
+        token,
         obj_id=0,
-        enc_creds="",
-        token="",
     ):
         """Upload object"""
 
@@ -136,7 +146,6 @@ class JamfClassicAPIObjectUploader(JamfUploaderBase):
             r = self.curl(
                 request=request,
                 url=url,
-                enc_creds=enc_creds,
                 token=token,
                 data=template_xml,
             )
@@ -160,6 +169,8 @@ class JamfClassicAPIObjectUploader(JamfUploaderBase):
         self.jamf_url = self.env.get("JSS_URL")
         self.jamf_user = self.env.get("API_USERNAME")
         self.jamf_password = self.env.get("API_PASSWORD")
+        self.client_id = self.env.get("CLIENT_ID")
+        self.client_secret = self.env.get("CLIENT_SECRET")
         self.object_name = self.env.get("object_name")
         self.object_type = self.env.get("object_type")
         self.object_template = self.env.get("object_template")
@@ -193,9 +204,15 @@ class JamfClassicAPIObjectUploader(JamfUploaderBase):
         # now start the process of uploading the object
         self.output(f"Checking for existing '{self.object_name}' on {self.jamf_url}")
 
-        token, send_creds, _ = self.handle_classic_auth(
-            self.jamf_url, self.jamf_user, self.jamf_password
-        )
+        # get token using oauth or basic auth depending on the credentials given
+        if self.jamf_url and self.client_id and self.client_secret:
+            token = self.handle_oauth(self.jamf_url, self.client_id, self.client_secret)
+        elif self.jamf_url and self.jamf_user and self.jamf_password:
+            token = self.handle_api_auth(
+                self.jamf_url, self.jamf_user, self.jamf_password
+            )
+        else:
+            raise ProcessorError("ERROR: Credentials not supplied")
 
         # Check for existing item
         self.output(f"Checking for existing '{self.object_name}' on {self.jamf_url}")
@@ -204,7 +221,6 @@ class JamfClassicAPIObjectUploader(JamfUploaderBase):
             self.jamf_url,
             self.object_name,
             self.object_type,
-            enc_creds=send_creds,
             token=token,
         )
 
@@ -231,9 +247,8 @@ class JamfClassicAPIObjectUploader(JamfUploaderBase):
             self.object_name,
             self.object_type,
             template_xml,
-            obj_id=obj_id,
-            enc_creds=send_creds,
             token=token,
+            obj_id=obj_id,
         )
         self.object_updated = True
 

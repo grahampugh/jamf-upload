@@ -34,14 +34,25 @@ class JamfIconUploader(JamfUploaderBase):
             "preference file.",
         },
         "API_USERNAME": {
-            "required": True,
+            "required": False,
             "description": "Username of account with appropriate access to "
             "jss, optionally set as a key in the com.github.autopkg "
             "preference file.",
         },
         "API_PASSWORD": {
-            "required": True,
+            "required": False,
             "description": "Password of api user, optionally set as a key in "
+            "the com.github.autopkg preference file.",
+        },
+        "CLIENT_ID": {
+            "required": False,
+            "description": "Client ID with access to "
+            "jss, optionally set as a key in the com.github.autopkg "
+            "preference file.",
+        },
+        "CLIENT_SECRET": {
+            "required": False,
+            "description": "Secret associated with the Client ID, optionally set as a key in "
             "the com.github.autopkg preference file.",
         },
         "icon_file": {
@@ -82,7 +93,7 @@ class JamfIconUploader(JamfUploaderBase):
                 verbose_level=2,
             )
             request = "GET"
-            r = self.curl(request=request, url=icon_uri)
+            r = self.curl(request=request, url=icon_uri, endpoint_type="icon_get")
             # check HTTP response
             if self.status_check(r, "Icon", icon_uri, request) == "break":
                 break
@@ -114,7 +125,13 @@ class JamfIconUploader(JamfUploaderBase):
                 verbose_level=2,
             )
             request = "POST"
-            r = self.curl(request=request, url=url, token=token, data=icon_file)
+            r = self.curl(
+                request=request,
+                url=url,
+                token=token,
+                data=icon_file,
+                endpoint_type="icon_upload",
+            )
 
             # check HTTP response
             if self.status_check(r, "Icon", icon_file, request) == "break":
@@ -134,6 +151,8 @@ class JamfIconUploader(JamfUploaderBase):
         self.jamf_url = self.env.get("JSS_URL")
         self.jamf_user = self.env.get("API_USERNAME")
         self.jamf_password = self.env.get("API_PASSWORD")
+        self.client_id = self.env.get("CLIENT_ID")
+        self.client_secret = self.env.get("CLIENT_SECRET")
         self.icon_file = self.env.get("icon_file")
         self.icon_uri = self.env.get("icon_uri")
         self.sleep = self.env.get("sleep")
@@ -142,8 +161,15 @@ class JamfIconUploader(JamfUploaderBase):
         if "jamficonuploader_summary_result" in self.env:
             del self.env["jamficonuploader_summary_result"]
 
-        # obtain the relevant credentials
-        token = self.handle_uapi_auth(self.jamf_url, self.jamf_user, self.jamf_password)
+        # get token using oauth or basic auth depending on the credentials given
+        if self.jamf_url and self.client_id and self.client_secret:
+            token = self.handle_oauth(self.jamf_url, self.client_id, self.client_secret)
+        elif self.jamf_url and self.jamf_user and self.jamf_password:
+            token = self.handle_api_auth(
+                self.jamf_url, self.jamf_user, self.jamf_password
+            )
+        else:
+            raise ProcessorError("ERROR: Credentials not supplied")
 
         # obtain the icon from the URI if no file path provided
         if (

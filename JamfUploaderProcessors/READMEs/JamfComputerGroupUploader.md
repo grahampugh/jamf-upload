@@ -10,11 +10,17 @@ A processor for AutoPkg that will upload a computer group (smart or static) to a
   - **required:** True
   - **description:** URL to a Jamf Pro server that the API user has write access to, optionally set as a key in the com.github.autopkg preference file.
 - **API_USERNAME:**
-  - **required:** True
+  - **required:** False
   - **description:** Username of account with appropriate access to jss, optionally set as a key in the com.github.autopkg preference file.
 - **API_PASSWORD:**
-  - **required:** True
+  - **required:** False
   - **description:** Password of api user, optionally set as a key in the com.github.autopkg preference file.
+- **CLIENT_ID:**
+  - **required:** True
+  - **description:** Client ID with access to access to jss, optionally set as a key in the com.github.autopkg preference file.
+- **CLIENT_SECRET:**
+  - **required:** True
+  - **description:** Secret associated with the Client ID, optionally set as a key in the com.github.autopkg preference file.
 - **computergroup_name**:
   - **required**: False
   - **description**: Computer Group name

@@ -35,14 +35,25 @@ class JamfSoftwareRestrictionUploader(JamfUploaderBase):
             "preference file.",
         },
         "API_USERNAME": {
-            "required": True,
+            "required": False,
             "description": "Username of account with appropriate access to "
             "jss, optionally set as a key in the com.github.autopkg "
             "preference file.",
         },
         "API_PASSWORD": {
-            "required": True,
+            "required": False,
             "description": "Password of api user, optionally set as a key in "
+            "the com.github.autopkg preference file.",
+        },
+        "CLIENT_ID": {
+            "required": False,
+            "description": "Client ID with access to "
+            "jss, optionally set as a key in the com.github.autopkg "
+            "preference file.",
+        },
+        "CLIENT_SECRET": {
+            "required": False,
+            "description": "Secret associated with the Client ID, optionally set as a key in "
             "the com.github.autopkg preference file.",
         },
         "restriction_name": {
@@ -115,9 +126,8 @@ class JamfSoftwareRestrictionUploader(JamfUploaderBase):
         delete_executable,
         computergroup_name,
         template_contents,
+        token,
         obj_id=0,
-        enc_creds="",
-        token="",
     ):
         """Update Software Restriction metadata."""
 
@@ -158,7 +168,6 @@ class JamfSoftwareRestrictionUploader(JamfUploaderBase):
             r = self.curl(
                 request=request,
                 url=url,
-                enc_creds=enc_creds,
                 token=token,
                 data=template_xml,
             )
@@ -187,6 +196,8 @@ class JamfSoftwareRestrictionUploader(JamfUploaderBase):
         self.jamf_url = self.env.get("JSS_URL")
         self.jamf_user = self.env.get("API_USERNAME")
         self.jamf_password = self.env.get("API_PASSWORD")
+        self.client_id = self.env.get("CLIENT_ID")
+        self.client_secret = self.env.get("CLIENT_SECRET")
         self.restriction_name = self.env.get("restriction_name")
         self.process_name = self.env.get("process_name")
         self.template = self.env.get("restriction_template")
@@ -250,9 +261,15 @@ class JamfSoftwareRestrictionUploader(JamfUploaderBase):
             f"Checking for existing '{self.restriction_name}' on {self.jamf_url}"
         )
 
-        token, send_creds, _ = self.handle_classic_auth(
-            self.jamf_url, self.jamf_user, self.jamf_password
-        )
+        # get token using oauth or basic auth depending on the credentials given
+        if self.jamf_url and self.client_id and self.client_secret:
+            token = self.handle_oauth(self.jamf_url, self.client_id, self.client_secret)
+        elif self.jamf_url and self.jamf_user and self.jamf_password:
+            token = self.handle_api_auth(
+                self.jamf_url, self.jamf_user, self.jamf_password
+            )
+        else:
+            raise ProcessorError("ERROR: Credentials not supplied")
 
         obj_type = "restricted_software"
         obj_name = self.restriction_name
@@ -260,7 +277,6 @@ class JamfSoftwareRestrictionUploader(JamfUploaderBase):
             self.jamf_url,
             obj_name,
             obj_type,
-            enc_creds=send_creds,
             token=token,
         )
         if obj_id:
@@ -295,9 +311,8 @@ class JamfSoftwareRestrictionUploader(JamfUploaderBase):
             self.delete_executable,
             self.restriction_computergroup,
             template_contents,
+            token,
             obj_id=obj_id,
-            enc_creds=send_creds,
-            token=token,
         )
         restriction_updated = True
 

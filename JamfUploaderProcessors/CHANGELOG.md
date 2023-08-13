@@ -2,6 +2,8 @@
 
 | Date       | Notes                                                                                            |
 | ---------- | ------------------------------------------------------------------------------------------------ |
+| 2023-08-03 | Removed Basic Auth for endpoints, added OAuth method for obtaining token.                        |
+| 2023-07-14 | Add `jcds2_mode` to `JamfPackageUploader`.                                                       |
 | 2023-06-10 | Check for token for every package processed by `JamfPackageCleaner`.                             |
 | 2023-06-10 | Add `pkg_display_name` key to `JamfPackageUploader`.                                             |
 | 2023-06-10 | Add `dry_run` key to `JamfPackageCleaner`.                                                       |

@@ -10,11 +10,17 @@ A processor for AutoPkg that will remove packages matching a pattern from a Jamf
   - **required:** True
   - **description:** URL to a Jamf Pro server that the API user has write access to, optionally set as a key in the com.github.autopkg preference file.
 - **API_USERNAME:**
-  - **required:** True
+  - **required:** False
   - **description:** Username of account with appropriate access to jss, optionally set as a key in the com.github.autopkg preference file.
 - **API_PASSWORD:**
-  - **required:** True
+  - **required:** False
   - **description:** Password of api user, optionally set as a key in the com.github.autopkg preference file.
+- **CLIENT_ID:**
+  - **required:** True
+  - **description:** Client ID with access to access to jss, optionally set as a key in the com.github.autopkg preference file.
+- **CLIENT_SECRET:**
+  - **required:** True
+  - **description:** Secret associated with the Client ID, optionally set as a key in the com.github.autopkg preference file.
 - **pkg_name_match**:
   - **required**: False
   - **description**: The name at the beginning of the package. This is used as a base for cleaning. If omitted, `%NAME%-`, e.g. `Google Chrome-`, or `%NAME%_`, e.g. =`Google Chrome_`, will be matched.

@@ -34,14 +34,25 @@ class JamfScriptUploader(JamfUploaderBase):
             "preference file.",
         },
         "API_USERNAME": {
-            "required": True,
+            "required": False,
             "description": "Username of account with appropriate access to "
             "jss, optionally set as a key in the com.github.autopkg "
             "preference file.",
         },
         "API_PASSWORD": {
-            "required": True,
+            "required": False,
             "description": "Password of api user, optionally set as a key in "
+            "the com.github.autopkg preference file.",
+        },
+        "CLIENT_ID": {
+            "required": False,
+            "description": "Client ID with access to "
+            "jss, optionally set as a key in the com.github.autopkg "
+            "preference file.",
+        },
+        "CLIENT_SECRET": {
+            "required": False,
+            "description": "Secret associated with the Client ID, optionally set as a key in "
             "the com.github.autopkg preference file.",
         },
         "script_path": {
@@ -251,6 +262,8 @@ class JamfScriptUploader(JamfUploaderBase):
         self.jamf_url = self.env.get("JSS_URL")
         self.jamf_user = self.env.get("API_USERNAME")
         self.jamf_password = self.env.get("API_PASSWORD")
+        self.client_id = self.env.get("CLIENT_ID")
+        self.client_secret = self.env.get("CLIENT_SECRET")
         self.script_path = self.env.get("script_path")
         self.script_name = self.env.get("script_name")
         self.script_category = self.env.get("script_category")
@@ -272,7 +285,10 @@ class JamfScriptUploader(JamfUploaderBase):
         # handle setting replace in overrides
         if not self.replace or self.replace == "False":
             self.replace = False
-        if not self.skip_script_key_substitution or self.skip_script_key_substitution == "False":
+        if (
+            not self.skip_script_key_substitution
+            or self.skip_script_key_substitution == "False"
+        ):
             self.skip_script_key_substitution = False
 
         # clear any pre-existing summary result
@@ -280,8 +296,15 @@ class JamfScriptUploader(JamfUploaderBase):
             del self.env["jamfscriptuploader_summary_result"]
         script_uploaded = False
 
-        # obtain the relevant credentials
-        token = self.handle_uapi_auth(self.jamf_url, self.jamf_user, self.jamf_password)
+        # get token using oauth or basic auth depending on the credentials given
+        if self.jamf_url and self.client_id and self.client_secret:
+            token = self.handle_oauth(self.jamf_url, self.client_id, self.client_secret)
+        elif self.jamf_url and self.jamf_user and self.jamf_password:
+            token = self.handle_api_auth(
+                self.jamf_url, self.jamf_user, self.jamf_password
+            )
+        else:
+            raise ProcessorError("ERROR: Credentials not supplied")
 
         # get the id for a category if supplied
         if self.script_category:

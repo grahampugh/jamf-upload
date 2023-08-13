@@ -36,14 +36,25 @@ class JamfPatchUploader(JamfUploaderBase):
             "preference file.",
         },
         "API_USERNAME": {
-            "required": True,
+            "required": False,
             "description": "Username of account with appropriate access to "
             "jss, optionally set as a key in the com.github.autopkg "
             "preference file.",
         },
         "API_PASSWORD": {
-            "required": True,
+            "required": False,
             "description": "Password of api user, optionally set as a key in "
+            "the com.github.autopkg preference file.",
+        },
+        "CLIENT_ID": {
+            "required": False,
+            "description": "Client ID with access to "
+            "jss, optionally set as a key in the com.github.autopkg "
+            "preference file.",
+        },
+        "CLIENT_SECRET": {
+            "required": False,
+            "description": "Secret associated with the Client ID, optionally set as a key in "
             "the com.github.autopkg preference file.",
         },
         "pkg_name": {
@@ -141,7 +152,6 @@ class JamfPatchUploader(JamfUploaderBase):
         patch_softwaretitle_id,
         pkg_version,
         pkg_name,
-        enc_creds="",
         token="",
     ):
         """Uploads an updated patch softwaretitle including the linked pkg"""
@@ -162,7 +172,6 @@ class JamfPatchUploader(JamfUploaderBase):
                 self.jamf_url,
                 obj_name,
                 obj_type,
-                enc_creds=enc_creds,
                 token=token,
             )
             if pkg_id:
@@ -182,7 +191,7 @@ class JamfPatchUploader(JamfUploaderBase):
 
         # No need to loop over curl function, since we only make a "GET" request.
         r = self.curl(
-            request="GET", url=url, enc_creds=enc_creds, token=token, force_xml=True
+            request="GET", url=url, token=token, endpoint_type="patch_software_title"
         )
 
         if r.status_code != 200:
@@ -239,7 +248,6 @@ class JamfPatchUploader(JamfUploaderBase):
             r = self.curl(
                 request="PUT",
                 url=url,  # Unchanged url from the request earlier
-                enc_creds=enc_creds,
                 token=token,
                 data=patch_softwaretitle_xml_file,
             )
@@ -266,10 +274,9 @@ class JamfPatchUploader(JamfUploaderBase):
         jamf_url,
         patch_name,
         patch_softwaretitle_id,
+        token,
         patch_template,
         patch_id=0,
-        enc_creds="",
-        token="",
     ):
         """Uploads the patch policy"""
         self.output("Uploading Patch policy...")
@@ -293,7 +300,6 @@ class JamfPatchUploader(JamfUploaderBase):
             r = self.curl(
                 request=request,
                 url=url,
-                enc_creds=enc_creds,
                 token=token,
                 data=patch_template,
             )
@@ -317,6 +323,8 @@ class JamfPatchUploader(JamfUploaderBase):
         self.jamf_url = self.env.get("JSS_URL")
         self.jamf_user = self.env.get("API_USERNAME")
         self.jamf_password = self.env.get("API_PASSWORD")
+        self.client_id = self.env.get("CLIENT_ID")
+        self.client_secret = self.env.get("CLIENT_SECRET")
         self.pkg_name = self.env.get("pkg_name")
         self.version = self.env.get("version")
         self.patch_softwaretitle = self.env.get("patch_softwaretitle")
@@ -356,10 +364,15 @@ class JamfPatchUploader(JamfUploaderBase):
             f"Checking for existing '{self.patch_softwaretitle}' on {self.jamf_url}"
         )
 
-        # obtain the relevant credentials
-        token, send_creds, _ = self.handle_classic_auth(
-            self.jamf_url, self.jamf_user, self.jamf_password
-        )
+        # get token using oauth or basic auth depending on the credentials given
+        if self.jamf_url and self.client_id and self.client_secret:
+            token = self.handle_oauth(self.jamf_url, self.client_id, self.client_secret)
+        elif self.jamf_url and self.jamf_user and self.jamf_password:
+            token = self.handle_api_auth(
+                self.jamf_url, self.jamf_user, self.jamf_password
+            )
+        else:
+            raise ProcessorError("ERROR: Credentials not supplied")
 
         # Patch Icon:
         # Sadly there is currently no (reasonable) way to upload an icon for a patch policy.
@@ -375,7 +388,6 @@ class JamfPatchUploader(JamfUploaderBase):
                 self.jamf_url,
                 obj_name,
                 obj_type,
-                enc_creds=send_creds,
                 token=token,
             )
             if self.patch_icon_policy_id:
@@ -388,7 +400,6 @@ class JamfPatchUploader(JamfUploaderBase):
                     obj_type,
                     obj_id,
                     obj_path,
-                    enc_creds=send_creds,
                     token=token,
                 )
                 if self.patch_icon_id:
@@ -427,7 +438,6 @@ class JamfPatchUploader(JamfUploaderBase):
             self.jamf_url,
             obj_name,
             obj_type,
-            enc_creds=send_creds,
             token=token,
         )
 
@@ -452,7 +462,6 @@ class JamfPatchUploader(JamfUploaderBase):
             self.patch_softwaretitle_id,
             self.version,
             self.pkg_name,
-            send_creds,
             token,
         )
 
@@ -474,7 +483,6 @@ class JamfPatchUploader(JamfUploaderBase):
                 self.jamf_url,
                 obj_name,
                 obj_type,
-                enc_creds=send_creds,
                 token=token,
             )
 
@@ -501,10 +509,9 @@ class JamfPatchUploader(JamfUploaderBase):
                 self.jamf_url,
                 self.patch_name,
                 self.patch_softwaretitle_id,
+                token,
                 patch_template=patch_template_xml,
                 patch_id=patch_id,
-                enc_creds=send_creds,
-                token=token,
             )
 
             # Parse xml output to get patch id of freshly created patch policy.
