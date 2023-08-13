@@ -10,9 +10,10 @@ test_type="$1"
 verbosity="$2"
 url="$3"
 
-# other variables
+# other variables (ensure some of the temporary variables are not in the prefs)
 prefs="$HOME/Library/Preferences/com.github.autopkg.plist"
 # prefs="/Users/Shared/com.github.autopkg.plist"
+defaults write "$HOME/Library/Preferences/com.github.autopkg.plist" jcds_mode -bool False
 
 if [[ ! $verbosity ]]; then
     verbosity="-v"
@@ -253,18 +254,20 @@ elif [[ $test_type == "restriction" ]]; then
 #         --replace
 
 elif [[ $test_type == "package" || $test_type == "pkg" ]]; then
+    /usr/local/autopkg/python -m pip install boto3
+
     # upload a package
     "$DIR"/../jamf-upload.sh pkg \
         --prefs "$prefs" \
         --recipe-dir /Users/gpugh/sourcecode/jamf-upload/_tests \
-        --pkg-path "/Users/gpugh/sourcecode/erase-install/pkg/erase-install/build/erase-install-29.2.pkg" \
-        --pkg-name "erase-install-29.2.pkg" \
-        --name "erase-install-29.2" \
+        --pkg-path "/Users/gpugh/sourcecode/erase-install/pkg/erase-install/build/erase-install-30.0.pkg" \
+        --pkg-name "erase-install-30.0.pkg" \
         --category "Testing" \
         "$verbosity" \
         "$url" \
-        --jcds \
+        --jcds2 \
         --replace
+        # --name "erase-install-30" \
 
 elif [[ $test_type == "pkgclean" ]]; then
     # cleanup a package type
