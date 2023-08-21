@@ -663,13 +663,13 @@ class JamfPackageUploaderBase(JamfUploaderBase):
             + f"<required_processor>{pkg_metadata['required_processor']}</required_processor>"
             + f"<os_requirements>{pkg_metadata['os_requirements']}</os_requirements>"
             + f"<send_notification>{pkg_metadata['send_notification']}</send_notification>"
-            + "</package>"
         )
         if not self.jcds2_mode:
             pkg_data += (
                 f"<hash_type>{hash_type}</hash_type>"
                 + f"<hash_value>{hash_value}</hash_value>"
             )
+        pkg_data += "</package>"
 
         object_type = "package"
         url = "{}/{}/id/{}".format(jamf_url, self.api_endpoints(object_type), pkg_id)
