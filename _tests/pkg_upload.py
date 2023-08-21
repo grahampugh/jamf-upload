@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 
 """
-A script to upload a package to the Jamf Cloud Distribution Point S3 bucket
+A script to upload a package to the Jamf Cloud Distribution Point S3 bucket (JCDS 2.0)
 
 Requirements from pip
 boto3
@@ -39,7 +39,7 @@ class ProgressPercentage(object):
 
 
 try:
-    # Authenticate with Jamf Pro
+    # Authenticate with Jamf Pro - FILL THESE VALUES AS REQUIRED
     jamfProUser = ""
     jamfProPassword = ""
     jamfProBaseURL = ""
