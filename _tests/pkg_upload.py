@@ -17,6 +17,18 @@ import sys
 import threading
 
 
+# REQUIRED AUTHENTICATION VARIABLES
+jamfProUser = ""
+jamfProPassword = ""
+jamfProBaseURL = ""
+
+# path to package - UPDATE AS APPROPRIATE
+pkg_path = os.path.join(
+    "/Users/gpugh/sourcecode",
+    "erase-install/pkg/erase-install/build/erase-install-30.0.pkg",
+)
+
+
 class ProgressPercentage(object):
     """display upload progress"""
 
@@ -39,15 +51,6 @@ class ProgressPercentage(object):
 
 
 try:
-    # Authenticate with Jamf Pro - FILL THESE VALUES AS REQUIRED
-    jamfProUser = ""
-    jamfProPassword = ""
-    jamfProBaseURL = ""
-
-    pkg_path = os.path.join(
-        "/Users/gpugh/sourcecode",
-        "erase-install/pkg/erase-install/build/erase-install-30.0.pkg",
-    )
     pkg = os.path.basename(pkg_path)
 
     response = requests.post(
