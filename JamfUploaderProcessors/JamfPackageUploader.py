@@ -629,6 +629,7 @@ class JamfPackageUploader(JamfPackageUploaderBase):
                 self.pkg_display_name,
                 self.pkg_metadata,
                 self.sha512string,
+                self.jcds2_mode,
                 pkg_id=pkg_id,
                 token=token,
             )

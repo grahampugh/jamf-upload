@@ -640,8 +640,9 @@ class JamfPackageUploaderBase(JamfUploaderBase):
         pkg_display_name,
         pkg_metadata,
         hash_value,
-        token,
+        jcds2_mode,
         pkg_id=0,
+        token="",
     ):
         """Update package metadata."""
 
@@ -664,7 +665,7 @@ class JamfPackageUploaderBase(JamfUploaderBase):
             + f"<os_requirements>{pkg_metadata['os_requirements']}</os_requirements>"
             + f"<send_notification>{pkg_metadata['send_notification']}</send_notification>"
         )
-        if not self.jcds2_mode:
+        if not jcds2_mode:
             pkg_data += (
                 f"<hash_type>{hash_type}</hash_type>"
                 + f"<hash_value>{hash_value}</hash_value>"
