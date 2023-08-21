@@ -160,10 +160,12 @@ class JamfComputerProfileUploader(JamfUploaderBase):
     def replace_uuid_and_identifier_in_mobileconfig(
         self, mobileconfig_contents, existing_uuid, existing_identifier
     ):
+        self.output("Updating the UUIDs in the mobileconfig", verbose_level=2)
         mobileconfig_contents["PayloadIdentifier"] = existing_identifier
         mobileconfig_contents["PayloadUUID"] = existing_uuid
-        with open(self.mobileconfig, "wb") as file:
-            plistlib.dump(mobileconfig_contents, file)
+        # with open(self.mobileconfig, "wb") as file:
+        #     plistlib.dump(mobileconfig_contents, file)
+        return mobileconfig_contents
 
     def make_mobileconfig_from_payload(
         self,
@@ -302,7 +304,7 @@ class JamfComputerProfileUploader(JamfUploaderBase):
         self.output("Configuration Profile to be uploaded:", verbose_level=2)
         self.output(template_contents, verbose_level=2)
 
-        self.output("Uploading Configuration Profile..")
+        self.output("Uploading Configuration Profile...")
         # write the template to temp file
         template_xml = self.write_temp_file(template_contents)
 
@@ -516,11 +518,12 @@ class JamfComputerProfileUploader(JamfUploaderBase):
                 ) = self.get_existing_uuid_and_identifier(self.jamf_url, obj_id, token)
                 if self.mobileconfig:
                     # need to inject the existing payload identifier to prevent ghost profiles
-                    self.replace_uuid_and_identifier_in_mobileconfig(
-                        mobileconfig_contents, existing_uuid, existing_identifier
+                    mobileconfig_contents = (
+                        self.replace_uuid_and_identifier_in_mobileconfig(
+                            mobileconfig_contents, existing_uuid, existing_identifier
+                        )
                     )
-                    with open(self.mobileconfig, "rb") as file:
-                        mobileconfig_plist = file.read()
+                    mobileconfig_plist = plistlib.dumps(mobileconfig_contents)
                 else:
                     # generate the mobileconfig from the supplied payload
                     mobileconfig_plist = self.make_mobileconfig_from_payload(
