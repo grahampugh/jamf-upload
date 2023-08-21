@@ -64,6 +64,10 @@ Can be run as a post-processor for a pkg recipe or in a child recipe. The parent
   - **required:** False
   - **description:** Upload package using JCDS mode.
   - **default:** False
+- **jcds2_mode:**
+  - **required:** False
+  - **description:** Upload package using JCDS2 mode.
+  - **default:** False
 - **JSS_URL:**
   - **required:** True
   - **description:** URL to a Jamf Pro server to which the API user has write access.

@@ -36,12 +36,26 @@ class JamfPackageCleaner(JamfUploaderBase):
             "description": "URL to a Jamf Pro server that the API user has write access to.",
         },
         "API_USERNAME": {
-            "required": True,
-            "description": "Username of account with appropriate access.",
+            "required": False,
+            "description": "Username of account with appropriate access to "
+            "jss, optionally set as a key in the com.github.autopkg "
+            "preference file.",
         },
         "API_PASSWORD": {
-            "required": True,
-            "description": "Password of API user.",
+            "required": False,
+            "description": "Password of api user, optionally set as a key in "
+            "the com.github.autopkg preference file.",
+        },
+        "CLIENT_ID": {
+            "required": False,
+            "description": "Client ID with access to "
+            "jss, optionally set as a key in the com.github.autopkg "
+            "preference file.",
+        },
+        "CLIENT_SECRET": {
+            "required": False,
+            "description": "Secret associated with the Client ID, optionally set as a key in "
+            "the com.github.autopkg preference file.",
         },
         "pkg_name_match": {
             "required": False,
@@ -142,7 +156,7 @@ class JamfPackageCleaner(JamfUploaderBase):
                 verbose_level=2,
             )
 
-    def delete_package(self, jamf_url, obj_id, enc_creds="", token=""):
+    def delete_package(self, jamf_url, obj_id, token):
         """Cleaning Packages"""
 
         self.output("Deleting package...")
@@ -155,7 +169,7 @@ class JamfPackageCleaner(JamfUploaderBase):
             count += 1
             self.output("Package delete attempt {}".format(count), verbose_level=2)
             request = "DELETE"
-            r = self.curl(request=request, url=url, enc_creds=enc_creds, token=token)
+            r = self.curl(request=request, url=url, token=token)
 
             # check HTTP response
             if self.status_check(r, "Package", obj_id, request) == "break":
@@ -176,6 +190,8 @@ class JamfPackageCleaner(JamfUploaderBase):
         self.jamf_url = self.env.get("JSS_URL")
         self.jamf_user = self.env.get("API_USERNAME")
         self.jamf_password = self.env.get("API_PASSWORD")
+        self.client_id = self.env.get("CLIENT_ID")
+        self.client_secret = self.env.get("CLIENT_SECRET")
         self.pkg_name_match = (
             self.env.get("pkg_name_match") or f"{self.env.get('NAME')}-"
         )
@@ -267,9 +283,18 @@ class JamfPackageCleaner(JamfUploaderBase):
 
         # Get all packages from Jamf Pro as JSON object
         self.output(f"Getting all packages from {self.jamf_url}")
-        token, send_creds, _ = self.handle_classic_auth(
-            self.jamf_url, self.jamf_user, self.jamf_password
-        )
+
+        # get token using oauth or basic auth depending on the credentials given
+        if self.jamf_url and self.client_id and self.client_secret:
+            token = self.handle_oauth(self.jamf_url, self.client_id, self.client_secret)
+        elif self.jamf_url and self.jamf_user and self.jamf_password:
+            token = self.handle_api_auth(
+                self.jamf_url, self.jamf_user, self.jamf_password
+            )
+        else:
+            raise ProcessorError("ERROR: Credentials not supplied")
+
+        # check for existing
         obj_type = "package"
         url = f"{self.jamf_url}/{self.api_endpoints(obj_type)}"
         r = self.curl(request="GET", url=url, token=token)
@@ -329,7 +354,7 @@ class JamfPackageCleaner(JamfUploaderBase):
 
         for package in packages_to_delete:
             # package deletion could take time, so we check the token before each deletion
-            token, send_creds, _ = self.handle_classic_auth(
+            token = self.handle_api_auth(
                 self.jamf_url, self.jamf_user, self.jamf_password
             )
             self.delete_package(

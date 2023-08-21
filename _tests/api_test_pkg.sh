@@ -1,12 +1,12 @@
 #!/bin/bash
 
-:<<DOC
+: <<DOC
 Script for testing Jamf API dbfileupload endpoint using curl
 
 DOC
 
 usage() {
-    echo "Usage: api_tests.sh --jss someserver --user username --pass password --pkg /path/to/pkg.pkg --id NN"
+    echo "Usage: api_test_pkg.sh --jss someserver --user username --pass password --pkg /path/to/pkg.pkg --id NN"
     echo "(don't include https:// or .jamfcloud.com)"
     echo "ID is used to overwrite an existing package"
 }

@@ -35,14 +35,25 @@ class JamfDockItemUploader(JamfUploaderBase):
             "preference file.",
         },
         "API_USERNAME": {
-            "required": True,
+            "required": False,
             "description": "Username of account with appropriate access to "
             "jss, optionally set as a key in the com.github.autopkg "
             "preference file.",
         },
         "API_PASSWORD": {
-            "required": True,
+            "required": False,
             "description": "Password of api user, optionally set as a key in "
+            "the com.github.autopkg preference file.",
+        },
+        "CLIENT_ID": {
+            "required": False,
+            "description": "Client ID with access to "
+            "jss, optionally set as a key in the com.github.autopkg "
+            "preference file.",
+        },
+        "CLIENT_SECRET": {
+            "required": False,
+            "description": "Secret associated with the Client ID, optionally set as a key in "
             "the com.github.autopkg preference file.",
         },
         "dock_item_name": {
@@ -85,9 +96,8 @@ class JamfDockItemUploader(JamfUploaderBase):
         dock_item_name,
         dock_item_type,
         dock_item_path,
+        token,
         obj_id=0,
-        enc_creds="",
-        token="",
     ):
         """Update dock item metadata."""
 
@@ -117,7 +127,6 @@ class JamfDockItemUploader(JamfUploaderBase):
             r = self.curl(
                 request=request,
                 url=url,
-                enc_creds=enc_creds,
                 token=token,
                 data=dock_item_xml,
             )
@@ -140,6 +149,8 @@ class JamfDockItemUploader(JamfUploaderBase):
         self.jamf_url = self.env.get("JSS_URL")
         self.jamf_user = self.env.get("API_USERNAME")
         self.jamf_password = self.env.get("API_PASSWORD")
+        self.client_id = self.env.get("CLIENT_ID")
+        self.client_secret = self.env.get("CLIENT_SECRET")
         self.dock_item_name = self.env.get("dock_item_name")
         self.dock_item_type = self.env.get("dock_item_type")
         self.dock_item_path = self.env.get("dock_item_path")
@@ -155,10 +166,15 @@ class JamfDockItemUploader(JamfUploaderBase):
 
         # Now process the dock item
 
-        # obtain the relevant credentials
-        token, send_creds, _ = self.handle_classic_auth(
-            self.jamf_url, self.jamf_user, self.jamf_password
-        )
+        # get token using oauth or basic auth depending on the credentials given
+        if self.jamf_url and self.client_id and self.client_secret:
+            token = self.handle_oauth(self.jamf_url, self.client_id, self.client_secret)
+        elif self.jamf_url and self.jamf_user and self.jamf_password:
+            token = self.handle_api_auth(
+                self.jamf_url, self.jamf_user, self.jamf_password
+            )
+        else:
+            raise ProcessorError("ERROR: Credentials not supplied")
 
         # Check for existing dock item
         self.output(f"Checking for existing '{self.dock_item_name}' on {self.jamf_url}")
@@ -169,7 +185,6 @@ class JamfDockItemUploader(JamfUploaderBase):
             self.jamf_url,
             obj_name,
             obj_type,
-            enc_creds=send_creds,
             token=token,
         )
 
@@ -194,9 +209,8 @@ class JamfDockItemUploader(JamfUploaderBase):
             self.dock_item_name,
             self.dock_item_type,
             self.dock_item_path,
+            token,
             obj_id=obj_id,
-            enc_creds=send_creds,
-            token=token,
         )
 
         # output the summary

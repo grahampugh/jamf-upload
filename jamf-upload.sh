@@ -1,6 +1,6 @@
 #!/bin/bash
 
-:<<DOC
+: <<DOC
 A wrapper script for running the JamfUploader processors in a standalone fashion, without running an AutoPkg recipe.
 DOC
 
@@ -123,6 +123,7 @@ Package arguments:
     --skip-metadata-upload  Set to skip pkg metadata upload
     --replace               Replace existing item
     --jcds                  Use v3 API for package upload to JCDS 
+    --jcds2                 Use jcds endpoint for package upload to JCDS 
 
 Package Clean arguments:
     --name <string>         The name to match
@@ -765,6 +766,13 @@ while test $# -gt 0 ; do
             if [[ $processor == "JamfPackageUploader" ]]; then
                 if plutil -replace jcds_mode -string "true" "$temp_processor_plist"; then
                     echo "   [jamf-upload] Wrote jcds_mode='True' into $temp_processor_plist"
+                fi
+            fi
+            ;;
+        --jcds2) 
+            if [[ $processor == "JamfPackageUploader" ]]; then
+                if plutil -replace jcds2_mode -string "true" "$temp_processor_plist"; then
+                    echo "   [jamf-upload] Wrote jcds2_mode='True' into $temp_processor_plist"
                 fi
             fi
             ;;

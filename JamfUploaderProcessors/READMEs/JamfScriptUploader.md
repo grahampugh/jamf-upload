@@ -10,11 +10,17 @@ A processor for AutoPkg that will upload a script to a Jamf Cloud or on-prem ser
   - **required:** True
   - **description:** URL to a Jamf Pro server that the API user has write access to, optionally set as a key in the com.github.autopkg preference file.
 - **API_USERNAME:**
-  - **required:** True
+  - **required:** False
   - **description:** Username of account with appropriate access to jss, optionally set as a key in the com.github.autopkg preference file.
 - **API_PASSWORD:**
-  - **required:** True
+  - **required:** False
   - **description:** Password of api user, optionally set as a key in the com.github.autopkg preference file.
+- **CLIENT_ID:**
+  - **required:** True
+  - **description:** Client ID with access to access to jss, optionally set as a key in the com.github.autopkg preference file.
+- **CLIENT_SECRET:**
+  - **required:** True
+  - **description:** Secret associated with the Client ID, optionally set as a key in the com.github.autopkg preference file.
 - **script_path**:
   - **required**: False
   - **description**: Full path to the script to be uploaded

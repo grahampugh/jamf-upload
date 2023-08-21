@@ -34,14 +34,25 @@ class JamfCategoryUploader(JamfUploaderBase):
             "preference file.",
         },
         "API_USERNAME": {
-            "required": True,
+            "required": False,
             "description": "Username of account with appropriate access to "
             "jss, optionally set as a key in the com.github.autopkg "
             "preference file.",
         },
         "API_PASSWORD": {
-            "required": True,
+            "required": False,
             "description": "Password of api user, optionally set as a key in "
+            "the com.github.autopkg preference file.",
+        },
+        "CLIENT_ID": {
+            "required": False,
+            "description": "Client ID with access to "
+            "jss, optionally set as a key in the com.github.autopkg "
+            "preference file.",
+        },
+        "CLIENT_SECRET": {
+            "required": False,
+            "description": "Secret associated with the Client ID, optionally set as a key in "
             "the com.github.autopkg preference file.",
         },
         "category_name": {"required": False, "description": "Category", "default": ""},
@@ -113,6 +124,8 @@ class JamfCategoryUploader(JamfUploaderBase):
         self.jamf_url = self.env.get("JSS_URL")
         self.jamf_user = self.env.get("API_USERNAME")
         self.jamf_password = self.env.get("API_PASSWORD")
+        self.client_id = self.env.get("CLIENT_ID")
+        self.client_secret = self.env.get("CLIENT_SECRET")
         self.category_name = self.env.get("category_name")
         self.category_priority = self.env.get("category_priority")
         self.replace = self.env.get("replace_category")
@@ -125,8 +138,15 @@ class JamfCategoryUploader(JamfUploaderBase):
         if "jamfcategoryuploader_summary_result" in self.env:
             del self.env["jamfcategoryuploader_summary_result"]
 
-        # obtain the relevant credentials
-        token = self.handle_uapi_auth(self.jamf_url, self.jamf_user, self.jamf_password)
+        # get token using oauth or basic auth depending on the credentials given
+        if self.jamf_url and self.client_id and self.client_secret:
+            token = self.handle_oauth(self.jamf_url, self.client_id, self.client_secret)
+        elif self.jamf_url and self.jamf_user and self.jamf_password:
+            token = self.handle_api_auth(
+                self.jamf_url, self.jamf_user, self.jamf_password
+            )
+        else:
+            raise ProcessorError("ERROR: Credentials not supplied")
 
         # now process the category
         # check for existing category
