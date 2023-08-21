@@ -248,7 +248,7 @@ class JamfUploaderBase(Processor):
             self.output(
                 "Getting an authentication token using Basic Auth", verbose_level=2
             )
-            token = self.get_api_token(url=url, enc_creds=enc_creds)
+            token = self.get_api_token(jamf_url=url, enc_creds=enc_creds)
 
         if not token:
             raise ProcessorError("No token found, cannot continue")
@@ -266,7 +266,7 @@ class JamfUploaderBase(Processor):
         if not token:
             self.output("Getting an authentication token using OAuth", verbose_level=2)
             token = self.get_api_token(
-                url=url, client_id=client_id, client_secret=client_secret
+                jamf_url=url, client_id=client_id, client_secret=client_secret
             )
 
         if not token:
