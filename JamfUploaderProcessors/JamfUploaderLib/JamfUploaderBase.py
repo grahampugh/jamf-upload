@@ -594,7 +594,7 @@ class JamfUploaderBase(Processor):
                         ),
                         verbose_level=2,
                     )
-                    if xml_escape:
+                    if xml_escape and type(self.env.get(found_key) is not int:
                         replacement_key = escape(self.env.get(found_key))
                     else:
                         replacement_key = self.env.get(found_key)
@@ -635,7 +635,7 @@ class JamfUploaderBase(Processor):
                         f"'{str(cli_custom_keys[found_key])}'",
                         verbose_level=2,
                     )
-                    if xml_escape:
+                    if xml_escape and type(self.env.get(found_key) is not int:
                         replacement_key = escape(cli_custom_keys[found_key])
                     else:
                         replacement_key = cli_custom_keys[found_key]
