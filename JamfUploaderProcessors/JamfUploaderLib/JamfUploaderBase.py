@@ -594,11 +594,11 @@ class JamfUploaderBase(Processor):
                         ),
                         verbose_level=2,
                     )
-                    if xml_escape:
+                    if xml_escape and type(self.env.get(found_key)) is not int:
                         replacement_key = escape(self.env.get(found_key))
                     else:
                         replacement_key = self.env.get(found_key)
-                    data = data.replace(f"%{found_key}%", replacement_key)
+                    data = data.replace(f"%{found_key}%", str(replacement_key))
                 else:
                     self.output(
                         f"WARNING: '{found_key}' has no replacement object!",
@@ -635,11 +635,11 @@ class JamfUploaderBase(Processor):
                         f"'{str(cli_custom_keys[found_key])}'",
                         verbose_level=2,
                     )
-                    if xml_escape:
+                    if xml_escape and type(self.env.get(found_key)) is not int:
                         replacement_key = escape(cli_custom_keys[found_key])
                     else:
                         replacement_key = cli_custom_keys[found_key]
-                    data = data.replace(f"%{found_key}%", replacement_key)
+                    data = data.replace(f"%{found_key}%", str(replacement_key))
         return data
 
     def get_path_to_file(self, filename):
