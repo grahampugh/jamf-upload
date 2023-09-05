@@ -236,8 +236,6 @@ class JamfPackageUploader(JamfPackageUploaderBase):
         if not self.pkg_name:
             self.pkg_name = os.path.basename(self.pkg_path)
         self.pkg_display_name = self.env.get("pkg_display_name")
-        if not self.pkg_display_name:
-            self.pkg_display_name = self.pkg_name
         self.version = self.env.get("version")
         self.replace = self.env.get("replace_pkg")
         self.sleep = self.env.get("sleep")
@@ -371,6 +369,11 @@ class JamfPackageUploader(JamfPackageUploaderBase):
             self.pkg_path = self.zip_pkg_path(self.pkg_path, self.recipe_cache_dir)
             if ".zip" not in self.pkg_name:
                 self.pkg_name += ".zip"
+
+        # we need to ensure that a zipped package's display name matches the new pkg_name for
+        # comparison with an existing package
+        if not self.pkg_display_name:
+            self.pkg_display_name = self.pkg_name
 
         # calculate the SHA-512 hash of the package
         self.sha512string = self.sha512sum(self.pkg_path)
