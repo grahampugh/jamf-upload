@@ -15,6 +15,7 @@ import xml.etree.cElementTree as ET
 from base64 import b64encode
 from collections import namedtuple
 from datetime import datetime
+from datetime import timedelta
 from html.parser import HTMLParser
 from pathlib import Path
 from shutil import rmtree
@@ -209,6 +210,28 @@ class JamfUploaderBase(Processor):
                 additional_curl_opts=additional_curl_opts,
                 endpoint_type="oauth",
             )
+            output = r.output
+            if r.status_code == 200:
+                try:
+                    token = str(output["access_token"])
+                    expires_in = output["expires_in"]
+                    # convert "expires_in" value to a timestamp to match basic auth method
+                    expires_timestamp = datetime.utcnow() + timedelta(seconds=expires_in)
+                    expires_str = datetime.strptime(
+                        str(expires_timestamp), "%Y-%m-%d %H:%M:%S.%f"
+                    )
+                    expires = expires_str.strftime("%Y-%m-%dT%H:%M:%S.%fZ")
+
+                    # write the data to a file
+                    self.write_token_to_json_file(jamf_url, output)
+                    self.output("Session token received")
+                    self.output(f"Token: {token}", verbose_level=2)
+                    self.output(f"Expires: {expires}", verbose_level=2)
+                    return token
+                except KeyError:
+                    self.output("ERROR: No token received")
+            else:
+                self.output("ERROR: No token received")
         elif enc_creds:
             url = jamf_url + "/" + self.api_endpoints("token")
             r = self.curl(
@@ -216,25 +239,25 @@ class JamfUploaderBase(Processor):
                 url=url,
                 enc_creds=enc_creds,
             )
+            output = r.output
+            if r.status_code == 200:
+                try:
+                    token = str(output["token"])
+                    expires = str(output["expires"])
+
+                    # write the data to a file
+                    self.write_token_to_json_file(jamf_url, output)
+                    self.output("Session token received")
+                    self.output(f"Token: {token}", verbose_level=2)
+                    self.output(f"Expires: {expires}", verbose_level=2)
+                    return token
+                except KeyError:
+                    self.output("ERROR: No token received")
+            else:
+                self.output("ERROR: No token received")
         else:
             raise ProcessorError("No credentials given, cannot continue")
 
-        output = r.output
-        if r.status_code == 200:
-            try:
-                token = str(output["token"])
-                expires = str(output["expires"])
-
-                # write the data to a file
-                self.write_token_to_json_file(jamf_url, output)
-                self.output("Session token received")
-                self.output(f"Token: {token}", verbose_level=2)
-                self.output(f"Expires: {expires}", verbose_level=2)
-                return token
-            except KeyError:
-                self.output("ERROR: No token received")
-        else:
-            self.output("ERROR: No token received")
 
     def handle_api_auth(self, url, user, password):
         """obtain token using basic auth"""
@@ -478,7 +501,7 @@ class JamfUploaderBase(Processor):
                 self.output("Could not parse output for error type", verbose_level=2)
             if parser.error:
                 self.output(f"API {parser.error}", verbose_level=2)
-            self.output(f"API response:\n{r.output.decode()}", verbose_level=3)
+            self.output(f"API response:\n{r.output}", verbose_level=3)
             if r.status_code == 409:
                 raise ProcessorError(
                     f"ERROR: {endpoint_type} '{obj_name}' {action} failed due to the following "

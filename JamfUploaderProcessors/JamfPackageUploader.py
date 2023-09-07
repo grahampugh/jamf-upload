@@ -383,15 +383,15 @@ class JamfPackageUploader(JamfPackageUploaderBase):
             f"Checking for existing package '{self.pkg_name}' on {self.jamf_url}"
         )
 
-        # get token using oauth or basic auth depending on the credentials given
-        if self.jamf_url and self.client_id and self.client_secret:
+        # get token using oauth or basic auth depending on the credentials given (dbfileupload and jcds_mode require basic auth)
+        if self.jamf_url and self.client_id and self.client_secret and self.jcds2_mode:
             token = self.handle_oauth(self.jamf_url, self.client_id, self.client_secret)
         elif self.jamf_url and self.jamf_user and self.jamf_password:
             token = self.handle_api_auth(
                 self.jamf_url, self.jamf_user, self.jamf_password
             )
         else:
-            raise ProcessorError("ERROR: Credentials not supplied")
+            raise ProcessorError("ERROR: Valid credentials not supplied (note that API Clients can only be used with jcds2_mode)")
 
         # check for existing
         obj_id = self.check_pkg(self.pkg_name, self.jamf_url, token=token)

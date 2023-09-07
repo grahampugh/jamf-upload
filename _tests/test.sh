@@ -260,12 +260,14 @@ elif [[ $test_type == "package" || $test_type == "pkg" ]]; then
     "$DIR"/../jamf-upload.sh pkg \
         --prefs "$prefs" \
         --recipe-dir /Users/gpugh/sourcecode/jamf-upload/_tests \
-        --pkg-path "/Users/gpugh/sourcecode/erase-install/pkg/erase-install/build/erase-install-30.0.pkg" \
-        --pkg-name "erase-install-30.0.pkg" \
+        --pkg-path "/Users/gpugh/sourcecode/erase-install/pkg/erase-install/build/erase-install-30.2.pkg" \
+        --pkg-name "erase-install-30.2.pkg" \
         --category "Testing" \
         "$verbosity" \
         "$url" \
         --jcds2 \
+        --key "CLIENT_ID=b95ec901-aaf7-4946-bab0-897214d56466" \
+        --key "CLIENT_SECRET=b6e4vbBCU7oH8kFx1JChvdQ960ahok6151Wtk2fM5YCo4o08j5vSrINWg7438-YA" \
         --replace
         # --name "erase-install-30" \
 
