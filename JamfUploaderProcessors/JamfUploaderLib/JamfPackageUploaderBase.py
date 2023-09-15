@@ -9,7 +9,7 @@ Note the requirements for uploading to the JCDS2 API endpoint:
 To resolve the dependencies, run: /usr/local/autopkg/python -m pip install boto3
 """
 
-import boto3
+# import boto3
 import hashlib
 import json
 import os.path
@@ -612,6 +612,14 @@ class JamfPackageUploaderBase(JamfUploaderBase):
         credentials,
     ):
         """upload the package"""
+
+        try:
+            import boto3
+        except ImportError:
+            print(
+                "WARNING: could not import boto3 module. Use pip to install requests and try again."
+            )
+            sys.exit()
 
         # Upload File To AWS S3
         s3_client = boto3.client(
