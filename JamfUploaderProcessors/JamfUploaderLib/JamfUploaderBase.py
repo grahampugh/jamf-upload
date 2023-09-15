@@ -192,8 +192,8 @@ class JamfUploaderBase(Processor):
                     pass
         self.output("No existing valid token found", verbose_level=2)
 
-    def get_api_token(self, jamf_url="", enc_creds="", client_id="", client_secret=""):
-        """get a token for the Jamf Pro API or Classic API using either basic auth or OAuth"""
+    def get_api_token_from_oauth(self, jamf_url="", client_id="", client_secret=""):
+        """get a token for the Jamf Pro API or Classic API using OAuth"""
         if client_id and client_secret:
             url = jamf_url + "/" + self.api_endpoints("oauth")
             additional_curl_opts = [
@@ -216,7 +216,9 @@ class JamfUploaderBase(Processor):
                     token = str(output["access_token"])
                     expires_in = output["expires_in"]
                     # convert "expires_in" value to a timestamp to match basic auth method
-                    expires_timestamp = datetime.utcnow() + timedelta(seconds=expires_in)
+                    expires_timestamp = datetime.utcnow() + timedelta(
+                        seconds=expires_in
+                    )
                     expires_str = datetime.strptime(
                         str(expires_timestamp), "%Y-%m-%d %H:%M:%S.%f"
                     )
@@ -232,7 +234,12 @@ class JamfUploaderBase(Processor):
                     self.output("ERROR: No token received")
             else:
                 self.output("ERROR: No token received")
-        elif enc_creds:
+        else:
+            self.output("ERROR: Insufficient credentials provided")
+
+    def get_api_token_from_basic_auth(self, jamf_url="", enc_creds=""):
+        """get a token for the Jamf Pro API or Classic API using basic auth"""
+        if enc_creds:
             url = jamf_url + "/" + self.api_endpoints("token")
             r = self.curl(
                 request="POST",
@@ -258,7 +265,6 @@ class JamfUploaderBase(Processor):
         else:
             raise ProcessorError("No credentials given, cannot continue")
 
-
     def handle_api_auth(self, url, user, password):
         """obtain token using basic auth"""
         # check for existing token
@@ -271,7 +277,9 @@ class JamfUploaderBase(Processor):
             self.output(
                 "Getting an authentication token using Basic Auth", verbose_level=2
             )
-            token = self.get_api_token(jamf_url=url, enc_creds=enc_creds)
+            token = self.get_api_token_from_basic_auth(
+                jamf_url=url, enc_creds=enc_creds
+            )
 
         if not token:
             raise ProcessorError("No token found, cannot continue")
@@ -288,7 +296,7 @@ class JamfUploaderBase(Processor):
         # if no valid token, get one
         if not token:
             self.output("Getting an authentication token using OAuth", verbose_level=2)
-            token = self.get_api_token(
+            token = self.get_api_token_from_oauth(
                 jamf_url=url, client_id=client_id, client_secret=client_secret
             )
 

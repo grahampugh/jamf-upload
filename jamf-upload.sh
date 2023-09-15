@@ -38,6 +38,8 @@ Arguments:
     --url <JSS_URL>         The Jamf Pro URL
     --user <API_USERNAME>   The API username
     --pass <API_PASSWORD>   The API user's password
+    --clientid <ID>         An API Client ID
+    --clientsecret <string> An API Client Secret
     --recipe-dir <RECIPE_DIR>
 
 Account arguments:
@@ -334,6 +336,18 @@ while test $# -gt 0 ; do
             shift
             if plutil -replace API_PASSWORD -string "$1" "$temp_processor_plist"; then
                 echo "   [jamf-upload] Wrote API_PASSWORD='[redacted]' into $temp_processor_plist"
+            fi
+            ;;
+        --clientid)  
+            shift
+            if plutil -replace CLIENT_ID -string "$1" "$temp_processor_plist"; then
+                echo "   [jamf-upload] Wrote CLIENT_ID='$1' into $temp_processor_plist"
+            fi
+            ;;
+        --clientsecret)  
+            shift
+            if plutil -replace CLIENT_SECRET -string "$1" "$temp_processor_plist"; then
+                echo "   [jamf-upload] Wrote CLIENT_SECRET='$1' into $temp_processor_plist"
             fi
             ;;
         --type)
