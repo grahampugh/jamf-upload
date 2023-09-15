@@ -13,7 +13,10 @@ url="$3"
 # other variables (ensure some of the temporary variables are not in the prefs)
 prefs="$HOME/Library/Preferences/com.github.autopkg.plist"
 # prefs="/Users/Shared/com.github.autopkg.plist"
+
+# ensure jcds_mode is disabled
 defaults write "$HOME/Library/Preferences/com.github.autopkg.plist" jcds_mode -bool False
+defaults write "$HOME/Library/Preferences/com.github.autopkg.plist" jcds2_mode -bool False
 
 if [[ ! $verbosity ]]; then
     verbosity="-v"
@@ -31,7 +34,6 @@ if [[ $test_type == "ldap_server" ]]; then
         --name "d.ethz.ch" \
         --template "/Users/gpugh/sourcecode/id-mac-tools/jamf-api-tools/templates/LDAPServerETH.xml" \
         "$verbosity" \
-        "$url" \
         --replace
 
 elif [[ $test_type == "category" ]]; then
@@ -41,7 +43,6 @@ elif [[ $test_type == "category" ]]; then
         --name JamfUploadTest \
         --priority 18 \
         "$verbosity" \
-        "$url" \
         --replace
 
 elif [[ $test_type == "group" ]]; then
@@ -53,45 +54,42 @@ elif [[ $test_type == "group" ]]; then
         --template "templates/SmartGroupTemplate-test-users.xml" \
         --key POLICY_NAME="Firefox" \
         "$verbosity" \
-        "$url" \
         --replace
 
-# elif [[ $test_type == "profile" ]]; then
-#     # upload a profile (payload plist)
-#     "$DIR"/../jamf-upload.sh profile \
-#         --prefs "$prefs" \
-#         --name "Carbon Copy Cloner" \
-#         --recipe-dir /Users/gpugh/sourcecode/jamf-upload/_tests \
-#         --template "templates/ProfileTemplate-1-group-1-exclusion.xml" \
-#         --payload "templates/com.bombich.ccc.plist" \
-#         --identifier com.bombich.ccc \
-#         --category JamfUploadTest \
-#         --organization "Graham Pugh Inc." \
-#         --description "Amazing test profile" \
-#         --computergroup "Testing" \
-#         "$verbosity" \
-#         "$url" \
-#         --key REGISTRATION_CODE="FAKE-CODE" \
-#         --key REGISTRATION_EMAIL="yes@yes.com" \
-#         --key REGISTRATION_NAME="ETH License Administration" \
-#         --key REGISTRATION_PRODUCT_NAME='Carbon Copy Cloner 6 Volume License' \
-#         --key EXCLUSION_GROUP_NAME="Firefox test users" \
-#         --replace
-
-# elif [[ $test_type == "profile" ]]; then
-#     # upload a profile (mobileconfig)
-#     "$DIR"/../jamf-upload.sh profile \
-#         --prefs "$prefs" \
-#         --recipe-dir /Users/gpugh/sourcecode/jamf-upload/_tests \
-#         --template "templates/ProfileTemplate-test-users.xml" \
-#         --category JamfUploadTest \
-#         --computergroup "Testing" \
-#         --mobileconfig "templates/TestProfileIdentifiers.mobileconfig" \
-#         "$verbosity" \
-#         "$url" \
-#         --replace
+elif [[ $test_type == "payload" ]]; then
+    # upload a profile (payload plist)
+    "$DIR"/../jamf-upload.sh profile \
+        --prefs "$prefs" \
+        --name "Carbon Copy Cloner" \
+        --recipe-dir /Users/gpugh/sourcecode/jamf-upload/_tests \
+        --template "templates/ProfileTemplate-1-group-1-exclusion.xml" \
+        --payload "templates/com.bombich.ccc.plist" \
+        --identifier com.bombich.ccc \
+        --category JamfUploadTest \
+        --organization "Graham Pugh Inc." \
+        --description "Amazing test profile" \
+        --computergroup "Testing" \
+        "$verbosity" \
+        --key REGISTRATION_CODE="FAKE-CODE" \
+        --key REGISTRATION_EMAIL="yes@yes.com" \
+        --key REGISTRATION_NAME="ETH License Administration" \
+        --key REGISTRATION_PRODUCT_NAME='Carbon Copy Cloner 6 Volume License' \
+        --key EXCLUSION_GROUP_NAME="Firefox test users" \
+        --replace
 
 elif [[ $test_type == "profile" ]]; then
+    # upload a profile (mobileconfig)
+    "$DIR"/../jamf-upload.sh profile \
+        --prefs "$prefs" \
+        --recipe-dir /Users/gpugh/sourcecode/jamf-upload/_tests \
+        --template "templates/ProfileTemplate-test-users.xml" \
+        --category JamfUploadTest \
+        --computergroup "Testing" \
+        --mobileconfig "templates/TestProfileIdentifiers.mobileconfig" \
+        "$verbosity" \
+        --replace
+
+elif [[ $test_type == "profile2" ]]; then
     # upload a profile (mobileconfig)
     "$DIR"/../jamf-upload.sh profile \
         --prefs "$prefs" \
@@ -104,7 +102,6 @@ elif [[ $test_type == "profile" ]]; then
         --key PROFILE_DESCRIPTION="Enables notifications for Microsoft AutoUpdate" \
         --key ORGANIZATION="Microsoft" \
         "$verbosity" \
-        "$url" \
         --replace
 
 elif [[ $test_type == "ea" ]]; then
@@ -115,23 +112,21 @@ elif [[ $test_type == "ea" ]]; then
         --name "Microsoft AutoUpdate Version" \
         --script "templates/MicrosoftAutoUpdate-EA.sh" \
         "$verbosity" \
-        "$url" \
         --replace
 
-# elif [[ $test_type == "macapp" ]]; then
-#     # upload a policy
-#     "$DIR"/../jamf-upload.sh macapp \
-#         --prefs "$prefs" \
-#         --recipe-dir /Users/gpugh/sourcecode/jamf-upload/_tests \
-#         --name "Numbers" \
-#         --template "templates/MacApp-allcomputers.xml" \
-#         --key CATEGORY="Applications" \
-#         --key DEPLOYMENT_TYPE="Make Available in Self Service" \
-#         "$verbosity" \
-#         "$url" \
-#         --replace
-
 elif [[ $test_type == "macapp" ]]; then
+    # upload a policy
+    "$DIR"/../jamf-upload.sh macapp \
+        --prefs "$prefs" \
+        --recipe-dir /Users/gpugh/sourcecode/jamf-upload/_tests \
+        --name "Numbers" \
+        --template "templates/MacApp-allcomputers.xml" \
+        --key CATEGORY="Applications" \
+        --key DEPLOYMENT_TYPE="Make Available in Self Service" \
+        "$verbosity" \
+        --replace
+
+elif [[ $test_type == "macapp2" ]]; then
     # upload a policy
     "$DIR"/../jamf-upload.sh macapp \
         --prefs "$prefs" \
@@ -142,7 +137,6 @@ elif [[ $test_type == "macapp" ]]; then
         --key CATEGORY="Applications" \
         --key DEPLOYMENT_TYPE="Install Automatically/Prompt Users to Install" \
         "$verbosity" \
-        "$url" \
         --replace
 
 
@@ -158,7 +152,6 @@ elif [[ $test_type == "policy" ]]; then
         --key CATEGORY="JamfUploadTest" \
         --key pkg_name="Authy Desktop-1.8.4.pkg" \
         "$verbosity" \
-        "$url" \
         --replace
 
 elif [[ $test_type == "policy_delete" ]]; then
@@ -167,8 +160,7 @@ elif [[ $test_type == "policy_delete" ]]; then
         --prefs "$prefs" \
         --recipe-dir /Users/gpugh/sourcecode/jamf-upload/_tests \
         --name "Install Firefox" \
-        "$verbosity" \
-        "$url"
+        "$verbosity"
 
 elif [[ $test_type == "policy_flush" ]]; then
     # upload a policy
@@ -177,36 +169,33 @@ elif [[ $test_type == "policy_flush" ]]; then
         --recipe-dir /Users/gpugh/sourcecode/jamf-upload/_tests \
         --name "0001 - Install Rosetta 2" \
         --interval "Zero Days" \
-        "$verbosity" \
-        "$url"
-
-# elif [[ $test_type == "account" ]]; then
-#     # upload an account
-#     "$DIR"/../jamf-upload.sh account \
-#         --prefs "$prefs" \
-#         --recipe-dir /Users/gpugh/sourcecode/jamf-upload/_tests \
-#         --name "Test Group" \
-#         --type "group" \
-#         --template "templates/Account-Group-local.xml" \
-#         "$verbosity" \
-#         "$url"
-
-# elif [[ $test_type == "account" ]]; then
-#     # upload an account
-#     "$DIR"/../jamf-upload.sh account \
-#         --prefs "$prefs" \
-#         --recipe-dir /Users/gpugh/sourcecode/jamf-upload/_tests \
-#         --name "graham" \
-#         --type "user" \
-#         --template "templates/Account-User-groupaccess.xml" \
-#         --key ACCOUNT_FULLNAME="Graham Pugh Test Account" \
-#         --key ACCOUNT_PASSWORD="GrahamsPassword" \
-#         --key ACCOUNT_EMAIL="graham@pugh.com" \
-#         --key GROUP_NAME="Test Group" \
-#         "$verbosity" \
-#         "$url"
+        "$verbosity"
 
 elif [[ $test_type == "account" ]]; then
+    # upload an account
+    "$DIR"/../jamf-upload.sh account \
+        --prefs "$prefs" \
+        --recipe-dir /Users/gpugh/sourcecode/jamf-upload/_tests \
+        --name "Test Group" \
+        --type "group" \
+        --template "templates/Account-Group-local.xml" \
+        "$verbosity"
+
+elif [[ $test_type == "account2" ]]; then
+    # upload an account
+    "$DIR"/../jamf-upload.sh account \
+        --prefs "$prefs" \
+        --recipe-dir /Users/gpugh/sourcecode/jamf-upload/_tests \
+        --name "graham" \
+        --type "user" \
+        --template "templates/Account-User-groupaccess.xml" \
+        --key ACCOUNT_FULLNAME="Graham Pugh Test Account" \
+        --key ACCOUNT_PASSWORD="GrahamsPassword" \
+        --key ACCOUNT_EMAIL="graham@pugh.com" \
+        --key GROUP_NAME="Test Group" \
+        "$verbosity"
+
+elif [[ $test_type == "account3" ]]; then
     # upload an account
     "$DIR"/../jamf-upload.sh account \
         --prefs "$prefs" \
@@ -217,9 +206,7 @@ elif [[ $test_type == "account" ]]; then
         --key ACCOUNT_FULLNAME="Graham Pugh Test Account" \
         --key ACCOUNT_EMAIL="graham@pugh.com" \
         "$verbosity" \
-        "$url" \
         --replace
-
 
 elif [[ $test_type == "restriction" ]]; then
     # upload a software restriction
@@ -234,37 +221,34 @@ elif [[ $test_type == "restriction" ]]; then
         --kill_process \
         --computergroup Testing \
         "$verbosity" \
-        "$url" \
         --replace
 
-# elif [[ $test_type == "package" || $test_type == "pkg" ]]; then
-#     # upload a package
-#     "$DIR"/../jamf-upload.sh pkg \
-#         --prefs "$prefs" \
-#         --recipe-dir /Users/gpugh/sourcecode/jamf-upload/_tests \
-#         --pkg "/Users/gpugh/Library/AutoPkg/Cache/com.github.mlbz521.pkg.Solstice/Solstice-5.4.30427.pkg" \
-#         --pkg-name "Solstice-5.4.30427.pkg" \
-#         --nsme "Solstice-5.4.30427" \
-#         --category Applications \
-#         --info "Uploaded directly by JamfPackageUploader in JCDS mode" \
-#         --notes "$(date)" \
-#         "$verbosity" \
-#         "$url" \
-#         --jcds \
-#         --replace
+elif [[ $test_type == "pkg" ]]; then
+    # upload a package
+    "$DIR"/../jamf-upload.sh pkg \
+        --prefs "$prefs" \
+        --recipe-dir /Users/gpugh/sourcecode/jamf-upload/_tests \
+        --pkg "/Users/gpugh/Library/AutoPkg/Cache/com.github.mlbz521.pkg.Solstice/Solstice-5.4.30427.pkg" \
+        --pkg-name "Solstice-5.4.30427.pkg" \
+        --nsme "Solstice-5.4.30427" \
+        --category Applications \
+        --info "Uploaded directly by JamfPackageUploader in JCDS mode" \
+        --notes "$(date)" \
+        "$verbosity" \
+        --jcds \
+        --replace
 
-elif [[ $test_type == "package" || $test_type == "pkg" ]]; then
+elif [[ $test_type == "jcds2" ]]; then
     /usr/local/autopkg/python -m pip install boto3
 
     # upload a package
     "$DIR"/../jamf-upload.sh pkg \
         --prefs "$prefs" \
         --recipe-dir /Users/gpugh/sourcecode/jamf-upload/_tests \
-        --pkg-path "/Users/gpugh/sourcecode/erase-install/pkg/erase-install/build/erase-install-30.0.pkg" \
-        --pkg-name "erase-install-30.0.pkg" \
+        --pkg-path "/Users/gpugh/sourcecode/erase-install/pkg/erase-install/build/erase-install-30.2.pkg" \
+        --pkg-name "erase-install-30.2.pkg" \
         --category "Testing" \
         "$verbosity" \
-        "$url" \
         --jcds2 \
         --replace
         # --name "erase-install-30" \
@@ -277,7 +261,6 @@ elif [[ $test_type == "pkgclean" ]]; then
         --name "erase-install" \
         --keep "3" \
         "$verbosity" \
-        "$url"
 
 elif [[ $test_type == "script" ]]; then
     # upload a script
@@ -288,25 +271,24 @@ elif [[ $test_type == "script" ]]; then
         --script "Microsoft Office License Type.sh" \
         --script_parameter4 "License Type" \
         "$verbosity" \
+        --replace
+
+elif [[ $test_type == "patch" ]]; then
+    # upload a policy
+    "$DIR"/../jamf-upload.sh patch \
+        --prefs "$prefs" \
+        --recipe-dir /Users/gpugh/sourcecode/jamf-upload/_tests \
+        --name "Google Chrome" \
+        --title "Google Chrome" \
+        --policy-name "Install Latest Google Chrome" \
+        --template "templates/PatchTemplate-selfservice.xml" \
+        --pkg-name "Google Chrome-91.0.4472.77.pkg" \
+        --version "91.0.4472.77" \
+        "$verbosity" \
         "$url" \
         --replace
 
-# elif [[ $test_type == "patch" ]]; then
-#     # upload a policy
-#     "$DIR"/../jamf-upload.sh patch \
-#         --prefs "$prefs" \
-#         --recipe-dir /Users/gpugh/sourcecode/jamf-upload/_tests \
-#         --name "Google Chrome" \
-#         --title "Google Chrome" \
-#         --policy-name "Install Latest Google Chrome" \
-#         --template "templates/PatchTemplate-selfservice.xml" \
-#         --pkg-name "Google Chrome-91.0.4472.77.pkg" \
-#         --version "91.0.4472.77" \
-#         "$verbosity" \
-#         "$url" \
-#         --replace
-
-elif [[ $test_type == "patch" ]]; then
+elif [[ $test_type == "patch2" ]]; then
     # upload a policy
     "$DIR"/../jamf-upload.sh patch \
         --prefs "$prefs" \
@@ -334,15 +316,15 @@ elif [[ $test_type == "dock" ]]; then
         "$url" \
         --replace
 
-# elif [[ $test_type == "icon" ]]; then
-#     # upload an icon
-#     "$DIR"/../jamf-upload.sh icon \
-#         --prefs "$prefs" \
-#         --icon-uri "https://ics.services.jamfcloud.com/icon/hash_13139b4d9732a8b2fa3bbe25e6c6373e8ef6b85a7c7ba2bd15615195d63bc648" \
-#         "$verbosity" \
-#         "$url"
-
 elif [[ $test_type == "icon" ]]; then
+    # upload an icon
+    "$DIR"/../jamf-upload.sh icon \
+        --prefs "$prefs" \
+        --icon-uri "https://ics.services.jamfcloud.com/icon/hash_13139b4d9732a8b2fa3bbe25e6c6373e8ef6b85a7c7ba2bd15615195d63bc648" \
+        "$verbosity" \
+        "$url"
+
+elif [[ $test_type == "icon2" ]]; then
     # upload an icon
     "$DIR"/../jamf-upload.sh icon \
         --prefs "$prefs" \
