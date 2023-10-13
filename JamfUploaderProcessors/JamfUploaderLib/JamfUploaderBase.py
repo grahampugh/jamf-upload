@@ -321,6 +321,7 @@ class JamfUploaderBase(Processor):
         data="",
         additional_curl_opts="",
         endpoint_type="",
+        accept_header="",
     ):
         """
         Build a curl command based on request type (GET, POST, PUT, PATCH, DELETE).
@@ -387,7 +388,7 @@ class JamfUploaderBase(Processor):
         # some endpoints (For example the 'patchsoftwaretitle' endpoint)
         # do not return complete json, so we have to get the xml instead.
         elif (request == "GET" or request == "DELETE") and endpoint_type != "jcds":
-            if endpoint_type == "patch_software_title":
+            if endpoint_type == "patch_software_title" or accept_header == "xml":
                 curl_cmd.extend(["--header", "Accept: application/xml"])
             else:
                 curl_cmd.extend(["--header", "Accept: application/json"])
@@ -752,6 +753,22 @@ class JamfUploaderBase(Processor):
                         self.output(f"File found at: {matched_filepath}")
                         return matched_filepath
 
+    def get_api_obj_xml_from_id(self, jamf_url, object_type, obj_id, obj_path, token):
+        """get the value of an item in a Classic API object"""
+        # define the relationship between the object types and their URL
+        # we could make this shorter with some regex but I think this way is clearer
+        url = "{}/{}/id/{}".format(jamf_url, self.api_endpoints(object_type), obj_id)
+        request = "GET"
+        r = self.curl(request=request, url=url, token=token, accept_header="xml")
+        if r.status_code == 200:
+            # Parse response as xml
+            try:
+                obj_xml = ET.fromstring(r.output)
+            except ET.ParseError as xml_error:
+                raise ProcessorError from xml_error
+            obj_content = obj_xml.find(obj_path)
+            return obj_content
+
     def get_api_obj_value_from_id(self, jamf_url, object_type, obj_id, obj_path, token):
         """get the value of an item in a Classic API object"""
         # define the relationship between the object types and their URL
@@ -788,6 +805,44 @@ class JamfUploaderBase(Processor):
         )
         (output, _) = proc.communicate(xml)
         return output
+
+    def get_existing_scope(self, jamf_url, obj_type, obj_id, token):
+        """return the existing scope"""
+        existing_scope_xml = self.get_api_obj_xml_from_id(
+            jamf_url,
+            obj_type,
+            obj_id,
+            "scope",
+            token,
+        )
+        self.output("Existing scope:", verbose_level=2)
+        self.output(existing_scope_xml, verbose_level=2)
+        return existing_scope_xml
+
+    def replace_scope(self, template_contents, existing_scope):
+        """replace scope with scope from existing item"""
+        self.output("Updating the scope in the template", verbose_level=2)
+
+        # Parse response as xml
+        try:
+            template_contents_xml = ET.fromstring(template_contents)
+        except ET.ParseError as xml_error:
+            raise ProcessorError from xml_error
+
+        if template_contents_xml.find("scope"):
+            # Remove old, probably empty package element
+            template_contents_xml.remove(template_contents_xml.find("scope"))
+        # Inject scope element into version element
+        template_contents_xml.append(existing_scope)
+        # write back to xml
+        template_contents = ET.tostring(
+            template_contents_xml, encoding="UTF-8", method="xml"
+        )
+        # convert to string
+        template_contents = template_contents.decode("UTF-8")
+        # Print new scope element for debugging
+        self.output(template_contents, verbose_level=2)
+        return template_contents
 
     class ParseHTMLForError(HTMLParser):
         def __init__(self):

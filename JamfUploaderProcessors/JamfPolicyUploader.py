@@ -81,6 +81,11 @@ class JamfPolicyUploader(JamfUploaderBase):
             "description": "Overwrite an existing policy icon if True.",
             "default": False,
         },
+        "retain_scope": {
+            "required": False,
+            "description": "Retain the existing scope if True.",
+            "default": False,
+        },
         "sleep": {
             "required": False,
             "description": "Pause after running this processor for specified seconds.",
@@ -103,7 +108,9 @@ class JamfPolicyUploader(JamfUploaderBase):
         },
     }
 
-    def prepare_policy_template(self, policy_name, policy_template):
+    def prepare_policy_template(
+        self, policy_template, obj_id, token, retain_scope=False
+    ):
         """prepare the policy contents"""
         # import template from file and replace any keys in the template
         if os.path.exists(policy_template):
@@ -113,17 +120,26 @@ class JamfPolicyUploader(JamfUploaderBase):
             raise ProcessorError("Template does not exist!")
 
         # substitute user-assignable keys
-        policy_name = self.substitute_assignable_keys(policy_name)
         template_contents = self.substitute_assignable_keys(
             template_contents, xml_escape=True
         )
 
-        self.output("Policy data:", verbose_level=2)
-        self.output(template_contents, verbose_level=2)
+        # get existing scope if --retain-existing-scope is set
+        object_type = "policy"
+        if self.retain_scope and obj_id > 0:
+            self.output("Substituting existing scope into template", verbose_level=1)
+            existing_scope = self.get_existing_scope(
+                self.jamf_url, object_type, obj_id, token
+            )
+            # substitute pre-existing scope
+            template_contents = self.replace_scope(template_contents, existing_scope)
+
+        self.output("Policy data:", verbose_level=3)
+        self.output(template_contents, verbose_level=3)
 
         # write the template to temp file
         template_xml = self.write_temp_file(template_contents)
-        return policy_name, template_xml
+        return template_xml
 
     def upload_policy(
         self,
@@ -264,15 +280,19 @@ class JamfPolicyUploader(JamfUploaderBase):
         self.policy_template = self.env.get("policy_template")
         self.icon = self.env.get("icon")
         self.replace = self.env.get("replace_policy")
+        self.retain_scope = self.env.get("retain_scope")
         self.sleep = self.env.get("sleep")
+        self.replace_icon = self.env.get("replace_icon")
+        self.policy_updated = False
         # handle setting replace in overrides
         if not self.replace or self.replace == "False":
             self.replace = False
-        self.replace_icon = self.env.get("replace_icon")
+        # handle setting retain_scope in overrides
+        if not self.retain_scope or self.retain_scope == "False":
+            self.retain_scope = False
         # handle setting replace in overrides
         if not self.replace_icon or self.replace_icon == "False":
             self.replace_icon = False
-        self.policy_updated = False
 
         # clear any pre-existing summary result
         if "jamfpolicyuploader_summary_result" in self.env:
@@ -290,9 +310,8 @@ class JamfPolicyUploader(JamfUploaderBase):
 
         # we need to substitute the values in the policy name and template now to
         # account for version strings in the name
-        self.policy_name, template_xml = self.prepare_policy_template(
-            self.policy_name, self.policy_template
-        )
+        # substitute user-assignable keys
+        self.policy_name = self.substitute_assignable_keys(self.policy_name)
 
         # now start the process of uploading the object
         self.output(f"Checking for existing '{self.policy_name}' on {self.jamf_url}")
@@ -315,6 +334,12 @@ class JamfPolicyUploader(JamfUploaderBase):
             obj_name,
             obj_type,
             token=token,
+        )
+
+        # we need to substitute the values in the template now to
+        # account for version strings in the name
+        template_xml = self.prepare_policy_template(
+            self.policy_template, obj_id, token, self.retain_scope
         )
 
         if obj_id:

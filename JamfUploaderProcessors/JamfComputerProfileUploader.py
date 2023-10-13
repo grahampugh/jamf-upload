@@ -109,6 +109,11 @@ class JamfComputerProfileUploader(JamfUploaderBase):
             "description": "overwrite an existing Configuration Profile if True.",
             "default": False,
         },
+        "retain_scope": {
+            "required": False,
+            "description": "Retain the existing scope if True.",
+            "default": False,
+        },
         "sleep": {
             "required": False,
             "description": "Pause after running this processor for specified seconds.",
@@ -268,6 +273,7 @@ class JamfComputerProfileUploader(JamfUploaderBase):
         template_contents,
         profile_uuid,
         token,
+        retain_scope=False,
         obj_id=0,
     ):
         """Update Configuration Profile metadata."""
@@ -304,12 +310,21 @@ class JamfComputerProfileUploader(JamfUploaderBase):
         self.output("Configuration Profile to be uploaded:", verbose_level=2)
         self.output(template_contents, verbose_level=2)
 
+        # get existing scope if --retain-existing-scope is set
+        object_type = "os_x_configuration_profile"
+        if self.retain_scope and obj_id > 0:
+            self.output("Substituting existing scope into template", verbose_level=1)
+            existing_scope = self.get_existing_scope(
+                self.jamf_url, object_type, obj_id, token
+            )
+            # substitute pre-existing scope
+            template_contents = self.replace_scope(template_contents, existing_scope)
+
         self.output("Uploading Configuration Profile...")
         # write the template to temp file
         template_xml = self.write_temp_file(template_contents)
 
         # if we find an object ID we put, if not, we post
-        object_type = "os_x_configuration_profile"
         url = "{}/{}/id/{}".format(jamf_url, self.api_endpoints(object_type), obj_id)
 
         count = 0
@@ -364,14 +379,18 @@ class JamfComputerProfileUploader(JamfUploaderBase):
         self.profile_description = self.env.get("profile_description")
         self.profile_computergroup = self.env.get("profile_computergroup")
         self.replace = self.env.get("replace_profile")
+        self.retain_scope = self.env.get("retain_scope")
         self.sleep = self.env.get("sleep")
         self.unsign = self.env.get("unsign_profile")
-        # handle setting unsign in overrides
-        if not self.unsign or self.unsign == "False":
-            self.unsign = False
         # handle setting replace in overrides
         if not self.replace or self.replace == "False":
             self.replace = False
+        # handle setting retain_scope in overrides
+        if not self.retain_scope or self.retain_scope == "False":
+            self.retain_scope = False
+        # handle setting unsign in overrides
+        if not self.unsign or self.unsign == "False":
+            self.unsign = False
 
         # clear any pre-existing summary result
         if "jamfcomputerprofileuploader_summary_result" in self.env:
@@ -516,6 +535,7 @@ class JamfComputerProfileUploader(JamfUploaderBase):
                     existing_uuid,
                     existing_identifier,
                 ) = self.get_existing_uuid_and_identifier(self.jamf_url, obj_id, token)
+
                 if self.mobileconfig:
                     # need to inject the existing payload identifier to prevent ghost profiles
                     mobileconfig_contents = (
@@ -547,6 +567,7 @@ class JamfComputerProfileUploader(JamfUploaderBase):
                         template_contents,
                         existing_uuid,
                         token,
+                        self.retain_scope,
                         obj_id=obj_id,
                     )
                     profile_updated = True
@@ -585,7 +606,7 @@ class JamfComputerProfileUploader(JamfUploaderBase):
                     self.profile_computergroup,
                     template_contents,
                     new_uuid,
-                    token=token,
+                    token,
                 )
                 profile_updated = True
             else:

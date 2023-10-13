@@ -2,6 +2,7 @@
 
 | Date       | Notes                                                                                                  |
 | ---------- | ------------------------------------------------------------------------------------------------------ |
+| 2023-10-13 | Added the ability to retain existing scope for `JamfComputerProfileUploader` and `JamfPolicyUploader`. |
 | 2023-08-03 | Removed Basic Auth for endpoints, added OAuth method for obtaining token.                              |
 | 2023-07-14 | Add `jcds2_mode` to `JamfPackageUploader`.                                                             |
 | 2023-06-23 | Fix key substitution in `JamfComputerProfileUploader` to prevent it overwriting the original template. |

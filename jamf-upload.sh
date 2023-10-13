@@ -72,6 +72,7 @@ Computer Profile arguments:
     --computergroup <str>   Computer Group to set as target in the profile
     --key X=Y               Substitutable values in the script. Multiple values can be supplied
     --replace               Replace existing item
+    --retain-scope          Retain existing scope when updating an item
 
 Dock Item arguments:
     --name <string>         The name
@@ -142,6 +143,7 @@ Policy arguments:
     --key X=Y               Substitutable values in the template. Multiple values can be supplied
     --replace               Replace existing item
     --replace-icon          Set to replace the existing icon if it has the same name
+    --retain-scope          Retain existing scope when updating an item
 
 Policy Delete arguments:
     --name <string>         The policy name
@@ -598,6 +600,13 @@ while test $# -gt 0 ; do
             elif [[ $processor == "JamfSoftwareRestrictionUploader" ]]; then
                 if plutil -replace restriction_computergroup -string "$1" "$temp_processor_plist"; then
                     echo "   [jamf-upload] Wrote restriction_computergroup='$1' into $temp_processor_plist"
+                fi
+            fi
+            ;;
+        --retain-existing-scope) 
+            if [[ $processor == "JamfComputerProfileUploader" || $processor == "JamfPolicyUploader" ]]; then
+                if plutil -replace retain_scope -string "True" "$temp_processor_plist"; then
+                    echo "   [jamf-upload] Wrote retain_scope='True' into $temp_processor_plist"
                 fi
             fi
             ;;

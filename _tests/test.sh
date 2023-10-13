@@ -104,6 +104,22 @@ elif [[ $test_type == "profile2" ]]; then
         "$verbosity" \
         --replace
 
+elif [[ $test_type == "profile_retain_scope" ]]; then
+    # upload a profile (mobileconfig)
+    "$DIR"/../jamf-upload.sh profile \
+        --prefs "$prefs" \
+        --recipe-dir /Users/gpugh/sourcecode/jamf-upload/_tests \
+        --template "templates/ProfileTemplate-test-users.xml" \
+        --category JamfUploadTest \
+        --computergroup "Testing" \
+        --mobileconfig "templates/MicrosoftAutoUpdate-notifications.mobileconfig" \
+        --key PROFILE_NAME="Microsoft AutoUpdate Notifications" \
+        --key PROFILE_DESCRIPTION="Enables notifications for Microsoft AutoUpdate" \
+        --key ORGANIZATION="Microsoft" \
+        "$verbosity" \
+        --replace \
+        --retain-existing-scope
+
 elif [[ $test_type == "ea" ]]; then
     # upload an extension attribute
     "$DIR"/../jamf-upload.sh ea \
@@ -153,6 +169,21 @@ elif [[ $test_type == "policy" ]]; then
         --key pkg_name="Authy Desktop-1.8.4.pkg" \
         "$verbosity" \
         --replace
+
+elif [[ $test_type == "policy_retain_scope" ]]; then
+    # upload a policy
+    "$DIR"/../jamf-upload.sh policy \
+        --prefs "$prefs" \
+        --recipe-dir /Users/gpugh/sourcecode/jamf-upload/_tests \
+        --name "Install Authy Desktop" \
+        --template "templates/PolicyTemplate-trigger.xml" \
+        --key POLICY_NAME="Install Authy Desktop" \
+        --key TRIGGER_NAME="Authy Desktop-install" \
+        --key CATEGORY="JamfUploadTest" \
+        --key pkg_name="Authy Desktop-1.8.4.pkg" \
+        "$verbosity" \
+        --replace \
+        --retain-existing-scope
 
 elif [[ $test_type == "policy_delete" ]]; then
     # upload a policy
