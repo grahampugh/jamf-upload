@@ -56,6 +56,18 @@ elif [[ $test_type == "group" ]]; then
         "$verbosity" \
         --replace
 
+elif [[ $test_type == "mobiledevicegroup" ]]; then
+    # upload a computer group
+    "$DIR"/../jamf-upload.sh mobiledevicegroup \
+        --prefs "$prefs" \
+        --recipe-dir /Users/gpugh/sourcecode/jamf-upload/_tests \
+        --name "Allow Screen Recording" \
+        --template "templates/AllowScreenRecording-mobiledevicegroup.xml" \
+        --key GROUP_NAME="Allow Screen Recording" \
+        --key TESTING_GROUP_NAME="Testing" \
+        "$verbosity" \
+        --replace
+
 elif [[ $test_type == "payload" ]]; then
     # upload a profile (payload plist)
     "$DIR"/../jamf-upload.sh profile \
@@ -139,6 +151,17 @@ elif [[ $test_type == "macapp2" ]]; then
         "$verbosity" \
         --replace
 
+elif [[ $test_type == "mobiledeviceprofile" ]]; then
+    # upload a profile (mobileconfig)
+    "$DIR"/../jamf-upload.sh mobiledeviceprofile \
+        --prefs "$prefs" \
+        --recipe-dir /Users/gpugh/sourcecode/jamf-upload/_tests \
+        --template "templates/MobileDeviceProfileTemplate-test-users.xml" \
+        --category JamfUploadTest \
+        --mobiledevicegroup "Testing" \
+        --mobileconfig "templates/AllowScreenRecording.mobileconfig" \
+        "$verbosity" \
+        --replace
 
 elif [[ $test_type == "policy" ]]; then
     # upload a policy

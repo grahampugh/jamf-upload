@@ -13,11 +13,4 @@
         <redeploy_on_update>All</redeploy_on_update>
         <payloads>%payload%</payloads>
     </general>
-    <scope>
-        <computer_groups>
-            <computer_group>
-                <name>%profile_computergroup%</name>
-            </computer_group>
-        </computer_groups>
-    </scope>
 </os_x_configuration_profile>
