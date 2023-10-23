@@ -2,6 +2,7 @@
 
 | Date       | Notes                                                                                                  |
 | ---------- | ------------------------------------------------------------------------------------------------------ |
+| 2023-10-21 | Added the `JamfMobileDeviceProfileUploader` and `JamfMobileDeviceGroupUploader` processors.            |
 | 2023-10-13 | Added the ability to retain existing scope for `JamfComputerProfileUploader` and `JamfPolicyUploader`. |
 | 2023-08-03 | Removed Basic Auth for endpoints, added OAuth method for obtaining token.                              |
 | 2023-07-14 | Add `jcds2_mode` to `JamfPackageUploader`.                                                             |
