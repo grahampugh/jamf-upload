@@ -19,7 +19,6 @@ import subprocess
 import sys
 import threading
 
-from botocore.exceptions import ClientError
 from shutil import copyfile
 from time import sleep
 from urllib.parse import urlparse, quote, quote_plus
@@ -615,6 +614,7 @@ class JamfPackageUploaderBase(JamfUploaderBase):
 
         try:
             import boto3
+            from botocore.exceptions import ClientError
         except ImportError:
             print(
                 "WARNING: could not import boto3 module. Use pip to install requests and try again."
