@@ -299,8 +299,9 @@ elif [[ $test_type == "jcds2" ]]; then
     "$DIR"/../jamf-upload.sh pkg \
         --prefs "$prefs" \
         --recipe-dir /Users/gpugh/sourcecode/jamf-upload/_tests \
-        --pkg-path "/Users/gpugh/sourcecode/erase-install/pkg/erase-install/build/erase-install-30.2.pkg" \
-        --pkg-name "erase-install-30.2.pkg" \
+        --pkg "/Users/Shared/Installomator-10.5.pkg" \
+        --pkg-name "Installomator-10.5.pkg" \
+        --nsme "Installomator-10.5.pkg" \
         --category "Testing" \
         "$verbosity" \
         --jcds2 \
@@ -322,7 +323,7 @@ elif [[ $test_type == "script" ]]; then
         --prefs "$prefs" \
         --recipe-dir /Users/gpugh/sourcecode/jamf-upload/_tests \
         --name "Microsoft Office License Type.sh" \
-        --script "Microsoft Office License Type.sh" \
+        --script "templates/Microsoft Office License Type.sh" \
         --script_parameter4 "License Type" \
         "$verbosity" \
         --replace
@@ -332,12 +333,12 @@ elif [[ $test_type == "patch" ]]; then
     "$DIR"/../jamf-upload.sh patch \
         --prefs "$prefs" \
         --recipe-dir /Users/gpugh/sourcecode/jamf-upload/_tests \
-        --name "Google Chrome" \
-        --title "Google Chrome" \
-        --policy-name "Install Latest Google Chrome" \
+        --name "Installomator" \
+        --title "Installomator" \
+        --policy-name "Install Latest Installomator" \
         --template "templates/PatchTemplate-selfservice.xml" \
-        --pkg-name "Google Chrome-91.0.4472.77.pkg" \
-        --version "91.0.4472.77" \
+        --pkg-name "Installomator-10.5.pkg" \
+        --version "10.5" \
         "$verbosity" \
         "$url" \
         --replace

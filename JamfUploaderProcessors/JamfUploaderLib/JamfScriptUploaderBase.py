@@ -138,8 +138,8 @@ class JamfScriptUploaderBase(JamfUploaderBase):
                 sleep(30)
         return r
 
-    def main(self):
-        """Do the main thing here"""
+    def execute(self):
+        """Upload a script"""
         self.jamf_url = self.env.get("JSS_URL")
         self.jamf_user = self.env.get("API_USERNAME")
         self.jamf_password = self.env.get("API_PASSWORD")
