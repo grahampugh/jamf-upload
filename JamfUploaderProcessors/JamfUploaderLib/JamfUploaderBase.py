@@ -1,7 +1,7 @@
 #!/usr/local/autopkg/python
 
 """
-JamfUploaderBase - used only as a template for copying into the JamfUploader processors
+JamfUploaderBase - common base classes for JamfUploader processors
     by G Pugh
 """
 

@@ -282,10 +282,10 @@ elif [[ $test_type == "pkg" ]]; then
     "$DIR"/../jamf-upload.sh pkg \
         --prefs "$prefs" \
         --recipe-dir /Users/gpugh/sourcecode/jamf-upload/_tests \
-        --pkg "/Users/gpugh/Library/AutoPkg/Cache/com.github.mlbz521.pkg.Solstice/Solstice-5.4.30427.pkg" \
-        --pkg-name "Solstice-5.4.30427.pkg" \
-        --nsme "Solstice-5.4.30427" \
-        --category Applications \
+        --pkg "/Users/Shared/Installomator-10.5.pkg" \
+        --pkg-name "Installomator-10.5.pkg" \
+        --nsme "Installomator-10.5.pkg" \
+        --category Testing \
         --info "Uploaded directly by JamfPackageUploader in JCDS mode" \
         --notes "$(date)" \
         "$verbosity" \
