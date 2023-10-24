@@ -33,54 +33,53 @@ sys.path.insert(0, os.path.dirname(__file__))
 from JamfUploaderBase import JamfUploaderBase  # noqa: E402
 
 
-class JamfComputerGroupUploaderBase(JamfUploaderBase):
-    """Class for functions used to upload a computer group to Jamf"""
+class JamfClassicAPIObjectUploaderBase(JamfUploaderBase):
+    """Class for functions used to upload a generic API object to Jamf"""
 
-    def upload_computergroup(
-        self,
-        jamf_url,
-        computergroup_name,
-        computergroup_template,
-        token,
-        obj_id=0,
-    ):
-        """Upload computer group"""
-
+    def prepare_template(self, object_name, object_template):
+        """prepare the object contents"""
         # import template from file and replace any keys in the template
-        if os.path.exists(computergroup_template):
-            with open(computergroup_template, "r") as file:
+        if os.path.exists(object_template):
+            with open(object_template, "r") as file:
                 template_contents = file.read()
         else:
             raise ProcessorError("Template does not exist!")
 
-        # if JSS_INVENTORY_NAME is not given, make it equivalent to %NAME%.app
-        # (this is to allow use of legacy JSSImporter group templates)
-        try:
-            self.env["JSS_INVENTORY_NAME"]
-        except KeyError:
-            try:
-                self.env["JSS_INVENTORY_NAME"] = self.env["NAME"] + ".app"
-            except KeyError:
-                pass
-
         # substitute user-assignable keys
-        template_contents = self.substitute_assignable_keys(template_contents)
+        object_name = self.substitute_assignable_keys(object_name)
+        template_contents = self.substitute_assignable_keys(
+            template_contents, xml_escape=True
+        )
 
-        self.output("Computer Group data:", verbose_level=2)
+        self.output("object data:", verbose_level=2)
         self.output(template_contents, verbose_level=2)
 
-        self.output("Uploading Computer Group...")
         # write the template to temp file
         template_xml = self.write_temp_file(template_contents)
+        return object_name, template_xml
+
+    def upload_object(
+        self,
+        jamf_url,
+        object_name,
+        object_type,
+        template_xml,
+        token,
+        obj_id=0,
+    ):
+        """Upload object"""
+
+        self.output(f"Uploading {object_type}...")
 
         # if we find an object ID we put, if not, we post
-        object_type = "computer_group"
         url = "{}/{}/id/{}".format(jamf_url, self.api_endpoints(object_type), obj_id)
 
         count = 0
         while True:
             count += 1
-            self.output(f"Computer Group upload attempt {count}", verbose_level=2)
+            self.output(
+                "{} upload attempt {}".format(object_type, count), verbose_level=2
+            )
             request = "PUT" if obj_id else "POST"
             r = self.curl(
                 request=request,
@@ -88,58 +87,60 @@ class JamfComputerGroupUploaderBase(JamfUploaderBase):
                 token=token,
                 data=template_xml,
             )
-
             # check HTTP response
-            if (
-                self.status_check(r, "Computer Group", computergroup_name, request)
-                == "break"
-            ):
+            if self.status_check(r, object_type, object_name, request) == "break":
                 break
             if count > 5:
                 self.output(
-                    "WARNING: Computer Group upload did not succeed after 5 attempts"
+                    f"WARNING: {object_type} upload did not succeed after 5 attempts"
                 )
-                self.output(f"\nHTTP POST Response Code: {r.status_code}")
-                raise ProcessorError("ERROR: Computer Group upload failed ")
+                self.output("\nHTTP POST Response Code: {}".format(r.status_code))
+                raise ProcessorError(f"ERROR: {object_type} upload failed ")
             if int(self.sleep) > 30:
                 sleep(int(self.sleep))
             else:
                 sleep(30)
+        return r
 
     def execute(self):
-        """Upload a computer group"""
+        """Upload an API object"""
         self.jamf_url = self.env.get("JSS_URL")
         self.jamf_user = self.env.get("API_USERNAME")
         self.jamf_password = self.env.get("API_PASSWORD")
         self.client_id = self.env.get("CLIENT_ID")
         self.client_secret = self.env.get("CLIENT_SECRET")
-        self.computergroup_name = self.env.get("computergroup_name")
-        self.computergroup_template = self.env.get("computergroup_template")
-        self.replace = self.env.get("replace_group")
+        self.object_name = self.env.get("object_name")
+        self.object_type = self.env.get("object_type")
+        self.object_template = self.env.get("object_template")
+        self.replace = self.env.get("replace_object")
         self.sleep = self.env.get("sleep")
         # handle setting replace in overrides
         if not self.replace or self.replace == "False":
             self.replace = False
+        self.object_updated = False
 
         # clear any pre-existing summary result
-        if "jamfcomputergroupuploader_summary_result" in self.env:
-            del self.env["jamfcomputergroupuploader_summary_result"]
-        group_uploaded = False
+        if "jamfclassicapiobjectuploader_summary_result" in self.env:
+            del self.env["jamfclassicapiobjectuploader_summary_result"]
 
         # handle files with a relative path
-        if not self.computergroup_template.startswith("/"):
-            found_template = self.get_path_to_file(self.computergroup_template)
+        if not self.object_template.startswith("/"):
+            found_template = self.get_path_to_file(self.object_template)
             if found_template:
-                self.computergroup_template = found_template
+                self.object_template = found_template
             else:
                 raise ProcessorError(
-                    f"ERROR: Computer Group file {self.computergroup_template} not found"
+                    f"ERROR: Policy file {self.object_template} not found"
                 )
 
-        # now start the process of uploading the object
-        self.output(
-            f"Checking for existing '{self.computergroup_name}' on {self.jamf_url}"
+        # we need to substitute the values in the object name and template now to
+        # account for version strings in the name
+        self.object_name, template_xml = self.prepare_template(
+            self.object_name, self.object_template
         )
+
+        # now start the process of uploading the object
+        self.output(f"Checking for existing '{self.object_name}' on {self.jamf_url}")
 
         # get token using oauth or basic auth depending on the credentials given
         if self.jamf_url and self.client_id and self.client_secret:
@@ -151,57 +152,54 @@ class JamfComputerGroupUploaderBase(JamfUploaderBase):
         else:
             raise ProcessorError("ERROR: Credentials not supplied")
 
-        # check for existing - requires obj_name
-        obj_type = "computer_group"
-        obj_name = self.computergroup_name
+        # Check for existing item
+        self.output(f"Checking for existing '{self.object_name}' on {self.jamf_url}")
+
         obj_id = self.get_api_obj_id_from_name(
             self.jamf_url,
-            obj_name,
-            obj_type,
+            self.object_name,
+            self.object_type,
             token=token,
         )
 
         if obj_id:
             self.output(
-                f"Computer group '{self.computergroup_name}' already exists: ID {obj_id}"
+                f"{self.object_type} '{self.object_name}' already exists: ID {obj_id}"
             )
             if self.replace:
                 self.output(
-                    "Replacing existing Computer Group as 'replace_group' is set "
-                    f"to {self.replace}",
+                    f"Replacing existing {self.object_type} as replace_object is "
+                    f"set to '{self.replace}'",
                     verbose_level=1,
                 )
             else:
                 self.output(
-                    "Not replacing existing Computer Group. Use replace_group='True' to enforce.",
-                    verbose_level=1,
+                    f"Not replacing existing {self.object_type}. Use "
+                    f"replace_object='True' to enforce."
                 )
                 return
 
-        # upload the group
-        self.upload_computergroup(
+        # upload the object
+        self.upload_object(
             self.jamf_url,
-            self.computergroup_name,
-            self.computergroup_template,
+            self.object_name,
+            self.object_type,
+            template_xml,
             token=token,
             obj_id=obj_id,
         )
-        group_uploaded = True
-
-        if int(self.sleep) > 0:
-            sleep(int(self.sleep))
+        self.object_updated = True
 
         # output the summary
-        self.env["group_uploaded"] = group_uploaded
-        if group_uploaded:
-            self.env["jamfcomputergroupuploader_summary_result"] = {
-                "summary_text": (
-                    "The following computer groups were created or updated "
-                    "in Jamf Pro:"
-                ),
-                "report_fields": ["group", "template"],
+        self.env["object_name"] = self.object_name
+        self.env["object_type"] = self.object_type
+        self.env["object_updated"] = self.object_updated
+        if self.object_updated:
+            self.env["jamfclassicapiobjectuploader_summary_result"] = {
+                "summary_text": "The following objects were updated in Jamf Pro:",
+                "report_fields": [self.object_type, "template"],
                 "data": {
-                    "group": self.computergroup_name,
-                    "template": self.computergroup_template,
+                    self.object_type: self.object_name,
+                    "template": self.object_template,
                 },
             }

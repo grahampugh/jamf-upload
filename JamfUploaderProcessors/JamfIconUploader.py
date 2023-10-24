@@ -1,8 +1,22 @@
 #!/usr/local/autopkg/python
 
 """
-JamfIconUploader processor for uploading an icon to Jamf Pro using AutoPkg
-    by G Pugh
+Copyright 2023 Graham Pugh
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+
+NOTES:
+All functions are in JamfUploaderLib/JamfIconUploaderBase.py
 """
 
 import os.path
@@ -21,9 +35,11 @@ __all__ = ["JamfIconUploader"]
 
 
 class JamfIconUploader(JamfIconUploaderBase):
-    """A processor for AutoPkg that will upload an icon to a Jamf Cloud or on-prem server.
-    Note that an icon can only be successsfully injected into a Mac App Store app item if
-    Cloud Services Connection is enabled."""
+    description = (
+        "A processor for AutoPkg that will upload an icon to a Jamf Cloud or on-prem server."
+        "Note that an icon can only be successsfully injected into a Mac App Store app item if"
+        "Cloud Services Connection is enabled."
+    )
 
     input_variables = {
         "JSS_URL": {
@@ -78,8 +94,6 @@ class JamfIconUploader(JamfIconUploaderBase):
             "description": "Description of interesting results.",
         },
     }
-
-    description = __doc__
 
     def main(self):
         """Run the execute function"""

@@ -1,12 +1,27 @@
 #!/usr/local/autopkg/python
 
 """
-JamfDockItemUploader processor for uploading a dock item to Jamf Pro using AutoPkg
-    by Marcel Keßler based on G Pugh's work
+Copyright 2023 Graham Pugh, Marcel Keßler
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+
+NOTES:
+This processor was written by Marcel Keßler based on other JamfUploader processors
+All functions are in JamfUploaderLib/JamfDockItemUploaderBase.py
 """
 
 import os.path
-import sys
+import sys.path
 
 # to use a base module in AutoPkg we need to add this path to the sys.path.
 # this violates flake8 E402 (PEP8 imports) but is unavoidable, so the following
@@ -87,8 +102,6 @@ class JamfDockItemUploader(JamfDockItemUploaderBase):
             "description": "Description of interesting results.",
         },
     }
-
-    description = __doc__
 
     def main(self):
         """Run the execute function"""
