@@ -62,7 +62,7 @@ Can be run as a post-processor for a pkg recipe or in a child recipe. The parent
   - **default:** False
 - **jcds_mode:**
   - **required:** False
-  - **description:** Upload package using JCDS mode.
+  - **description:** This option is no longer functional. A warning message is displayed if set.
   - **default:** False
 - **jcds2_mode:**
   - **required:** False

@@ -13,7 +13,6 @@ To resolve the dependencies, run: /usr/local/autopkg/python -m pip install boto3
 import hashlib
 import json
 import os.path
-import re
 import shutil
 import subprocess
 import sys
@@ -21,7 +20,7 @@ import threading
 
 from shutil import copyfile
 from time import sleep
-from urllib.parse import urlparse, quote, quote_plus
+from urllib.parse import urlparse, quote
 from xml.sax.saxutils import escape
 
 from autopkglib import (
@@ -84,7 +83,8 @@ class JamfPackageUploaderBase(JamfUploaderBase):
         zip_name = f"{bundle_path}.zip"
 
         if os.path.exists(zip_name):
-            self.output("Package object is a bundle. Zipped archive already exists.")
+            self.output("Package object is a bundle. "
+                        "Zipped archive already exists.")
             return zip_name
 
         # we need to create a zip that contains the package (not just the contents of the package)
@@ -245,209 +245,6 @@ class JamfPackageUploaderBase(JamfUploaderBase):
         return r
 
     """End of section for upload to Local Fileshare Distribution Points"""
-
-    """Beginning of section for upload to Jamf Cloud using API v3 endpoint"""
-
-    def get_failover_url(self, jamf_url, token):
-        """get the failover string which is required for Jamf 10.45.0+ when
-        uploading using API v3"""
-
-        object_type = "failover"
-        url = "{}/{}".format(jamf_url, self.api_endpoints(object_type))
-
-        request = "GET"
-        r = self.curl(
-            request=request,
-            url=url,
-            token=token,
-        )
-
-        if r.status_code == 200:
-            # obj = json.loads(r.output)
-            obj = r.output
-            try:
-                jamf_url = obj["failoverUrl"]
-                self.output(f"Failover URL obtained: {jamf_url}", verbose_level=2)
-            except KeyError:
-                self.output("No failover URL obtained", verbose_level=2)
-
-        return jamf_url
-
-    def get_pkg_category_id(self, url, category, token):
-        """get the pkg category ID - required for API v3 uploads"""
-
-        # check for existing category
-        self.output(f"Checking for existing '{category}' on {url}")
-        obj_type = "category"
-        obj_name = category
-        obj_id = self.get_uapi_obj_id_from_name(
-            url,
-            obj_type,
-            obj_name,
-            token,
-        )
-        self.output(f"ID for category {category}: {obj_id}", verbose_level=1)
-        return obj_id
-
-    def create_session(self, jamf_url, user, password):
-        """create session cookies for the API v3 package upload endpoint"""
-
-        url = jamf_url
-        tmp_dir = self.make_tmp_dir()
-        cookie_jar = os.path.join(tmp_dir, "curl_cookies_from_jamf_upload.txt")
-        additional_curl_opts = [
-            "--header",
-            "Content-Type: application/x-www-form-urlencoded",
-            "--data-urlencode",
-            f"username={user}",
-            "--data-urlencode",
-            f"password={password}",
-            "--cookie-jar",
-            cookie_jar,
-            "--location",
-        ]
-        request = "POST"
-        r = self.curl(
-            request=request,
-            url=url,
-            additional_curl_opts=additional_curl_opts,
-        )
-
-        self.output(f"HTTP response: {r.status_code}", verbose_level=1)
-        self.output(f"Headers: {r.headers}", verbose_level=2)
-
-    def get_session_token(self, jamf_url, pkg_id):
-        """get a session token, x-auth token and pkg upload URL
-        for the API v3 package upload endpoint"""
-
-        url = f"{jamf_url}/legacy/packages.html?id={pkg_id}&o=c"
-        additional_curl_opts = [
-            "--location",
-        ]
-        request = "GET"
-        r = self.curl(
-            request=request,
-            url=url,
-            additional_curl_opts=additional_curl_opts,
-            endpoint_type="jcds",
-        )
-        self.output(f"HTTP response: {r.status_code}", verbose_level=1)
-        self.output(str(r.output), verbose_level=3)
-
-        # session token
-        matches = re.search(r'id="session-token" value="([^"]*)"', str(r.output))
-        if matches:
-            session_token = matches.group(1)
-            self.output("Session Token: " + session_token, verbose_level=2)
-        else:
-            raise ProcessorError("WARNING: No package upload session token was found")
-        matches = re.search(r'"X-Auth-Token", "([^"]*)"', str(r.output))
-
-        # x-auth token
-        if matches:
-            x_auth_token = matches.group(1)
-            self.output("X-Auth Token: " + x_auth_token, verbose_level=2)
-        else:
-            raise ProcessorError("WARNING: No x-auth token was found")
-        matches = re.search(r'const url = "([^"]*)"', str(r.output))
-
-        # pkg upload URL
-        if matches:
-            pkg_upload_url = matches.group(1)
-            self.output("Pkg Upload URL: " + pkg_upload_url, verbose_level=2)
-        else:
-            raise ProcessorError("WARNING: No package upload URL was found")
-
-        return session_token, x_auth_token, pkg_upload_url
-
-    def post_pkg(self, jamf_url, pkg_name, pkg_path, x_auth_token, pkg_upload_url):
-        """upload the package via the API v3 endpoint"""
-
-        url = f"{pkg_upload_url}/{quote(pkg_name)}"
-        self.output(f"Pkg Upload URL: {url}", verbose_level=1)
-        additional_curl_opts = [
-            "--header",
-            f"x-auth-token: {x_auth_token}",
-            "--header",
-            "accept: */*",
-            "--header",
-            f"origin: {jamf_url}",
-            "--header",
-            f"referer: {jamf_url}",
-            "--form",
-            f"file=@{pkg_path};filename={pkg_name}",
-            "--compressed",
-        ]
-        request = "POST"
-        r = self.curl(
-            request=request,
-            url=url,
-            additional_curl_opts=additional_curl_opts,
-        )
-        self.output(f"HTTP response: {r.status_code}", verbose_level=1)
-        self.output(r.output, verbose_level=3)
-
-    def create_pkg_object(
-        self,
-        jamf_url,
-        pkg_name,
-        pkg_display_name,
-        pkg_id,
-        session_token,
-        pkg_category_id,
-    ):
-        """record the package in in the jamf server after an upload using
-        the API v3 endpoint"""
-
-        url = f"{jamf_url}/legacy/packages.html?id={pkg_id}&o=c"
-        self.output(f"Pkg Object URL: {url}", verbose_level=1)
-        additional_curl_opts = [
-            "--header",
-            f"origin: {jamf_url}",
-            "--header",
-            f"referer: {jamf_url}/legacy/packages.html?id={pkg_id}&o=c",
-            "--header",
-            "content-type: application/x-www-form-urlencoded",
-            "--header",
-            (
-                "accept: text/html,application/xhtml+xml,application/xml;"
-                + "q=0.9,image/avif,image/webp,image/apng,*/*;"
-                + "q=0.8,application/signed-exchange;v=b3;q=0.9"
-            ),
-            "--data-raw",
-            (
-                f"session-token={session_token}"
-                + "&lastTab=General"
-                + "&lastSideTab=null"
-                + "&lastSubTab=null"
-                + "&lastSubTabSet=null"
-                + f"&name={quote_plus(pkg_display_name)}"
-                + f"&categoryID={pkg_category_id}"
-                + f"&fileInputfileName={quote_plus(pkg_name)}"
-                + f"&fileName={quote_plus(pkg_name)}"
-                + "&resetFIELD_MANIFEST_INPUT="
-                + "&info="
-                + self.pkg_metadata["info"]
-                + "&notes="
-                + self.pkg_metadata["notes"]
-                + "&priority="
-                + self.pkg_metadata["priority"]
-                + "&uninstall_disabled=false"
-                + "&osRequirements="
-                + "&action=Save"
-            ),
-            "--compressed",
-        ]
-        request = "POST"
-        r = self.curl(
-            request=request,
-            url=url,
-            additional_curl_opts=additional_curl_opts,
-        )
-        self.output("HTTP response: {}".format(r.status_code), verbose_level=1)
-        self.output(r.output, verbose_level=3)
-
-    """End of section for upload to Jamf Cloud using v3 endpoint"""
 
     """Beginning of section for upload to JCDS2 endpoint"""
 

@@ -179,7 +179,10 @@ class JamfPackageUploader(JamfPackageUploaderBase):
         },
         "jcds_mode": {
             "required": False,
-            "description": "Use private API jcds mode if True.",
+            "description": (
+                "This option is no longer functional. "
+                "A warning message is displayed if set."
+            ),
             "default": "False",
         },
         "jcds2_mode": {
@@ -233,43 +236,48 @@ class JamfPackageUploader(JamfPackageUploaderBase):
             except KeyError:
                 pass
         self.pkg_name = self.env.get("pkg_name")
-        if not self.pkg_name:
-            self.pkg_name = os.path.basename(self.pkg_path)
         self.pkg_display_name = self.env.get("pkg_display_name")
         self.version = self.env.get("version")
         self.replace = self.env.get("replace_pkg")
         self.sleep = self.env.get("sleep")
-        # handle setting replace in overrides
-        if not self.replace or self.replace == "False":
-            self.replace = False
         self.replace_metadata = self.env.get("replace_pkg_metadata")
-        # handle setting replace_metadata in overrides
-        if not self.replace_metadata or self.replace_metadata == "False":
-            self.replace_metadata = False
         self.skip_metadata_upload = self.env.get("skip_metadata_upload")
-        # handle setting skip_metadata_upload in overrides
-        if not self.skip_metadata_upload or self.skip_metadata_upload == "False":
-            self.skip_metadata_upload = False
         self.jcds_mode = self.env.get("jcds_mode")
-        # handle setting jcds_mode in overrides
-        if not self.jcds_mode or self.jcds_mode == "False":
-            self.jcds_mode = False
         self.jcds2_mode = self.env.get("jcds2_mode")
-        # handle setting jcds_mode in overrides
-        if not self.jcds2_mode or self.jcds2_mode == "False":
-            self.jcds2_mode = False
         self.jamf_url = self.env.get("JSS_URL")
         self.jamf_user = self.env.get("API_USERNAME")
         self.jamf_password = self.env.get("API_PASSWORD")
         self.client_id = self.env.get("CLIENT_ID")
         self.client_secret = self.env.get("CLIENT_SECRET")
         self.cloud_dp = self.env.get("CLOUD_DP")
-        # handle setting jcds_mode in overrides
-        if not self.cloud_dp or self.cloud_dp == "False":
-            self.cloud_dp = False
         self.recipe_cache_dir = self.env.get("RECIPE_CACHE_DIR")
         self.pkg_uploaded = False
         self.pkg_metadata_updated = False
+
+        # handle setting true/false variables in overrides
+        if not self.replace or self.replace == "False":
+            self.replace = False
+        if not self.replace_metadata or self.replace_metadata == "False":
+            self.replace_metadata = False
+        if not self.skip_metadata_upload or self.skip_metadata_upload == "False":
+            self.skip_metadata_upload = False
+        if not self.jcds_mode or self.jcds_mode == "False":
+            self.jcds_mode = False
+        if not self.jcds2_mode or self.jcds2_mode == "False":
+            self.jcds2_mode = False
+        if not self.cloud_dp or self.cloud_dp == "False":
+            self.cloud_dp = False
+
+        # set pkg_name if not separately defined
+        if not self.pkg_name:
+            self.pkg_name = os.path.basename(self.pkg_path)
+
+        # give out a warning if jcds_mode was set
+        if self.jcds_mode:
+            self.output(
+                "WARNING: jcds_mode is no longer functional. "
+                "This script will continue in normal mode."
+            )
 
         # Create a list of smb shares in tuples
         self.smb_shares = []
@@ -384,7 +392,7 @@ class JamfPackageUploader(JamfPackageUploaderBase):
         )
 
         # get token using oauth or basic auth depending on the credentials given
-        # (dbfileupload and jcds_mode require basic auth)
+        # (dbfileupload requires basic auth)
         if self.jamf_url and self.client_id and self.client_secret and self.jcds2_mode:
             token = self.handle_oauth(self.jamf_url, self.client_id, self.client_secret)
         elif self.jamf_url and self.jamf_user and self.jamf_password:
@@ -407,10 +415,7 @@ class JamfPackageUploader(JamfPackageUploaderBase):
             pkg_id = obj_id  # assign pkg_id for smb runs - JCDS runs get it from the pkg upload
         else:
             self.output("Package '{}' not found on server".format(self.pkg_name))
-            if self.jcds_mode:
-                pkg_id = -1
-            else:
-                pkg_id = 0
+            pkg_id = 0
 
         # Process for SMB shares if defined
         self.output(
@@ -520,56 +525,6 @@ class JamfPackageUploader(JamfPackageUploaderBase):
                     # fake that the package was replaced even if it wasn't
                     # so that the metadata gets replaced
                     self.pkg_uploaded = True
-
-                elif self.jcds_mode:
-                    # use direct upload method if jcds_mode is True
-                    self.output(
-                        "Uploading package using experimental JCDS mode",
-                        verbose_level=1,
-                    )
-                    # 1. get the ID of a category
-                    if self.pkg_category:
-                        pkg_category_id = self.get_pkg_category_id(
-                            self.jamf_url,
-                            self.pkg_category,
-                            token=token,
-                        )
-                    else:
-                        pkg_category_id = -1
-
-                    # 2. get the failover URL
-                    failover_url = self.get_failover_url(self.jamf_url, token)
-
-                    # 3. start the session
-                    self.create_session(
-                        failover_url, self.jamf_user, self.jamf_password
-                    )
-
-                    # 4. get the required tokens and URL
-                    (
-                        session_token,
-                        x_auth_token,
-                        pkg_upload_url,
-                    ) = self.get_session_token(self.jamf_url, pkg_id)
-                    # 5. upload the package
-                    self.post_pkg(
-                        self.jamf_url,
-                        self.pkg_name,
-                        self.pkg_path,
-                        x_auth_token,
-                        pkg_upload_url,
-                    )
-                    # 6. record the package in Jamf Pro
-                    self.create_pkg_object(
-                        self.jamf_url,
-                        self.pkg_name,
-                        self.pkg_display_name,
-                        pkg_id,
-                        session_token,
-                        pkg_category_id,
-                    )
-                    self.pkg_uploaded = True  # TODO - needs to be validated
-                    self.pkg_metadata_updated = True  # TODO - needs to be validated
                 else:
                     # generate enc_creds
                     enc_creds = self.get_enc_creds(self.jamf_user, self.jamf_password)
@@ -623,7 +578,6 @@ class JamfPackageUploader(JamfPackageUploaderBase):
         if (
             int(pkg_id) > 0
             and (self.pkg_uploaded or self.replace_metadata)
-            and not self.jcds_mode
             and not self.skip_metadata_upload
         ):
             self.output(
@@ -657,7 +611,7 @@ class JamfPackageUploader(JamfPackageUploaderBase):
                 token=token,
             )
             self.pkg_metadata_updated = True
-        elif not self.jcds_mode and not self.skip_metadata_upload:
+        elif not self.skip_metadata_upload:
             self.output(
                 "Not updating package metadata",
                 verbose_level=1,
