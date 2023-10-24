@@ -1,8 +1,19 @@
 #!/usr/local/autopkg/python
 
 """
-JamfUploaderBase - used only as a template for copying into the JamfUploader processors
-    by G Pugh
+Copyright 2023 Graham Pugh
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
 """
 
 import json
@@ -19,7 +30,7 @@ from datetime import timedelta
 from html.parser import HTMLParser
 from pathlib import Path
 from shutil import rmtree
-from urllib.parse import quote
+from urllib.parse import urlparse, quote
 from xml.sax.saxutils import escape
 
 # from time import sleep
@@ -31,7 +42,7 @@ from autopkglib import (
 
 
 class JamfUploaderBase(Processor):
-    """A processor for AutoPkg that will upload a category to a Jamf Cloud or on-prem server."""
+    """Common functions used by at least two JamfUploader processors."""
 
     def api_endpoints(self, object_type):
         """Return the endpoint URL from the object type"""
@@ -849,6 +860,41 @@ class JamfUploaderBase(Processor):
         # Print new scope element for debugging
         self.output(template_contents, verbose_level=2)
         return template_contents
+
+    def mount_smb(self, mount_share, mount_user, mount_pass):
+        """Mount distribution point."""
+        mount_cmd = [
+            "/usr/bin/osascript",
+            "-e",
+            (
+                f'mount volume "{mount_share}" as user name "{mount_user}" '
+                f'with password "{mount_pass}"'
+            ),
+        ]
+        self.output(
+            f"Mount command: {' '.join(mount_cmd)}",
+            verbose_level=4,
+        )
+
+        r = subprocess.check_output(mount_cmd)
+        self.output(
+            r.decode("ascii"),
+            # r,
+            verbose_level=4,
+        )
+
+    def umount_smb(self, mount_share):
+        """Unmount distribution point."""
+        path = f"/Volumes{urlparse(mount_share).path}"
+        cmd = ["/usr/sbin/diskutil", "unmount", path]
+        try:
+            r = subprocess.check_output(cmd)
+            self.output(
+                r.decode("ascii"),
+                verbose_level=2,
+            )
+        except subprocess.CalledProcessError:
+            self.output("WARNING! Unmount failed.")
 
     class ParseHTMLForError(HTMLParser):
         def __init__(self):
