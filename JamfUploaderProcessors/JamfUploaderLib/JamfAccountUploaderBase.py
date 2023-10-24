@@ -18,7 +18,7 @@ limitations under the License.
 
 import json
 import os.path
-import sys.path
+import sys
 
 from time import sleep
 

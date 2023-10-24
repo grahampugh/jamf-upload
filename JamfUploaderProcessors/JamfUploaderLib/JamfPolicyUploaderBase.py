@@ -17,7 +17,7 @@ limitations under the License.
 """
 
 import os.path
-import sys.path
+import sys
 import xml.etree.ElementTree as ElementTree
 
 from time import sleep

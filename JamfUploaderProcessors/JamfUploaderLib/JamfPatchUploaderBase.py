@@ -20,7 +20,7 @@ Written by Marcel Keßler based on G Pugh's work
 """
 
 import os.path
-import sys.path
+import sys
 
 import xml.etree.ElementTree as ET
 

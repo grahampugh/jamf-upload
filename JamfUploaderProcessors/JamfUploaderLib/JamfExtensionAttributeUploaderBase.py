@@ -17,7 +17,7 @@ limitations under the License.
 """
 
 import os.path
-import sys.path
+import sys
 
 from xml.sax.saxutils import escape
 from time import sleep

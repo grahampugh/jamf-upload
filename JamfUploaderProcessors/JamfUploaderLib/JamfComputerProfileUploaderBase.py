@@ -17,7 +17,7 @@ limitations under the License.
 """
 
 import os.path
-import sys.path
+import sys
 import plistlib
 import subprocess
 import uuid
