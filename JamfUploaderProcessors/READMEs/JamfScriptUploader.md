@@ -10,11 +10,17 @@ A processor for AutoPkg that will upload a script to a Jamf Cloud or on-prem ser
   - **required:** True
   - **description:** URL to a Jamf Pro server that the API user has write access to, optionally set as a key in the com.github.autopkg preference file.
 - **API_USERNAME:**
-  - **required:** True
+  - **required:** False
   - **description:** Username of account with appropriate access to jss, optionally set as a key in the com.github.autopkg preference file.
 - **API_PASSWORD:**
-  - **required:** True
+  - **required:** False
   - **description:** Password of api user, optionally set as a key in the com.github.autopkg preference file.
+- **CLIENT_ID:**
+  - **required:** True
+  - **description:** Client ID with access to access to jss, optionally set as a key in the com.github.autopkg preference file.
+- **CLIENT_SECRET:**
+  - **required:** True
+  - **description:** Secret associated with the Client ID, optionally set as a key in the com.github.autopkg preference file.
 - **script_path**:
   - **required**: False
   - **description**: Full path to the script to be uploaded
@@ -37,6 +43,10 @@ A processor for AutoPkg that will upload a script to a Jamf Cloud or on-prem ser
 - **script_notes**:
   - **required**: False
   - **description**: Script notes field
+- **skip_script_key_substitution**:
+  - **required**: False
+  - **description**: Skip substitution of keys marked between `%` signs in the script.
+  - **default**: False
 - **script_parameter4**:
   - **required**: False
   - **description**: Script parameter 4 title
@@ -65,6 +75,10 @@ A processor for AutoPkg that will upload a script to a Jamf Cloud or on-prem ser
   - **required**: False
   - **description**: Overwrite an existing script if True.
   - **default**: False
+- **sleep:**
+  - **required:** False
+  - **description:** Pause after running this processor for specified seconds.
+  - **default:** "0"
 
 ## Output variables
 

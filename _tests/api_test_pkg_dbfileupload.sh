@@ -1,6 +1,6 @@
 #!/bin/bash
 
-:<<DOC
+: <<DOC
 Script for testing Jamf API endpoints using curl
 
 Actions:
@@ -13,7 +13,7 @@ Actions:
 DOC
 
 usage() {
-    echo "Usage: api_tests.sh --jss someserver --user username --pass password --pkg /path/to/pkg.pkg"
+    echo "Usage: api_test_opkg_dbfileupload.sh --jss someserver --user username --pass password --pkg /path/to/pkg.pkg"
     echo "(don't include https:// or .jamfcloud.com)"
 }
 
@@ -143,7 +143,7 @@ http_response=$(
         --header "authorization: Bearer $token" \
         --header 'Accept: application/json' \
         "$url/JSSResource/packages/name/$pkg" \
-        --write-out %{http_code} \
+        --write-out "%{http_code}" \
         --output "$temp_file"
 )
     # | xmllint --format - > "$temp_file"
@@ -183,7 +183,7 @@ http_response=$(
         --header 'FILE_NAME: '"$pkg"'' \
         --upload-file "$pkg_path" \
         -i -o /dev/null \
-        --write-out %{http_code} \
+        --write-out "%{http_code}" \
         "$url/dbfileupload"
 )
 

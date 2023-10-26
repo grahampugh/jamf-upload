@@ -1,23 +1,16 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<os_x_configuration_profile>
+<configuration_profile>
     <general>
         <name>%mobileconfig_name%</name>
         <description>%description%</description>
         <category>
             <name>%category%</name>
         </category>
-        <distribution_method>Install Automatically</distribution_method>
+        <deployment_method>Install Automatically</deployment_method>
         <user_removable>false</user_removable>
-        <level>computer</level>
+        <level>System</level>
         <uuid>%uuid%</uuid>
         <redeploy_on_update>All</redeploy_on_update>
         <payloads>%payload%</payloads>
     </general>
-    <scope>
-        <computer_groups>
-            <computer_group>
-                <name>%computergroup_name%</name>
-            </computer_group>
-        </computer_groups>
-    </scope>
-</os_x_configuration_profile>
+</configuration_profile>

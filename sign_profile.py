@@ -101,26 +101,58 @@ def unsign_profile(signed_profile, output_path, verbosity):
     sout, serr = proc.communicate()
     if verbosity:
         if sout:
-            print(f"Output of signing command: {sout}")
+            print(f"Output of unsigning command: {sout}")
             print()
         elif serr:
-            print("Error: Profile was not signed:")
+            print("Error: Profile was not unsigned:")
             print(serr)
             print()
+            exit(1)
+    # prettify the profile if it was successfully unsigned
+    prettify_profile(output_path, verbosity)
     return output_path
+
+
+def prettify_profile(profile, verbosity):
+    """Prettify an unsigned profile in place"""
+    cmd = [
+        "/usr/bin/plutil",
+        "-convert",
+        "xml1",
+        profile,
+    ]
+    if verbosity:
+        print(cmd)
+        print()
+    proc = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    sout, serr = proc.communicate()
+    if verbosity:
+        if sout:
+            print(f"Output of plutil command: {sout}")
+            print()
+        elif serr:
+            print("Error: plutil conversion failed:")
+            print(serr)
+            print()
 
 
 def get_args():
     """Parse any command line arguments"""
     parser = argparse.ArgumentParser()
     parser.add_argument(
-        "mobileconfig", nargs="+", help="Path to Configuration Profile mobileconfig",
+        "mobileconfig",
+        nargs="+",
+        help="Path to Configuration Profile mobileconfig",
     )
     parser.add_argument(
-        "--output_path", default="", help="Output path for signed mobileconfig",
+        "--output_path",
+        default="",
+        help="Output path for signed mobileconfig",
     )
     parser.add_argument(
-        "--unsign", help="Unsign cert instead of signing", action="store_true",
+        "--unsign",
+        help="Unsign cert instead of signing",
+        action="store_true",
     )
     parser.add_argument(
         "--developer",

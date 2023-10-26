@@ -230,7 +230,12 @@ class JamfUploaderTeamsNotifier(JamfUploaderBase):
                 "Teams webhook post attempt {}".format(count),
                 verbose_level=2,
             )
-            r = self.curl(request="POST", url=teams_webhook_url, data=teams_json)
+            r = self.curl(
+                request="POST",
+                url=teams_webhook_url,
+                data=teams_json,
+                endpoint_type="teams",
+            )
             # check HTTP response
             if self.teams_status_check(r) == "break":
                 break

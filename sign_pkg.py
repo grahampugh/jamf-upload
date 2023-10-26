@@ -29,7 +29,7 @@ def find_developer_id(verbosity):
         if verbosity:
             print(output)
             print()
-        identities = output.split(b'\n')
+        identities = output.split(b"\n")
         developer = ""
         for identity in identities:
             if b"Developer ID Installer" in identity:
@@ -63,11 +63,11 @@ def sign_package(unsigned_pkg, developer_id, output_path, verbosity):
     sout, serr = proc.communicate()
     if verbosity:
         if sout:
-            print(f"Output of signing command: {sout}")
+            print(f"Output of signing command: {sout.decode()}")
             print()
         elif serr:
             print("Error: Package was not signed:")
-            print(serr)
+            print(serr.decode())
             print()
     return output_path
 
@@ -76,10 +76,14 @@ def get_args():
     """Parse any command line arguments"""
     parser = argparse.ArgumentParser()
     parser.add_argument(
-        "pkg", nargs="+", help="Path to package .pkg file",
+        "pkg",
+        nargs="+",
+        help="Path to package .pkg file",
     )
     parser.add_argument(
-        "--output_path", default="", help="Output path for signed package",
+        "--output_path",
+        default="",
+        help="Output path for signed package",
     )
     parser.add_argument(
         "--developer",

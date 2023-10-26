@@ -10,11 +10,17 @@ A processor for AutoPkg that will upload a computer configuration profile to a J
   - **required:** True
   - **description:** URL to a Jamf Pro server that the API user has write access to, optionally set as a key in the com.github.autopkg preference file.
 - **API_USERNAME:**
-  - **required:** True
+  - **required:** False
   - **description:** Username of account with appropriate access to jss, optionally set as a key in the com.github.autopkg preference file.
 - **API_PASSWORD:**
-  - **required:** True
+  - **required:** False
   - **description:** Password of api user, optionally set as a key in the com.github.autopkg preference file.
+- **CLIENT_ID:**
+  - **required:** True
+  - **description:** Client ID with access to access to jss, optionally set as a key in the com.github.autopkg preference file.
+- **CLIENT_SECRET:**
+  - **required:** True
+  - **description:** Secret associated with the Client ID, optionally set as a key in the com.github.autopkg preference file.
 - **profile_name**:
   - **required**: False
   - **description**: Configuration Profile name
@@ -50,6 +56,14 @@ A processor for AutoPkg that will upload a computer configuration profile to a J
   - **required**: False
   - **description**: overwrite an existing Configuration Profile if True.
   - **default**: False
+- **retain_scope**:
+  - **required**: False
+  - **description**: retain the existing scope of an existing Configuration Profile if True.
+  - **default**: False
+- **sleep:**
+  - **required:** False
+  - **description:** Pause after running this processor for specified seconds.
+  - **default:** "0"
 
 ## Output variables
 

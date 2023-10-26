@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<os_x_configuration_profile>
+    <general>
+        <name>%mobileconfig_name%</name>
+        <description>%description%</description>
+        <category>
+            <name>%category%</name>
+        </category>
+        <distribution_method>Install Automatically</distribution_method>
+        <user_removable>false</user_removable>
+        <level>computer</level>
+        <uuid>%uuid%</uuid>
+        <redeploy_on_update>All</redeploy_on_update>
+        <payloads>%payload%</payloads>
+    </general>
+    <scope>
+        <all_computers>false</all_computers>
+        <all_jss_users>false</all_jss_users>
+        <computers/>
+        <buildings/>
+        <departments/>
+        <computer_groups>
+            <computer_group>
+                <name>%computergroup_name%</name>
+            </computer_group>
+        </computer_groups>
+        <jss_users/>
+        <jss_user_groups/>
+        <limitations>
+            <users/>
+            <user_groups/>
+            <network_segments/>
+            <ibeacons/>
+        </limitations>
+        <exclusions>
+            <computers/>
+            <buildings/>
+            <departments/>
+            <computer_groups/>
+            <users/>
+            <user_groups/>
+            <network_segments/>
+            <ibeacons/>
+            <jss_users/>
+            <jss_user_groups/>
+        </exclusions>
+    </scope>
+</os_x_configuration_profile>

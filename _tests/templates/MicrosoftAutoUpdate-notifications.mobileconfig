@@ -1,0 +1,62 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>PayloadContent</key>
+	<array>
+		<dict>
+			<key>NotificationSettings</key>
+			<array>
+				<dict>
+					<key>AlertType</key>
+					<integer>1</integer>
+					<key>BadgesEnabled</key>
+					<true/>
+					<key>BundleIdentifier</key>
+					<string>com.microsoft.autoupdate2</string>
+					<key>CriticalAlertEnabled</key>
+					<false/>
+					<key>NotificationsEnabled</key>
+					<true/>
+					<key>PreviewType</key>
+					<integer>1</integer>
+					<key>ShowInCarPlay</key>
+					<false/>
+					<key>ShowInLockScreen</key>
+					<false/>
+					<key>ShowInNotificationCenter</key>
+					<true/>
+					<key>SoundsEnabled</key>
+					<false/>
+				</dict>
+			</array>
+			<key>PayloadDescription</key>
+			<string>Enables notifications for Microsoft AutoUpdate</string>
+			<key>PayloadDisplayName</key>
+			<string>Notifications Payload</string>
+			<key>PayloadIdentifier</key>
+			<string>com.apple.notificationsettings.88D65FD9-1711-4EC4-9CE2-741668AC72C1</string>
+			<key>PayloadType</key>
+			<string>com.apple.notificationsettings</string>
+			<key>PayloadUUID</key>
+			<string>88D65FD9-1711-4EC4-9CE2-741668AC72C1</string>
+			<key>PayloadVersion</key>
+			<integer>1</integer>
+		</dict>
+	</array>
+	<key>PayloadDescription</key>
+	<string>Enables notifications for Microsoft AutoUpdate</string>
+	<key>PayloadDisplayName</key>
+	<string>Microsoft AutoUpdate Notifications</string>
+	<key>PayloadIdentifier</key>
+	<string>95f2b0ff-deda-4f63-a9fe-8c1093ec2c26</string>
+	<key>PayloadOrganization</key>
+	<string>Microsoft</string>
+	<key>PayloadType</key>
+	<string>Configuration</string>
+	<key>PayloadUUID</key>
+	<string>95f2b0ff-deda-4f63-a9fe-8c1093ec2c26</string>
+	<key>PayloadVersion</key>
+	<integer>1</integer>
+</dict>
+</plist>
