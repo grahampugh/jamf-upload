@@ -259,25 +259,39 @@ elif [[ $test_type == "pkg" ]]; then
     "$DIR"/../jamf-upload.sh pkg \
         --prefs "$prefs" \
         --recipe-dir /Users/gpugh/sourcecode/jamf-upload/_tests \
-        --pkg "/Users/gpugh/Library/AutoPkg/Cache/com.github.mlbz521.pkg.Solstice/Solstice-5.4.30427.pkg" \
-        --pkg-name "Solstice-5.4.30427.pkg" \
-        --nsme "Solstice-5.4.30427" \
-        --category Applications \
-        --info "Uploaded directly by JamfPackageUploader in JCDS mode" \
+        --pkg "/Users/gpugh/Library/AutoPkg/Cache/com.github.dataJAR-recipes.pkg.Rectangle/Rectangle-0.67.pkg" \
+        --pkg-name "Rectangle-0.67.pkg" \
+        --name "Rectangle-0.67.pkg" \
+        --category "Testing" \
+        --info "Uploaded directly by JamfPackageUploader in dbfileupload mode" \
         --notes "$(date)" \
+        "$verbosity" \
+        --replace
+
+elif [[ $test_type == "pkg-jcds" ]]; then
+    # upload a package
+    "$DIR"/../jamf-upload.sh pkg \
+        --prefs "$prefs" \
+        --recipe-dir /Users/gpugh/sourcecode/jamf-upload/_tests \
+        --pkg "/Users/gpugh/Library/AutoPkg/Cache/com.github.dataJAR-recipes.pkg.Rectangle/Rectangle-0.67.pkg" \
+        --pkg-name "Rectangle-0.67.pkg" \
+        --name "Rectangle-0.67.pkg" \
+        --category "Testing" \
         "$verbosity" \
         --jcds \
         --replace
+        # --info "Uploaded directly by JamfPackageUploader in JCDS mode" \
+        # --notes "$(date)" \
 
-elif [[ $test_type == "jcds2" ]]; then
+elif [[ $test_type == "pkg-jcds2" ]]; then
     /usr/local/autopkg/python -m pip install boto3
 
     # upload a package
     "$DIR"/../jamf-upload.sh pkg \
         --prefs "$prefs" \
         --recipe-dir /Users/gpugh/sourcecode/jamf-upload/_tests \
-        --pkg-path "/Users/gpugh/sourcecode/erase-install/pkg/erase-install/build/erase-install-30.2.pkg" \
-        --pkg-name "erase-install-30.2.pkg" \
+        --pkg "/Users/gpugh/Library/AutoPkg/Cache/com.github.dataJAR-recipes.pkg.Rectangle/Rectangle-0.67.pkg" \
+        --pkg-name "Rectangle-0.67.pkg" \
         --category "Testing" \
         "$verbosity" \
         --jcds2 \
