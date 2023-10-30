@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<configuration_profile>
+    <general>
+        <name>%mobileconfig_name%</name>
+        <description>%description%</description>
+        <category>
+            <name>%category%</name>
+        </category>
+        <deployment_method>Install Automatically</deployment_method>
+        <user_removable>false</user_removable>
+        <level>System</level>
+        <uuid>%uuid%</uuid>
+        <redeploy_on_update>All</redeploy_on_update>
+        <payloads>%payload%</payloads>
+    </general>
+</configuration_profile>

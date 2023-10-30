@@ -56,6 +56,18 @@ elif [[ $test_type == "group" ]]; then
         "$verbosity" \
         --replace
 
+elif [[ $test_type == "mobiledevicegroup" ]]; then
+    # upload a computer group
+    "$DIR"/../jamf-upload.sh mobiledevicegroup \
+        --prefs "$prefs" \
+        --recipe-dir /Users/gpugh/sourcecode/jamf-upload/_tests \
+        --name "Allow Screen Recording" \
+        --template "templates/AllowScreenRecording-mobiledevicegroup.xml" \
+        --key GROUP_NAME="Allow Screen Recording" \
+        --key TESTING_GROUP_NAME="Testing" \
+        "$verbosity" \
+        --replace
+
 elif [[ $test_type == "payload" ]]; then
     # upload a profile (payload plist)
     "$DIR"/../jamf-upload.sh profile \
@@ -155,6 +167,17 @@ elif [[ $test_type == "macapp2" ]]; then
         "$verbosity" \
         --replace
 
+elif [[ $test_type == "mobiledeviceprofile" ]]; then
+    # upload a profile (mobileconfig)
+    "$DIR"/../jamf-upload.sh mobiledeviceprofile \
+        --prefs "$prefs" \
+        --recipe-dir /Users/gpugh/sourcecode/jamf-upload/_tests \
+        --template "templates/MobileDeviceProfileTemplate-test-users.xml" \
+        --category JamfUploadTest \
+        --mobiledevicegroup "Testing" \
+        --mobileconfig "templates/AllowScreenRecording.mobileconfig" \
+        "$verbosity" \
+        --replace
 
 elif [[ $test_type == "policy" ]]; then
     # upload a policy
@@ -259,11 +282,11 @@ elif [[ $test_type == "pkg" ]]; then
     "$DIR"/../jamf-upload.sh pkg \
         --prefs "$prefs" \
         --recipe-dir /Users/gpugh/sourcecode/jamf-upload/_tests \
-        --pkg "/Users/gpugh/Library/AutoPkg/Cache/com.github.dataJAR-recipes.pkg.Rectangle/Rectangle-0.67.pkg" \
-        --pkg-name "Rectangle-0.67.pkg" \
-        --name "Rectangle-0.67.pkg" \
-        --category "Testing" \
-        --info "Uploaded directly by JamfPackageUploader in dbfileupload mode" \
+        --pkg "/Users/Shared/Installomator-10.5.pkg" \
+        --pkg-name "Installomator-10.5.pkg" \
+        --nsme "Installomator-10.5.pkg" \
+        --category Testing \
+        --info "Uploaded directly by JamfPackageUploader in JCDS mode" \
         --notes "$(date)" \
         "$verbosity" \
         --replace
@@ -290,8 +313,9 @@ elif [[ $test_type == "pkg-jcds2" ]]; then
     "$DIR"/../jamf-upload.sh pkg \
         --prefs "$prefs" \
         --recipe-dir /Users/gpugh/sourcecode/jamf-upload/_tests \
-        --pkg "/Users/gpugh/Library/AutoPkg/Cache/com.github.dataJAR-recipes.pkg.Rectangle/Rectangle-0.67.pkg" \
-        --pkg-name "Rectangle-0.67.pkg" \
+        --pkg "/Users/Shared/Installomator-10.5.pkg" \
+        --pkg-name "Installomator-10.5.pkg" \
+        --nsme "Installomator-10.5.pkg" \
         --category "Testing" \
         "$verbosity" \
         --jcds2 \
@@ -313,7 +337,7 @@ elif [[ $test_type == "script" ]]; then
         --prefs "$prefs" \
         --recipe-dir /Users/gpugh/sourcecode/jamf-upload/_tests \
         --name "Microsoft Office License Type.sh" \
-        --script "Microsoft Office License Type.sh" \
+        --script "templates/Microsoft Office License Type.sh" \
         --script_parameter4 "License Type" \
         "$verbosity" \
         --replace
@@ -323,12 +347,12 @@ elif [[ $test_type == "patch" ]]; then
     "$DIR"/../jamf-upload.sh patch \
         --prefs "$prefs" \
         --recipe-dir /Users/gpugh/sourcecode/jamf-upload/_tests \
-        --name "Google Chrome" \
-        --title "Google Chrome" \
-        --policy-name "Install Latest Google Chrome" \
+        --name "Installomator" \
+        --title "Installomator" \
+        --policy-name "Install Latest Installomator" \
         --template "templates/PatchTemplate-selfservice.xml" \
-        --pkg-name "Google Chrome-91.0.4472.77.pkg" \
-        --version "91.0.4472.77" \
+        --pkg-name "Installomator-10.5.pkg" \
+        --version "10.5" \
         "$verbosity" \
         "$url" \
         --replace

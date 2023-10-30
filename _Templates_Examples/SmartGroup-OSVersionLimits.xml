@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<computer_group>
+    <name>%OS_LIMITS_GROUP_NAME%</name>
+    <is_smart>true</is_smart>
+    <criteria>
+        <criterion>
+            <name>Operating System Version</name>
+            <priority>0</priority>
+            <and_or>and</and_or>
+            <search_type>less than or equal</search_type>
+            <value>%OS_EXCLUDE_MAX%</value>
+        </criterion>
+        <criterion>
+            <name>Operating System Version</name>
+            <priority>1</priority>
+            <and_or>and</and_or>
+            <search_type>greater than or equal</search_type>
+            <value>%OS_EXCLUDE_MIN%</value>
+        </criterion>
+    </criteria>
+</computer_group>

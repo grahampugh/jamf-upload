@@ -16,7 +16,7 @@
     <scope>
         <computer_groups>
             <computer_group>
-                <name>%computergroup_name%</name>
+                <name>%profile_computergroup%</name>
             </computer_group>
         </computer_groups>
     </scope>

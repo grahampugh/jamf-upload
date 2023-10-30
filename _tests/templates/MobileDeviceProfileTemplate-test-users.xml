@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<configuration_profile>
+    <general>
+        <name>%mobileconfig_name%</name>
+        <description>%description%</description>
+        <category>
+            <name>%category%</name>
+        </category>
+        <deployment_method>Install Automatically</deployment_method>
+        <user_removable>false</user_removable>
+        <level>System</level>
+        <uuid>%uuid%</uuid>
+        <redeploy_on_update>All</redeploy_on_update>
+        <payloads>%payload%</payloads>
+    </general>
+    <scope>
+        <all_mobile_devices>false</all_mobile_devices>
+        <mobile_device_groups>
+            <mobile_device_group>
+                <name>%profile_mobiledevicegroup%</name>
+            </mobile_device_group>
+        </mobile_device_groups>
+    </scope>
+</configuration_profile>
