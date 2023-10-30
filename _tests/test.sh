@@ -289,10 +289,24 @@ elif [[ $test_type == "pkg" ]]; then
         --info "Uploaded directly by JamfPackageUploader in JCDS mode" \
         --notes "$(date)" \
         "$verbosity" \
-        --jcds \
         --replace
 
-elif [[ $test_type == "jcds2" ]]; then
+elif [[ $test_type == "pkg-jcds" ]]; then
+    # upload a package
+    "$DIR"/../jamf-upload.sh pkg \
+        --prefs "$prefs" \
+        --recipe-dir /Users/gpugh/sourcecode/jamf-upload/_tests \
+        --pkg "/Users/gpugh/Library/AutoPkg/Cache/com.github.dataJAR-recipes.pkg.Rectangle/Rectangle-0.67.pkg" \
+        --pkg-name "Rectangle-0.67.pkg" \
+        --name "Rectangle-0.67.pkg" \
+        --category "Testing" \
+        "$verbosity" \
+        --jcds \
+        --replace
+        # --info "Uploaded directly by JamfPackageUploader in JCDS mode" \
+        # --notes "$(date)" \
+
+elif [[ $test_type == "pkg-jcds2" ]]; then
     /usr/local/autopkg/python -m pip install boto3
 
     # upload a package

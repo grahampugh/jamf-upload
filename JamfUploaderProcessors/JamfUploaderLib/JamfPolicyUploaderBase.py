@@ -346,10 +346,11 @@ class JamfPolicyUploaderBase(JamfUploaderBase):
         if self.policy_updated:
             self.env["jamfpolicyuploader_summary_result"] = {
                 "summary_text": "The following policies were created or updated in Jamf Pro:",
-                "report_fields": ["policy", "template", "icon"],
+                "report_fields": ["policy", "template", "icon", "icon_path"],
                 "data": {
                     "policy": self.policy_name,
                     "template": self.policy_template,
                     "icon": policy_icon_name,
+                    "icon_path": self.icon
                 },
             }

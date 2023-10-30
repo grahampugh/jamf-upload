@@ -637,10 +637,8 @@ class JamfUploaderBase(Processor):
             for found_key in found_keys:
                 if self.env.get(found_key) is not None:
                     self.output(
-                        (
-                            f"Replacing any instances of '{found_key}' with",
-                            f"'{str(self.env.get(found_key))}'",
-                        ),
+                        f"Replacing any instances of '{found_key}' with "
+                        f"'{str(self.env.get(found_key))}'",
                         verbose_level=2,
                     )
                     if xml_escape and type(self.env.get(found_key)) is not int:
