@@ -42,6 +42,7 @@ class JamfExtensionAttributeUploaderBase(JamfUploaderBase):
         jamf_url,
         ea_name,
         ea_data_type,
+        ea_description,
         ea_inventory_display,
         script_path,
         token,
@@ -66,7 +67,7 @@ class JamfExtensionAttributeUploaderBase(JamfUploaderBase):
             "<computer_extension_attribute>"
             + "<name>{}</name>".format(ea_name)
             + "<enabled>true</enabled>"
-            + "<description/>"
+            + "<description>{}</description>".format(ea_description)
             + "<data_type>{}</data_type>".format(ea_data_type)
             + "<input_type>"
             + "  <type>script</type>"
@@ -134,6 +135,7 @@ class JamfExtensionAttributeUploaderBase(JamfUploaderBase):
         self.ea_name = self.env.get("ea_name")
         self.replace = self.env.get("replace_ea")
         self.ea_data_type = self.env.get("ea_data_type")
+        self.ea_description = self.env.get("ea_description")
         self.ea_inventory_display = self.env.get("ea_inventory_display")
         self.sleep = self.env.get("sleep")
         # handle setting replace in overrides
@@ -201,6 +203,7 @@ class JamfExtensionAttributeUploaderBase(JamfUploaderBase):
             self.jamf_url,
             self.ea_name,
             self.ea_data_type,
+            self.ea_description,
             self.ea_inventory_display,
             self.ea_script_path,
             token=token,

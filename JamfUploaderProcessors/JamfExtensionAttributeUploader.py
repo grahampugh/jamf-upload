@@ -93,6 +93,11 @@ class JamfExtensionAttributeUploader(JamfExtensionAttributeUploaderBase):
             "description": "Data type for the EA. One of String, Integer or Date.",
             "default": "String",
         },
+        "ea_description": {
+            "required": False,
+            "description": "Description for the EA.",
+            "default": "String",
+        },
         "sleep": {
             "required": False,
             "description": "Pause after running this processor for specified seconds.",
