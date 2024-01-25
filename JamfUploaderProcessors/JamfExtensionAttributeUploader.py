@@ -93,6 +93,11 @@ class JamfExtensionAttributeUploader(JamfExtensionAttributeUploaderBase):
             "description": "Data type for the EA. One of String, Integer or Date.",
             "default": "String",
         },
+        "skip_script_key_substitution": {
+            "required": False,
+            "description": "Skip key substitution in processing the script",
+            "default": False,
+        },
         "sleep": {
             "required": False,
             "description": "Pause after running this processor for specified seconds.",

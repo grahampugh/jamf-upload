@@ -39,6 +39,10 @@ A processor for AutoPkg that will upload an Extension Attribute item to a Jamf C
   - **required:** False
   - **description:** Data type for the EA. One of String, Integer or Date.
   - **default:** "String"
+- **skip_script_key_substitution**:
+  - **required**: False
+  - **description**: Skip substitution of keys marked between `%` signs in the script.
+  - **default**: False
 - **sleep:**
   - **required:** False
   - **description:** Pause after running this processor for specified seconds.
