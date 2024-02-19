@@ -313,9 +313,9 @@ elif [[ $test_type == "pkg-jcds2" ]]; then
     "$DIR"/../jamf-upload.sh pkg \
         --prefs "$prefs" \
         --recipe-dir /Users/gpugh/sourcecode/jamf-upload/_tests \
-        --pkg "/Users/Shared/Installomator-10.5.pkg" \
-        --pkg-name "Installomator-10.5.pkg" \
-        --nsme "Installomator-10.5.pkg" \
+        --pkg "/Users/Shared/dialog-2.3.3-4734.pkg" \
+        --pkg-name "dialog-2.3.3-4734.pkg" \
+        --nsme "dialog-2.3.3-4734.pkg" \
         --category "Testing" \
         "$verbosity" \
         --jcds2 \

@@ -2,6 +2,11 @@
 
 The dates here represent when the features were added to the processors in the `jamf-upload` repo.
 
+## 2024-02-19
+
+* Added second check for bearer token before uploading pkg metadata in `JamfPackageUploaderBase`.
+* Fixed path to token file in env so an existing token will be used if found.
+
 ## 2023-10-24
 
 * Refactored all JamfUploader processors to use a Base class.*

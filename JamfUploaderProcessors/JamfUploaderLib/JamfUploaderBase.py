@@ -123,11 +123,11 @@ class JamfUploaderBase(Processor):
         """dump the token, expiry, url and user as json to a temporary token file"""
         data["url"] = url
         data["user"] = self.jamf_user
-        if not self.env.get("jamfupload_token"):
-            self.env["jamfupload_token"] = self.init_temp_file(
+        if not self.env.get("jamfupload_token_file"):
+            self.env["jamfupload_token_file"] = self.init_temp_file(
                 prefix="jamf_upload_token_"
             )
-        with open(self.env["jamfupload_token"], "w") as fp:
+        with open(self.env["jamfupload_token_file"], "w") as fp:
             json.dump(data, fp)
 
     def write_xml_file(self, data):
@@ -167,8 +167,12 @@ class JamfUploaderBase(Processor):
         enc_creds = str(enc_creds_bytes, "utf-8")
         return enc_creds
 
-    def check_api_token(self, url, token_file="/tmp/jamf_upload_token"):
+    def check_api_token(self, url):
         """Check validity of an existing token"""
+        if self.env.get("jamfupload_token_file"):
+            token_file = self.env["jamfupload_token_file"]
+        else:
+            token_file = ""
         if os.path.exists(token_file):
             with open(token_file, "rb") as file:
                 data = json.load(file)
