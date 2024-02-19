@@ -6,6 +6,8 @@ The dates here represent when the features were added to the processors in the `
 
 * Added second check for bearer token before uploading pkg metadata in `JamfPackageUploaderBase`.
 * Fixed path to token file in env so an existing token will be used if found.
+* Added `ea_description` option to `JamfExtensionAttributeUploader` (#125, thanks @jamesfkane).
+* Added the `skip_script_key_substitution` option to `JamfExtensionAttributeUploader` (#128, thanks @davidbpirie).
 
 ## 2023-10-24
 
