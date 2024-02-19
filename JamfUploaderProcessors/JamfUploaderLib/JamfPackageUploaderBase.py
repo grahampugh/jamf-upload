@@ -846,6 +846,27 @@ class JamfPackageUploaderBase(JamfUploaderBase):
                 )
                 self.pkg_uploaded = False
 
+        # check token again using oauth or basic auth depending on the credentials given
+        # as package upload may have taken some time
+        # (dbfileupload requires basic auth)
+        # (not required for jcds_mode)
+        if not self.jcds_mode:
+            if (
+                self.jamf_url
+                and self.client_id
+                and self.client_secret
+                and self.jcds2_mode
+            ):
+                token = self.handle_oauth(
+                    self.jamf_url, self.client_id, self.client_secret
+                )
+            elif self.jamf_url and self.jamf_user and self.jamf_password:
+                token = self.handle_api_auth(
+                    self.jamf_url, self.jamf_user, self.jamf_password
+                )
+            else:
+                raise ProcessorError("ERROR: Valid credentials not supplied")
+
         # now process the package metadata if specified (not applicable with jcds mode)
         if (
             int(pkg_id) > 0

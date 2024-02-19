@@ -45,6 +45,7 @@ class JamfExtensionAttributeUploaderBase(JamfUploaderBase):
         ea_description,
         ea_inventory_display,
         script_path,
+        skip_script_key_substitution,
         token,
         obj_id=None,
     ):
@@ -56,8 +57,9 @@ class JamfExtensionAttributeUploaderBase(JamfUploaderBase):
         else:
             raise ProcessorError("Script does not exist!")
 
-        # substitute user-assignable keys
-        script_contents = self.substitute_assignable_keys(script_contents)
+        if not skip_script_key_substitution:
+            # substitute user-assignable keys
+            script_contents = self.substitute_assignable_keys(script_contents)
 
         # XML-escape the script
         script_contents_escaped = escape(script_contents)
@@ -133,6 +135,7 @@ class JamfExtensionAttributeUploaderBase(JamfUploaderBase):
         self.client_secret = self.env.get("CLIENT_SECRET")
         self.ea_script_path = self.env.get("ea_script_path")
         self.ea_name = self.env.get("ea_name")
+        self.skip_script_key_substitution = self.env.get("skip_script_key_substitution")
         self.replace = self.env.get("replace_ea")
         self.ea_data_type = self.env.get("ea_data_type")
         self.ea_description = self.env.get("ea_description")
@@ -141,6 +144,11 @@ class JamfExtensionAttributeUploaderBase(JamfUploaderBase):
         # handle setting replace in overrides
         if not self.replace or self.replace == "False":
             self.replace = False
+        if (
+            not self.skip_script_key_substitution
+            or self.skip_script_key_substitution == "False"
+        ):
+            self.skip_script_key_substitution = False
 
         # clear any pre-existing summary result
         if "jamfextensionattributeuploader_summary_result" in self.env:
@@ -206,6 +214,7 @@ class JamfExtensionAttributeUploaderBase(JamfUploaderBase):
             self.ea_description,
             self.ea_inventory_display,
             self.ea_script_path,
+            self.skip_script_key_substitution,
             token=token,
             obj_id=obj_id,
         )

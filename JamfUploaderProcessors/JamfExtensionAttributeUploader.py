@@ -98,6 +98,11 @@ class JamfExtensionAttributeUploader(JamfExtensionAttributeUploaderBase):
             "description": "Description for the EA.",
             "default": "String",
         },
+        "skip_script_key_substitution": {
+            "required": False,
+            "description": "Skip key substitution in processing the script",
+            "default": False,
+        },
         "sleep": {
             "required": False,
             "description": "Pause after running this processor for specified seconds.",
