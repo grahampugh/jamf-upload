@@ -181,9 +181,9 @@ checkJCDS() {
 
         # loop through each item in the JSON response
         jcds_pkg=""
-        jcds_pkg_md5=0  # assign empty value to avoid errors
-        for ((i=1; i<=pkg_count; i++)); do
-            jcds_pkg=$(/usr/libexec/PlistBuddy -c "Print :$i:fileName" "$output_file_list")
+        jcds_pkg_md5=""  # assign empty value to avoid errors
+        for ((i=0; i<=pkg_count; i++)); do
+            jcds_pkg=$(/usr/libexec/PlistBuddy -c "Print :$i:fileName" "$output_file_list" 2>/dev/null)
             if [[ "$jcds_pkg" == "$pkg" ]]; then
                 jcds_pkg_md5=$(/usr/libexec/PlistBuddy -c "Print :$i:md5" "$output_file_list")
                 break
