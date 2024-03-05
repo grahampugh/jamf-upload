@@ -146,8 +146,9 @@ Package arguments:
     --replace-pkg-metadata  Set to replace the pkg metadata if no package is uploaded
     --skip-metadata-upload  Set to skip pkg metadata upload
     --replace               Replace existing item
-    --jcds                  Use v3 API for package upload to JCDS 
+    --jcds                  Deprecated, ignored 
     --jcds2                 Use jcds endpoint for package upload to JCDS 
+    --aws                   Use AWS CDP for package upload. Requires aws-cli to be installed 
 
 Package Clean arguments:
     --name <string>         The name to match
@@ -837,6 +838,13 @@ while test $# -gt 0 ; do
             if [[ $processor == "JamfPackageUploader" ]]; then
                 if plutil -replace jcds2_mode -string "true" "$temp_processor_plist"; then
                     echo "   [jamf-upload] Wrote jcds2_mode='True' into $temp_processor_plist"
+                fi
+            fi
+            ;;
+        --aws) 
+            if [[ $processor == "JamfPackageUploader" ]]; then
+                if plutil -replace aws_cdp_mode -string "true" "$temp_processor_plist"; then
+                    echo "   [jamf-upload] Wrote aws_cdp_mode='True' into $temp_processor_plist"
                 fi
             fi
             ;;

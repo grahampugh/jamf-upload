@@ -26,6 +26,7 @@ import hashlib
 import json
 import os.path
 import shutil
+import subprocess
 import sys
 import threading
 
@@ -379,7 +380,7 @@ class JamfPackageUploaderBase(JamfUploaderBase):
                 verbose_level=2,
             )
 
-    def upload_to_s3(
+    def upload_to_jcds2_s3_bucket(
         self,
         pkg_path,
         pkg_name,
@@ -412,9 +413,52 @@ class JamfPackageUploaderBase(JamfUploaderBase):
             )
             self.output("JCDS package upload complete", verbose_level=1)
         except ClientError as e:
-            raise ProcessorError(f"Failure uploading to S3: {e}")
+            raise ProcessorError(f"Failure uploading to S3: {e}") from e
 
     """End of section for upload to JCDS2 endpoint"""
+
+    """Beginning of section for upload to AWS CDP"""
+
+    def upload_to_aws_s3_bucket(self, pkg_path, pkg_name):
+        """upload the package to an AWS CDP
+        Note that this requires the installation of the aws-cli tools on your AutoPkg machine
+        and you must set up the connection with 'aws configure'. Alternatively you can create
+        the config file manually. See https://boto3.amazonaws.com/v1/documentation/api/latest/guide/quickstart.html
+        and
+        https://boto3.amazonaws.com/v1/documentation/api/latest/guide/configuration.html#guide-configuration
+
+        You must also specify the bucket name to the environment ('S3_BUCKET_NAME').
+        """
+
+        aws_cmd = [
+            "/usr/local/bin/aws",
+            "s3",
+            "sync",
+            os.path.dirname(pkg_path) + "/",
+            "s3://" + self.env.get("S3_BUCKET_NAME") + "/",
+            "--exclude",
+            "*",
+            "--include",
+            pkg_name,
+            "--output",
+            "text",
+        ]
+        # now subprocess the aws cli
+        try:
+            aws_output = subprocess.check_output(aws_cmd)
+        except subprocess.CalledProcessError as exc:
+            raise ProcessorError(f"Error from aws: {exc}") from exc
+
+        # if os.path.exists(output_file) and os.path.getsize(output_file) > 0:
+        #     with open(output_file, "rb") as file:
+        #         aws_output = file.read()
+
+        self.output(
+            "AWS response: " + aws_output.decode("ascii"),
+            verbose_level=2,
+        )
+
+    """End of section for upload to AWS CDP"""
 
     def update_pkg_metadata(
         self,
@@ -518,6 +562,7 @@ class JamfPackageUploaderBase(JamfUploaderBase):
         self.skip_metadata_upload = self.env.get("skip_metadata_upload")
         self.jcds_mode = self.env.get("jcds_mode")
         self.jcds2_mode = self.env.get("jcds2_mode")
+        self.aws_cdp_mode = self.env.get("aws_cdp_mode")
         self.jamf_url = self.env.get("JSS_URL")
         self.jamf_user = self.env.get("API_USERNAME")
         self.jamf_password = self.env.get("API_PASSWORD")
@@ -539,6 +584,8 @@ class JamfPackageUploaderBase(JamfUploaderBase):
             self.jcds_mode = False
         if not self.jcds2_mode or self.jcds2_mode == "False":
             self.jcds2_mode = False
+        if not self.aws_cdp_mode or self.aws_cdp_mode == "False":
+            self.aws_cdp_mode = False
         if not self.cloud_dp or self.cloud_dp == "False":
             self.cloud_dp = False
 
@@ -790,11 +837,19 @@ class JamfPackageUploaderBase(JamfUploaderBase):
                         )
 
                         # upload the package
-                        self.upload_to_s3(
+                        self.upload_to_jcds2_s3_bucket(
                             self.pkg_path,
                             self.pkg_name,
                             self.credentials,
                         )
+
+                    # fake that the package was replaced even if it wasn't
+                    # so that the metadata gets replaced
+                    self.pkg_uploaded = True
+
+                elif self.aws_cdp_mode:
+                    # upload the package - this uses sync so we don't need to check if it's changed
+                    self.upload_to_aws_s3_bucket(self.pkg_path, self.pkg_name)
 
                     # fake that the package was replaced even if it wasn't
                     # so that the metadata gets replaced
@@ -824,13 +879,13 @@ class JamfPackageUploaderBase(JamfUploaderBase):
                                 raise ProcessorError(
                                     "WARNING: Response reported 'Error uploading file to the JSS'"
                                 )
-                    except ElementTree.ParseError:
+                    except ElementTree.ParseError as exc:
                         self.output("Could not parse XML. Raw output:", verbose_level=2)
                         self.output(r.output.decode("ascii"), verbose_level=2)
                         raise ProcessorError(
                             "WARNING: Could not read HTTP response. The package was probably not "
                             "uploaded successfully"
-                        )
+                        ) from exc
                     else:
                         # check HTTP response
                         if (
@@ -890,7 +945,7 @@ class JamfPackageUploaderBase(JamfUploaderBase):
                 token=token,
             )
             self.pkg_metadata_updated = True
-        elif (self.smb_shares or self.jcds2_mode) and not pkg_id:
+        elif (self.smb_shares or self.jcds2_mode or self.aws_cdp_mode) and not pkg_id:
             self.output(
                 "Creating package metadata",
                 verbose_level=1,

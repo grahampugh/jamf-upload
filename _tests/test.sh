@@ -322,6 +322,23 @@ elif [[ $test_type == "pkg-jcds2" ]]; then
         --replace
         # --name "erase-install-30" \
 
+elif [[ $test_type == "pkg-aws" ]]; then
+    /usr/local/autopkg/python -m pip install boto3
+
+    # upload a package
+    "$DIR"/../jamf-upload.sh pkg \
+        --prefs "$prefs" \
+        --recipe-dir /Users/gpugh/sourcecode/jamf-upload/_tests \
+        --pkg "/Users/Shared/dialog-2.3.3-4734.pkg" \
+        --pkg-name "dialog-2.3.3-4734.pkg" \
+        --nsme "dialog-2.3.3-4734.pkg" \
+        --category "Testing" \
+        "$verbosity" \
+        --aws \
+        --key "S3_BUCKET_NAME=jamf2360b29f101f4e0881cf6422ee2be25e" \
+        --replace
+        # --name "erase-install-30" \
+
 elif [[ $test_type == "pkgclean" ]]; then
     # cleanup a package type
     "$DIR"/../jamf-upload.sh pkgclean \
