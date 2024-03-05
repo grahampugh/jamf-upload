@@ -13,7 +13,7 @@ Actions:
 DOC
 
 usage() {
-    echo "Usage: api_test_opkg_dbfileupload.sh --jss someserver --user username --pass password --pkg /path/to/pkg.pkg"
+    echo "Usage: api_test_pkg_dbfileupload.sh --jss someserver --user username --pass password --pkg /path/to/pkg.pkg"
     echo "(don't include https:// or .jamfcloud.com)"
 }
 
