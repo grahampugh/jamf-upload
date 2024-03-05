@@ -1,18 +1,16 @@
 #!/bin/bash
 
 : <<DESCRIPTION
-JCDS2 package upload script
+AWS S3 CDP package upload script
 by Graham Pugh (@grahamrpugh)
 
-1. Get a bearer token
-2. Check for an existing package from the Classic API
-3. Check for an existing package from the JCDS endpoint
-4. Check that the checksum matches our local pkg
-5. Delete the existing package from the JCDS if the checksum doesn't match
-6. Upload package to JCDS if it's new or the existing has been deleted (but not if it has the same hash)
-7. Upload the package metadata
+1. Check for an existing package from the Classic API
+2. Upload package to CDP if it's new or changed (this is tested by aws-cli using the sync command)
+3. Upload the package metadata
 
-Note: requires the aws-cli tools to be installed
+Notes: 
+Requires the aws-cli tools to be installed
+User must run 'aws configure' to supply their access key, secret key and region.
 DESCRIPTION
 
 ## ---------------------------------------------------------------
@@ -41,7 +39,7 @@ output_file_delete="$output_location/output_delete.txt"
 ## FUNCTIONS
 
 usage() {
-    echo "Usage: api_test_pkg_jcds2.sh --jss someserver --user username --pass password --pkg /path/to/pkg.pkg"
+    echo "Usage: api_test_pkg_aws_cdp.sh --jss someserver --user username --pass password --pkg /path/to/pkg.pkg"
     echo "(don't include https:// or .jamfcloud.com)"
     echo
     echo "Use --replace to replace an existing package"
@@ -137,131 +135,13 @@ checkExistingPackage() {
     fi
 }
 
-deleteExistingPkg() {
-    # delete the existing package
-    echo "Deleting $pkg from JCDS"
-    http_response=$(
-        curl --request DELETE \
-            --silent \
-            --header "authorization: Bearer $token" \
-            --header 'Accept: application/json' \
-            "$url/api/v1/jcds/files/$pkg" \
-            --write-out "%{http_code}" \
-            --location \
-            --cookie-jar "$cookie_jar" \
-            --dump-header "$headers_file_delete" \
-            --output "$output_file_delete"
-    )
-    echo "HTTP response: $http_response"
-}
-
-checkJCDS() {
-    # list all the packages
-    echo "Getting a list of packages from JCDS"
-    http_response=$(
-        curl --request GET \
-            --silent \
-            --header "authorization: Bearer $token" \
-            --header 'Accept: application/json' \
-            "$url/api/v1/jcds/files" \
-            --write-out "%{http_code}" \
-            --location \
-            --cookie-jar "$cookie_jar" \
-            --dump-header "$headers_file_list" \
-            --output "$output_file_list"
-    )
-    echo "HTTP response: $http_response"
-
-    if [[ $http_response -eq 200 ]]; then
-        # convert the list to a plist so we can actually work with it in bash
-        plutil -convert xml1 "$output_file_list"
-
-        # count the number of items in the list
-        pkg_count=$(grep -c fileName "$output_file_list")
-
-        # loop through each item in the JSON response
-        jcds_pkg=""
-        jcds_pkg_md5=""  # assign empty value to avoid errors
-        for ((i=0; i<=pkg_count; i++)); do
-            jcds_pkg=$(/usr/libexec/PlistBuddy -c "Print :$i:fileName" "$output_file_list" 2>/dev/null)
-            if [[ "$jcds_pkg" == "$pkg" ]]; then
-                jcds_pkg_md5=$(/usr/libexec/PlistBuddy -c "Print :$i:md5" "$output_file_list")
-                break
-            fi
-        done
-
-        # also find out the sha3 of the local package
-        pkg_md5=$(md5 -q "$pkg_path")
-                
-        # now compare the two
-        if [[ "$jcds_pkg_md5" ]]; then
-            echo "Existing package found: URL $jcds_pkg"
-            if [[ $replace ]]; then
-                # Check if the MD5 hash matches (Mac's LibreSSL can't do SHA3-512)
-                # If not, we want to replace it, which has to be done 
-                # by deleting and uploading new
-                if [[ "$jcds_pkg_md5" == "$pkg_md5" ]]; then
-                    echo "MD5 matches so not replacing existing package on JCDS"
-                    replace_jcds_pkg=0
-                else
-                    echo "MD5 hash doesn't match. Replacing existing package on JCDS"
-                    replace_jcds_pkg=1
-                fi
-            else
-                echo "Not replacing existing package on JCDS"
-                replace_jcds_pkg=0
-            fi
-        fi
-    else
-        echo "No existing package found: uploading as a new package"
-    fi
-}
-
-getPkgUploadToken() {
-    # get an access token to a package to the JCDS
-    echo "Getting a package upload token from JCDS"
-    http_response=$(
-        curl --request POST \
-            --silent \
-            --header "authorization: Bearer $token" \
-            --header 'Accept: application/json' \
-            --header 'Content-Type: application/json' \
-            "$url/api/v1/jcds/files" \
-            --write-out "%{http_code}" \
-            --location \
-            --cookie-jar "$cookie_jar" \
-            --dump-header "$headers_file_session" \
-            --output "$output_file_session" \
-    )
-    echo
-    echo "HTTP response: $http_response"
-}
-
 postPkg() {
-    # upload the package to an S3 bucket - requires aws-cli tools
-
-    # set the required configurations (delete these afterwards)
-    default_access_key=$(plutil -extract accessKeyID raw "$output_file_session")
-    default_secret_key=$(plutil -extract secretAccessKey raw "$output_file_session")
-    aws_session_token=$(plutil -extract sessionToken raw "$output_file_session")
-    region=$(plutil -extract region raw "$output_file_session")
-    s3_bucket=$(plutil -extract bucketName raw "$output_file_session")
-    s3_path=$(plutil -extract path raw "$output_file_session")
-
-    # add the configuration to the aws-cli config file
-    aws configure set aws_access_key_id "$default_access_key"
-    aws configure set aws_secret_access_key "$default_secret_key"
-    aws configure set aws_session_token "$aws_session_token"
-    aws configure set default.region "$region"
-
+    # upload the package to an S3 bucket - requires aws-cli tools and the 
+    # aws bucket to have been configured using 'aws configure', supplying the access key,
+    # secret key and region.
+    
     # post the package
-    aws s3 cp "$pkg_path" "s3://$s3_bucket/$s3_path" --region "$region"
-
-    # delete credentials from the aws-cli config file
-    aws configure set aws_access_key_id ""
-    aws configure set aws_secret_access_key ""
-    aws configure set aws_session_token ""
-    aws configure set default.region ""
+    aws s3 sync "$pkg_dir/" "s3://$s3_bucket/" --exclude "*" --include "$pkg"
 }
 
 postMetadata() {
@@ -321,6 +201,10 @@ while test $# -gt 0 ; do
             shift
             pass="$1"
             ;;
+        --s3)
+            shift
+            s3_bucket="$1"
+            ;;
         -f|--pkg)
             shift
             pkg_path="$1"
@@ -347,6 +231,7 @@ url="https://$jss.jamfcloud.com"
 
 # set pkg name
 pkg=$(basename "$pkg_path")
+pkg_dir=$(dirname "$pkg_path")
 
 # grab a token
 checkTokenExpiration
@@ -357,19 +242,8 @@ checkTokenExpiration
 # check there's an existing package in Jamf Pro
 checkExistingPackage
 
-# check if that same package exists in JCDS
-checkJCDS
-
-# if --replace and the package metadata doesn't match, delete the existing package from the JCDS
-if [[ $replace_jcds_pkg -eq 1 ]]; then
-    deleteExistingPkg
-fi
-
-# upload the package if it's new or we just deleted the existing one
-if [[ ! "$jcds_pkg_md5" || $replace_jcds_pkg -eq 1 ]]; then
-    getPkgUploadToken
-    postPkg
-fi
+# upload the package (aws-cli sync will check if it's different)
+postPkg
 
 # post the package metadata to Jamf Pro
 postMetadata
