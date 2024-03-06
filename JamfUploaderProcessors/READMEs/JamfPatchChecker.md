@@ -1,8 +1,8 @@
-# JamfPolicyUploader
+# JamfPatchChecker
 
 ## Description
 
-A processor for AutoPkg that will upload a policy to a Jamf Cloud or on-prem server. Optionally, an icon can be uploaded and associated with the policy.
+A processor for AutoPkg that will check and report whether a Patch Software Title has the version that AutoPkg has found or not. This can be used with a subsequent `StopProcessingIf` processor to prevent updating a Patch Policy with a version that does not yet exist in the Patch Software Title, allowing the recipe to run again on a subsequent recipe run.
 
 ## Input variables
 
@@ -21,27 +21,15 @@ A processor for AutoPkg that will upload a policy to a Jamf Cloud or on-prem ser
 - **CLIENT_SECRET:**
   - **required:** True
   - **description:** Secret associated with the Client ID, optionally set as a key in the com.github.autopkg preference file.
-- **policy_name:**
-  - **required:** True
-  - **description:** Policy name
-- **icon:**
-  - **required:** False
-  - **description:** Full path to Self Service icon
-- **policy_template:**
-  - **required:** True
-  - **description:** Full path to the XML template
-- **replace_policy:**
-  - **required:** False
-  - **description:** Overwrite an existing policy if True.
-  - **default:** False
-- **replace_icon:**
-  - **required:** False
-  - **description:** Overwrite an existing policy icon if True.
-  - **default:** False
-- **retain_scope**:
-  - **required**: False
-  - **description**: retain the existing scope of an existing policy if True.
-  - **default**: False
+- **patch_softwaretitle**:
+  - **required**: True
+  - **description**: Name of the patch softwaretitle (e.g. 'Mozilla Firefox') used in Jamf. You need to create the patch softwaretitle by hand, since there is currently no way to create these via the API.
+- **pkg_name**:
+  - **required**: True
+  - **description**: Name of package which should be used in the patch. Mostly provided by previous AutoPKG recipe/processor.
+- **version**:
+  - **required**: True
+  - **description**: Version string - provided by previous pkg recipe/processor.
 - **sleep:**
   - **required:** False
   - **description:** Pause after running this processor for specified seconds.
@@ -49,11 +37,5 @@ A processor for AutoPkg that will upload a policy to a Jamf Cloud or on-prem ser
 
 ## Output variables
 
-- **jamfpolicyuploader_summary_result:**
+- **jamfpatchuploader_summary_result:**
   - **description:** Description of interesting results.
-- **policy_name:**
-  - **description:** Policy name.
-- **policy_updated:**
-  - **description:** Boolean - True if the policy was changed.
-- **changed_policy_id:**
-  - **description:** Jamf object ID of the newly created or modified policy.

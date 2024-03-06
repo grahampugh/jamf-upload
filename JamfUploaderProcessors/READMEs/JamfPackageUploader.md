@@ -15,7 +15,7 @@ Can be run as a post-processor for a pkg recipe or in a child recipe. The parent
   - **required:** False
   - **description:** Package display name, which may be different to the `pkg_name`. If not supplied, reverts to `pkg_name`.
 - **pkg_path:**
-  - **required:** False
+  - **required:** True
   - **description:** Path to a pkg or dmg to import - \*\*provided by previous pkg recipe/processor.
 - **version:**
   - **required:** False

@@ -4,7 +4,7 @@
 JamfPatchChecker processor for checking if a patch definition exists for the given 
 pkg name and version in Jamf Pro.
 
-Made by Jerker Adolfsson based on the great work in jamf-upload.
+Made by Jerker Adolfsson based on the other JamfUploader processors.
 """
 
 import os.path
@@ -24,8 +24,8 @@ __all__ = ["JamfPatchChecker"]
 
 class JamfPatchChecker(JamfPatchCheckerBase):
     description = (
-        "A processor for AutoPkg that will upload a Patch Policy to a Jamf "
-        "Cloud or on-prem server."
+        "A processor for AutoPkg that will check if a Patch Policy is ready to be uploaded "
+        "to a Jamf Cloud or on-prem server."
     )
 
     input_variables = {

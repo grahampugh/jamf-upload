@@ -16,7 +16,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 
 NOTES:
-Written by Marcel Keßler based on G Pugh's work
+Made by Jerker Adolfsson based on the other JamfUploader processors.
 """
 
 import os.path
