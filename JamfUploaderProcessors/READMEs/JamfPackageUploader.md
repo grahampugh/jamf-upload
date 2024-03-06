@@ -70,8 +70,11 @@ Can be run as a post-processor for a pkg recipe or in a child recipe. The parent
   - **default:** False
 - **aws_cdp_mode:**
   - **required:** False
-  - **description:** Upload package to an AWS S3 CDP using `aws-cli` tools. These must be manually installed on the AutoPkg client.
+  - **description:** Upload package to an AWS S3 CDP using `aws-cli` tools. These must be manually installed on the AutoPkg client. Requires the `S3_BUCKET_NAME` key to be populated.
   - **default:** False
+- **S3_BUCKET_NAME:**
+  - **required:** False
+  - **description:** The name of an AWS S3 bucket linked to a Jamf Pro server. Required for `aws_cdp_mode`.
 - **JSS_URL:**
   - **required:** True
   - **description:** URL to a Jamf Pro server to which the API user has write access.
