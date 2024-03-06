@@ -39,7 +39,7 @@ output_file_delete="$output_location/output_delete.txt"
 ## FUNCTIONS
 
 usage() {
-    echo "Usage: api_test_pkg_aws_cdp.sh --jss someserver --user username --pass password --pkg /path/to/pkg.pkg"
+    echo "Usage: api_test_pkg_aws_cdp.sh --jss someserver --user username --pass password --s3 s3bucketname --pkg /path/to/pkg.pkg"
     echo "(don't include https:// or .jamfcloud.com)"
     echo
     echo "Use --replace to replace an existing package"
@@ -139,7 +139,7 @@ postPkg() {
     # upload the package to an S3 bucket - requires aws-cli tools and the 
     # aws bucket to have been configured using 'aws configure', supplying the access key,
     # secret key and region.
-    
+
     # post the package
     aws s3 sync "$pkg_dir/" "s3://$s3_bucket/" --exclude "*" --include "$pkg"
 }
