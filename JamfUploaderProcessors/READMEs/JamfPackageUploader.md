@@ -66,7 +66,11 @@ Can be run as a post-processor for a pkg recipe or in a child recipe. The parent
   - **default:** False
 - **jcds2_mode:**
   - **required:** False
-  - **description:** Upload package using JCDS2 mode.
+  - **description:** Upload package using JCDS2 mode. Requires the `boto3` module to be manually installed.
+  - **default:** False
+- **aws_cdp_mode:**
+  - **required:** False
+  - **description:** Upload package to an AWS S3 CDP using `aws-cli` tools. These must be manually installed on the AutoPkg client.
   - **default:** False
 - **JSS_URL:**
   - **required:** True
