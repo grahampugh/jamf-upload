@@ -1,5 +1,5 @@
 Process:
- - Processor: com.github.grahampugh.jamf-upload.processors/JamfPatchChecker
+  - Processor: com.github.grahampugh.jamf-upload.processors/JamfPatchChecker
     Arguments:
       patch_softwaretitle: '%PATCH_SOFTWARE_TITLE%'
       pkg_name: '%NAME% %version%.pkg'
