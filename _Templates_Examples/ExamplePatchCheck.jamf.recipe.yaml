@@ -1,0 +1,35 @@
+Process:
+ - Processor: com.github.grahampugh.jamf-upload.processors/JamfPatchChecker
+    Arguments:
+      patch_softwaretitle: '%PATCH_SOFTWARE_TITLE%'
+      pkg_name: '%NAME% %version%.pkg'
+
+  - Processor: StopProcessingIf
+    Arguments:
+      predicate: patch_version_found == False
+
+  - Processor: com.github.grahampugh.jamf-upload.processors/JamfPackageUploader
+    Arguments:
+      pkg_name: '%NAME% %version%.pkg'
+      pkg_category: '%CATEGORY%'
+
+  - Processor: StopProcessingIf
+    Arguments:
+      predicate: pkg_uploaded == False
+
+  - Processor: com.github.grahampugh.jamf-upload.processors/JamfPolicyUploader
+    Arguments:
+      policy_name: '%POLICY_NAME%'
+      policy_template: '%POLICY_TEMPLATE%'
+      policy_category: '%CATEGORY%'
+      icon: '%app_icon_path%'
+      replace_icon: 'True'
+      replace_policy: 'True'
+
+  - Processor: com.github.grahampugh.jamf-upload.processors/JamfPatchUploader
+    Arguments:
+      patch_name: '%PATCH_POLICY_NAME%'
+      patch_softwaretitle: '%PATCH_SOFTWARE_TITLE%'
+      patch_template: '%PATCH_POLICY_TEMPLATE%'
+      patch_icon_policy_name: '%POLICY_NAME%'
+      replace_patch: 'True'
