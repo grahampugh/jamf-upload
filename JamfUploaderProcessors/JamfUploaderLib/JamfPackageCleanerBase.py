@@ -270,9 +270,14 @@ class JamfPackageCleanerBase(JamfUploaderBase):
 
         for package in packages_to_delete:
             # package deletion could take time, so we check the token before each deletion
-            token = self.handle_api_auth(
-                self.jamf_url, self.jamf_user, self.jamf_password
-            )
+            if self.jamf_url and self.client_id and self.client_secret:
+                token = self.handle_oauth(self.jamf_url, self.client_id, self.client_secret)
+            elif self.jamf_url and self.jamf_user and self.jamf_password:
+                token = self.handle_api_auth(
+                    self.jamf_url, self.jamf_user, self.jamf_password
+                )
+            else:
+                raise ProcessorError("ERROR: Credentials not supplied")
             self.delete_package(
                 jamf_url=self.jamf_url, obj_id=package["id"], token=token
             )
