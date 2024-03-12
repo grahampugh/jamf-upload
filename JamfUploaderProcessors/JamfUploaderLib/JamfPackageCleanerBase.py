@@ -23,16 +23,18 @@ import sys
 from time import sleep
 from urllib.parse import urlparse
 
-from autopkglib import (
+from autopkglib import (  # pylint: disable=import-error
     ProcessorError,
-)  # pylint: disable=import-error
+)
 
 # to use a base module in AutoPkg we need to add this path to the sys.path.
 # this violates flake8 E402 (PEP8 imports) but is unavoidable, so the following
 # imports require noqa comments for E402
 sys.path.insert(0, os.path.dirname(__file__))
 
-from JamfUploaderBase import JamfUploaderBase  # noqa: E402
+from JamfUploaderBase import (  # pylint: disable=import-error,wrong-import-position
+    JamfUploaderBase,
+)
 
 
 class JamfPackageCleanerBase(JamfUploaderBase):
@@ -68,12 +70,12 @@ class JamfPackageCleanerBase(JamfUploaderBase):
         self.output("Deleting package...")
 
         object_type = "package"
-        url = "{}/{}/id/{}".format(jamf_url, self.api_endpoints(object_type), obj_id)
+        url = f"{jamf_url}/{self.api_endpoints(object_type)}/id/{obj_id}"
 
         count = 0
         while True:
             count += 1
-            self.output("Package delete attempt {}".format(count), verbose_level=2)
+            self.output(f"Package delete attempt {count}", verbose_level=2)
             request = "DELETE"
             r = self.curl(request=request, url=url, token=token)
 
@@ -84,16 +86,29 @@ class JamfPackageCleanerBase(JamfUploaderBase):
                 self.output(
                     "WARNING: Package deletion did not succeed after 5 attempts"
                 )
-                self.output("\nHTTP DELETE Response Code: {}".format(r.status_code))
-                raise ProcessorError("ERROR: Package deletion failed ")
+                self.output(f"\nHTTP DELETE Response Code: {r.status_code}")
+                raise ProcessorError("ERROR: Package deletion failed")
             sleep(30)
         return r
+
+    def __init__(self):
+        self.jamf_url = ""
+        self.jamf_user = ""
+        self.jamf_password = ""
+        self.client_id = ""
+        self.client_secret = ""
+        self.pkg_name_match = ""
+        self.versions_to_keep = 0
+        self.minimum_name_length = 0
+        self.maximum_allowed_packages_to_delete = 0
+        self.dry_run = False
+        self.smb_shares = []
 
     def execute(self):
         """Clean up old packages in Jamf Pro"""
 
         # Get the necessary environment variables
-        self.jamf_url = self.env.get("JSS_URL").rstrip('/')
+        self.jamf_url = self.env.get("JSS_URL").rstrip("/")
         self.jamf_user = self.env.get("API_USERNAME")
         self.jamf_password = self.env.get("API_PASSWORD")
         self.client_id = self.env.get("CLIENT_ID")
@@ -109,16 +124,11 @@ class JamfPackageCleanerBase(JamfUploaderBase):
         self.dry_run = self.env.get("dry_run")
 
         # Create a list of smb shares in tuples
-        self.smb_shares = []
         if self.env.get("SMB_URL"):
             if not self.env.get("SMB_USERNAME") or not self.env.get("SMB_PASSWORD"):
                 raise ProcessorError("SMB_URL defined but no credentials supplied.")
             self.output(
-                "DP 1: {}, {}, pass len: {}".format(
-                    self.env.get("SMB_URL"),
-                    self.env.get("SMB_USERNAME"),
-                    len(self.env.get("SMB_PASSWORD")),
-                ),
+                f"DP 1: {self.env.get('SMB_URL')}, {self.env.get('SMB_USERNAME')}, pass len: {len(self.env.get('SMB_PASSWORD'))}",
                 verbose_level=2,
             )
             self.smb_shares.append(
@@ -274,7 +284,7 @@ class JamfPackageCleanerBase(JamfUploaderBase):
                     "Number of File Share DPs: " + str(len(self.smb_shares)),
                     verbose_level=2,
                 )
-                pkg_name = package["name"]
+            pkg_name = package["name"]
             for smb_share in self.smb_shares:
                 smb_url, smb_user, smb_password = (
                     smb_share[0],

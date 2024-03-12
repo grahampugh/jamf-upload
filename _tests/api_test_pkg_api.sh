@@ -94,16 +94,22 @@ invalidateToken() {
     fi
 }
 
+encode_pkg_name() {
+    pkg_name_encoded="$( echo "$pkg" | sed -e 's| |%20|g' | sed -e 's|&amp;|%26|g' )"
+}
+
 checkExistingPackage() {
     # perform a get request on an existing package to see if it exists
 
     echo "Seeing if $pkg exists on the server"
+    encode_pkg_name
+
     http_response=$(
         curl --request GET \
             --silent \
             --header "authorization: Bearer $token" \
             --header 'Accept: application/json' \
-            "$url/JSSResource/packages/name/$pkg" \
+            "$url/api/v1/packages/?filter=packageName%3D%3D%22$pkg_name_encoded%22" \
             --write-out "%{http_code}" \
             --location \
             --cookie-jar "$cookie_jar" \
@@ -113,20 +119,29 @@ checkExistingPackage() {
 
     echo "HTTP response: $http_response"
 
-    if [[ $http_response -lt 350 && $http_response -ge 100 ]]; then
-        pkg_id=$(plutil -extract package.id raw -expect integer "$output_file_record")
-        # check that we got an integer
-        if [ "$pkg_id" -eq "$pkg_id" ]; then
-            echo "Existing package found: ID $pkg_id"
-            if [[ $replace ]]; then
-                echo "Replacing existing package"
+    if [[ $http_response -lt 400 && $http_response -ge 100 ]]; then
+        # cat "$output_file_record" # TEMP
+        pkg_count=$(plutil -extract totalCount raw -expect integer "$output_file_record")
+        if [[ $pkg_count -gt 0 ]]; then
+            pkg_id=$(plutil -extract results.0.id raw -expect string "$output_file_record")
+            # check that we got an integer
+            if [[ "$pkg_id" -gt 0 ]]; then
+                echo "Existing package found: ID $pkg_id"
+                if [[ $replace -eq 1 ]]; then
+                    echo "Replacing existing package"
+                else
+                    echo "Not replacing existing package"
+                    exit 
+                fi
             else
-                echo "Not replacing existing package"
-                exit 
+                echo "No existing package found: uploading as a new package"
+                pkg_id=0
             fi
+        else
+            echo "No existing package found: uploading as a new package"
+            pkg_id=0
         fi
     else
-        # TODO - give better descriptions based on HTTP response
         echo "No existing package found: uploading as a new package"
         pkg_id=0
     fi
@@ -213,7 +228,7 @@ postPkg() {
             --header "authorization: Bearer $token" \
             --header 'Content-Type: multipart/form-data' \
             --header 'Accept: application/json' \
-            --form "file=@$pkg_path" \
+            --form "file=@'$pkg_path'" \
             "$url/api/v1/packages/$pkg_id/upload" \
             --write-out "%{http_code}" \
             --location \
@@ -225,7 +240,7 @@ postPkg() {
     echo
     echo "HTTP response: $http_response"
 
-    if [[ "$http_response" == "10"* || "$http_response" == "20"* ]]; then
+    if [[ "$http_response" == "10"* || "$http_response" == "20"* || "$http_response" == "3"* ]]; then
         echo "Success response ($http_response)"
     else
         echo "Fail response ($http_response)"
@@ -235,8 +250,6 @@ postPkg() {
         echo
         echo "OUTPUT:"
         cat "$output_file_record"
-        echo
-        echo "DATA:"
         echo
     fi
 }
