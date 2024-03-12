@@ -2,6 +2,15 @@
 
 The dates here represent when the features were added to the processors in the `jamf-upload` repo.
 
+## 2024-03-11
+
+* Added an `rstrip` to the JSS_URL ingest to prevent errors if someone adds a trailing slash to the URL ()
+
+## 2024-03-08
+
+* Added `aws_cdp_mode` to `JamfPackageUploader`.
+* Added `JamfPatchChecker` procesor (#130, thanks @pandemicus).
+
 ## 2024-02-19
 
 * Added second check for bearer token before uploading pkg metadata in `JamfPackageUploaderBase`.
@@ -11,7 +20,7 @@ The dates here represent when the features were added to the processors in the `
 
 ## 2023-10-24
 
-* Refactored all JamfUploader processors to use a Base class.*
+* Refactored all JamfUploader processors to use a Base class.
 * Removed `jcds_mode` from `JamfPackageUploader` as it has been rendered unworkable by Jamf.
 
 ## 2023-10-21
