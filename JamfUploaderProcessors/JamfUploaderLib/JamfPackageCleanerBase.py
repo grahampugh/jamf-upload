@@ -91,19 +91,6 @@ class JamfPackageCleanerBase(JamfUploaderBase):
             sleep(30)
         return r
 
-    def __init__(self):
-        self.jamf_url = ""
-        self.jamf_user = ""
-        self.jamf_password = ""
-        self.client_id = ""
-        self.client_secret = ""
-        self.pkg_name_match = ""
-        self.versions_to_keep = 0
-        self.minimum_name_length = 0
-        self.maximum_allowed_packages_to_delete = 0
-        self.dry_run = False
-        self.smb_shares = []
-
     def execute(self):
         """Clean up old packages in Jamf Pro"""
 
@@ -271,7 +258,9 @@ class JamfPackageCleanerBase(JamfUploaderBase):
         for package in packages_to_delete:
             # package deletion could take time, so we check the token before each deletion
             if self.jamf_url and self.client_id and self.client_secret:
-                token = self.handle_oauth(self.jamf_url, self.client_id, self.client_secret)
+                token = self.handle_oauth(
+                    self.jamf_url, self.client_id, self.client_secret
+                )
             elif self.jamf_url and self.jamf_user and self.jamf_password:
                 token = self.handle_api_auth(
                     self.jamf_url, self.jamf_user, self.jamf_password

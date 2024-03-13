@@ -221,14 +221,14 @@ JSON
 postPkg() {
     # upload the package
 
-    echo "URL: $url/v1/packages/$pkg_id/upload" # TEMP
+    echo "URL: $url/api/v1/packages/$pkg_id/upload" # TEMP
 
     http_response=$(
         curl --request "POST" \
             --header "authorization: Bearer $token" \
             --header 'Content-Type: multipart/form-data' \
             --header 'Accept: application/json' \
-            --form "file=@'$pkg_path'" \
+            --form "file=@$pkg_path" \
             "$url/api/v1/packages/$pkg_id/upload" \
             --write-out "%{http_code}" \
             --location \

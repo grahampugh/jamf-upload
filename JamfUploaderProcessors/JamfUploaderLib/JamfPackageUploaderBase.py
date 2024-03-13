@@ -563,7 +563,7 @@ class JamfPackageUploaderBase(JamfUploaderBase):
         self.jcds_mode = self.env.get("jcds_mode")
         self.jcds2_mode = self.env.get("jcds2_mode")
         self.aws_cdp_mode = self.env.get("aws_cdp_mode")
-        self.jamf_url = self.env.get("JSS_URL").rstrip('/')
+        self.jamf_url = self.env.get("JSS_URL").rstrip("/")
         self.jamf_user = self.env.get("API_USERNAME")
         self.jamf_password = self.env.get("API_PASSWORD")
         self.client_id = self.env.get("CLIENT_ID")
