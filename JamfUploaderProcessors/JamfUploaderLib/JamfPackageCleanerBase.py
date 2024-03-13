@@ -111,6 +111,7 @@ class JamfPackageCleanerBase(JamfUploaderBase):
         self.dry_run = self.env.get("dry_run")
 
         # Create a list of smb shares in tuples
+        self.smb_shares = []
         if self.env.get("SMB_URL"):
             if not self.env.get("SMB_USERNAME") or not self.env.get("SMB_PASSWORD"):
                 raise ProcessorError("SMB_URL defined but no credentials supplied.")
