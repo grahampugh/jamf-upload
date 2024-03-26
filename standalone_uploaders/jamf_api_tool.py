@@ -866,6 +866,16 @@ def get_args():
     group.add_argument("--scripts", action="store_true")
     group.add_argument("--ea", action="store_true")
     group.add_argument("--groups", action="store_true")
+    group.add_argument(
+        "--category",
+        action="append",
+        dest="category",
+        default=[],
+        help=(
+            "List all policies in given category. Delete available in "
+            "conjunction with --delete."
+        ),
+    )
 
     parser.add_argument(
         "-n",
@@ -886,16 +896,6 @@ def get_args():
         help=(
             "List all policies that start with given query. "
             "Delete available in conjunction with --delete."
-        ),
-    )
-    parser.add_argument(
-        "--category",
-        action="append",
-        dest="category",
-        default=[],
-        help=(
-            "List all policies in given category. Delete available in "
-            "conjunction with --delete."
         ),
     )
     parser.add_argument(
