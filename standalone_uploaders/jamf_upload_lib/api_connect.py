@@ -4,9 +4,57 @@ import getpass
 import json
 import plistlib
 import six
+import tempfile
+import xml.etree.cElementTree as ET
+
 from base64 import b64encode
 
-from . import curl
+from . import curl, api_objects
+
+
+def write_json_file(data):
+    """dump some json to a temporary file"""
+    tf = init_temp_file(suffix=".json")
+    with open(tf, "w") as fp:
+        json.dump(data, fp)
+    return tf
+
+
+def write_token_to_json_file(url, jamf_user, data, jamfupload_token_file=""):
+    """dump the token, expiry, url and user as json to a temporary token file"""
+    data["url"] = url
+    data["user"] = jamf_user
+    if not jamfupload_token_file:
+        jamfupload_token_file = init_temp_file(
+            prefix="jamf_upload_token_"
+        )
+    with open(jamfupload_token_file, "w") as fp:
+        json.dump(data, fp)
+
+
+def write_temp_file(data):
+    """dump some text to a temporary file"""
+    tf = init_temp_file(suffix=".txt")
+    with open(tf, "w") as fp:
+        fp.write(data)
+    return tf
+
+
+def make_tmp_dir(tmp_dir="/tmp/jamf_upload_"):
+    """make the tmp directory"""
+    base_dir, dir = tmp_dir.rsplit("/", 1)
+    jamfupload_tmp_dir = tempfile.mkdtemp(prefix=dir, dir=base_dir)
+    return jamfupload_tmp_dir
+
+
+def init_temp_file(prefix="jamf_upload_", suffix=None, dir=None, text=True):
+    """dump some text to a temporary file"""
+    return tempfile.mkstemp(
+        prefix=prefix,
+        suffix=suffix,
+        dir=make_tmp_dir() if dir is None else dir,
+        text=text,
+    )[1]
 
 
 def get_credentials(prefs_file):
@@ -17,7 +65,6 @@ def get_credentials(prefs_file):
                 prefs = plistlib.readPlist(pl)
             else:
                 prefs = plistlib.load(pl)
-
     read_as_json = (".json", ".env")
     if list(filter(prefs_file.endswith, read_as_json)) != []:
         with open(prefs_file) as js:
@@ -78,22 +125,54 @@ def encode_creds(jamf_user, jamf_password):
     return enc_creds
 
 
-def get_uapi_token(jamf_url, enc_creds, verbosity):
-    """get a token for the Jamf Pro API"""
-    url = "{}/uapi/auth/tokens".format(jamf_url)
-    r = curl.request("POST", url, enc_creds, verbosity)
-    if r.status_code == 200:
-        try:
-            token = str(r.output["token"])
-            if verbosity:
+# def get_uapi_token(jamf_url, enc_creds, verbosity):
+#     """get a token for the Jamf Pro API"""
+#     url = jamf_url + "/" + api_objects.api_endpoints("token")
+#     r = curl.request("POST", url, enc_creds, verbosity)
+#     if r.status_code == 200:
+#         try:
+#             token = r.output["token"]
+#             if verbosity:
+#                 print("Session token received")
+#             return token
+#         except KeyError:
+#             print("ERROR: No token received")
+#             return
+#     else:
+#         print("ERROR: No token received")
+#         return
+
+def get_uapi_token(jamf_url, jamf_user, enc_creds="", verbosity=""):
+    """get a token for the Jamf Pro API or Classic API using basic auth"""
+    if enc_creds:
+        url = jamf_url + "/" + api_objects.api_endpoints("token")
+        r = curl.request(
+            method="POST",
+            url=url,
+            auth=enc_creds,
+            verbosity=verbosity
+        )
+        output = json.loads(r.output)
+        if r.status_code == 200:
+            try:
+                # token = str(output["token"])
+                # expires = str(output["expires"])
+                token = output["token"]
+                expires = output["expires"]
+
+                # write the data to a file
+                write_token_to_json_file(jamf_url, jamf_user, output)
                 print("Session token received")
-            return token
-        except KeyError:
+                if verbosity:
+                    print(f"Token: {token}")
+                    print(f"Expires: {expires}")
+                return token
+            except KeyError:
+                print("ERROR: No token received")
+        else:
             print("ERROR: No token received")
-            return
     else:
-        print("ERROR: No token received")
-        return
+        print("ERROR: No credentials given")
 
 
 def get_creds_from_args(args):

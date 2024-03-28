@@ -1,5 +1,40 @@
 #!/usr/bin/env python3
 
+def api_endpoints(object_type):
+    """Return the endpoint URL from the object type"""
+    api_endpoints = {
+        "account": "JSSResource/accounts",
+        "advanced_computer_search": "JSSResource/advancedcomputersearches",
+        "category": "uapi/v1/categories",
+        "extension_attribute": "JSSResource/computerextensionattributes",
+        "computer_group": "JSSResource/computergroups",
+        "computer_prestage": "api/v2/computer-prestages",
+        "computer": "JSSResource/computers",
+        "configuration_profile": "JSSResource/mobiledeviceconfigurationprofiles",
+        "dock_item": "JSSResource/dockitems",
+        "failover": "api/v1/sso/failover",
+        "icon": "api/v1/icon",
+        "jamf_pro_version": "api/v1/jamf-pro-version",
+        "jcds": "api/v1/jcds",
+        "logflush": "JSSResource/logflush",
+        "ldap_server": "JSSResource/ldapservers",
+        "mac_application": "JSSResource/macapplications",
+        "mobile_device_group": "JSSResource/mobiledevicegroups",
+        "package": "JSSResource/packages",
+        "package_upload": "dbfileupload",
+        "patch_policy": "JSSResource/patchpolicies",
+        "patch_software_title": "JSSResource/patchsoftwaretitles",
+        "oauth": "api/oauth/token",
+        "os_x_configuration_profile": "JSSResource/osxconfigurationprofiles",
+        "policy": "JSSResource/policies",
+        "policy_icon": "JSSResource/fileuploads/policies",
+        "restricted_software": "JSSResource/restrictedsoftware",
+        "script": "uapi/v1/scripts",
+        "token": "api/v1/auth/token",
+        "volume_purchasing_locations": "api/v1/volume-purchasing-locations",
+    }
+    return api_endpoints[object_type]
+
 
 def object_types(object_type):
     """return a dictionary of jamf API objects and their corresponding URI names"""
@@ -44,10 +79,3 @@ def object_list_types(object_type):
     }
     return object_list_types[object_type]
 
-
-def uapi_object_versions(object_type):
-    """Return the version for a Jamf UAPI object"""
-    # UAPI objects go through different versions, this needs to be known to construct
-    # a URL
-    object_versions = {"categories": "v1", "computer-prestages": "v2", "scripts": "v1"}
-    return object_versions[object_type]
