@@ -1,7 +1,7 @@
 #!/bin/bash
 
-:<<DOC
-A wrapper script for running the jamf-api-tool script
+: <<DOC
+A wrapper script for running the jamf_api_tool.py script
 DOC
 
 ###########
@@ -13,7 +13,7 @@ usage() {
 Usage: 
 ./jamf-api-tool.sh [--help] [arguments]
 
-This script currently only handles package deletion. More to follow.
+A wrapper script to run jamf_api_tool.py supplying the required credentials.
 
 Arguments:
     --prefs <path>          Inherit AutoPkg prefs file provided by the full path to the file
@@ -31,7 +31,7 @@ Arguments:
 
 # this folder
 DIR=$(dirname "$0")
-tool_directory="$DIR/standalone_uploaders"
+tool_directory="$DIR/jamf-api-tool"
 tool="jamf_api_tool.py"
 tmp_prefs="${HOME}/Library/Preferences/jamf-api-tool.plist"
 autopkg_prefs="${HOME}/Library/Preferences/com.github.autopkg.plist"
@@ -41,15 +41,6 @@ autopkg_prefs="${HOME}/Library/Preferences/com.github.autopkg.plist"
 ###############
 
 args=()
-
-# select object
-object="package"
-args+=("--$object")
-
-# select actions
-args+=("--unused")
-args+=("--delete")
-
 
 while test $# -gt 0 ; do
     case "$1" in
@@ -79,7 +70,7 @@ while test $# -gt 0 ; do
             exit 0
             ;;
         *)
-            echo "Unused key: $1"
+            args+=("$1")
             ;;
     esac
     shift

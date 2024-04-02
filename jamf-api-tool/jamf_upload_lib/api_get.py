@@ -58,10 +58,12 @@ def get_api_obj_list(jamf_url, object_type, token, verbosity):
     if r.status_code == 200:
         try:
             output = json.loads(json.dumps(r.output))
-            print("API object is json object")
+            if verbosity:
+                print("API object is json object")
         except TypeError:
             output = json.loads(r.output)
-            print("API object is json text")
+            if verbosity:
+                print("API object is json text")
         if verbosity:
             print("\nAPI object raw output:")
             print(output)
