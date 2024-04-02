@@ -5,6 +5,7 @@ JamfUploader is a name given to a set of [AutoPkg](https://github.com/autopkg/au
 * Packages
 * Categories
 * Computer Groups
+* Configuration Profiles
 * Scripts
 * Extension Attributes
 * Policies (and their icons)
@@ -22,6 +23,6 @@ This repo contains the sourcecode of the JamfUploader processors. Identical copi
 
 The `jamf-upload.sh` script can be used to take advantage of the JamfUploader processors without needing any AutoPkg recipes.
 
-The `standalone_uploaders` folder contains standalone scripts that do the same thing as the AutoPkg processors. These are now deprecated and require a python 3 installation.
+The `jamf-api-tool` folder contains a standalone python script `jamf-api-tool.py` for performing certain operations on a Jamf Pro instance, primarily associated with cleaning up unused packages and other objects.
 
-Please see the [Wiki](https://github.com/grahampugh/jamf-upload/wiki) for instructions on using both the standalone scripts, `jamf-upload.sh`, the AutoPkg processors, and other tips and tricks.
+Please see the [Wiki](https://github.com/grahampugh/jamf-upload/wiki) for instructions on using both the standalone script, `jamf-upload.sh`, the AutoPkg processors, and other tips and tricks.
