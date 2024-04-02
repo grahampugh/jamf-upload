@@ -5,7 +5,7 @@ def api_endpoints(object_type):
     api_endpoints = {
         "account": "JSSResource/accounts",
         "advanced_computer_search": "JSSResource/advancedcomputersearches",
-        "category": "uapi/v1/categories",
+        "category": "api/v1/categories",
         "extension_attribute": "JSSResource/computerextensionattributes",
         "computer_group": "JSSResource/computergroups",
         "computer_prestage": "api/v2/computer-prestages",

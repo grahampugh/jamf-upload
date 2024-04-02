@@ -25,7 +25,7 @@ class bcolors:
     OKBLUE = "\033[94m"
     OKCYAN = "\033[96m"
     OKGREEN = "\033[92m"
-    WARNING = "\033[93m"
+    WARNING = "\033[33m"
     FAIL = "\033[91m"
     ENDC = "\033[0m"
     BOLD = "\033[1m"
@@ -169,11 +169,14 @@ def handle_computers(jamf_url, token, args, slack_webhook, verbosity):
 
 
 def handle_policies(jamf_url, token, args, verbosity):
-    if args.all:
-        categories = api_get.get_api_obj_list(
+    if args.all or args.disabled:
+        categories = api_get.get_uapi_obj_list(
             jamf_url, "category", token, verbosity
         )
+        if verbosity > 1:
+            print(f"Categories: {categories}")
         if categories:
+            disabled_policies = {}
             for category in categories:
                 # loop all the categories
                 print(
@@ -212,14 +215,48 @@ def handle_policies(jamf_url, token, args, verbosity):
                             pkg = "none"
 
                         # now show all the policies as each category loops
-                        print(
-                            bcolors.WARNING
-                            + f"  policy {policy['id']}"
-                            + f"\tname  : {policy['name']}\n"
+                        if enabled == "false":
+                            disabled_policies[policy["id"]] = policy["name"]
+                            if verbosity > 1:
+                                print(f"Number of disabled policies: {len(disabled_policies)}")
+                        do_print = 1
+                        if args.disabled and enabled == "true":
+                            do_print = 0
+                        if do_print == 1:
+                            print(
+                                bcolors.WARNING
+                                + f"  policy {policy['id']}"
+                                + f"\tname    : {policy['name']}\n"
+                                + bcolors.ENDC
+                                + f"\t\tenabled : {enabled}\n"
+                                + f"\t\tpkg     : {pkg}\n"
+                                + f"\t\tscope   : {groups}"
+                            )
+
+            if args.disabled and args.delete:
+                if actions.confirm(
+                    prompt=(
+                        f"\nDelete all disabled policies?"
+                        "\n(press n to go on to confirm individually)?"
+                    ),
+                    default=False,
+                ):
+                    delete_all = True
+                else:
+                    delete_all = False
+                # prompt to delete each package in turn
+                for policy_id, policy_name in disabled_policies.items():
+                    if delete_all or actions.confirm(
+                        prompt=(
+                            bcolors.OKBLUE
+                            + f"Delete [{policy_id}] {policy_name}?"
                             + bcolors.ENDC
-                            + f"\t\enabled   : {enabled}\n"
-                            + f"\t\tpkg   : {pkg}\n"
-                            + f"\t\tscope : {groups}"
+                        ),
+                        default=False,
+                    ):
+                        print(f"Deleting {policy_name}...")
+                        api_delete.delete_api_object(
+                            jamf_url, "policy", policy_id, token, verbosity
                         )
         else:
             print("something went wrong: no categories found.")
@@ -271,7 +308,7 @@ def handle_policies(jamf_url, token, args, verbosity):
                     print(f"No match found: {partial}")
 
     else:
-        exit("syntax error: with --policies you must supply --search or --all.")
+        exit("ERROR: with --policies you must supply --search or --all.")
 
 
 def handle_policies_in_category(jamf_url, token, args, verbosity):
@@ -290,13 +327,40 @@ def handle_policies_in_category(jamf_url, token, args, verbosity):
                     "To delete them run this command again with the --delete flag."
                 )
 
-            for obj_item in obj:
-                print(f"~^~ {obj_item['id']} -~- {obj_item['name']}")
+            policies_in_category = {}
 
-                if args.delete:
-                    api_delete.delete_api_object(
-                        jamf_url, "policy", obj_item["id"], token, verbosity
-                    )
+            for obj_item in obj:
+                policies_in_category[obj_item["id"]] = obj_item["name"]
+                # print(f"~^~ {obj_item['id']} -~- {obj_item['name']}")
+
+            for policy_id, policy_name in policies_in_category.items():
+                print(bcolors.FAIL + f"[{policy_id}] " + policy_name + bcolors.ENDC)
+
+            if args.delete:
+                if actions.confirm(
+                    prompt=(
+                        f"\nDelete all policies in category '{category}'?"
+                        "\n(press n to go on to confirm individually)?"
+                    ),
+                    default=False,
+                ):
+                    delete_all = True
+                else:
+                    delete_all = False
+                # prompt to delete each package in turn
+                for policy_id, policy_name in policies_in_category.items():
+                    if delete_all or actions.confirm(
+                        prompt=(
+                            bcolors.OKBLUE
+                            + f"Delete [{policy_id}] {policy_name}?"
+                            + bcolors.ENDC
+                        ),
+                        default=False,
+                    ):
+                        print(f"Deleting {policy_name}...")
+                        api_delete.delete_api_object(
+                            jamf_url, "policy", policy_id, token, verbosity
+                        )
         else:
             print(f"Category '{category}' not found")
 
@@ -466,6 +530,8 @@ def handle_packages(jamf_url, token, args, verbosity):
                                 smb_actions.delete_pkg(args.smb_url, pkg_name)
                                 # unmount the share
                                 smb_actions.umount_smb(args.smb_url)
+    else:
+        exit("ERROR: with --packages you must supply --unused or --all.")
 
 
 def handle_scripts(jamf_url, token, args, verbosity):
@@ -558,6 +624,8 @@ def handle_scripts(jamf_url, token, args, verbosity):
                             )
         else:
             print("\nNo scripts found")
+    else:
+        exit("ERROR: with --scripts you must supply --unused or --all.")
 
 
 def handle_eas(jamf_url, token, args, verbosity):
@@ -676,6 +744,8 @@ def handle_eas(jamf_url, token, args, verbosity):
                             )
         else:
             print("\nNo EAs found")
+    else:
+        exit("ERROR: with --ea you must supply --unused or --all.")
 
 
 def handle_groups(jamf_url, token, args, verbosity):
@@ -861,6 +931,8 @@ def handle_groups(jamf_url, token, args, verbosity):
                             )
         else:
             print("\nNo groups found")
+    else:
+        exit("ERROR: with --groups you must supply --unused or --all.")
 
 
 def get_args():
@@ -874,14 +946,16 @@ def get_args():
     group.add_argument("--scripts", action="store_true")
     group.add_argument("--ea", action="store_true")
     group.add_argument("--groups", action="store_true")
-    group.add_argument(
+
+    parser.add_argument(
         "--category",
         action="append",
         dest="category",
         default=[],
         help=(
-            "List all policies in given category. Delete available in "
-            "conjunction with --delete."
+            "List all policies in given category. "
+            "Requires --policies. "
+            "Delete available in conjunction with --delete."
         ),
     )
 
@@ -891,10 +965,13 @@ def get_args():
         action="append",
         dest="names",
         default=[],
-        help=("Give a policy name to delete. Multiple allowed."),
+        help=("Give a policy name to delete. "
+              "Requires --policies. "
+              "Multiple allowed."),
     )
     parser.add_argument(
-        "--os", help=("Restrict computer compliance to a minimum OS version. Requires --computers --all")
+        "--os", help=("Restrict computer compliance to a minimum OS version. "
+                      "Requires --computers --all")
     )
     parser.add_argument(
         "--search",
@@ -903,6 +980,7 @@ def get_args():
         default=[],
         help=(
             "List all policies that start with given query. "
+            "Requires --policies. "
             "Delete available in conjunction with --delete."
         ),
     )
@@ -913,7 +991,19 @@ def get_args():
     )
     parser.add_argument(
         "--unused",
-        help="Must be used with another search argument.",
+        help=(
+            "Must be used with --groups, --packages, --scripts, or --eas. "
+            "Delete available in conjunction with --delete."
+        ),
+        action="store_true",
+    )
+    parser.add_argument(
+        "--disabled",
+        help=(
+            "List all disabled policies. "
+            "Must be used with --policies.. "
+            "Delete available in conjunction with --delete."
+        ),
         action="store_true",
     )
     parser.add_argument(
@@ -924,7 +1014,7 @@ def get_args():
     parser.add_argument(
         "--all",
         help=(
-            "All Policies will be listed but no action will be taken. "
+            "All items will be listed but no action will be taken. "
             "This is only meant for you to browse your JSS."
         ),
         action="store_true",
@@ -1035,11 +1125,10 @@ def main():
 
     # policies
     if args.policies:
-        handle_policies(jamf_url, token, args, verbosity)
-
-    # set a list of names either from the CLI for erasing all policies in a category
-    if args.category:
-        handle_policies_in_category(jamf_url, token, args, verbosity)
+        if args.category:
+            handle_policies_in_category(jamf_url, token, args, verbosity)
+        else:
+            handle_policies(jamf_url, token, args, verbosity)
 
     # packages
     if args.packages:

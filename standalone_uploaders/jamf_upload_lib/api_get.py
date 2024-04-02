@@ -12,7 +12,7 @@ def get_uapi_obj_list(jamf_url, object_type, token, verbosity):
     url = jamf_url + "/" + api_objects.api_endpoints(object_type) + "?page=0&page-size=1000&sort=id%3Adesc"
     r = curl.request("GET", url, token, verbosity)
     if r.status_code == 200:
-        output = json.loads(json.dumps(r.output))
+        output = json.loads(r.output)
         obj = output["results"]
         if verbosity > 2:
             print("\nAPI object list:")
@@ -56,12 +56,16 @@ def get_api_obj_list(jamf_url, object_type, token, verbosity):
     r = curl.request("GET", url, token, verbosity)
 
     if r.status_code == 200:
-        output = json.loads(json.dumps(r.output))
-        obj = output[api_objects.object_list_types(object_type)]
-        if verbosity > 3:
+        try:
+            output = json.loads(json.dumps(r.output))
+            print("API object is json object")
+        except TypeError:
+            output = json.loads(r.output)
+            print("API object is json text")
+        if verbosity:
             print("\nAPI object raw output:")
             print(output)
-
+        obj = output[api_objects.object_list_types(object_type)]
         if verbosity > 2:
             print("\nAPI object list:")
             print(obj)
@@ -88,7 +92,7 @@ def get_api_obj_id_from_name(jamf_url, object_type, object_name, token, verbosit
     r = curl.request("GET", url, token, verbosity)
 
     if r.status_code == 200:
-        output = json.loads(r.output)
+        output = json.loads(json.dumps(r.output))
         if verbosity > 3:
             print("\nAPI object raw output:")
             print(output)
