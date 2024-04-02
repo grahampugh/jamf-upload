@@ -5,9 +5,9 @@ from time import sleep
 from . import curl, api_objects, api_get
 
 
-def delete_api_object(jamf_url, object_type, obj_id, enc_creds, verbosity):
+def delete_api_object(jamf_url, object_type, obj_id, token, verbosity):
     """deletes an API object by obtained or set id"""
-    url = f"{jamf_url}/JSSResource/{api_objects.object_types(object_type)}/id/{obj_id}"
+    url = jamf_url + "/" + api_objects.api_endpoints(object_type) + f"/id/{obj_id}"
 
     count = 0
     while True:
@@ -15,7 +15,7 @@ def delete_api_object(jamf_url, object_type, obj_id, enc_creds, verbosity):
         if verbosity > 1:
             print(f"{object_type} delete attempt {count}")
         request_type = "DELETE"
-        r = curl.request(request_type, url, enc_creds, verbosity)
+        r = curl.request(request_type, url, token, verbosity)
         # check HTTP response
         if curl.status_check(r, object_type, obj_id, request_type) == "break":
             break
@@ -31,10 +31,7 @@ def delete_api_object(jamf_url, object_type, obj_id, enc_creds, verbosity):
 
 def delete_uapi_object(jamf_url, object_type, obj_id, token, verbosity):
     """deletes an API object by obtained or set id"""
-    api_obj_version = api_objects.uapi_object_versions(api_objects.object_list_types(object_type))
-    url = (
-        f"{jamf_url}/uapi/{api_obj_version}/{api_objects.object_list_types(object_type)}/{obj_id}"
-    )
+    url = jamf_url + "/" + api_objects.api_endpoints(object_type) + f"/{obj_id}"
 
     count = 0
     while True:

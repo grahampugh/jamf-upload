@@ -9,14 +9,11 @@ from . import curl, api_objects
 
 def get_uapi_obj_list(jamf_url, object_type, token, verbosity):
     """Return all items of a UAPI object"""
-    api_obj_version = api_objects.uapi_object_versions(object_type)
-    url = (
-        f"{jamf_url}/uapi/{api_obj_version}/{object_type}?page=0&page-size=1000&sort=id"
-        "%3Adesc"
-    )
+    url = jamf_url + "/" + api_objects.api_endpoints(object_type) + "?page=0&page-size=1000&sort=id%3Adesc"
     r = curl.request("GET", url, token, verbosity)
     if r.status_code == 200:
-        obj = r.output["results"]
+        output = json.loads(r.output)
+        obj = output["results"]
         if verbosity > 2:
             print("\nAPI object list:")
             print(obj)
@@ -25,11 +22,11 @@ def get_uapi_obj_list(jamf_url, object_type, token, verbosity):
 
 def get_uapi_obj_from_id(jamf_url, object_type, obj_id, token, verbosity):
     """Return a UAPI object by ID"""
-    api_obj_version = api_objects.uapi_object_versions(object_type)
-    url = f"{jamf_url}/uapi/{api_obj_version}/{object_type}/{obj_id}"
+    url = jamf_url + "/" + api_objects.api_endpoints(object_type) + "/" + obj_id
     r = curl.request("GET", url, token, verbosity)
     if r.status_code == 200:
-        obj = r.output["results"]
+        output = json.loads(r.output)
+        obj = output["results"]
         if verbosity > 2:
             print("\nAPI object list:")
             print(obj)
@@ -38,15 +35,12 @@ def get_uapi_obj_from_id(jamf_url, object_type, obj_id, token, verbosity):
 
 def get_uapi_obj_id_from_name(jamf_url, object_type, object_name, token, verbosity):
     """Get the UAPI object by name"""
-    api_obj_version = api_objects.uapi_object_versions(object_type)
-    url = (
-        f"{jamf_url}/uapi/{api_obj_version}/{object_type}?page=0&page-size=1000&sort=id"
-        f"&filter=name%3D%3D%22{quote(object_name)}%22"
-    )
+    url = jamf_url + "/" + api_objects.api_endpoints(object_type) + "?page=0&page-size=1000&sort=id" + f"&filter=name%3D%3D%22{quote(object_name)}%22"
     r = curl.request("GET", url, token, verbosity)
     if r.status_code == 200:
+        output = json.loads(r.output)
         obj_id = 0
-        for obj in r.output["results"]:
+        for obj in output["results"]:
             if verbosity > 2:
                 print("\nAPI object:")
                 print(obj)
@@ -55,52 +49,59 @@ def get_uapi_obj_id_from_name(jamf_url, object_type, object_name, token, verbosi
         return obj_id
 
 
-def get_api_obj_list(jamf_url, object_type, enc_creds, verbosity):
+def get_api_obj_list(jamf_url, object_type, token, verbosity):
     """Return all items of an API object"""
 
-    url = f"{jamf_url}/JSSResource/{api_objects.object_types(object_type)}"
-    r = curl.request("GET", url, enc_creds, verbosity)
+    url = jamf_url + "/" + api_objects.api_endpoints(object_type)
+    r = curl.request("GET", url, token, verbosity)
 
     if r.status_code == 200:
-        object_list = json.loads(r.output)
-        obj = object_list[api_objects.object_list_types(object_type)]
-        if verbosity > 3:
+        try:
+            output = json.loads(json.dumps(r.output))
+            if verbosity:
+                print("API object is json object")
+        except TypeError:
+            output = json.loads(r.output)
+            if verbosity:
+                print("API object is json text")
+        if verbosity:
             print("\nAPI object raw output:")
-            print(object_list)
-
+            print(output)
+        obj = output[api_objects.object_list_types(object_type)]
         if verbosity > 2:
             print("\nAPI object list:")
             print(obj)
         return obj
 
 
-def get_api_obj_from_id(jamf_url, object_type, obj_id, enc_creds, verbosity):
+def get_api_obj_from_id(jamf_url, object_type, obj_id, token, verbosity):
     """Return an API object by ID"""
-    url = f"{jamf_url}/JSSResource/{api_objects.object_types(object_type)}/id/{obj_id}"
-    r = curl.request("GET", url, enc_creds, verbosity)
+    url = jamf_url + "/" + api_objects.api_endpoints(object_type) + f"/id/{obj_id}"
+    r = curl.request("GET", url, token, verbosity)
     if r.status_code == 200:
-        obj = r.output["results"]
+        output = json.loads(r.output)
+        obj = output["results"]
         if verbosity > 2:
             print("\nAPI object list:")
             print(obj)
         return obj
 
 
-def get_api_obj_id_from_name(jamf_url, object_type, object_name, enc_creds, verbosity):
+def get_api_obj_id_from_name(jamf_url, object_type, object_name, token, verbosity):
     """returns an ID of an API object if it exists"""
 
-    url = f"{jamf_url}/JSSResource/{api_objects.object_types(object_type)}"
-    r = curl.request("GET", url, enc_creds, verbosity)
+    url = jamf_url + "/" + api_objects.api_endpoints(object_type)
+    r = curl.request("GET", url, token, verbosity)
 
     if r.status_code == 200:
-        object_list = json.loads(r.output)
+        output = json.loads(json.dumps(r.output))
         if verbosity > 3:
             print("\nAPI object raw output:")
-            print(object_list)
+            print(output)
         obj_id = 0
         if verbosity > 2:
             print("\nAPI object list:")
-        for obj in object_list[api_objects.object_list_types(object_type)]:
+        for obj in output[api_objects.object_list_types(object_type)]:
             if verbosity > 2:
                 print(obj)
             # we need to check for a case-insensitive match
@@ -110,11 +111,11 @@ def get_api_obj_id_from_name(jamf_url, object_type, object_name, enc_creds, verb
 
 
 def get_patch_obj_value_from_id(
-    jamf_url, object_type, obj_id, obj_path, enc_creds, verbosity
+    jamf_url, object_type, obj_id, obj_path, token, verbosity
 ):
     """get the value of an item in a Classic API object"""
-    url = f"{jamf_url}/JSSResource/{api_objects.object_types(object_type)}/id/{obj_id}"
-    r = curl.request("GET", url, enc_creds, verbosity, xml="xml")
+    url = jamf_url + "/" + api_objects.api_endpoints(object_type) + f"/id/{obj_id}"
+    r = curl.request("GET", url, token, verbosity, xml="xml")
     if r.status_code == 200:
         # handle xml for patch items
         # TODO : Convert xml to python array. The problem is the version keys
@@ -172,21 +173,21 @@ def get_patch_obj_value_from_id(
 
 
 def get_api_obj_value_from_id(
-    jamf_url, object_type, obj_id, obj_path, enc_creds, verbosity
+    jamf_url, object_type, obj_id, obj_path, token, verbosity
 ):
     """get the value of an item in a Classic API object"""
-    url = f"{jamf_url}/JSSResource/{api_objects.object_types(object_type)}/id/{obj_id}"
-    r = curl.request("GET", url, enc_creds, verbosity)
+    url = jamf_url + "/" + api_objects.api_endpoints(object_type) + f"/id/{obj_id}"
+    r = curl.request("GET", url, token, verbosity)
 
     if r.status_code == 200:
-        obj_content = json.loads(r.output)
+        output = json.loads(r.output)
         if verbosity > 2:
             print("\nAPI object content:")
-            print(obj_content)
+            print(output)
 
         # for everything else, convert an xpath to json
         xpath_list = obj_path.split("/")
-        value = obj_content[object_type]
+        value = output[object_type]
 
         for i in range(0, len(xpath_list)):
             if xpath_list[i]:
@@ -203,18 +204,18 @@ def get_api_obj_value_from_id(
         return value
 
 
-def get_policies_in_category(jamf_url, object_name, enc_creds, verbosity):
+def get_policies_in_category(jamf_url, object_name, token, verbosity):
     """return all policies in a category"""
 
-    url = f"{jamf_url}/JSSResource/policies/category/{object_name}"
-    r = curl.request("GET", url, enc_creds, verbosity)
+    url = jamf_url + "/" + api_objects.api_endpoints("policy") + f"/category/{object_name}"
+    r = curl.request("GET", url, token, verbosity)
 
     if r.status_code == 200:
-        object_list = json.loads(r.output)
-        obj = object_list["policies"]
+        output = json.loads(r.output)
+        obj = output["policies"]
         if verbosity > 3:
             print("\nAPI object raw output:")
-            print(object_list)
+            print(output)
 
         if verbosity > 2:
             print("\nAPI object list:")
@@ -222,11 +223,11 @@ def get_policies_in_category(jamf_url, object_name, enc_creds, verbosity):
         return obj
 
 
-def get_packages_in_policies(jamf_url, enc_creds, verbosity):
+def get_packages_in_policies(jamf_url, token, verbosity):
     """get a list of all packages in all policies"""
 
     # get all policies
-    policies = get_api_obj_list(jamf_url, "policy", enc_creds, verbosity)
+    policies = get_api_obj_list(jamf_url, "policy", token, verbosity)
 
     # get all package objects from policies and add to a list
     if policies:
@@ -238,7 +239,7 @@ def get_packages_in_policies(jamf_url, enc_creds, verbosity):
         )
         for policy in policies:
             generic_info = get_api_obj_value_from_id(
-                jamf_url, "policy", policy["id"], "", enc_creds, verbosity
+                jamf_url, "policy", policy["id"], "", token, verbosity
             )
             try:
                 pkgs = generic_info["package_configuration"]["packages"]
@@ -251,11 +252,11 @@ def get_packages_in_policies(jamf_url, enc_creds, verbosity):
         return packages_in_policies
 
 
-def get_packages_in_patch_titles(jamf_url, enc_creds, verbosity):
+def get_packages_in_patch_titles(jamf_url, token, verbosity):
     """get a list of all packages in all patch software titles"""
 
     # get all patch software titles
-    titles = get_api_obj_list(jamf_url, "patch_software_title", enc_creds, verbosity)
+    titles = get_api_obj_list(jamf_url, "patch_software_title", token, verbosity)
 
     # get all package objects from patch titles and add to a list
     if titles:
@@ -271,7 +272,7 @@ def get_packages_in_patch_titles(jamf_url, enc_creds, verbosity):
                 "patch_software_title",
                 title["id"],
                 "versions",
-                enc_creds,
+                token,
                 verbosity,
             )
             try:
@@ -291,11 +292,11 @@ def get_packages_in_patch_titles(jamf_url, enc_creds, verbosity):
         return packages_in_titles
 
 
-def get_packages_in_prestages(jamf_url, enc_creds, token, verbosity):
+def get_packages_in_prestages(jamf_url, token, verbosity):
     """get a list of all packages in all PreStage Enrollments"""
 
     # get all prestages
-    prestages = get_uapi_obj_list(jamf_url, "computer-prestages", token, verbosity)
+    prestages = get_uapi_obj_list(jamf_url, "computer_prestage", token, verbosity)
 
     # get all package objects from prestages and add to a list
     if prestages:
@@ -309,7 +310,7 @@ def get_packages_in_prestages(jamf_url, enc_creds, token, verbosity):
             if len(pkg_ids) > 0:
                 for pkg_id in pkg_ids:
                     pkg = get_api_obj_value_from_id(
-                        jamf_url, "package", pkg_id, "name", enc_creds, verbosity
+                        jamf_url, "package", pkg_id, "name", token, verbosity
                     )
                     if pkg:
                         if pkg not in packages_in_prestages:
@@ -317,11 +318,11 @@ def get_packages_in_prestages(jamf_url, enc_creds, token, verbosity):
         return packages_in_prestages
 
 
-def get_scripts_in_policies(jamf_url, enc_creds, verbosity):
+def get_scripts_in_policies(jamf_url, token, verbosity):
     """get a list of all scripts in all policies"""
 
     # get all policies
-    policies = get_api_obj_list(jamf_url, "policy", enc_creds, verbosity)
+    policies = get_api_obj_list(jamf_url, "policy", token, verbosity)
 
     # get all script objects from policies and add to a list
     if policies:
@@ -333,7 +334,7 @@ def get_scripts_in_policies(jamf_url, enc_creds, verbosity):
         )
         for policy in policies:
             generic_info = get_api_obj_value_from_id(
-                jamf_url, "policy", policy["id"], "", enc_creds, verbosity
+                jamf_url, "policy", policy["id"], "", token, verbosity
             )
             try:
                 scripts = generic_info["scripts"]
@@ -346,11 +347,11 @@ def get_scripts_in_policies(jamf_url, enc_creds, verbosity):
         return scripts_in_policies
 
 
-def get_criteria_in_computer_groups(jamf_url, enc_creds, verbosity):
+def get_criteria_in_computer_groups(jamf_url, token, verbosity):
     """get a list of all criteria in all smart groups"""
 
     # get all smart groups
-    computer_groups = get_api_obj_list(jamf_url, "computer_group", enc_creds, verbosity)
+    computer_groups = get_api_obj_list(jamf_url, "computer_group", token, verbosity)
 
     # get all EA objects from computer groups and add to a list
     if computer_groups:
@@ -366,7 +367,7 @@ def get_criteria_in_computer_groups(jamf_url, enc_creds, verbosity):
                 "computer_group",
                 computer_group["id"],
                 "",
-                enc_creds,
+                token,
                 verbosity,
             )
             try:
@@ -380,13 +381,13 @@ def get_criteria_in_computer_groups(jamf_url, enc_creds, verbosity):
         return criteria_in_computer_groups
 
 
-def get_names_in_advanced_searches(jamf_url, enc_creds, verbosity):
+def get_names_in_advanced_searches(jamf_url, token, verbosity):
     """get a list of all criteria and display fields in all advanced searches.
     Note it's not possible to discern EAs from other criteria with this method."""
 
     # get all advanced searches
     advanced_searches = get_api_obj_list(
-        jamf_url, "advanced_computer_search", enc_creds, verbosity
+        jamf_url, "advanced_computer_search", token, verbosity
     )
 
     # get all EA objects from computer groups and add to a list
@@ -403,7 +404,7 @@ def get_names_in_advanced_searches(jamf_url, enc_creds, verbosity):
                 "advanced_computer_search",
                 advanced_search["id"],
                 "",
-                enc_creds,
+                token,
                 verbosity,
             )
             try:
@@ -425,11 +426,11 @@ def get_names_in_advanced_searches(jamf_url, enc_creds, verbosity):
         return names_in_advanced_searches
 
 
-def get_groups_in_patch_policies(jamf_url, enc_creds, verbosity):
+def get_groups_in_patch_policies(jamf_url, token, verbosity):
     """get a list of all groups in all patch policies (targets or exclusions)."""
 
     # get all objects
-    api_objects = get_api_obj_list(jamf_url, "patch_policy", enc_creds, verbosity)
+    api_objects = get_api_obj_list(jamf_url, "patch_policy", token, verbosity)
 
     # get all groups from policies and add to a list
     if api_objects:
@@ -441,7 +442,7 @@ def get_groups_in_patch_policies(jamf_url, enc_creds, verbosity):
         )
         for obj in api_objects:
             groups = get_patch_obj_value_from_id(
-                jamf_url, "patch_policy", obj["id"], "scope", enc_creds, verbosity
+                jamf_url, "patch_policy", obj["id"], "scope", token, verbosity
             )
             for x in groups:
                 group = groups[x]["computer_group"]["name"]
@@ -450,13 +451,13 @@ def get_groups_in_patch_policies(jamf_url, enc_creds, verbosity):
         return groups_in_api_objects
 
 
-def get_groups_in_api_objs(jamf_url, enc_creds, obj_type, verbosity):
+def get_groups_in_api_objs(jamf_url, token, obj_type, verbosity):
     """get a list of all groups in all of a particular object type (targets or exclusions).
     Valid object types are: mac_application, os_x_configuration_profile,
     policy, restricted_software"""
 
     # get all objects
-    api_objects = get_api_obj_list(jamf_url, obj_type, enc_creds, verbosity)
+    api_objects = get_api_obj_list(jamf_url, obj_type, token, verbosity)
 
     # get all groups from policies and add to a list
     if api_objects:
@@ -468,7 +469,7 @@ def get_groups_in_api_objs(jamf_url, enc_creds, obj_type, verbosity):
         )
         for obj in api_objects:
             generic_info = get_api_obj_value_from_id(
-                jamf_url, obj_type, obj["id"], "", enc_creds, verbosity
+                jamf_url, obj_type, obj["id"], "", token, verbosity
             )
             if generic_info["scope"]["all_computers"] != "true":
                 try:

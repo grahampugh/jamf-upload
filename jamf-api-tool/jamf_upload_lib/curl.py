@@ -34,8 +34,8 @@ def request(method, url, auth, verbosity, data="", additional_headers="", xml=Fa
         url,
     ]
 
-    # the authorisation is Basic unless we are using the uapi and already have a token
-    if "uapi" in url and "tokens" not in url:
+    # the authorisation requires a token
+    if "/token" not in url:
         curl_cmd.extend(["--header", "authorization: Bearer {}".format(auth)])
     else:
         curl_cmd.extend(["--header", "authorization: Basic {}".format(auth)])
