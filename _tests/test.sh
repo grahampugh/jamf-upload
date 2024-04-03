@@ -11,7 +11,7 @@ verbosity="$2"
 url="$3"
 
 # path to test items
-pkg_path="/Users/Shared/plistyamlplist-0.6.3.pkg"
+pkg_path="/Users/Shared/plistyamlplist-0.6.0.pkg"
 
 
 # other variables (ensure some of the temporary variables are not in the prefs)
