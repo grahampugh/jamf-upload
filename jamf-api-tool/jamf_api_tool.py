@@ -169,6 +169,9 @@ def handle_computers(jamf_url, token, args, slack_webhook, verbosity):
 
 
 def handle_policies(jamf_url, token, args, verbosity):
+    # declare the csv data for export 
+    csv_fields = ['policy_id', 'policy_name', 'policy_enabled', 'policy_category', 'pkg', 'scope', 'exclusions']
+    csv_data = []
     if args.all or args.disabled:
         categories = api_get.get_uapi_obj_list(
             jamf_url, "category", token, verbosity
@@ -188,19 +191,27 @@ def handle_policies(jamf_url, token, args, verbosity):
                     jamf_url, category["id"], token, verbosity
                 )
                 if policies:
+                    # loop through all the policies
                     for policy in policies:
-                        # loop all the policies
+                        groups = []
+                        exclusion_groups = []
                         generic_info = api_get.get_api_obj_value_from_id(
                             jamf_url, "policy", policy["id"], "", token, verbosity
                         )
                         # get scope
                         if generic_info["scope"]["all_computers"]:
-                            groups = "All Computers"
+                            groups = ["All Computers"]
                         else:
-                            try:
-                                groups = generic_info["scope"]["computer_groups"][0]["name"]
-                            except IndexError:
-                                groups = "none"
+                            g_count = len(generic_info["scope"]["computer_groups"])
+                            for g in range(g_count):
+                                groups.append(generic_info["scope"]["computer_groups"][g]["name"])
+                            # if len(groups) < 1:
+                            #     groups = ["none"]
+                        eg_count = len(generic_info["scope"]["exclusions"]["computer_groups"])
+                        for eg in range(eg_count):
+                            exclusion_groups.append(generic_info["scope"]["exclusions"]["computer_groups"][eg]["name"])
+                        # if len(exclusion_groups) < 1:
+                        #     exclusion_groups = ["none"]
                         # get enabled status
                         if generic_info["general"]["enabled"] == True:
                             enabled = "true"
@@ -226,12 +237,22 @@ def handle_policies(jamf_url, token, args, verbosity):
                             print(
                                 bcolors.WARNING
                                 + f"  policy {policy['id']}"
-                                + f"\tname    : {policy['name']}\n"
+                                + f"\tname       : {policy['name']}\n"
                                 + bcolors.ENDC
-                                + f"\t\tenabled : {enabled}\n"
-                                + f"\t\tpkg     : {pkg}\n"
-                                + f"\t\tscope   : {groups}"
+                                + f"\t\tenabled    : {enabled}\n"
+                                + f"\t\tpkg        : {pkg}\n"
+                                + f"\t\tscope      : {groups}\n"
+                                + f"\t\texclusions : {exclusion_groups}"
                             )
+                            csv_data.append({'policy_id': policy['id'], 'policy_name': policy['name'], 'policy_category': category["name"], 'policy_enabled': enabled, 'pkg': pkg, 'scope': groups, 'exclusions': exclusion_groups})
+
+            api_connect.write_csv_file(args.csv, csv_fields, csv_data)
+            print(
+                "\n"
+                + bcolors.OKGREEN
+                + f"CSV file writtten to {args.csv}"
+                + bcolors.ENDC
+            )
 
             if args.disabled and args.delete:
                 if actions.confirm(
@@ -423,6 +444,13 @@ def handle_packages(jamf_url, token, args, verbosity):
     if args.all or args.unused:
         packages = api_get.get_api_obj_list(jamf_url, "package", token, verbosity)
         if packages:
+            # declare the csv data for export 
+            if args.unused:
+                csv_fields = ['pkg_id', 'pkg_name', 'used']
+                csv_data = []
+            elif args.details:
+                csv_fields = ['pkg_id', 'pkg_name', 'filename', 'category', 'info', 'notes']
+                csv_data = []
             for package in packages:
                 # loop all the packages
                 if args.unused:
@@ -451,8 +479,10 @@ def handle_packages(jamf_url, token, args, verbosity):
                         and unused_in_prestages == 1
                     ):
                         unused_packages[package["id"]] = package["name"]
+                        csv_data.append({'pkg_id': package['id'], 'pkg_name': package['name'], 'used': 'false'})
                     elif package["name"] not in used_packages:
                         used_packages[package["id"]] = package["name"]
+                        csv_data.append({'pkg_id': package['id'], 'pkg_name': package['name'], 'used': 'true'})
                 else:
                     print(
                         bcolors.WARNING
@@ -477,6 +507,15 @@ def handle_packages(jamf_url, token, args, verbosity):
                         notes = generic_info["notes"]
                         if notes:
                             print(f"      notes    : {notes}")
+                        csv_data.append({'pkg_id': package['id'], 'pkg_name': package['name'], 'filename': filename, 'category': category, 'info': info, 'notes': notes})
+            if args.details or args.unused:
+                api_connect.write_csv_file(args.csv, csv_fields, csv_data)
+                print(
+                    "\n"
+                    + bcolors.OKGREEN
+                    + f"CSV file writtten to {args.csv}"
+                    + bcolors.ENDC
+                )
             if args.unused:
                 print(
                     "\nThe following packages are found in at least one policy, "
@@ -1018,6 +1057,13 @@ def get_args():
             "This is only meant for you to browse your JSS."
         ),
         action="store_true",
+    )
+    parser.add_argument(
+        "--csv",
+        default="/tmp/jamf_api_tool.csv",
+        help=(
+            "Path to a CSV file to output to. "
+        ),
     )
     parser.add_argument("--slack", help="Post a slack webhook", action="store_true")
     parser.add_argument("--url", default="", help="the Jamf Pro Server URL")

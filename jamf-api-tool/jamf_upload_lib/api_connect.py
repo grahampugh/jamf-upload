@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 
+import csv
 import getpass
 import json
 import plistlib
@@ -39,6 +40,19 @@ def write_temp_file(data):
         fp.write(data)
     return tf
 
+
+def write_csv_file(file, fields, data):
+    """dump some text to a file"""
+    with open(file, "w") as csvfile:
+        # creating a csv dict writer object
+        writer = csv.DictWriter(csvfile, fieldnames=fields)
+    
+        # writing headers (field names)
+        writer.writeheader()
+    
+        # writing data rows
+        writer.writerows(data)
+        
 
 def make_tmp_dir(tmp_dir="/tmp/jamf_upload_"):
     """make the tmp directory"""
