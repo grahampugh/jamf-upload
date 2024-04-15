@@ -23,6 +23,8 @@ This repo contains the sourcecode of the JamfUploader processors. Identical copi
 
 The `jamf-upload.sh` script can be used to take advantage of the JamfUploader processors without needing any AutoPkg recipes.
 
-The `jamf-api-tool` folder contains a standalone python script `jamf-api-tool.py` for performing certain operations on a Jamf Pro instance, primarily associated with cleaning up unused packages and other objects.
+## Notice
+
+The `jamf-api-tool.py` script has been moved to its own repository, [jamf-api-tool](https://github.com/grahampugh/jamf-api-tool).
 
 Please see the [Wiki](https://github.com/grahampugh/jamf-upload/wiki) for instructions on using both the standalone script, `jamf-upload.sh`, the AutoPkg processors, and other tips and tricks.
