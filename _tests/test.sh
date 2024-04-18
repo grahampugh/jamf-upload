@@ -344,9 +344,10 @@ elif [[ $test_type == "pkgclean" ]]; then
     "$DIR"/../jamf-upload.sh pkgclean \
         --prefs "$prefs" \
         --recipe-dir /Users/gpugh/sourcecode/jamf-upload/_tests \
-        --name "erase-install" \
         --keep "3" \
-        "$verbosity" \
+        --key "NAME=plistyamlplist" \
+        "$verbosity" 
+        # --name "erase-install" \
 
 elif [[ $test_type == "script" ]]; then
     # upload a script

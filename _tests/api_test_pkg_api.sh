@@ -6,10 +6,9 @@ Upload a package using the Jamf Pro API using curl
 Actions:
 - Checks if we already have a token
 - Grabs a new token if required using basic auth
-- Works out the Jamf Pro version
-- Performs a GET request on a supplied package object using the bearer token
+- Checks for an existing package object using the bearer token
+- Creates or updates a package object as appropriate, using the bearer token
 - Uploads a package using the bearer token
-- If that fails, uploads a package using basic auth
 DOC
 
 ## ---------------------------------------------------------------
@@ -23,16 +22,10 @@ expiration_epoch="0"
 output_location="/tmp/api_tests"
 mkdir -p "$output_location"
 cookie_jar="$output_location/cookie_jar.txt"
-headers_file_session="$output_location/headers_session.txt"
 headers_file_token="$output_location/headers_token.txt"
 headers_file_record="$output_location/headers_record.txt"
-headers_file_list="$output_location/headers_list.txt"
-headers_file_delete="$output_location/headers_delete.txt"
-output_file_session="$output_location/output_session.txt"
 output_file_token="$output_location/output_token.txt"
 output_file_record="$output_location/output_record.txt"
-output_file_list="$output_location/output_list.txt"
-output_file_delete="$output_location/output_delete.txt"
 
 ## ---------------------------------------------------------------
 ## FUNCTIONS
@@ -43,13 +36,11 @@ usage() {
 }
 
 getBearerToken() {
-    # generate a b64 hash of the credentials
-    credentials=$(printf "%s" "$user:$pass" | iconv -t ISO-8859-1 | base64 -i -)
-
     # request the token
     http_response=$(
         curl --request POST \
         --silent \
+        --user "$user:$pass" \
         --header "authorization: Basic $credentials" \
         --url "$url/api/v1/auth/token" \
         --write-out "%{http_code}" \
@@ -220,9 +211,6 @@ JSON
 
 postPkg() {
     # upload the package
-
-    echo "URL: $url/api/v1/packages/$pkg_id/upload" # TEMP
-
     http_response=$(
         curl --request "POST" \
             --header "authorization: Bearer $token" \
