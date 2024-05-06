@@ -726,7 +726,7 @@ while test $# -gt 0 ; do
                 fi
             fi
             ;;
-        --smb_pass*)  
+        --smb_pass*|--smb-pass*)  
             ## allows --smb_pass, --smb_password, --smb-pass, --smb-password
             shift
             if [[ $processor == "JamfPackageUploader" || $processor == "JamfPackageUploaderGUI" ]]; then

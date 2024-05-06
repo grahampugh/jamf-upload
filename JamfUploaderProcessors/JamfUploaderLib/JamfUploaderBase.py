@@ -374,6 +374,7 @@ class JamfUploaderBase(Processor):
         if url:
             curl_cmd = [
                 "/usr/bin/curl",
+                "--location",
                 "--dump-header",
                 headers_file,
                 url,
