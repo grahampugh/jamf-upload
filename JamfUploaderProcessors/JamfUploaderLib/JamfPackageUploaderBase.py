@@ -36,9 +36,7 @@ from urllib.parse import urlparse, quote
 import xml.etree.ElementTree as ElementTree
 from xml.sax.saxutils import escape
 
-from autopkglib import (  # pylint: disable=import-error
-    ProcessorError,
-)
+from autopkglib import ProcessorError, APLooseVersion  # pylint: disable=import-error
 
 # to use a base module in AutoPkg we need to add this path to the sys.path.
 # this violates flake8 E402 (PEP8 imports) but is unavoidable, so the following
@@ -615,7 +613,7 @@ class JamfPackageUploaderBase(JamfUploaderBase):
         self.skip_metadata_upload = self.env.get("skip_metadata_upload")
         self.jcds2_mode = self.env.get("jcds2_mode")
         self.aws_cdp_mode = self.env.get("aws_cdp_mode")
-        self.new_api_mode = self.env.get("new_api_mode")
+        self.pkg_api_mode = self.env.get("pkg_api_mode")
         self.jamf_url = self.env.get("JSS_URL").rstrip("/")
         self.jamf_user = self.env.get("API_USERNAME")
         self.jamf_password = self.env.get("API_PASSWORD")
@@ -633,8 +631,8 @@ class JamfPackageUploaderBase(JamfUploaderBase):
             self.replace_metadata = False
         if not self.skip_metadata_upload or self.skip_metadata_upload == "False":
             self.skip_metadata_upload = False
-        if not self.new_api_mode or self.new_api_mode == "False":
-            self.new_api_mode = False
+        if not self.pkg_api_mode or self.pkg_api_mode == "False":
+            self.pkg_api_mode = False
         if not self.jcds2_mode or self.jcds2_mode == "False":
             self.jcds2_mode = False
         if not self.aws_cdp_mode or self.aws_cdp_mode == "False":
@@ -761,13 +759,31 @@ class JamfPackageUploaderBase(JamfUploaderBase):
             f"Checking for existing package '{self.pkg_name}' on {self.jamf_url}"
         )
 
+        # get Jamf Pro version to determine default mode (need to get a token)
+        # Version 11.5+ will use the v1/packages endpoint
+        if self.jamf_url and self.client_id and self.client_secret:
+            token = self.handle_oauth(self.jamf_url, self.client_id, self.client_secret)
+        elif self.jamf_url and self.jamf_user and self.jamf_password:
+            token = self.handle_api_auth(
+                self.jamf_url, self.jamf_user, self.jamf_password
+            )
+        else:
+            raise ProcessorError("ERROR: Valid credentials not supplied")
+
+        jamf_pro_version = self.get_jamf_pro_version(self.jamf_url, token)
+
+        if APLooseVersion(jamf_pro_version) >= APLooseVersion("11.5"):
+            # set default mode to pkg_api_mode if using Jamf Cloud / AWS
+            if not self.smb_shares and not self.jcds2_mode and not self.aws_cdp_mode:
+                self.pkg_api_mode = True
+
         # get token using oauth or basic auth depending on the credentials given
         # (dbfileupload requires basic auth)
         if (
             self.jamf_url
             and self.client_id
             and self.client_secret
-            and (self.jcds2_mode or self.new_api_mode)
+            and (self.jcds2_mode or self.pkg_api_mode)
         ):
             token = self.handle_oauth(self.jamf_url, self.client_id, self.client_secret)
         elif self.jamf_url and self.jamf_user and self.jamf_password:
@@ -777,10 +793,10 @@ class JamfPackageUploaderBase(JamfUploaderBase):
         else:
             raise ProcessorError(
                 "ERROR: Valid credentials not supplied (note that API Clients can "
-                "only be used with jcds2_mode or new_api_mode)"
+                "only be used with jcds2_mode or pkg_api_mode)"
             )
 
-        # check for existing
+        # check for existing pkg
         obj_id = self.check_pkg(self.pkg_name, self.jamf_url, token=token)
         self.output(f"ID: {obj_id}", verbose_level=3)  # TEMP
         if obj_id != "-1":
@@ -901,7 +917,7 @@ class JamfPackageUploaderBase(JamfUploaderBase):
                     # fake that the package was replaced even if it wasn't
                     # so that the metadata gets replaced
                     self.pkg_uploaded = True
-                elif not self.new_api_mode:  # dbfileupload mode
+                elif not self.pkg_api_mode:  # dbfileupload mode
                     # generate enc_creds
                     enc_creds = self.get_enc_creds(self.jamf_user, self.jamf_password)
 
@@ -956,7 +972,7 @@ class JamfPackageUploaderBase(JamfUploaderBase):
             self.jamf_url
             and self.client_id
             and self.client_secret
-            and (self.jcds2_mode or self.aws_cdp_mode or self.new_api_mode)
+            and (self.jcds2_mode or self.aws_cdp_mode or self.pkg_api_mode)
         ):
             token = self.handle_oauth(self.jamf_url, self.client_id, self.client_secret)
         elif self.jamf_url and self.jamf_user and self.jamf_password:
@@ -972,7 +988,7 @@ class JamfPackageUploaderBase(JamfUploaderBase):
             and (
                 self.pkg_uploaded
                 or self.replace_metadata
-                or (self.new_api_mode and self.replace)
+                or (self.pkg_api_mode and self.replace)
             )
             and not self.skip_metadata_upload
         ):
@@ -993,7 +1009,7 @@ class JamfPackageUploaderBase(JamfUploaderBase):
             )
             self.pkg_metadata_updated = True
         elif (
-            self.smb_shares or self.jcds2_mode or self.aws_cdp_mode or self.new_api_mode
+            self.smb_shares or self.jcds2_mode or self.aws_cdp_mode or self.pkg_api_mode
         ) and not pkg_id:
             # create new package metadata object
             self.output(
@@ -1018,8 +1034,8 @@ class JamfPackageUploaderBase(JamfUploaderBase):
             )
             self.pkg_metadata_updated = False
 
-        # upload package (has to be done last for new_api_mode) if the metadata was updated
-        if self.new_api_mode and self.pkg_metadata_updated:
+        # upload package (has to be done last for pkg_api_mode) if the metadata was updated
+        if self.pkg_api_mode and self.pkg_metadata_updated:
             self.output(
                 "Uploading package to Cloud DP",
                 verbose_level=1,
