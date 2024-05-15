@@ -851,8 +851,8 @@ while test $# -gt 0 ; do
             ;;
         --api) 
             if [[ $processor == "JamfPackageUploader" ]]; then
-                if plutil -replace new_api_mode -string "true" "$temp_processor_plist"; then
-                    echo "   [jamf-upload] Wrote new_api_mode='True' into $temp_processor_plist"
+                if plutil -replace pkg_api_mode -string "true" "$temp_processor_plist"; then
+                    echo "   [jamf-upload] Wrote pkg_api_mode='True' into $temp_processor_plist"
                 fi
             fi
             ;;

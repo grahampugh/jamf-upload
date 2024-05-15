@@ -22,7 +22,7 @@ prefs="$HOME/Library/Preferences/com.github.autopkg.plist"
 defaults write "$HOME/Library/Preferences/com.github.autopkg.plist" jcds_mode -bool False
 defaults write "$HOME/Library/Preferences/com.github.autopkg.plist" jcds2_mode -bool False
 defaults write "$HOME/Library/Preferences/com.github.autopkg.plist" aws_cdp_mode -bool False
-defaults write "$HOME/Library/Preferences/com.github.autopkg.plist" new_api_mode -bool False
+defaults write "$HOME/Library/Preferences/com.github.autopkg.plist" pkg_api_mode -bool False
 
 if [[ ! $verbosity ]]; then
     verbosity="-v"
