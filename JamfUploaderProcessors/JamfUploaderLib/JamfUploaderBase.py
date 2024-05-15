@@ -62,6 +62,7 @@ class JamfUploaderBase(Processor):
             "mac_application": "JSSResource/macapplications",
             "mobile_device_group": "JSSResource/mobiledevicegroups",
             "package": "JSSResource/packages",
+            "package_v1": "api/v1/packages",
             "package_upload": "dbfileupload",
             "patch_policy": "JSSResource/patchpolicies",
             "patch_software_title": "JSSResource/patchsoftwaretitles",
@@ -373,6 +374,7 @@ class JamfUploaderBase(Processor):
         if url:
             curl_cmd = [
                 "/usr/bin/curl",
+                "--location",
                 "--dump-header",
                 headers_file,
                 url,
@@ -413,6 +415,11 @@ class JamfUploaderBase(Processor):
                 curl_cmd.extend(["--header", "Accept: application/xml"])
             else:
                 curl_cmd.extend(["--header", "Accept: application/json"])
+
+        # icon upload (Jamf Pro API)
+        elif endpoint_type == "package_v1":
+            curl_cmd.extend(["--header", "Content-type: multipart/form-data"])
+            curl_cmd.extend(["--form", f"file=@{data}"])
 
         # icon upload (Classic API)
         elif endpoint_type == "policy_icon":
@@ -558,7 +565,7 @@ class JamfUploaderBase(Processor):
                 )
             else:
                 self.output(
-                    f"UNKNOWN ERROR: {endpoint_type} '{obj_name}' {action} failed. "
+                    f"UNKNOWN ERROR: {endpoint_type} '{obj_name}' {action} failed (response code {r.status_code}). "
                     "Will try again."
                 )
 

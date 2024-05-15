@@ -149,6 +149,7 @@ Package arguments:
     --jcds                  Deprecated, ignored 
     --jcds2                 Use jcds endpoint for package upload to JCDS 
     --aws                   Use AWS CDP for package upload. Requires aws-cli to be installed 
+    --api                   Use v1/packages endpoint for package upload to cloud DP
 
 Package Clean arguments:
     --name <string>         The name to match
@@ -725,7 +726,7 @@ while test $# -gt 0 ; do
                 fi
             fi
             ;;
-        --smb_pass*)  
+        --smb_pass*|--smb-pass*)  
             ## allows --smb_pass, --smb_password, --smb-pass, --smb-password
             shift
             if [[ $processor == "JamfPackageUploader" || $processor == "JamfPackageUploaderGUI" ]]; then
@@ -845,6 +846,13 @@ while test $# -gt 0 ; do
             if [[ $processor == "JamfPackageUploader" ]]; then
                 if plutil -replace aws_cdp_mode -string "true" "$temp_processor_plist"; then
                     echo "   [jamf-upload] Wrote aws_cdp_mode='True' into $temp_processor_plist"
+                fi
+            fi
+            ;;
+        --api) 
+            if [[ $processor == "JamfPackageUploader" ]]; then
+                if plutil -replace pkg_api_mode -string "true" "$temp_processor_plist"; then
+                    echo "   [jamf-upload] Wrote pkg_api_mode='True' into $temp_processor_plist"
                 fi
             fi
             ;;

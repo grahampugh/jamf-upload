@@ -10,13 +10,19 @@ test_type="$1"
 verbosity="$2"
 url="$3"
 
+# path to test items
+pkg_path="/Users/Shared/plistyamlplist-0.6.0.pkg"
+
+
 # other variables (ensure some of the temporary variables are not in the prefs)
 prefs="$HOME/Library/Preferences/com.github.autopkg.plist"
 # prefs="/Users/Shared/com.github.autopkg.plist"
 
-# ensure jcds_mode is disabled
+# ensure pkg upload modes are disabled
 defaults write "$HOME/Library/Preferences/com.github.autopkg.plist" jcds_mode -bool False
 defaults write "$HOME/Library/Preferences/com.github.autopkg.plist" jcds2_mode -bool False
+defaults write "$HOME/Library/Preferences/com.github.autopkg.plist" aws_cdp_mode -bool False
+defaults write "$HOME/Library/Preferences/com.github.autopkg.plist" pkg_api_mode -bool False
 
 if [[ ! $verbosity ]]; then
     verbosity="-v"
@@ -282,9 +288,9 @@ elif [[ $test_type == "pkg" ]]; then
     "$DIR"/../jamf-upload.sh pkg \
         --prefs "$prefs" \
         --recipe-dir /Users/gpugh/sourcecode/jamf-upload/_tests \
-        --pkg "/Users/Shared/Installomator-10.5.pkg" \
-        --pkg-name "Installomator-10.5.pkg" \
-        --nsme "Installomator-10.5.pkg" \
+        --pkg "$pkg_path" \
+        --pkg-name "$(basename "$pkg_path")" \
+        --name "$(basename "$pkg_path")" \
         --category Testing \
         --info "Uploaded directly by JamfPackageUploader in JCDS mode" \
         --notes "$(date)" \
@@ -296,9 +302,9 @@ elif [[ $test_type == "pkg-jcds" ]]; then
     "$DIR"/../jamf-upload.sh pkg \
         --prefs "$prefs" \
         --recipe-dir /Users/gpugh/sourcecode/jamf-upload/_tests \
-        --pkg "/Users/gpugh/Library/AutoPkg/Cache/com.github.dataJAR-recipes.pkg.Rectangle/Rectangle-0.67.pkg" \
-        --pkg-name "Rectangle-0.67.pkg" \
-        --name "Rectangle-0.67.pkg" \
+        --pkg "$pkg_path" \
+        --pkg-name "$(basename "$pkg_path")" \
+        --name "$(basename "$pkg_path")" \
         --category "Testing" \
         "$verbosity" \
         --jcds \
@@ -313,9 +319,9 @@ elif [[ $test_type == "pkg-jcds2" ]]; then
     "$DIR"/../jamf-upload.sh pkg \
         --prefs "$prefs" \
         --recipe-dir /Users/gpugh/sourcecode/jamf-upload/_tests \
-        --pkg "/Users/Shared/dialog-2.3.3-4734.pkg" \
-        --pkg-name "dialog-2.3.3-4734.pkg" \
-        --nsme "dialog-2.3.3-4734.pkg" \
+        --pkg "$pkg_path" \
+        --pkg-name "$(basename "$pkg_path")" \
+        --name "$(basename "$pkg_path")" \
         --category "Testing" \
         "$verbosity" \
         --jcds2 \
@@ -329,13 +335,27 @@ elif [[ $test_type == "pkg-aws" ]]; then
     "$DIR"/../jamf-upload.sh pkg \
         --prefs "$prefs" \
         --recipe-dir /Users/gpugh/sourcecode/jamf-upload/_tests \
-        --pkg "/Users/Shared/dialog-2.3.3-4734.pkg" \
-        --pkg-name "dialog-2.3.3-4734.pkg" \
-        --nsme "dialog-2.3.3-4734.pkg" \
+        --pkg "$pkg_path" \
+        --pkg-name "$(basename "$pkg_path")" \
+        --name "$(basename "$pkg_path")" \
         --category "Testing" \
         "$verbosity" \
         --aws \
         --key "S3_BUCKET_NAME=jamf2360b29f101f4e0881cf6422ee2be25e" \
+        --replace
+        # --name "erase-install-30" \
+
+elif [[ $test_type == "pkg-api" ]]; then
+    # upload a package
+    "$DIR"/../jamf-upload.sh pkg \
+        --prefs "$prefs" \
+        --recipe-dir /Users/gpugh/sourcecode/jamf-upload/_tests \
+        --pkg "$pkg_path" \
+        --pkg-name "$(basename "$pkg_path")" \
+        --name "$(basename "$pkg_path")" \
+        --category "Testing - Graham" \
+        "$verbosity" \
+        --api \
         --replace
         # --name "erase-install-30" \
 

@@ -63,7 +63,7 @@ checkTokenExpiration() {
     fi
 
     utc_epoch_now=$(date -j -f "%Y-%m-%dT%T" "$(date -u +"%Y-%m-%dT%T")" +"%s")
-    if [[ expiration_epoch -gt utc_epoch_now ]]; then
+    if [[ $expiration_epoch -gt $utc_epoch_now ]]; then
         echo "Token valid until the following epoch time: " "$expiration_epoch"
     else
         echo "No valid token available, getting new token"
