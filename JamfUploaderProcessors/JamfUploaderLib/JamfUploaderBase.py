@@ -415,6 +415,9 @@ class JamfUploaderBase(Processor):
                 curl_cmd.extend(["--header", "Accept: application/xml"])
             else:
                 curl_cmd.extend(["--header", "Accept: application/json"])
+        # for uploading a package we need to return JSON
+        elif request == "POST" and endpoint_type == "package":
+            curl_cmd.extend(["--header", "Accept: application/json"])
 
         # icon upload (Jamf Pro API)
         elif endpoint_type == "package_v1":

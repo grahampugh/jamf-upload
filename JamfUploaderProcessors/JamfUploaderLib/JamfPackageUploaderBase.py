@@ -83,6 +83,17 @@ class JamfPackageUploaderBase(JamfUploaderBase):
                 h.update(mv[:n])
         return h.hexdigest()
 
+    def sha256sum(self, filename):
+        """calculate the SHA256 hash of the package
+        (see https://stackoverflow.com/a/44873382)"""
+        h = hashlib.sha256()
+        b = bytearray(128 * 1024)
+        mv = memoryview(b)
+        with open(filename, "rb", buffering=0) as f:
+            for n in iter(lambda: f.readinto(mv), 0):
+                h.update(mv[:n])
+        return h.hexdigest()
+
     def zip_pkg_path(self, bundle_path, recipe_cache_dir):
         """Add files from path to a zip file handle.
 
@@ -505,6 +516,100 @@ class JamfPackageUploaderBase(JamfUploaderBase):
     # ------------------------------------------------------------------------
     # Begin section on uploading pkg metadata
 
+    def update_pkg_metadata_api(  # pylint: disable=too-many-arguments, too-many-locals
+        self,
+        jamf_url,
+        pkg_name,
+        pkg_display_name,
+        pkg_metadata,
+        hash_value,
+        pkg_id=0,
+        token="",
+    ):
+        """Update package metadata using v1/packages endpoint."""
+
+        if hash_value:
+            hash_type = "SHA256"
+        else:
+            hash_type = "MD5"
+
+        # build the package record JSON
+        # TODO need to get category ID from name :-(
+        # TODO check if send_notification option is still available
+        pkg_data = {
+            "packageName": pkg_display_name,
+            "fileName": pkg_name,
+            "info": pkg_metadata["info"],
+            "notes": pkg_metadata["notes"],
+            "categoryId": "-1",
+            "priority": pkg_metadata["priority"],
+            "fillUserTemplate": 0,
+            "uninstall": 0,
+            "rebootRequired": pkg_metadata["reboot_required"],
+            "osInstall": 0,
+            "osRequirements": pkg_metadata["os_requirements"],
+            "suppressUpdates": 0,
+            "suppressFromDock": 0,
+            "suppressEula": 0,
+            "suppressRegistration": 0,
+        }
+
+        if hash_value:
+            pkg_data["sha_256"] = hash_value
+
+        self.output(
+            "Package metadata:",
+            verbose_level=2,
+        )
+        self.output(
+            pkg_data,
+            verbose_level=2,
+        )
+
+        pkg_json = self.write_json_file(pkg_data)
+
+        # if we find a pkg ID we put, if not, we post
+        object_type = "package_v1"
+        if int(pkg_id) > 0:
+            url = "{}/{}/{}".format(jamf_url, self.api_endpoints(object_type), pkg_id)
+        else:
+            url = "{}/{}".format(jamf_url, self.api_endpoints(object_type))
+
+        count = 0
+        while True:
+            count += 1
+            self.output(
+                "Package metadata upload attempt {}".format(count),
+                verbose_level=2,
+            )
+            request = "PUT" if pkg_id else "POST"
+            r = self.curl(request=request, url=url, token=token, data=pkg_json)
+            # check HTTP response
+            if self.status_check(r, "Package Metadata", pkg_name, request) == "break":
+                break
+            if count > 5:
+                self.output("Package metadata upload did not succeed after 5 attempts")
+                self.output("\nHTTP POST Response Code: {}".format(r.status_code))
+                raise ProcessorError("ERROR: Package metadata upload failed ")
+            if int(self.sleep) > 30:
+                sleep(int(self.sleep))
+            else:
+                sleep(30)
+        if r.status_code == 201:
+            obj = json.loads(json.dumps(r.output))
+            self.output(
+                obj,
+                verbose_level=4,
+            )
+
+            try:
+                obj_id = obj["id"]
+            except KeyError:
+                obj_id = "-1"
+        else:
+            obj_id = "-1"
+        return obj_id
+
     def update_pkg_metadata(  # pylint: disable=too-many-arguments, too-many-locals
         self,
         jamf_url,
@@ -754,6 +859,9 @@ class JamfPackageUploaderBase(JamfUploaderBase):
         # calculate the SHA-512 hash of the package
         self.sha512string = self.sha512sum(self.pkg_path)
 
+        # calculate the SHA-512 hash of the package (required for pkg_api_mode)
+        self.sha256string = self.sha256sum(self.pkg_path)
+
         # now start the process of uploading the package
         self.output(
             f"Checking for existing package '{self.pkg_name}' on {self.jamf_url}"
@@ -997,16 +1105,27 @@ class JamfPackageUploaderBase(JamfUploaderBase):
                 f"Updating package metadata for {pkg_id}",
                 verbose_level=1,
             )
-            self.update_pkg_metadata(
-                self.jamf_url,
-                self.pkg_name,
-                self.pkg_display_name,
-                self.pkg_metadata,
-                self.sha512string,
-                self.jcds2_mode,
-                pkg_id=pkg_id,
-                token=token,
-            )
+            if self.pkg_api_mode:
+                self.update_pkg_metadata_api(
+                    self.jamf_url,
+                    self.pkg_name,
+                    self.pkg_display_name,
+                    self.pkg_metadata,
+                    self.sha256string,
+                    pkg_id=pkg_id,
+                    token=token,
+                )
+            else:
+                self.update_pkg_metadata(
+                    self.jamf_url,
+                    self.pkg_name,
+                    self.pkg_display_name,
+                    self.pkg_metadata,
+                    self.sha512string,
+                    self.jcds2_mode,
+                    pkg_id=pkg_id,
+                    token=token,
+                )
             self.pkg_metadata_updated = True
         elif (
             self.smb_shares or self.jcds2_mode or self.aws_cdp_mode or self.pkg_api_mode
@@ -1016,16 +1135,27 @@ class JamfPackageUploaderBase(JamfUploaderBase):
                 "Creating package metadata",
                 verbose_level=1,
             )
-            self.update_pkg_metadata(
-                self.jamf_url,
-                self.pkg_name,
-                self.pkg_display_name,
-                self.pkg_metadata,
-                self.sha512string,
-                self.jcds2_mode,
-                pkg_id=pkg_id,
-                token=token,
-            )
+            if self.pkg_api_mode:
+                obj_id = self.update_pkg_metadata_api(
+                    self.jamf_url,
+                    self.pkg_name,
+                    self.pkg_display_name,
+                    self.pkg_metadata,
+                    self.sha256string,
+                    pkg_id=pkg_id,
+                    token=token,
+                )
+            else:
+                self.update_pkg_metadata(
+                    self.jamf_url,
+                    self.pkg_name,
+                    self.pkg_display_name,
+                    self.pkg_metadata,
+                    self.sha512string,
+                    self.jcds2_mode,
+                    pkg_id=pkg_id,
+                    token=token,
+                )
             self.pkg_metadata_updated = True
         elif not self.skip_metadata_upload:
             self.output(
@@ -1036,6 +1166,15 @@ class JamfPackageUploaderBase(JamfUploaderBase):
 
         # upload package (has to be done last for pkg_api_mode) if the metadata was updated
         if self.pkg_api_mode and self.pkg_metadata_updated:
+            self.output(f"ID: {obj_id}", verbose_level=3)  # TEMP
+            if obj_id != "-1":
+                self.output(f"Package '{self.pkg_name}' metadata exists: ID {obj_id}")
+                pkg_id = obj_id  # assign pkg_id for v1/packages runs
+            else:
+                raise ProcessorError(
+                    "ERROR: Package ID not obtained so cannot upload package"
+                )
+
             self.output(
                 "Uploading package to Cloud DP",
                 verbose_level=1,
