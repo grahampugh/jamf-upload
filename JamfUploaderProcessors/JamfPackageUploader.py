@@ -218,11 +218,6 @@ class JamfPackageUploader(JamfPackageUploaderBase):
             "description": "Use jcds2 endpoint if True.",
             "default": "False",
         },
-        "pkg_api_mode": {
-            "required": False,
-            "description": "Use new v1/packages endpoint if True.",
-            "default": "False",
-        },
         "replace_pkg_metadata": {
             "required": False,
             "description": (
