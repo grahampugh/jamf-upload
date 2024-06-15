@@ -1,4 +1,5 @@
 #!/usr/local/autopkg/python
+# pylint: disable=invalid-name
 
 """
 Copyright 2023 Graham Pugh
@@ -22,9 +23,7 @@ import sys
 
 from time import sleep
 
-from autopkglib import (  # pylint: disable=import-error
-    ProcessorError,
-)
+from autopkglib import ProcessorError  # pylint: disable=import-error
 
 # to use a base module in AutoPkg we need to add this path to the sys.path.
 # this violates flake8 E402 (PEP8 imports) but is unavoidable, so the following
@@ -78,7 +77,7 @@ class JamfAccountUploaderBase(JamfUploaderBase):
         """prepare the account contents"""
         # import template from file and replace any keys in the template
         if os.path.exists(account_template):
-            with open(account_template, "r", encoding="utf-8") as file:
+            with open(file=account_template, mode="r", encoding="utf-8") as file:
                 template_contents = file.read()
         else:
             raise ProcessorError("Template does not exist!")

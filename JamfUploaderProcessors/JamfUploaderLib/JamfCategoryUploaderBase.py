@@ -1,5 +1,6 @@
 #!/usr/local/autopkg/python
 # pylint: disable=invalid-name
+
 """
 Copyright 2023 Graham Pugh
 
@@ -21,9 +22,7 @@ import sys
 
 from time import sleep
 
-from autopkglib import (  # pylint: disable=import-error
-    ProcessorError,
-)
+from autopkglib import ProcessorError  # pylint: disable=import-error
 
 # to use a base module in AutoPkg we need to add this path to the sys.path.
 # this violates flake8 E402 (PEP8 imports) but is unavoidable, so the following

@@ -1,4 +1,5 @@
 #!/usr/local/autopkg/python
+# pylint: disable=invalid-name
 
 """
 Copyright 2023 Graham Pugh
@@ -21,20 +22,20 @@ Written by Marcel Keßler based on G Pugh's work
 
 import os.path
 import sys
-import xml.etree.cElementTree as ET
+import xml.etree.ElementTree as ET
 
 from time import sleep
 
-from autopkglib import (
-    ProcessorError,
-)  # pylint: disable=import-error
+from autopkglib import ProcessorError  # pylint: disable=import-error
 
 # to use a base module in AutoPkg we need to add this path to the sys.path.
 # this violates flake8 E402 (PEP8 imports) but is unavoidable, so the following
 # imports require noqa comments for E402
 sys.path.insert(0, os.path.dirname(__file__))
 
-from JamfUploaderBase import JamfUploaderBase  # noqa: E402
+from JamfUploaderBase import (  # pylint: disable=import-error, wrong-import-position
+    JamfUploaderBase,
+)
 
 
 class JamfDockItemUploaderBase(JamfUploaderBase):
@@ -50,6 +51,7 @@ class JamfDockItemUploaderBase(JamfUploaderBase):
         obj_id=0,
     ):
         """Update dock item metadata."""
+        sleep_count = self.env.get("sleep")
 
         # Build the xml object
         dock_item_xml_root = ET.Element("dock_item")
@@ -64,7 +66,7 @@ class JamfDockItemUploaderBase(JamfUploaderBase):
         self.output("Uploading dock item..")
 
         object_type = "dock_item"
-        url = "{}/{}/id/{}".format(jamf_url, self.api_endpoints(object_type), obj_id)
+        url = f"{jamf_url}/{self.api_endpoints(object_type)}/id/{obj_id}"
 
         count = 0
         while True:
@@ -89,26 +91,25 @@ class JamfDockItemUploaderBase(JamfUploaderBase):
                 )
                 self.output(f"\nHTTP POST Response Code: {r.status_code}")
                 raise ProcessorError("ERROR: dock item upload failed ")
-            if int(self.sleep) > 30:
-                sleep(int(self.sleep))
+            if int(sleep_count) > 30:
+                sleep(int(sleep_count))
             else:
                 sleep(30)
 
     def execute(self):
         """Upload a dock item"""
-        self.jamf_url = self.env.get("JSS_URL").rstrip('/')
-        self.jamf_user = self.env.get("API_USERNAME")
-        self.jamf_password = self.env.get("API_PASSWORD")
-        self.client_id = self.env.get("CLIENT_ID")
-        self.client_secret = self.env.get("CLIENT_SECRET")
-        self.dock_item_name = self.env.get("dock_item_name")
-        self.dock_item_type = self.env.get("dock_item_type")
-        self.dock_item_path = self.env.get("dock_item_path")
-        self.replace = self.env.get("replace_dock_item")
-        self.sleep = self.env.get("sleep")
+        jamf_url = self.env.get("JSS_URL").rstrip("/")
+        jamf_user = self.env.get("API_USERNAME")
+        jamf_password = self.env.get("API_PASSWORD")
+        client_id = self.env.get("CLIENT_ID")
+        client_secret = self.env.get("CLIENT_SECRET")
+        dock_item_name = self.env.get("dock_item_name")
+        dock_item_type = self.env.get("dock_item_type")
+        dock_item_path = self.env.get("dock_item_path")
+        replace = self.env.get("replace_dock_item")
         # handle setting replace_pkg in overrides
-        if not self.replace or self.replace == "False":
-            self.replace = False
+        if not replace or replace == "False":
+            replace = False
 
         # clear any pre-existing summary result
         if "jamfdockitemuploader_summary_result" in self.env:
@@ -117,34 +118,30 @@ class JamfDockItemUploaderBase(JamfUploaderBase):
         # Now process the dock item
 
         # get token using oauth or basic auth depending on the credentials given
-        if self.jamf_url and self.client_id and self.client_secret:
-            token = self.handle_oauth(self.jamf_url, self.client_id, self.client_secret)
-        elif self.jamf_url and self.jamf_user and self.jamf_password:
-            token = self.handle_api_auth(
-                self.jamf_url, self.jamf_user, self.jamf_password
-            )
+        if jamf_url and client_id and client_secret:
+            token = self.handle_oauth(jamf_url, client_id, client_secret)
+        elif jamf_url and jamf_user and jamf_password:
+            token = self.handle_api_auth(jamf_url, jamf_user, jamf_password)
         else:
             raise ProcessorError("ERROR: Credentials not supplied")
 
         # Check for existing dock item
-        self.output(f"Checking for existing '{self.dock_item_name}' on {self.jamf_url}")
+        self.output(f"Checking for existing '{dock_item_name}' on {jamf_url}")
 
         obj_type = "dock_item"
-        obj_name = self.dock_item_name
+        obj_name = dock_item_name
         obj_id = self.get_api_obj_id_from_name(
-            self.jamf_url,
+            jamf_url,
             obj_name,
             obj_type,
             token=token,
         )
 
         if obj_id:
-            self.output(
-                f"Dock Item '{self.dock_item_name}' already exists: ID {obj_id}"
-            )
-            if self.replace:
+            self.output(f"Dock Item '{dock_item_name}' already exists: ID {obj_id}")
+            if replace:
                 self.output(
-                    f"Replacing existing dock item as 'replace_dock_item' is set to {self.replace}",
+                    f"Replacing existing dock item as 'replace_dock_item' is set to {replace}",
                     verbose_level=1,
                 )
             else:
@@ -155,16 +152,16 @@ class JamfDockItemUploaderBase(JamfUploaderBase):
 
         # Upload the dock item
         self.upload_dock_item(
-            self.jamf_url,
-            self.dock_item_name,
-            self.dock_item_type,
-            self.dock_item_path,
+            jamf_url,
+            dock_item_name,
+            dock_item_type,
+            dock_item_path,
             token,
             obj_id=obj_id,
         )
 
         # output the summary
-        self.env["dock_item"] = self.dock_item_name
+        self.env["dock_item"] = dock_item_name
         self.env["jamfdockitemuploader_summary_result"] = {
             "summary_text": "The following dock items were created or updated in Jamf Pro:",
             "report_fields": [
@@ -175,8 +172,8 @@ class JamfDockItemUploaderBase(JamfUploaderBase):
             ],
             "data": {
                 "dock_item_id": str(obj_id),
-                "dock_item_name": self.dock_item_name,
-                "dock_item_type": self.dock_item_type,
-                "dock_item_path": self.dock_item_path,
+                "dock_item_name": dock_item_name,
+                "dock_item_type": dock_item_type,
+                "dock_item_path": dock_item_path,
             },
         }
