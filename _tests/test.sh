@@ -12,6 +12,10 @@ url="$3"
 
 # path to test items
 pkg_path="/Users/Shared/plistyamlplist-0.6.0.pkg"
+# pkg_name="$(basename "$pkg_path")"
+pkg_name="plist-yaml-plist-0.6.0.pkg"
+# pkg_display_name="$(basename "$pkg_path")"
+pkg_display_name="plist-yaml-plist-0.6.0.pkg"
 
 
 # other variables (ensure some of the temporary variables are not in the prefs)
@@ -46,7 +50,7 @@ elif [[ $test_type == "category" ]]; then
     # upload a category
     "$DIR"/../jamf-upload.sh category \
         --prefs "$prefs" \
-        --name JamfUploadTest \
+        --name "Testing - Graham - 2" \
         --priority 18 \
         "$verbosity" \
         --replace
@@ -289,8 +293,8 @@ elif [[ $test_type == "pkg" ]]; then
         --prefs "$prefs" \
         --recipe-dir /Users/gpugh/sourcecode/jamf-upload/_tests \
         --pkg "$pkg_path" \
-        --pkg-name "$(basename "$pkg_path")" \
-        --name "$(basename "$pkg_path")" \
+        --pkg-name "$pkg_name" \
+        --name "$pkg_display_name" \
         --category Testing \
         --info "Uploaded directly by JamfPackageUploader in JCDS mode" \
         --notes "$(date)" \
@@ -303,8 +307,8 @@ elif [[ $test_type == "pkg-jcds" ]]; then
         --prefs "$prefs" \
         --recipe-dir /Users/gpugh/sourcecode/jamf-upload/_tests \
         --pkg "$pkg_path" \
-        --pkg-name "$(basename "$pkg_path")" \
-        --name "$(basename "$pkg_path")" \
+        --pkg-name "$pkg_name" \
+        --name "$pkg_display_name" \
         --category "Testing" \
         "$verbosity" \
         --jcds \
@@ -320,8 +324,8 @@ elif [[ $test_type == "pkg-jcds2" ]]; then
         --prefs "$prefs" \
         --recipe-dir /Users/gpugh/sourcecode/jamf-upload/_tests \
         --pkg "$pkg_path" \
-        --pkg-name "$(basename "$pkg_path")" \
-        --name "$(basename "$pkg_path")" \
+        --pkg-name "$pkg_name" \
+        --name "$pkg_display_name" \
         --category "Testing" \
         "$verbosity" \
         --jcds2 \
@@ -336,8 +340,8 @@ elif [[ $test_type == "pkg-aws" ]]; then
         --prefs "$prefs" \
         --recipe-dir /Users/gpugh/sourcecode/jamf-upload/_tests \
         --pkg "$pkg_path" \
-        --pkg-name "$(basename "$pkg_path")" \
-        --name "$(basename "$pkg_path")" \
+        --pkg-name "$pkg_name" \
+        --name "$pkg_display_name" \
         --category "Testing" \
         "$verbosity" \
         --aws \
@@ -351,9 +355,9 @@ elif [[ $test_type == "pkg-api" ]]; then
         --prefs "$prefs" \
         --recipe-dir /Users/gpugh/sourcecode/jamf-upload/_tests \
         --pkg "$pkg_path" \
-        --pkg-name "$(basename "$pkg_path")" \
-        --name "$(basename "$pkg_path")" \
-        --category "Testing - Graham" \
+        --pkg-name "$pkg_name" \
+        --name "$pkg_display_name" \
+        --category "Testing - Graham - 2" \
         "$verbosity" \
         --api \
         --replace

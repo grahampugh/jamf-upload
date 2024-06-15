@@ -240,6 +240,19 @@ class JamfPackageUploaderBase(JamfUploaderBase):
     def upload_pkg(self, pkg_path, pkg_name, pkg_id, jamf_url, token):
         """Upload a package to a Cloud Distribution Point using the v1/packages endpoint"""
 
+        # if pkg_name does not match the package name in pkg_path we copy the package locally first
+        pkg_dirname = os.path.dirname(pkg_path)
+        pkg_basename = os.path.basename(pkg_path)
+        tmp_pkg_path = ""
+        if pkg_basename != pkg_name:
+            tmp_pkg_path = os.path.join(pkg_dirname, pkg_name)
+            shutil.copyfile(pkg_path, tmp_pkg_path)
+            self.output(
+                f"Package name does not match path, so package copied from {pkg_path} to {tmp_pkg_path}",
+                verbose_level=2,
+            )
+            pkg_path = tmp_pkg_path
+
         object_type = "package_v1"
         url = f"{jamf_url}/{self.api_endpoints(object_type)}/{pkg_id}/upload"
         count = 0
@@ -275,6 +288,17 @@ class JamfPackageUploaderBase(JamfUploaderBase):
                 sleep(30)
 
         self.output(f"HTTP response: {r.status_code}", verbose_level=1)
+
+        # delete temp package
+        if tmp_pkg_path:
+            self.output(
+                f"Removing temporary file {tmp_pkg_path}",
+                verbose_level=2,
+            )
+            try:
+                os.remove(tmp_pkg_path)
+            except OSError:
+                pass
         return r
 
     # End of section for upload to v1/packages endpoint
@@ -516,6 +540,26 @@ class JamfPackageUploaderBase(JamfUploaderBase):
     # ------------------------------------------------------------------------
     # Begin section on uploading pkg metadata
 
+    def get_category_id(self, jamf_url, category_name, token=""):
+        """Get the category ID from the name, or abort if ID not found"""
+        # check for existing category
+        self.output(f"Checking for '{category_name}' on {jamf_url}")
+        obj_type = "category"
+        obj_name = category_name
+        obj_id = self.get_uapi_obj_id_from_name(
+            jamf_url,
+            obj_type,
+            obj_name,
+            token,
+        )
+
+        if obj_id:
+            self.output(f"Category '{category_name}' exists: ID {obj_id}")
+            return obj_id
+        else:
+            self.output(f"Category '{category_name}' not found")
+            raise ProcessorError("Supplied package category does not exist")
+
     def update_pkg_metadata_api(  # pylint: disable=too-many-arguments, too-many-locals
         self,
         jamf_url,
@@ -528,20 +572,21 @@ class JamfPackageUploaderBase(JamfUploaderBase):
     ):
         """Update package metadata using v1/packages endpoint."""
 
-        if hash_value:
-            hash_type = "SHA256"
+        # get category ID
+        if pkg_metadata["category"]:
+            category_id = self.get_category_id(
+                jamf_url, pkg_metadata["category"], token
+            )
         else:
-            hash_type = "MD5"
+            category_id = "-1"
 
         # build the package record JSON
-        # TODO need to get category ID from name :-(
-        # TODO check if send_notification option is still available
         pkg_data = {
             "packageName": pkg_display_name,
             "fileName": pkg_name,
             "info": pkg_metadata["info"],
             "notes": pkg_metadata["notes"],
-            "categoryId": "-1",
+            "categoryId": category_id,
             "priority": pkg_metadata["priority"],
             "fillUserTemplate": 0,
             "uninstall": 0,
@@ -555,7 +600,9 @@ class JamfPackageUploaderBase(JamfUploaderBase):
         }
 
         if hash_value:
-            pkg_data["sha_256"] = hash_value
+            hash_type = "SHA_512"
+            pkg_data["hashType"] = hash_type
+            pkg_data["hashValue"] = hash_value
 
         self.output(
             "Package metadata:",
@@ -859,8 +906,8 @@ class JamfPackageUploaderBase(JamfUploaderBase):
         # calculate the SHA-512 hash of the package
         self.sha512string = self.sha512sum(self.pkg_path)
 
-        # calculate the SHA-512 hash of the package (required for pkg_api_mode)
-        self.sha256string = self.sha256sum(self.pkg_path)
+        # calculate the SHA-256 hash of the package
+        # self.sha256string = self.sha256sum(self.pkg_path)
 
         # now start the process of uploading the package
         self.output(
@@ -1111,7 +1158,7 @@ class JamfPackageUploaderBase(JamfUploaderBase):
                     self.pkg_name,
                     self.pkg_display_name,
                     self.pkg_metadata,
-                    self.sha256string,
+                    self.sha512string,
                     pkg_id=pkg_id,
                     token=token,
                 )
@@ -1141,7 +1188,7 @@ class JamfPackageUploaderBase(JamfUploaderBase):
                     self.pkg_name,
                     self.pkg_display_name,
                     self.pkg_metadata,
-                    self.sha256string,
+                    self.sha512string,
                     pkg_id=pkg_id,
                     token=token,
                 )

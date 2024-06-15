@@ -35,10 +35,10 @@ from xml.sax.saxutils import escape
 
 # from time import sleep
 
-from autopkglib import (
+from autopkglib import (  # pylint: disable=import-error
     Processor,
     ProcessorError,
-)  # pylint: disable=import-error
+)
 
 
 class JamfUploaderBase(Processor):
@@ -537,8 +537,10 @@ class JamfUploaderBase(Processor):
             parser = self.ParseHTMLForError()
             try:
                 parser.feed(r.output.decode())
-            except AttributeError:
-                self.output("Could not parse output for error type", verbose_level=2)
+            except (AttributeError, IndexError) as e:
+                self.output(
+                    f"Could not parse output for error type {e}", verbose_level=2
+                )
             if parser.error:
                 self.output(f"API {parser.error}", verbose_level=2)
             self.output(f"API response:\n{r.output}", verbose_level=3)
