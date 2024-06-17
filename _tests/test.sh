@@ -12,7 +12,7 @@ url="$3"
 
 # path to test items
 pkg_path="/Users/Shared/plistyamlplist-0.6.4.pkg"
-
+pkg_name="$(basename "$pkg_path")"
 
 # other variables (ensure some of the temporary variables are not in the prefs)
 prefs="$HOME/Library/Preferences/com.github.autopkg.plist"
@@ -149,7 +149,7 @@ elif [[ $test_type == "ea" ]]; then
         --replace
 
 elif [[ $test_type == "macapp" ]]; then
-    # upload a policy
+    # upload a mac app
     "$DIR"/../jamf-upload.sh macapp \
         --prefs "$prefs" \
         --recipe-dir /Users/gpugh/sourcecode/jamf-upload/_tests \
@@ -161,7 +161,7 @@ elif [[ $test_type == "macapp" ]]; then
         --replace
 
 elif [[ $test_type == "macapp2" ]]; then
-    # upload a policy
+    # clone a mac app
     "$DIR"/../jamf-upload.sh macapp \
         --prefs "$prefs" \
         --recipe-dir /Users/gpugh/sourcecode/jamf-upload/_tests \
@@ -190,12 +190,12 @@ elif [[ $test_type == "policy" ]]; then
     "$DIR"/../jamf-upload.sh policy \
         --prefs "$prefs" \
         --recipe-dir /Users/gpugh/sourcecode/jamf-upload/_tests \
-        --name "Install Authy Desktop" \
+        --name "Install plistyamlplist" \
         --template "templates/PolicyTemplate-trigger.xml" \
-        --key POLICY_NAME="Install Authy Desktop" \
-        --key TRIGGER_NAME="Authy Desktop-install" \
+        --key POLICY_NAME="Install plistyamlplist" \
+        --key TRIGGER_NAME="plistyamlplist-install" \
         --key CATEGORY="JamfUploadTest" \
-        --key pkg_name="Authy Desktop-1.8.4.pkg" \
+        --key pkg_name="$pkg_name" \
         "$verbosity" \
         --replace
 
