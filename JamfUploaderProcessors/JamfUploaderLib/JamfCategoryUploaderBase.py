@@ -22,16 +22,16 @@ import sys
 
 from time import sleep
 
-from autopkglib import ProcessorError  # pylint: disable=import-error
+from autopkglib import (
+    ProcessorError,
+)  # pylint: disable=import-error
 
 # to use a base module in AutoPkg we need to add this path to the sys.path.
 # this violates flake8 E402 (PEP8 imports) but is unavoidable, so the following
 # imports require noqa comments for E402
 sys.path.insert(0, os.path.dirname(__file__))
 
-from JamfUploaderBase import (  # pylint: disable=import-error, wrong-import-position
-    JamfUploaderBase,
-)
+from JamfUploaderBase import JamfUploaderBase  # noqa: E402
 
 
 class JamfCategoryUploaderBase(JamfUploaderBase):
@@ -80,14 +80,15 @@ class JamfCategoryUploaderBase(JamfUploaderBase):
 
     def execute(self):
         """Upload a category"""
-        jamf_url = self.env.get("JSS_URL").rstrip("/")
-        jamf_user = self.env.get("API_USERNAME")
-        jamf_password = self.env.get("API_PASSWORD")
-        client_id = self.env.get("CLIENT_ID")
-        client_secret = self.env.get("CLIENT_SECRET")
-        category_name = self.env.get("category_name")
-        category_priority = self.env.get("category_priority")
-        replace = self.env.get("replace_category")
+        self.jamf_url = self.env.get("JSS_URL").rstrip("/")
+        self.jamf_user = self.env.get("API_USERNAME")
+        self.jamf_password = self.env.get("API_PASSWORD")
+        self.client_id = self.env.get("CLIENT_ID")
+        self.client_secret = self.env.get("CLIENT_SECRET")
+        self.category_name = self.env.get("category_name")
+        self.category_priority = self.env.get("category_priority")
+        self.replace = self.env.get("replace_category")
+        self.sleep = self.env.get("sleep")
         # handle setting replace_pkg in overrides
         if not replace or replace == "False":
             replace = False
