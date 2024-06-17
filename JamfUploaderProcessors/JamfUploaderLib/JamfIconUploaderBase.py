@@ -1,5 +1,4 @@
 #!/usr/local/autopkg/python
-# pylint: disable=invalid-name
 
 """
 Copyright 2023 Graham Pugh
@@ -22,22 +21,22 @@ import sys
 
 from time import sleep
 
-from autopkglib import ProcessorError  # pylint: disable=import-error
+from autopkglib import (
+    ProcessorError,
+)  # pylint: disable=import-error
 
 # to use a base module in AutoPkg we need to add this path to the sys.path.
 # this violates flake8 E402 (PEP8 imports) but is unavoidable, so the following
 # imports require noqa comments for E402
 sys.path.insert(0, os.path.dirname(__file__))
 
-from JamfUploaderBase import (  # pylint: disable=import-error, wrong-import-position
-    JamfUploaderBase,
-)
+from JamfUploaderBase import JamfUploaderBase  # noqa: E402
 
 
 class JamfIconUploaderBase(JamfUploaderBase):
     """Class for functions used to upload an icon to Jamf"""
 
-    def get_icon(self, icon_uri, sleep_count):
+    def get_icon(self, icon_uri):
         """download an icon file"""
 
         self.output(f"Downloading icon from {icon_uri}...", verbose_level=2)
@@ -58,20 +57,20 @@ class JamfIconUploaderBase(JamfUploaderBase):
                 self.output("ERROR: Icon download did not succeed after 5 attempts")
                 self.output(f"\nHTTP POST Response Code: {r.status_code}")
                 raise ProcessorError("ERROR: Icon download failed ")
-            if int(sleep_count) > 30:
-                sleep(int(sleep_count))
+            if int(self.sleep) > 30:
+                sleep(int(self.sleep))
             else:
                 sleep(30)
         return r
 
-    def upload_icon(self, jamf_url, icon_file, sleep_count, token):
+    def upload_icon(self, jamf_url, icon_file, token):
         """Upload icon."""
 
         self.output("Uploading icon...")
 
         # if we find an object ID we put, if not, we post
         object_type = "icon"
-        url = f"{jamf_url}/{self.api_endpoints(object_type)}"
+        url = "{}/{}".format(jamf_url, self.api_endpoints(object_type))
 
         # upload the icon
         count = 0
@@ -97,63 +96,67 @@ class JamfIconUploaderBase(JamfUploaderBase):
                 self.output("ERROR: Icon upload did not succeed after 5 attempts")
                 self.output(f"\nHTTP POST Response Code: {r.status_code}")
                 raise ProcessorError("ERROR: Icon upload failed ")
-            if int(sleep_count) > 30:
-                sleep(int(sleep_count))
+            if int(self.sleep) > 30:
+                sleep(int(self.sleep))
             else:
                 sleep(30)
         return r
 
     def execute(self):
         """Upload an icone"""
-        jamf_url = self.env.get("JSS_URL").rstrip("/")
-        jamf_user = self.env.get("API_USERNAME")
-        jamf_password = self.env.get("API_PASSWORD")
-        client_id = self.env.get("CLIENT_ID")
-        client_secret = self.env.get("CLIENT_SECRET")
-        icon_file = self.env.get("icon_file")
-        icon_uri = self.env.get("icon_uri")
-        sleep_count = self.env.get("sleep")
+        self.jamf_url = self.env.get("JSS_URL")
+        self.jamf_user = self.env.get("API_USERNAME")
+        self.jamf_password = self.env.get("API_PASSWORD")
+        self.client_id = self.env.get("CLIENT_ID")
+        self.client_secret = self.env.get("CLIENT_SECRET")
+        self.icon_file = self.env.get("icon_file")
+        self.icon_uri = self.env.get("icon_uri")
+        self.sleep = self.env.get("sleep")
 
         # clear any pre-existing summary result
         if "jamficonuploader_summary_result" in self.env:
             del self.env["jamficonuploader_summary_result"]
 
         # get token using oauth or basic auth depending on the credentials given
-        if jamf_url and client_id and client_secret:
-            token = self.handle_oauth(jamf_url, client_id, client_secret)
-        elif jamf_url and jamf_user and jamf_password:
-            token = self.handle_api_auth(jamf_url, jamf_user, jamf_password)
+        if self.jamf_url and self.client_id and self.client_secret:
+            token = self.handle_oauth(self.jamf_url, self.client_id, self.client_secret)
+        elif self.jamf_url and self.jamf_user and self.jamf_password:
+            token = self.handle_api_auth(
+                self.jamf_url, self.jamf_user, self.jamf_password
+            )
         else:
             raise ProcessorError("ERROR: Credentials not supplied")
 
         # obtain the icon from the URI if no file path provided
-        if "https://ics.services.jamfcloud.com/icon" in icon_uri and not icon_file:
-            r = self.get_icon(icon_uri, sleep_count)
-            icon_file = r.output
+        if (
+            "https://ics.services.jamfcloud.com/icon" in self.icon_uri
+            and not self.icon_file
+        ):
+            r = self.get_icon(self.icon_uri)
+            self.icon_file = r.output
 
-        if not icon_file:
+        if not self.icon_file:
             raise ProcessorError("ERROR: Icon not found")
 
         # upload the icon
         r = self.upload_icon(
-            jamf_url,
-            icon_file,
-            sleep_count,
+            self.jamf_url,
+            self.icon_file,
             token,
         )
 
         # get the uri from the output
-        selfservice_icon_uri = r.output["url"]
-        icon_id = r.output["id"]
+        self.selfservice_icon_uri = r.output["url"]
+        self.icon_id = r.output["id"]
 
         # output the summary
-        self.env["selfservice_icon_uri"] = selfservice_icon_uri
-        self.env["icon_id"] = str(icon_id)
+        self.env["selfservice_icon_uri"] = self.selfservice_icon_uri
+        self.env["icon_id"] = str(self.icon_id)
         self.env["jamficonuploader_summary_result"] = {
             "summary_text": "The following icons were uploaded in Jamf Pro:",
             "report_fields": ["selfservice_icon_uri", "icon_id"],
             "data": {
-                "selfservice_icon_uri": selfservice_icon_uri,
-                "icon_id": str(icon_id),
+                "selfservice_icon_uri": self.selfservice_icon_uri,
+                "icon_id": str(self.icon_id),
             },
         }

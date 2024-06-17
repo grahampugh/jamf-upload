@@ -200,7 +200,7 @@ class JamfPolicyUploaderBase(JamfUploaderBase):
 
     def execute(self):
         """Upload a policy"""
-        self.jamf_url = self.env.get("JSS_URL").rstrip('/')
+        self.jamf_url = self.env.get("JSS_URL")
         self.jamf_user = self.env.get("API_USERNAME")
         self.jamf_password = self.env.get("API_PASSWORD")
         self.client_id = self.env.get("CLIENT_ID")
@@ -351,6 +351,6 @@ class JamfPolicyUploaderBase(JamfUploaderBase):
                     "policy": self.policy_name,
                     "template": self.policy_template,
                     "icon": policy_icon_name,
-                    "icon_path": self.icon
+                    "icon_path": self.icon,
                 },
             }

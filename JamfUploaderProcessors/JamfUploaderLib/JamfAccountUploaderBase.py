@@ -1,5 +1,4 @@
 #!/usr/local/autopkg/python
-# pylint: disable=invalid-name
 
 """
 Copyright 2023 Graham Pugh
@@ -23,7 +22,6 @@ import sys
 
 from time import sleep
 
-from autopkglib import ProcessorError  # pylint: disable=import-error
 from autopkglib import (
     ProcessorError,
 )  # pylint: disable=import-error
@@ -78,7 +76,7 @@ class JamfAccountUploaderBase(JamfUploaderBase):
         """prepare the account contents"""
         # import template from file and replace any keys in the template
         if os.path.exists(account_template):
-            with open(file=account_template, mode="r") as file:
+            with open(account_template, "r") as file:
                 template_contents = file.read()
         else:
             raise ProcessorError("Template does not exist!")
@@ -142,7 +140,7 @@ class JamfAccountUploaderBase(JamfUploaderBase):
 
     def execute(self):
         """Upload the account"""
-        self.jamf_url = self.env.get("JSS_URL").rstrip("/")
+        self.jamf_url = self.env.get("JSS_URL")
         self.jamf_user = self.env.get("API_USERNAME")
         self.jamf_password = self.env.get("API_PASSWORD")
         self.client_id = self.env.get("CLIENT_ID")

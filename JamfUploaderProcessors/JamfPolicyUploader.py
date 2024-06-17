@@ -20,7 +20,7 @@ All functions are in JamfUploaderLib/JamfPolicyUploaderBase.py
 """
 
 import os.path
-import sys
+import sys.path
 
 # to use a base module in AutoPkg we need to add this path to the sys.path.
 # this violates flake8 E402 (PEP8 imports) but is unavoidable, so the following

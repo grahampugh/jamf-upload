@@ -72,7 +72,7 @@ class JamfPolicyLogFlusherBase(JamfUploaderBase):
 
     def execute(self):
         """Flush a policy log"""
-        self.jamf_url = self.env.get("JSS_URL").rstrip('/')
+        self.jamf_url = self.env.get("JSS_URL")
         self.jamf_user = self.env.get("API_USERNAME")
         self.jamf_password = self.env.get("API_PASSWORD")
         self.client_id = self.env.get("CLIENT_ID")

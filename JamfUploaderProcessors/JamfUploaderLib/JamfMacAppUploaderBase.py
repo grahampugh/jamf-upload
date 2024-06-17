@@ -1,5 +1,4 @@
 #!/usr/local/autopkg/python
-# pylint: disable=invalid-name
 
 """
 Copyright 2023 Graham Pugh
@@ -22,16 +21,16 @@ import sys
 
 from time import sleep
 
-from autopkglib import ProcessorError  # pylint: disable=import-error
+from autopkglib import (
+    ProcessorError,
+)  # pylint: disable=import-error
 
 # to use a base module in AutoPkg we need to add this path to the sys.path.
 # this violates flake8 E402 (PEP8 imports) but is unavoidable, so the following
 # imports require noqa comments for E402
 sys.path.insert(0, os.path.dirname(__file__))
 
-from JamfUploaderBase import (  # pylint: disable=import-error, wrong-import-position
-    JamfUploaderBase,
-)
+from JamfUploaderBase import JamfUploaderBase  # noqa: E402
 
 
 class JamfMacAppUploaderBase(JamfUploaderBase):
@@ -58,7 +57,7 @@ class JamfMacAppUploaderBase(JamfUploaderBase):
         """prepare the macapp contents"""
         # import template from file and replace any keys in the template
         if os.path.exists(macapp_template):
-            with open(file=macapp_template, mode="r", encoding="utf-8") as file:
+            with open(macapp_template, "r") as file:
                 template_contents = file.read()
         else:
             raise ProcessorError("Template does not exist!")
@@ -85,18 +84,17 @@ class JamfMacAppUploaderBase(JamfUploaderBase):
         obj_id=0,
     ):
         """Upload MAS app"""
-        sleep_count = self.env.get("sleep")
 
         self.output("Uploading MAS app...")
 
         # if we find an object ID we put, if not, we post
         object_type = "mac_application"
-        url = f"{jamf_url}/{self.api_endpoints(object_type)}/id/{obj_id}"
+        url = "{}/{}/id/{}".format(jamf_url, self.api_endpoints(object_type), obj_id)
 
         count = 0
         while True:
             count += 1
-            self.output(f"MAS app upload attempt {count}", verbose_level=2)
+            self.output("MAS app upload attempt {}".format(count), verbose_level=2)
             request = "PUT" if obj_id else "POST"
             r = self.curl(
                 request=request,
@@ -109,85 +107,96 @@ class JamfMacAppUploaderBase(JamfUploaderBase):
                 break
             if count > 5:
                 self.output("WARNING: MAS app upload did not succeed after 5 attempts")
-                self.output(f"\nHTTP POST Response Code: {r.status_code}")
+                self.output("\nHTTP POST Response Code: {}".format(r.status_code))
                 raise ProcessorError("ERROR: Policy upload failed ")
-            if int(sleep_count) > 30:
-                sleep(int(sleep_count))
+            if int(self.sleep) > 30:
+                sleep(int(self.sleep))
             else:
                 sleep(30)
         return r
 
     def execute(self):
         """Upload a mac app"""
-        jamf_url = self.env.get("JSS_URL").rstrip("/")
-        jamf_user = self.env.get("API_USERNAME")
-        jamf_password = self.env.get("API_PASSWORD")
-        client_id = self.env.get("CLIENT_ID")
-        client_secret = self.env.get("CLIENT_SECRET")
-        macapp_name = self.env.get("macapp_name")
-        clone_from = self.env.get("clone_from")
-        selfservice_icon_uri = self.env.get("selfservice_icon_uri")
-        macapp_template = self.env.get("macapp_template")
-        replace = self.env.get("replace_macapp")
+        self.jamf_url = self.env.get("JSS_URL")
+        self.jamf_user = self.env.get("API_USERNAME")
+        self.jamf_password = self.env.get("API_PASSWORD")
+        self.client_id = self.env.get("CLIENT_ID")
+        self.client_secret = self.env.get("CLIENT_SECRET")
+        self.macapp_name = self.env.get("macapp_name")
+        self.clone_from = self.env.get("clone_from")
+        self.selfservice_icon_uri = self.env.get("selfservice_icon_uri")
+        self.macapp_template = self.env.get("macapp_template")
+        self.replace = self.env.get("replace_macapp")
+        self.sleep = self.env.get("sleep")
         # handle setting replace in overrides
-        if not replace or replace == "False":
-            replace = False
-        macapp_updated = False
+        if not self.replace or self.replace == "False":
+            self.replace = False
+        self.macapp_updated = False
 
         # clear any pre-existing summary result
         if "jamfmacappuploader_summary_result" in self.env:
             del self.env["jamfmacappuploader_summary_result"]
 
         # handle files with a relative path
-        if not macapp_template.startswith("/"):
-            found_template = self.get_path_to_file(macapp_template)
+        if not self.macapp_template.startswith("/"):
+            found_template = self.get_path_to_file(self.macapp_template)
             if found_template:
-                macapp_template = found_template
+                self.macapp_template = found_template
             else:
-                raise ProcessorError(f"ERROR: Policy file {macapp_template} not found")
+                raise ProcessorError(
+                    f"ERROR: Policy file {self.macapp_template} not found"
+                )
 
         # now start the process of uploading the object
-        self.output(f"Checking for existing '{macapp_name}' on {jamf_url}")
+        self.output(f"Checking for existing '{self.macapp_name}' on {self.jamf_url}")
 
         # get token using oauth or basic auth depending on the credentials given
-        if jamf_url and client_id and client_secret:
-            token = self.handle_oauth(jamf_url, client_id, client_secret)
-        elif jamf_url and jamf_user and jamf_password:
-            token = self.handle_api_auth(jamf_url, jamf_user, jamf_password)
+        if self.jamf_url and self.client_id and self.client_secret:
+            token = self.handle_oauth(self.jamf_url, self.client_id, self.client_secret)
+        elif self.jamf_url and self.jamf_user and self.jamf_password:
+            token = self.handle_api_auth(
+                self.jamf_url, self.jamf_user, self.jamf_password
+            )
         else:
             raise ProcessorError("ERROR: Credentials not supplied")
 
         # check for existing - requires obj_name
         obj_type = "mac_application"
-        obj_name = macapp_name
+        obj_name = self.macapp_name
         obj_id = self.get_api_obj_id_from_name(
-            jamf_url,
+            self.jamf_url,
             obj_name,
             obj_type,
             token=token,
         )
 
         if obj_id:
-            self.output(f"MAS app '{macapp_name}' already exists: ID {obj_id}")
-            if replace:
+            self.output(
+                "MAS app '{}' already exists: ID {}".format(self.macapp_name, obj_id)
+            )
+            if self.replace:
                 self.output(
-                    f"Replacing existing MAS app as 'replace_macapp' is set to {replace}",
+                    "Replacing existing MAS app as 'replace_macapp' is set to {}".format(
+                        self.replace
+                    ),
                     verbose_level=1,
                 )
 
                 # obtain the MAS app bundleid
                 bundleid = self.get_api_obj_value_from_id(
-                    jamf_url,
+                    self.jamf_url,
                     "mac_application",
                     obj_id,
                     "general/bundle_id",
                     token=token,
                 )
                 if bundleid:
-                    self.output(f"Existing bundle ID is '{bundleid}'", verbose_level=1)
+                    self.output(
+                        "Existing bundle ID is '{}'".format(bundleid), verbose_level=1
+                    )
                 # obtain the MAS app version
                 macapp_version = self.get_api_obj_value_from_id(
-                    jamf_url,
+                    self.jamf_url,
                     "mac_application",
                     obj_id,
                     "general/version",
@@ -195,12 +204,12 @@ class JamfMacAppUploaderBase(JamfUploaderBase):
                 )
                 if macapp_version:
                     self.output(
-                        f"Existing MAS app version is '{macapp_version}'",
+                        "Existing MAS app version is '{}'".format(macapp_version),
                         verbose_level=1,
                     )
                 # obtain the MAS app free status
                 macapp_is_free = self.get_api_obj_value_from_id(
-                    jamf_url,
+                    self.jamf_url,
                     "mac_application",
                     obj_id,
                     "general/is_free",
@@ -208,12 +217,12 @@ class JamfMacAppUploaderBase(JamfUploaderBase):
                 )
                 if macapp_is_free:
                     self.output(
-                        f"Existing MAS app free status is '{macapp_is_free}'",
+                        "Existing MAS app free status is '{}'".format(macapp_is_free),
                         verbose_level=1,
                     )
                 # obtain the MAS app URL
                 appstore_url = self.get_api_obj_value_from_id(
-                    jamf_url,
+                    self.jamf_url,
                     "mac_application",
                     obj_id,
                     "general/url",
@@ -221,63 +230,65 @@ class JamfMacAppUploaderBase(JamfUploaderBase):
                 )
                 if appstore_url:
                     self.output(
-                        f"Existing MAS URL is '{appstore_url}'", verbose_level=1
+                        "Existing MAS URL is '{}'".format(appstore_url), verbose_level=1
                     )
                 # obtain the MAS app icon
-                if not selfservice_icon_uri:
-                    selfservice_icon_uri = self.get_api_obj_value_from_id(
-                        jamf_url,
+                if not self.selfservice_icon_uri:
+                    self.selfservice_icon_uri = self.get_api_obj_value_from_id(
+                        self.jamf_url,
                         "mac_application",
                         obj_id,
                         "self_service/self_service_icon/uri",
                         token=token,
                     )
-                    if selfservice_icon_uri:
+                    if self.selfservice_icon_uri:
                         self.output(
-                            f"Existing Self Service icon is '{selfservice_icon_uri}'",
+                            "Existing Self Service icon is '{}'".format(
+                                self.selfservice_icon_uri
+                            ),
                             verbose_level=1,
                         )
                 # obtain the VPP location
-                vpp_id = self.get_vpp_id(jamf_url, token)
+                vpp_id = self.get_vpp_id(self.jamf_url, token)
                 if vpp_id:
                     self.output(
-                        f"Existing VPP ID is '{vpp_id}'",
+                        "Existing VPP ID is '{}'".format(vpp_id),
                         verbose_level=1,
                     )
 
                 # we need to substitute the values in the MAS app name and template now to
                 # account for URL and Bundle ID
-                self.env["macapp_name"] = macapp_name
+                self.env["macapp_name"] = self.macapp_name
                 self.env["macapp_version"] = macapp_version
                 self.env["macapp_is_free"] = str(macapp_is_free)
                 self.env["bundleid"] = bundleid
                 self.env["appstore_url"] = appstore_url
-                self.env["selfservice_icon_uri"] = selfservice_icon_uri
+                self.env["selfservice_icon_uri"] = self.selfservice_icon_uri
                 self.env["vpp_id"] = vpp_id
-                macapp_name, template_xml = self.prepare_macapp_template(
-                    macapp_name, macapp_template
+                self.macapp_name, template_xml = self.prepare_macapp_template(
+                    self.macapp_name, self.macapp_template
                 )
 
                 # upload the macapp
                 self.upload_macapp(
-                    jamf_url,
-                    macapp_name,
+                    self.jamf_url,
+                    self.macapp_name,
                     template_xml,
                     token,
                     obj_id=obj_id,
                 )
-                macapp_updated = True
+                self.macapp_updated = True
 
                 # output the summary
-                self.env["macapp_name"] = macapp_name
-                self.env["macapp_updated"] = macapp_updated
-                if macapp_updated:
+                self.env["macapp_name"] = self.macapp_name
+                self.env["macapp_updated"] = self.macapp_updated
+                if self.macapp_updated:
                     self.env["jamfmacappuploader_summary_result"] = {
                         "summary_text": "The following MAS apps were updated in Jamf Pro:",
                         "report_fields": ["macapp", "template"],
                         "data": {
-                            "macapp": macapp_name,
-                            "template": macapp_template,
+                            "macapp": self.macapp_name,
+                            "template": self.macapp_template,
                         },
                     }
             else:
@@ -286,32 +297,36 @@ class JamfMacAppUploaderBase(JamfUploaderBase):
                     verbose_level=1,
                 )
                 return
-        elif clone_from:
+        elif self.clone_from:
             # check for existing - requires obj_name
             obj_type = "mac_application"
-            obj_name = clone_from
+            obj_name = self.clone_from
             obj_id = self.get_api_obj_id_from_name(
-                jamf_url,
+                self.jamf_url,
                 obj_name,
                 obj_type,
                 token=token,
             )
             if obj_id:
-                self.output(f"MAS app '{clone_from}' already exists: ID {obj_id}")
+                self.output(
+                    "MAS app '{}' already exists: ID {}".format(self.clone_from, obj_id)
+                )
 
                 # obtain the MAS app bundleid
                 bundleid = self.get_api_obj_value_from_id(
-                    jamf_url,
+                    self.jamf_url,
                     "mac_application",
                     obj_id,
                     "general/bundle_id",
                     token=token,
                 )
                 if bundleid:
-                    self.output(f"Existing bundle ID is '{bundleid}'", verbose_level=1)
+                    self.output(
+                        "Existing bundle ID is '{}'".format(bundleid), verbose_level=1
+                    )
                 # obtain the MAS app version
                 macapp_version = self.get_api_obj_value_from_id(
-                    jamf_url,
+                    self.jamf_url,
                     "mac_application",
                     obj_id,
                     "general/version",
@@ -319,12 +334,12 @@ class JamfMacAppUploaderBase(JamfUploaderBase):
                 )
                 if macapp_version:
                     self.output(
-                        f"Existing MAS app version is '{macapp_version}'",
+                        "Existing MAS app version is '{}'".format(macapp_version),
                         verbose_level=1,
                     )
                 # obtain the MAS app free status
                 macapp_is_free = self.get_api_obj_value_from_id(
-                    jamf_url,
+                    self.jamf_url,
                     "mac_application",
                     obj_id,
                     "general/is_free",
@@ -332,12 +347,12 @@ class JamfMacAppUploaderBase(JamfUploaderBase):
                 )
                 if macapp_is_free:
                     self.output(
-                        f"Existing MAS app free status is '{macapp_is_free}'",
+                        "Existing MAS app free status is '{}'".format(macapp_is_free),
                         verbose_level=1,
                     )
                 # obtain the MAS app URL
                 appstore_url = self.get_api_obj_value_from_id(
-                    jamf_url,
+                    self.jamf_url,
                     "mac_application",
                     obj_id,
                     "general/url",
@@ -345,55 +360,57 @@ class JamfMacAppUploaderBase(JamfUploaderBase):
                 )
                 if appstore_url:
                     self.output(
-                        f"Existing MAS URL is '{appstore_url}'", verbose_level=1
+                        "Existing MAS URL is '{}'".format(appstore_url), verbose_level=1
                     )
                 # obtain the MAS app icon
-                if not selfservice_icon_uri:
-                    selfservice_icon_uri = self.get_api_obj_value_from_id(
-                        jamf_url,
+                if not self.selfservice_icon_uri:
+                    self.selfservice_icon_uri = self.get_api_obj_value_from_id(
+                        self.jamf_url,
                         "mac_application",
                         obj_id,
                         "self_service/self_service_icon/uri",
                         token=token,
                     )
-                    if selfservice_icon_uri:
+                    if self.selfservice_icon_uri:
                         self.output(
-                            f"Existing Self Service icon is '{selfservice_icon_uri}'",
+                            "Existing Self Service icon is '{}'".format(
+                                self.selfservice_icon_uri
+                            ),
                             verbose_level=1,
                         )
 
                 # we need to substitute the values in the MAS app name and template now to
                 # account for URL and Bundle ID
-                self.env["macapp_name"] = macapp_name
+                self.env["macapp_name"] = self.macapp_name
                 self.env["macapp_version"] = macapp_version
                 self.env["macapp_is_free"] = str(macapp_is_free)
                 self.env["bundleid"] = bundleid
                 self.env["appstore_url"] = appstore_url
-                self.env["selfservice_icon_uri"] = selfservice_icon_uri
-                macapp_name, template_xml = self.prepare_macapp_template(
-                    macapp_name, macapp_template
+                self.env["selfservice_icon_uri"] = self.selfservice_icon_uri
+                self.macapp_name, template_xml = self.prepare_macapp_template(
+                    self.macapp_name, self.macapp_template
                 )
 
                 # upload the macapp
                 self.upload_macapp(
-                    jamf_url,
-                    macapp_name,
+                    self.jamf_url,
+                    self.macapp_name,
                     template_xml,
                     token,
                     obj_id=0,
                 )
-                macapp_updated = True
+                self.macapp_updated = True
 
                 # output the summary
-                self.env["macapp_name"] = macapp_name
-                self.env["macapp_updated"] = macapp_updated
-                if macapp_updated:
+                self.env["macapp_name"] = self.macapp_name
+                self.env["macapp_updated"] = self.macapp_updated
+                if self.macapp_updated:
                     self.env["jamfmacappuploader_summary_result"] = {
                         "summary_text": "The following MAS apps were updated in Jamf Pro:",
                         "report_fields": ["macapp", "template"],
                         "data": {
-                            "macapp": macapp_name,
-                            "template": macapp_template,
+                            "macapp": self.macapp_name,
+                            "template": self.macapp_template,
                         },
                     }
             else:

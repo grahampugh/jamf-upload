@@ -1,5 +1,4 @@
 #!/usr/local/autopkg/python
-# pylint: disable=invalid-name
 
 """
 Copyright 2023 Graham Pugh
@@ -22,16 +21,16 @@ import sys
 
 from time import sleep
 
-from autopkglib import ProcessorError  # pylint: disable=import-error
+from autopkglib import (
+    ProcessorError,
+)  # pylint: disable=import-error
 
 # to use a base module in AutoPkg we need to add this path to the sys.path.
 # this violates flake8 E402 (PEP8 imports) but is unavoidable, so the following
 # imports require noqa comments for E402
 sys.path.insert(0, os.path.dirname(__file__))
 
-from JamfUploaderBase import (  # pylint: disable=import-error, wrong-import-position
-    JamfUploaderBase,
-)
+from JamfUploaderBase import JamfUploaderBase  # noqa: E402
 
 
 class JamfComputerGroupUploaderBase(JamfUploaderBase):
@@ -42,7 +41,6 @@ class JamfComputerGroupUploaderBase(JamfUploaderBase):
         jamf_url,
         computergroup_name,
         computergroup_template,
-        sleep_count,
         token,
         obj_id=0,
     ):
@@ -50,7 +48,7 @@ class JamfComputerGroupUploaderBase(JamfUploaderBase):
 
         # import template from file and replace any keys in the template
         if os.path.exists(computergroup_template):
-            with open(file=computergroup_template, mode="r", encoding="utf-8") as file:
+            with open(computergroup_template, "r") as file:
                 template_contents = file.read()
         else:
             raise ProcessorError("Template does not exist!")
@@ -77,7 +75,7 @@ class JamfComputerGroupUploaderBase(JamfUploaderBase):
 
         # if we find an object ID we put, if not, we post
         object_type = "computer_group"
-        url = f"{jamf_url}/{self.api_endpoints(object_type)}/id/{obj_id}"
+        url = "{}/{}/id/{}".format(jamf_url, self.api_endpoints(object_type), obj_id)
 
         count = 0
         while True:
@@ -103,25 +101,25 @@ class JamfComputerGroupUploaderBase(JamfUploaderBase):
                 )
                 self.output(f"\nHTTP POST Response Code: {r.status_code}")
                 raise ProcessorError("ERROR: Computer Group upload failed ")
-            if int(sleep_count) > 30:
-                sleep(int(sleep_count))
+            if int(self.sleep) > 30:
+                sleep(int(self.sleep))
             else:
                 sleep(30)
 
     def execute(self):
         """Upload a computer group"""
-        jamf_url = self.env.get("JSS_URL").rstrip("/")
-        jamf_user = self.env.get("API_USERNAME")
-        jamf_password = self.env.get("API_PASSWORD")
-        client_id = self.env.get("CLIENT_ID")
-        client_secret = self.env.get("CLIENT_SECRET")
-        computergroup_name = self.env.get("computergroup_name")
-        computergroup_template = self.env.get("computergroup_template")
-        replace = self.env.get("replace_group")
+        self.jamf_url = self.env.get("JSS_URL")
+        self.jamf_user = self.env.get("API_USERNAME")
+        self.jamf_password = self.env.get("API_PASSWORD")
+        self.client_id = self.env.get("CLIENT_ID")
+        self.client_secret = self.env.get("CLIENT_SECRET")
+        self.computergroup_name = self.env.get("computergroup_name")
+        self.computergroup_template = self.env.get("computergroup_template")
+        self.replace = self.env.get("replace_group")
+        self.sleep = self.env.get("sleep")
         # handle setting replace in overrides
-        if not replace or replace == "False":
-            replace = False
-        sleep_count = self.env.get("sleep")
+        if not self.replace or self.replace == "False":
+            self.replace = False
 
         # clear any pre-existing summary result
         if "jamfcomputergroupuploader_summary_result" in self.env:
@@ -129,31 +127,35 @@ class JamfComputerGroupUploaderBase(JamfUploaderBase):
         group_uploaded = False
 
         # handle files with a relative path
-        if not computergroup_template.startswith("/"):
-            found_template = self.get_path_to_file(computergroup_template)
+        if not self.computergroup_template.startswith("/"):
+            found_template = self.get_path_to_file(self.computergroup_template)
             if found_template:
-                computergroup_template = found_template
+                self.computergroup_template = found_template
             else:
                 raise ProcessorError(
-                    f"ERROR: Computer Group file {computergroup_template} not found"
+                    f"ERROR: Computer Group file {self.computergroup_template} not found"
                 )
 
         # now start the process of uploading the object
-        self.output(f"Checking for existing '{computergroup_name}' on {jamf_url}")
+        self.output(
+            f"Checking for existing '{self.computergroup_name}' on {self.jamf_url}"
+        )
 
         # get token using oauth or basic auth depending on the credentials given
-        if jamf_url and client_id and client_secret:
-            token = self.handle_oauth(jamf_url, client_id, client_secret)
-        elif jamf_url and jamf_user and jamf_password:
-            token = self.handle_api_auth(jamf_url, jamf_user, jamf_password)
+        if self.jamf_url and self.client_id and self.client_secret:
+            token = self.handle_oauth(self.jamf_url, self.client_id, self.client_secret)
+        elif self.jamf_url and self.jamf_user and self.jamf_password:
+            token = self.handle_api_auth(
+                self.jamf_url, self.jamf_user, self.jamf_password
+            )
         else:
             raise ProcessorError("ERROR: Credentials not supplied")
 
         # check for existing - requires obj_name
         obj_type = "computer_group"
-        obj_name = computergroup_name
+        obj_name = self.computergroup_name
         obj_id = self.get_api_obj_id_from_name(
-            jamf_url,
+            self.jamf_url,
             obj_name,
             obj_type,
             token=token,
@@ -161,12 +163,12 @@ class JamfComputerGroupUploaderBase(JamfUploaderBase):
 
         if obj_id:
             self.output(
-                f"Computer group '{computergroup_name}' already exists: ID {obj_id}"
+                f"Computer group '{self.computergroup_name}' already exists: ID {obj_id}"
             )
-            if replace:
+            if self.replace:
                 self.output(
                     "Replacing existing Computer Group as 'replace_group' is set "
-                    f"to {replace}",
+                    f"to {self.replace}",
                     verbose_level=1,
                 )
             else:
@@ -178,17 +180,16 @@ class JamfComputerGroupUploaderBase(JamfUploaderBase):
 
         # upload the group
         self.upload_computergroup(
-            jamf_url,
-            computergroup_name,
-            computergroup_template,
-            sleep_count,
+            self.jamf_url,
+            self.computergroup_name,
+            self.computergroup_template,
             token=token,
             obj_id=obj_id,
         )
         group_uploaded = True
 
-        if int(sleep_count) > 0:
-            sleep(int(sleep_count))
+        if int(self.sleep) > 0:
+            sleep(int(self.sleep))
 
         # output the summary
         self.env["group_uploaded"] = group_uploaded
@@ -200,7 +201,7 @@ class JamfComputerGroupUploaderBase(JamfUploaderBase):
                 ),
                 "report_fields": ["group", "template"],
                 "data": {
-                    "group": computergroup_name,
-                    "template": computergroup_template,
+                    "group": self.computergroup_name,
+                    "template": self.computergroup_template,
                 },
             }
