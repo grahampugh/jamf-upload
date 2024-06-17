@@ -182,25 +182,30 @@ checkJCDS() {
         # loop through each item in the JSON response
         jcds_pkg=""
         jcds_pkg_md5=""  # assign empty value to avoid errors
+        jcds_pkg_sha512=""  # assign empty value to avoid errors
         for ((i=0; i<=pkg_count; i++)); do
             jcds_pkg=$(/usr/libexec/PlistBuddy -c "Print :$i:fileName" "$output_file_list" 2>/dev/null)
             if [[ "$jcds_pkg" == "$pkg" ]]; then
                 jcds_pkg_md5=$(/usr/libexec/PlistBuddy -c "Print :$i:md5" "$output_file_list")
+                jcds_pkg_sha512=$(/usr/libexec/PlistBuddy -c "Print :$i:sha3" "$output_file_list")
                 break
             fi
         done
 
         # also find out the sha3 of the local package
         pkg_md5=$(md5 -q "$pkg_path")
+        pkg_sha512=$(openssl sha512 "$pkg_path" | awk '{print $NF}')
                 
         # now compare the two
-        if [[ "$jcds_pkg_md5" ]]; then
+        # if [[ "$jcds_pkg_md5" ]]; then
+        if [[ "$jcds_pkg_sha512" ]]; then
             echo "Existing package found: URL $jcds_pkg"
             if [[ $replace ]]; then
                 # Check if the MD5 hash matches (Mac's LibreSSL can't do SHA3-512)
                 # If not, we want to replace it, which has to be done 
                 # by deleting and uploading new
-                if [[ "$jcds_pkg_md5" == "$pkg_md5" ]]; then
+                # if [[ "$jcds_pkg_md5" == "$pkg_md5" ]]; then
+                if [[ "$jcds_pkg_sha512" == "$pkg_sha512" ]]; then
                     echo "MD5 matches so not replacing existing package on JCDS"
                     replace_jcds_pkg=0
                 else
@@ -270,7 +275,13 @@ postMetadata() {
     pkg_data="<package>
     <name>$pkg</name>
     <filename>$pkg</filename>
-</package>"
+    </package>"
+
+# key swap store
+    # <hash_type>SHA_512</hash_type>
+    # <hash_value>$pkg_sha512</hash_value>
+    # <hash_type>MD5</hash_type>
+    # <hash_value>$pkg_md5</hash_value>
 
 
     echo "Posting the package metadata to the server"
@@ -343,7 +354,12 @@ if [[ ! $jss || ! $user || ! $pass || ! $pkg_path ]]; then
 fi
 
 # set URL
-url="https://$jss.jamfcloud.com"
+if [[ $jss == *"."* ]]; then
+    url="https://$jss"
+else
+    url="https://$jss.jamfcloud.com"
+fi
+
 
 # set pkg name
 pkg=$(basename "$pkg_path")

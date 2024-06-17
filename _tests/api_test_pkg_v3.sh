@@ -57,7 +57,12 @@ output_file_token="$output_location/output_token.txt"
 output_file_upload="$output_location/output_upload.txt"
 output_file_record="$output_location/output_record.txt"
 
-url="https://$jss.jamfcloud.com"
+# set URL
+if [[ $jss == *"."* ]]; then
+    url="https://$jss"
+else
+    url="https://$jss.jamfcloud.com"
+fi
 
 echo
 echo "---------------------------------------------------"

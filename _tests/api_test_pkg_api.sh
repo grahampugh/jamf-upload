@@ -41,7 +41,6 @@ getBearerToken() {
         curl --request POST \
         --silent \
         --user "$user:$pass" \
-        --header "authorization: Basic $credentials" \
         --url "$url/api/v1/auth/token" \
         --write-out "%{http_code}" \
         --header 'Accept: application/json' \
@@ -156,9 +155,14 @@ postPkgMetadata() {
         "suppressUpdates": false,
         "suppressFromDock": false,
         "suppressEula": false,
-        "suppressRegistration": false
+        "suppressRegistration": false,
+        "md5": "$pkg_md5"
     }
 JSON
+
+    # key swap store
+        # "hashType": "MD5",
+        # "hashValue": "$pkg_md5"
 
     # echo "$data_json" # TEMP
 
@@ -284,11 +288,18 @@ if [[ ! $jss || ! $user || ! $pass || ! $pkg_path ]]; then
 fi
 
 # set URL
-url="https://$jss.jamfcloud.com"
+if [[ $jss == *"."* ]]; then
+    url="https://$jss"
+else
+    url="https://$jss.jamfcloud.com"
+fi
 
 # set pkg name
 pkg=$(basename "$pkg_path")
 pkg_dir=$(dirname "$pkg_path")
+
+# also find out the sha3 of the local package
+pkg_md5=$(md5 -q "$pkg_path")
 
 # grab a token
 checkTokenExpiration
