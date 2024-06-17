@@ -104,15 +104,16 @@ class JamfClassicAPIObjectUploaderBase(JamfUploaderBase):
 
     def execute(self):
         """Upload an API object"""
-        jamf_url = self.env.get("JSS_URL").rstrip("/")
-        jamf_user = self.env.get("API_USERNAME")
-        jamf_password = self.env.get("API_PASSWORD")
-        client_id = self.env.get("CLIENT_ID")
-        client_secret = self.env.get("CLIENT_SECRET")
-        object_name = self.env.get("object_name")
-        object_type = self.env.get("object_type")
-        object_template = self.env.get("object_template")
-        replace = self.env.get("replace_object")
+        self.jamf_url = self.env.get("JSS_URL")
+        self.jamf_user = self.env.get("API_USERNAME")
+        self.jamf_password = self.env.get("API_PASSWORD")
+        self.client_id = self.env.get("CLIENT_ID")
+        self.client_secret = self.env.get("CLIENT_SECRET")
+        self.object_name = self.env.get("object_name")
+        self.object_type = self.env.get("object_type")
+        self.object_template = self.env.get("object_template")
+        self.replace = self.env.get("replace_object")
+        self.sleep = self.env.get("sleep")
         # handle setting replace in overrides
         if not replace or replace == "False":
             replace = False
