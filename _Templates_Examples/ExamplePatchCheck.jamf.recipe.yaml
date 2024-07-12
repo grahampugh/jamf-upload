@@ -1,4 +1,4 @@
-RecipeIdentifier: com.github.example.jamf.patchcheck
+Identifier: com.github.example.jamf.patchcheck
 
 Input: {}
 
