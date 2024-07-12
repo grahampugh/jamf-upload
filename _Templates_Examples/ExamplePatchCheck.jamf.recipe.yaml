@@ -1,3 +1,7 @@
+RecipeIdentifier: com.github.example.jamf.patchcheck
+
+Input: {}
+
 Process:
   - Processor: com.github.grahampugh.jamf-upload.processors/JamfPatchChecker
     Arguments:
@@ -33,3 +37,4 @@ Process:
       patch_template: '%PATCH_POLICY_TEMPLATE%'
       patch_icon_policy_name: '%POLICY_NAME%'
       replace_patch: 'True'
+      
