@@ -485,6 +485,10 @@ class JamfUploaderBase(Processor):
         if additional_curl_opts:
             curl_cmd.extend(additional_curl_opts)
 
+        # add custom curl options specified
+        if self.env.get("custom_curl_opts"):
+            curl_cmd.extend(self.env.get("custom_curl_opts"))
+
         self.output(f"curl command: {' '.join(curl_cmd)}", verbose_level=3)
 
         # now subprocess the curl command and build the r tuple which contains the
