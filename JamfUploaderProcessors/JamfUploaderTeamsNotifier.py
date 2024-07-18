@@ -69,7 +69,7 @@ class JamfUploaderTeamsNotifier(JamfUploaderBase):
         "teams_webhook_url": {"required": True, "description": ("Teams webhook.")},
         "teams_username": {
             "required": False,
-            "description": ("Teams MessageCard display name."),
+            "description": ("Teams AdaptiveCard display name."),
             "default": "AutoPkg",
         },
         "teams_icon_url": {
