@@ -395,8 +395,8 @@ class JamfUploaderBase(Processor):
         if additional_headers:
             curl_cmd.extend(additional_headers)
         # add additional flags specified
-        if self.env.get("curl_additional_opts"):
-            curl_cmd.extend(self.env.get("curl_additional_opts"))
+        if self.env.get("custom_curl_opts"):
+            curl_cmd.extend(self.env.get("custom_curl_opts"))
 
         self.output(f"curl command: {' '.join(curl_cmd)}", verbose_level=3)
 
