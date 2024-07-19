@@ -84,7 +84,7 @@ class JamfUploaderTeamsNotifier(JamfUploaderBase):
 
     def teams_status_check(self, r):
         """Return a message dependent on the HTTP response"""
-        if r.status_code == 200 or r.status_code == 201:
+        if r.status_code == 200 or r.status_code == 201 or r.status_code == 202:
             self.output("Teams webhook sent successfully")
             return "break"
         else:
@@ -143,7 +143,7 @@ class JamfUploaderTeamsNotifier(JamfUploaderBase):
         ] = "http://adaptivecards.io/schemas/adaptive-card.json"
         webhook_text["attachments"][0]["content"][
             "version"
-        ] = "1.5"
+        ] = "1.2"
         webhook_text["attachments"][0]["content"][
             "verticalContentAlignment"
         ] = "Center"
@@ -201,37 +201,37 @@ class JamfUploaderTeamsNotifier(JamfUploaderBase):
             and jamfpolicyuploader_summary_result
         ):
             webhook_text["attachments"][0]["content"]["body"][2]["facts"] += [
-                {"name": "Title", "value": selfservice_policy_name},
-                {"name": "Version", "value": version},
-                {"name": "Category", "value": category},
-                {"name": "Policy Name", "value": policy_name},
-                {"name": "Package", "value": pkg_name},
-                {"name": "Patch Policy", "value": patch_name},
+                {"title": "Title", "value": selfservice_policy_name},
+                {"title": "Version", "value": version},
+                {"title": "Category", "value": category},
+                {"title": "Policy Name", "value": policy_name},
+                {"title": "Package", "value": pkg_name},
+                {"title": "Patch Policy", "value": patch_name},
             ]
 
         elif jamfpackageuploader_summary_result and jamfpolicyuploader_summary_result:
             webhook_text["attachments"][0]["content"]["body"][2]["facts"] += [
-                {"name": "Title", "value": selfservice_policy_name},
-                {"name": "Version", "value": version},
-                {"name": "Category", "value": category},
-                {"name": "Policy Name", "value": policy_name},
-                {"name": "Package", "value": pkg_name},
+                {"title": "Title", "value": selfservice_policy_name},
+                {"title": "Version", "value": version},
+                {"title": "Category", "value": category},
+                {"title": "Policy Name", "value": policy_name},
+                {"title": "Package", "value": pkg_name},
             ]
 
         elif jamfpackageuploader_summary_result and jamfpatchuploader_summary_result:
             webhook_text["attachments"][0]["content"]["body"][2]["facts"] += [
-                {"name": "Title", "value": selfservice_policy_name},
-                {"name": "Version", "value": version},
-                {"name": "Category", "value": category},
-                {"name": "Package", "value": pkg_name},
-                {"name": "Patch Policy", "value": patch_name},
+                {"title": "Title", "value": selfservice_policy_name},
+                {"title": "Version", "value": version},
+                {"title": "Category", "value": category},
+                {"title": "Package", "value": pkg_name},
+                {"title": "Patch Policy", "value": patch_name},
             ]
 
         elif jamfpolicyuploader_summary_result:
             webhook_text["attachments"][0]["content"]["body"][2]["facts"] += [
-                {"name": "Title", "value": selfservice_policy_name},
-                {"name": "Category", "value": category},
-                {"name": "Policy Name", "value": policy_name},
+                {"title": "Title", "value": selfservice_policy_name},
+                {"title": "Category", "value": category},
+                {"title": "Policy Name", "value": policy_name},
             ]
             webhook_text["attachments"][0]["content"]["body"].append(
                 {
@@ -244,9 +244,9 @@ class JamfUploaderTeamsNotifier(JamfUploaderBase):
 
         elif jamfpackageuploader_summary_result:
             webhook_text["attachments"][0]["content"]["body"][2]["facts"] += [
-                {"name": "Version", "value": version},
-                {"name": "Category", "value": category},
-                {"name": "Package", "value": pkg_name},
+                {"title": "Version", "value": version},
+                {"title": "Category", "value": category},
+                {"title": "Package", "value": pkg_name},
             ]
             webhook_text["attachments"][0]["content"]["body"].append(
                 {
