@@ -84,7 +84,7 @@ class JamfUploaderTeamsNotifier(JamfUploaderBase):
 
     def teams_status_check(self, r):
         """Return a message dependent on the HTTP response"""
-        if r.status_code == 200 or r.status_code == 201:
+        if r.status_code == 200 or r.status_code == 201 or r.status_code == 202:
             self.output("Teams webhook sent successfully")
             return "break"
         else:
@@ -143,7 +143,7 @@ class JamfUploaderTeamsNotifier(JamfUploaderBase):
         ] = "http://adaptivecards.io/schemas/adaptive-card.json"
         webhook_text["attachments"][0]["content"][
             "version"
-        ] = "1.5"
+        ] = "1.2"
         webhook_text["attachments"][0]["content"][
             "verticalContentAlignment"
         ] = "Center"
