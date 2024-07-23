@@ -162,7 +162,7 @@ Package Clean arguments:
 
 Package Metadata arguments:
     --name <string>         The package display name
-    --pkg <path>       The package filename
+    --pkg <path>            The package filename
     --priority <int>        The priority
     --category <string>     The category. Must exist.
     --info <string>         Pkg information field
@@ -233,7 +233,7 @@ Slack arguments:
     --policy-uploaded       Pretends that a policy was uploaded (sets a value to jamfpolicyuploader_summary_result)
     --slack-url <url>       The slack_webhook_url
     --slack-user <string>   The Slack user to display
-    --icon <url>        The Slack icon URL
+    --icon <url>            The Slack icon URL
     --channel <string>      The Slack channel to post to
     --emoji <string>        the Slack icon emoji
 
@@ -250,7 +250,7 @@ Teams arguments:
     --policy-uploaded       Pretends that a policy was uploaded (sets a value to jamfpolicyuploader_summary_result)
     --teams-url <url>       The teams_webhook_url
     --teams-user <string>   The Teams user to display
-    --icon <url>        The Slack icon URL
+    --icon <url>            The Slack icon URL
 
 "
 }
