@@ -747,7 +747,7 @@ while test $# -gt 0 ; do
             shift
             if [[ $processor == "JamfPackageUploader" ]]; then
                 if plutil -replace SMB_PASSWORD -string "$1" "$temp_processor_plist"; then
-                    echo "   [jamf-upload] Wrote SMB_PASSWORD='$1' into $temp_processor_plist"
+                    echo "   [jamf-upload] Wrote SMB_PASSWORD='[redacted]' into $temp_processor_plist"
                 fi
             fi
             ;;
