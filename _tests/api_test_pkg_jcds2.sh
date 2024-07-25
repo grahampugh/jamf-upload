@@ -42,7 +42,7 @@ output_file_delete="$output_location/output_delete.txt"
 
 usage() {
     echo "Usage: api_test_pkg_jcds2.sh --jss someserver --user username --pass password --pkg /path/to/pkg.pkg"
-    echo "(don't include https:// or .jamfcloud.com)"
+    echo "(don't include https://)"
     echo
     echo "Use --replace to replace an existing package"
 }
@@ -337,10 +337,10 @@ while test $# -gt 0 ; do
             pkg_path="$1"
             ;;
         --replace)
-            shift
             replace=1
             ;;
         *)
+            echo "Incorrect parameter ($1)"
             usage
             exit
             ;;
@@ -349,6 +349,7 @@ while test $# -gt 0 ; do
 done
 
 if [[ ! $jss || ! $user || ! $pass || ! $pkg_path ]]; then
+    echo "Missing parameter"
     usage
     exit
 fi
