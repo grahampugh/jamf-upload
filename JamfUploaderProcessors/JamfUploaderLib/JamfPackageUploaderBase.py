@@ -248,7 +248,10 @@ class JamfPackageUploaderBase(JamfUploaderBase):
             tmp_pkg_path = os.path.join(pkg_dirname, pkg_name)
             shutil.copyfile(pkg_path, tmp_pkg_path)
             self.output(
-                f"Package name does not match path, so package copied from {pkg_path} to {tmp_pkg_path}",
+                (
+                    f"Package name does not match path, so package copied from {pkg_path} to",
+                    f"{tmp_pkg_path}",
+                ),
                 verbose_level=2,
             )
             pkg_path = tmp_pkg_path
@@ -474,9 +477,21 @@ class JamfPackageUploaderBase(JamfUploaderBase):
             )
             sys.exit()
 
+        self.output(
+            (
+                "JCDS credentials:",
+                f"Access Key: {credentials['accessKeyID']}",
+                f"Bucket Name: {credentials['bucketName']}",
+                f"Path: {credentials['path']}",
+                f"Region: {credentials['region']}",
+            ),
+            verbose_level=3,
+        )  # TEMP
+
         # Upload File To AWS S3
         s3_client = boto3.client(
             "s3",
+            credentials["region"],
             aws_access_key_id=credentials["accessKeyID"],
             aws_secret_access_key=credentials["secretAccessKey"],
             aws_session_token=credentials["sessionToken"],
