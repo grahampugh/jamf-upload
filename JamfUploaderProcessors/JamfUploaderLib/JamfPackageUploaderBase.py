@@ -469,6 +469,9 @@ class JamfPackageUploaderBase(JamfUploaderBase):
 
         Note that this requires the boto3 python module
         To install this, run the following command
+
+        /usr/local/autopkg/python -m pip install boto3
+
         See https://boto3.amazonaws.com/v1/documentation/api/latest/guide/quickstart.html
         and
         https://boto3.amazonaws.com/v1/documentation/api/latest/guide/configuration.html#guide-configuration
@@ -481,7 +484,8 @@ class JamfPackageUploaderBase(JamfUploaderBase):
             )
         except ImportError:
             print(
-                "WARNING: could not import boto3 module. Use pip to install boto3 and try again."
+                "WARNING: could not import boto3 module. Use pip to install boto3 and try again:",
+                "/usr/local/autopkg/python -m pip install boto3",
             )
             sys.exit()
 
