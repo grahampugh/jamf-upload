@@ -464,7 +464,15 @@ class JamfPackageUploaderBase(JamfUploaderBase):
         pkg_name,
         credentials,
     ):
-        """upload the package"""
+        """
+        upload the package using the jcds API endpoint
+
+        Note that this requires the boto3 python module
+        To install this, run the following command
+        See https://boto3.amazonaws.com/v1/documentation/api/latest/guide/quickstart.html
+        and
+        https://boto3.amazonaws.com/v1/documentation/api/latest/guide/configuration.html#guide-configuration
+        """
 
         try:
             import boto3  # pylint: disable=import-outside-toplevel
@@ -473,7 +481,7 @@ class JamfPackageUploaderBase(JamfUploaderBase):
             )
         except ImportError:
             print(
-                "WARNING: could not import boto3 module. Use pip to install requests and try again."
+                "WARNING: could not import boto3 module. Use pip to install boto3 and try again."
             )
             sys.exit()
 
@@ -515,10 +523,7 @@ class JamfPackageUploaderBase(JamfUploaderBase):
         """upload the package to an AWS CDP
         Note that this requires the installation of the aws-cli tools on your AutoPkg machine
         and you must set up the connection with 'aws configure'. Alternatively you can create
-        the config file manually.
-        See https://boto3.amazonaws.com/v1/documentation/api/latest/guide/quickstart.html
-        and
-        https://boto3.amazonaws.com/v1/documentation/api/latest/guide/configuration.html#guide-configuration
+        the config file manually. See https://aws.amazon.com/cli/ for installation instructions.
 
         You must also specify the bucket name to the environment ('S3_BUCKET_NAME').
         """
