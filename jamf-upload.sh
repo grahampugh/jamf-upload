@@ -17,6 +17,7 @@ Valid object types:
     account
     category
     group | computergroup
+    groupdelete | computergroupdelete
     mobiledevicegroup
     profile | computerprofile
     mobiledeviceprofile
@@ -30,6 +31,8 @@ Valid object types:
     pkgdata
     pkgclean
     policy
+    policydelete
+    policyflush
     restriction | softwarerestriction
     script
     slack
@@ -62,6 +65,9 @@ Computer Group arguments:
     --template <path>       XML template
     --key X=Y               Substitutable values in the template. Multiple values can be supplied
     --replace               Replace existing item
+
+Computer Group Delete arguments:
+    --name <string>         The computer group name
 
 Computer Profile arguments:
     --name <string>         The name
@@ -289,6 +295,8 @@ elif [[ $object == "category" ]]; then
     processor="JamfCategoryUploader"
 elif [[ $object == "group" || $object == "computergroup" ]]; then
     processor="JamfComputerGroupUploader"
+elif [[ $object == "groupdelete" || $object == "computergroupdelete" ]]; then
+    processor="JamfComputerGroupDeleter"
 elif [[ $object == "profile" || $object == "computerprofile" ]]; then
     processor="JamfComputerProfileUploader"
 elif [[ $object == "dock" || $object == "dockitem" ]]; then
@@ -313,9 +321,9 @@ elif [[ $object == "pkgdata" ]]; then
     processor="JamfPkgMetadataUploader"
 elif [[ $object == "policy" ]]; then
     processor="JamfPolicyUploader"
-elif [[ $object == "policy_delete" ]]; then
+elif [[ $object == "policydelete" ]]; then
     processor="JamfPolicyDeleter"
-elif [[ $object == "policy_flush" ]]; then
+elif [[ $object == "policyflush" ]]; then
     processor="JamfPolicyLogFlusher"
 elif [[ $object == "patch" ]]; then
     processor="JamfPatchUploader"
@@ -492,7 +500,7 @@ while test $# -gt 0 ; do
                 if plutil -replace object_name -string "$1" "$temp_processor_plist"; then
                     echo "   [jamf-upload] Wrote object_name='$1' into $temp_processor_plist"
                 fi
-            elif [[ $processor == "JamfComputerGroupUploader" ]]; then
+            elif [[ $processor == "JamfComputerGroupUploader" || $processor == "JamfComputerGroupDeleter" ]]; then
                 if plutil -replace computergroup_name -string "$1" "$temp_processor_plist"; then
                     echo "   [jamf-upload] Wrote computergroup_name='$1' into $temp_processor_plist"
                 fi

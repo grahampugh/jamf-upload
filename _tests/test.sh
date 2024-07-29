@@ -62,6 +62,14 @@ elif [[ $test_type == "group" ]]; then
         "$verbosity" \
         --replace
 
+elif [[ $test_type == "groupdelete" ]]; then
+    # upload a policy
+    "$DIR"/../jamf-upload.sh groupdelete \
+        --prefs "$prefs" \
+        --recipe-dir /Users/gpugh/sourcecode/jamf-upload/_tests \
+        --name "Adium-update-smart" \
+        "$verbosity"
+
 elif [[ $test_type == "mobiledevicegroup" ]]; then
     # upload a computer group
     "$DIR"/../jamf-upload.sh mobiledevicegroup \
@@ -214,12 +222,12 @@ elif [[ $test_type == "policy_retain_scope" ]]; then
         --replace \
         --retain-existing-scope
 
-elif [[ $test_type == "policy_delete" ]]; then
+elif [[ $test_type == "policydelete" ]]; then
     # upload a policy
-    "$DIR"/../jamf-upload.sh policy_delete \
+    "$DIR"/../jamf-upload.sh policydelete \
         --prefs "$prefs" \
         --recipe-dir /Users/gpugh/sourcecode/jamf-upload/_tests \
-        --name "Install Firefox" \
+        --name "Install Latest Adium" \
         "$verbosity"
 
 elif [[ $test_type == "policy_flush" ]]; then
