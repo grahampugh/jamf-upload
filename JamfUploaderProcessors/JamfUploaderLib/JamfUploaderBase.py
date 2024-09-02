@@ -21,7 +21,7 @@ import os
 import re
 import subprocess
 import tempfile
-import xml.etree.cElementTree as ET
+import xml.etree.ElementTree as ET
 
 from base64 import b64encode
 from collections import namedtuple
@@ -43,6 +43,9 @@ from autopkglib import (  # pylint: disable=import-error
 
 class JamfUploaderBase(Processor):
     """Common functions used by at least two JamfUploader processors."""
+
+    # Global version
+    __version__ = "2024.8.30.0"
 
     def api_endpoints(self, object_type):
         """Return the endpoint URL from the object type"""
@@ -382,8 +385,11 @@ class JamfUploaderBase(Processor):
         else:
             raise ProcessorError("No URL supplied")
 
-        # allow use of a self-signed certificate
+        # set User-Agent
+        user_agent = f"JamfUploader/{self.__version__}"
+        curl_cmd.extend(["--header", f"User-Agent: {user_agent}"])
 
+        # allow use of a self-signed certificate
         # insecure mode
         if self.env.get("insecure_mode"):
             curl_cmd.extend(["--insecure"])

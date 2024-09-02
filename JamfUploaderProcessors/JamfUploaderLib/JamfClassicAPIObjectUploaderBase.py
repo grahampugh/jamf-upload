@@ -21,16 +21,18 @@ import sys
 
 from time import sleep
 
-from autopkglib import (
+from autopkglib import (  # pylint: disable=import-error
     ProcessorError,
-)  # pylint: disable=import-error
+)
 
 # to use a base module in AutoPkg we need to add this path to the sys.path.
 # this violates flake8 E402 (PEP8 imports) but is unavoidable, so the following
 # imports require noqa comments for E402
 sys.path.insert(0, os.path.dirname(__file__))
 
-from JamfUploaderBase import JamfUploaderBase  # noqa: E402
+from JamfUploaderBase import (  # pylint: disable=import-error, wrong-import-position
+    JamfUploaderBase,
+)
 
 
 class JamfClassicAPIObjectUploaderBase(JamfUploaderBase):

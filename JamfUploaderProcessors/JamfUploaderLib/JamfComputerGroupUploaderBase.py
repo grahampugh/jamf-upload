@@ -59,10 +59,22 @@ class JamfComputerGroupUploaderBase(JamfUploaderBase):
         # (this is to allow use of legacy JSSImporter group templates)
         try:
             self.env["JSS_INVENTORY_NAME"]
+            self.output(
+                f"Assigned {self.env['JSS_INVENTORY_NAME']}.app to JSS_INVENTORY_NAME key.",
+                verbose_level=2,
+            )
         except KeyError:
             try:
                 self.env["JSS_INVENTORY_NAME"] = self.env["NAME"] + ".app"
+                self.output(
+                    f"Assigned {self.env['NAME']}.app to JSS_INVENTORY_NAME key.",
+                    verbose_level=2,
+                )
             except KeyError:
+                self.output(
+                    f"WARNING: Could not assign value to JSS_INVENTORY_NAME key.",
+                    verbose_level=2,
+                )
                 pass
 
         # substitute user-assignable keys

@@ -22,16 +22,18 @@ import sys
 
 from time import sleep
 
-from autopkglib import (
+from autopkglib import (  # pylint: disable=import-error
     ProcessorError,
-)  # pylint: disable=import-error
+)
 
 # to use a base module in AutoPkg we need to add this path to the sys.path.
 # this violates flake8 E402 (PEP8 imports) but is unavoidable, so the following
 # imports require noqa comments for E402
 sys.path.insert(0, os.path.dirname(__file__))
 
-from JamfUploaderBase import JamfUploaderBase  # noqa: E402
+from JamfUploaderBase import (  # pylint: disable=import-error, wrong-import-position
+    JamfUploaderBase,
+)
 
 
 class JamfAccountUploaderBase(JamfUploaderBase):
@@ -155,6 +157,9 @@ class JamfAccountUploaderBase(JamfUploaderBase):
         if not self.replace or self.replace == "False":
             self.replace = False
         self.account_updated = False
+
+        # print out version with v1 or more
+        self.output(f"Version: {self.version()}", verbose_level=1)
 
         # clear any pre-existing summary result
         if "jamfaccountuploader_summary_result" in self.env:
