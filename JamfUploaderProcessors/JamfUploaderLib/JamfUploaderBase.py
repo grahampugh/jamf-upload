@@ -45,7 +45,7 @@ class JamfUploaderBase(Processor):
     """Common functions used by at least two JamfUploader processors."""
 
     # Global version
-    __version__ = "2024.8.30.0"
+    __version__ = "2024.10.06.0"
 
     def api_endpoints(self, object_type):
         """Return the endpoint URL from the object type"""
@@ -598,9 +598,11 @@ class JamfUploaderBase(Processor):
                 self.output(f"ERROR: No version of Jamf Pro received.  Error:\n{error}")
                 raise ProcessorError("No version of Jamf Pro received") from error
 
-    def get_uapi_obj_id_from_name(self, jamf_url, object_type, object_name, token):
+    def get_uapi_obj_id_from_name(
+        self, jamf_url, object_type, object_name, token, filter_name="name"
+    ):
         """Get the Jamf Pro API object by name. This requires use of RSQL filtering"""
-        url_filter = f"?page=0&page-size=1000&sort=id&filter=name%3D%3D%22{quote(object_name)}%22"
+        url_filter = f"?page=0&page-size=1000&sort=id&filter={filter_name}%3D%3D%22{quote(object_name)}%22"
         url = jamf_url + "/" + self.api_endpoints(object_type) + url_filter
         r = self.curl(request="GET", url=url, token=token)
         if r.status_code == 200:
@@ -608,9 +610,12 @@ class JamfUploaderBase(Processor):
             # output = json.loads(r.output)
             output = r.output
             for obj in output["results"]:
-                self.output(f"ID: {obj['id']} NAME: {obj['name']}", verbose_level=3)
-                if obj["name"] == object_name:
+                self.output(
+                    f"ID: {obj['id']} NAME: {obj[filter_name]}", verbose_level=3
+                )
+                if obj[filter_name] == object_name:
                     obj_id = obj["id"]
+                    break
             return obj_id
 
     def get_api_obj_id_from_name(self, jamf_url, object_name, object_type, token):

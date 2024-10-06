@@ -30,6 +30,7 @@ Valid object types:
     pkg | package
     pkgdata
     pkgclean
+    pkgcalc | packagerecalculate
     policy
     policydelete
     policyflush
@@ -157,6 +158,7 @@ Package arguments:
     --jcds2                 Use jcds endpoint for package upload to JCDS 
     --aws                   Use AWS CDP for package upload. Requires aws-cli to be installed 
     --api                   Use v1/packages endpoint for package upload to cloud DP
+    --recalculate           Recalculate packages if using --jcds2 or --api modes
 
 Package Clean arguments:
     --name <string>         The name to match
@@ -180,6 +182,8 @@ Package Metadata arguments:
                             Set CPU type requirement for the pkg
     --send-notification     Set to send a notification when the package is installed
     --replace               Set to replace the pkg metadata if no package is uploaded
+
+Package Recalculate arguments: None
 
 Policy arguments:
     --name <string>         The name
@@ -319,6 +323,8 @@ elif [[ $object == "pkgclean" ]]; then
     processor="JamfPackageCleaner"
 elif [[ $object == "pkgdata" ]]; then
     processor="JamfPkgMetadataUploader"
+elif [[ $object == "pkgcalc" || $object == "packagerecalculate" ]]; then
+    processor="JamfPackageRecalculator"
 elif [[ $object == "policy" ]]; then
     processor="JamfPolicyUploader"
 elif [[ $object == "policydelete" ]]; then
@@ -881,6 +887,13 @@ while test $# -gt 0 ; do
             if [[ $processor == "JamfPackageUploader" ]]; then
                 if plutil -replace pkg_api_mode -string "true" "$temp_processor_plist"; then
                     echo "   [jamf-upload] Wrote pkg_api_mode='True' into $temp_processor_plist"
+                fi
+            fi
+            ;;
+        --recalculate) 
+            if [[ $processor == "JamfPackageUploader" ]]; then
+                if plutil -replace recalculate -string "true" "$temp_processor_plist"; then
+                    echo "   [jamf-upload] Wrote recalculate='True' into $temp_processor_plist"
                 fi
             fi
             ;;

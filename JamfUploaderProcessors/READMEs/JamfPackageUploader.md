@@ -72,6 +72,10 @@ Can be run as a post-processor for a pkg recipe or in a child recipe. The parent
   - **required:** False
   - **description:** Upload package to an AWS S3 CDP using `aws-cli` tools. These must be manually installed on the AutoPkg client. Requires the `S3_BUCKET_NAME` key to be populated.
   - **default:** False
+- **recalculate:**
+  - **required:** False
+  - **description:** Recalculate the JCDS package endpoint. Requires Jamf Pro 11.10+ and a configured JCDS endpoint.
+  - **default:** False
 - **S3_BUCKET_NAME:**
   - **required:** False
   - **description:** The name of an AWS S3 bucket linked to a Jamf Pro server. Required for `aws_cdp_mode`.
