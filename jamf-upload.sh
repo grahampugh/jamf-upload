@@ -215,7 +215,7 @@ Script arguments:
     --name <string>         The name
     --script <path>         Full path of the script to be uploaded
     --key X=Y               Substitutable values in the script. Multiple values can be supplied
-    --script_parameter[4-11]
+    --parameter[4-11]
                             Script parameter labels 
     --replace               Replace existing item
 
@@ -948,8 +948,11 @@ while test $# -gt 0 ; do
                 fi
             fi
             ;;
-        --script_parameter*)
-            param_number="${key_value_pair#--script_parameter}"
+        "--script_parameter"*|"--script-parameter"*|"--parameter"*)
+            param_number="${1: -1}"
+            if [[ ! $param_number ]]; then
+                exit 1
+            fi
             shift
             if [[ $processor == "JamfScriptUploader" ]]; then
                 if plutil -replace "script_parameter$param_number" -string "$1" "$temp_processor_plist"; then
