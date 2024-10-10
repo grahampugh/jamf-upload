@@ -1,0 +1,8 @@
+Description: Recalculates the package inventory on a Jamf Cloud Distribution Server.
+Identifier: com.github.grahampugh.jamf-upload.RecalculatePackages
+MinimumVersion: "2.3"
+
+Input: {}
+
+Process:
+  - Processor: com.github.grahampugh.jamf-upload.processors/JamfPackageRecalculator
