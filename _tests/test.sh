@@ -15,14 +15,14 @@ pkg_path="/Users/Shared/plistyamlplist-0.6.4.pkg"
 pkg_name="$(basename "$pkg_path")"
 
 # other variables (ensure some of the temporary variables are not in the prefs)
-prefs="$HOME/Library/Preferences/com.github.autopkg.plist"
-# prefs="/Users/Shared/com.github.autopkg.plist"
+# prefs="$HOME/Library/Preferences/com.github.autopkg.plist"
+prefs="/Users/Shared/com.github.autopkg.plist"
 
 # ensure pkg upload modes are disabled
-defaults write "$HOME/Library/Preferences/com.github.autopkg.plist" jcds_mode -bool False
-defaults write "$HOME/Library/Preferences/com.github.autopkg.plist" jcds2_mode -bool False
-defaults write "$HOME/Library/Preferences/com.github.autopkg.plist" aws_cdp_mode -bool False
-defaults write "$HOME/Library/Preferences/com.github.autopkg.plist" pkg_api_mode -bool False
+defaults write "$prefs" jcds_mode -bool False
+defaults write "$prefs" jcds2_mode -bool False
+defaults write "$prefs" aws_cdp_mode -bool False
+defaults write "$prefs" pkg_api_mode -bool False
 
 if [[ ! $verbosity ]]; then
     verbosity="-v"
@@ -299,26 +299,12 @@ elif [[ $test_type == "pkg" ]]; then
         --pkg "$pkg_path" \
         --pkg-name "$(basename "$pkg_path")" \
         --name "$(basename "$pkg_path")" \
-        --category Testing \
+        --category JamfUploadTest \
         --info "Uploaded directly by JamfPackageUploader in JCDS mode" \
         --notes "$(date)" \
         "$verbosity" \
+        --recalculate \
         --replace
-
-elif [[ $test_type == "pkg-jcds" ]]; then
-    # upload a package
-    "$DIR"/../jamf-upload.sh pkg \
-        --prefs "$prefs" \
-        --recipe-dir /Users/gpugh/sourcecode/jamf-upload/_tests \
-        --pkg "$pkg_path" \
-        --pkg-name "$(basename "$pkg_path")" \
-        --name "$(basename "$pkg_path")" \
-        --category "Testing" \
-        "$verbosity" \
-        --jcds \
-        --replace
-        # --info "Uploaded directly by JamfPackageUploader in JCDS mode" \
-        # --notes "$(date)" \
 
 elif [[ $test_type == "pkg-jcds2" ]]; then
     /usr/local/autopkg/python -m pip install boto3
@@ -333,6 +319,7 @@ elif [[ $test_type == "pkg-jcds2" ]]; then
         --category "Testing" \
         "$verbosity" \
         --jcds2 \
+        --recalculate \
         --replace
         # --name "erase-install-30" \
 
@@ -364,6 +351,7 @@ elif [[ $test_type == "pkg-api" ]]; then
         --category "Testing - Graham" \
         "$verbosity" \
         --api \
+        --recalculate \
         --replace
         # --name "erase-install-30" \
 
@@ -374,6 +362,14 @@ elif [[ $test_type == "pkgclean" ]]; then
         --recipe-dir /Users/gpugh/sourcecode/jamf-upload/_tests \
         --keep "3" \
         --key "NAME=plistyamlplist" \
+        "$verbosity" 
+        # --name "erase-install" \
+
+elif [[ $test_type == "pkgcalc" ]]; then
+    # cleanup a package type
+    "$DIR"/../jamf-upload.sh pkgcalc \
+        --prefs "$prefs" \
+        --recipe-dir /Users/gpugh/sourcecode/jamf-upload/_tests \
         "$verbosity" 
         # --name "erase-install" \
 

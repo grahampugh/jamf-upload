@@ -2,9 +2,26 @@
 
 The dates here represent when the features were added to the processors in the `jamf-upload` repo.
 
+## 2023-10-06
+
+* Added the `JamfPackageRecalculator` processor.
+* Added the `recalculate` option to the `JamfPackageUploader`. Note that this will do a full package recalculation after every package upload on Jamf Pro version 11.10 and above. Depending on your workflow, it may be more efficient to leave this unset and run the `JamfPackageRecalculator` in a separate recipe/step at the end of your recipe list.
+
+## 2023-08-30
+
+* Added the `JamfComputerGroupDeleter` processor.
+
+## 2023-05-13
+
+* Added a Jamf Pro version check, so that the `pkg_api_mode` option becomes default for `JamfPackageUploader` processor when none of `jcds2_mode`, `aws_cdp_mode, or a separate File Share Distribution Point are specified.
+
+## 2023-04-03
+
+* Added the `pkg_api_mode` option to the `JamfPackageUploader` processor, which uses the new `v1/packages` endpoint to upload packages.
+
 ## 2024-03-11
 
-* Added an `rstrip` to the JSS_URL ingest to prevent errors if someone adds a trailing slash to the URL ()
+* Added an `rstrip` to the `JSS_URL` ingest to prevent errors if someone adds a trailing slash to the URL.
 
 ## 2024-03-08
 

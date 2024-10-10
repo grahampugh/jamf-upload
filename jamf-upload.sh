@@ -30,6 +30,7 @@ Valid object types:
     pkg | package
     pkgdata
     pkgclean
+    pkgcalc | packagerecalculate
     policy
     policydelete
     policyflush
@@ -157,6 +158,7 @@ Package arguments:
     --jcds2                 Use jcds endpoint for package upload to JCDS 
     --aws                   Use AWS CDP for package upload. Requires aws-cli to be installed 
     --api                   Use v1/packages endpoint for package upload to cloud DP
+    --recalculate           Recalculate packages if using --jcds2 or --api modes
 
 Package Clean arguments:
     --name <string>         The name to match
@@ -180,6 +182,8 @@ Package Metadata arguments:
                             Set CPU type requirement for the pkg
     --send-notification     Set to send a notification when the package is installed
     --replace               Set to replace the pkg metadata if no package is uploaded
+
+Package Recalculate arguments: None
 
 Policy arguments:
     --name <string>         The name
@@ -211,7 +215,7 @@ Script arguments:
     --name <string>         The name
     --script <path>         Full path of the script to be uploaded
     --key X=Y               Substitutable values in the script. Multiple values can be supplied
-    --script_parameter[4-11]
+    --parameter[4-11]
                             Script parameter labels 
     --replace               Replace existing item
 
@@ -319,6 +323,8 @@ elif [[ $object == "pkgclean" ]]; then
     processor="JamfPackageCleaner"
 elif [[ $object == "pkgdata" ]]; then
     processor="JamfPkgMetadataUploader"
+elif [[ $object == "pkgcalc" || $object == "packagerecalculate" ]]; then
+    processor="JamfPackageRecalculator"
 elif [[ $object == "policy" ]]; then
     processor="JamfPolicyUploader"
 elif [[ $object == "policydelete" ]]; then
@@ -884,6 +890,13 @@ while test $# -gt 0 ; do
                 fi
             fi
             ;;
+        --recalculate) 
+            if [[ $processor == "JamfPackageUploader" ]]; then
+                if plutil -replace recalculate -string "true" "$temp_processor_plist"; then
+                    echo "   [jamf-upload] Wrote recalculate='True' into $temp_processor_plist"
+                fi
+            fi
+            ;;
         --keep) 
             shift
             if [[ $processor == "JamfPackageCleaner" ]]; then
@@ -935,8 +948,11 @@ while test $# -gt 0 ; do
                 fi
             fi
             ;;
-        --script_parameter*)
-            param_number="${key_value_pair#--script_parameter}"
+        "--script_parameter"*|"--script-parameter"*|"--parameter"*)
+            param_number="${1: -1}"
+            if [[ ! $param_number ]]; then
+                exit 1
+            fi
             shift
             if [[ $processor == "JamfScriptUploader" ]]; then
                 if plutil -replace "script_parameter$param_number" -string "$1" "$temp_processor_plist"; then
