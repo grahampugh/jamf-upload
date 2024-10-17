@@ -45,7 +45,7 @@ class JamfUploaderBase(Processor):
     """Common functions used by at least two JamfUploader processors."""
 
     # Global version
-    __version__ = "2024.10.06.0"
+    __version__ = "2024.10.17.0"
 
     def api_endpoints(self, object_type):
         """Return the endpoint URL from the object type"""
@@ -536,6 +536,8 @@ class JamfUploaderBase(Processor):
             action = "upload"
         elif request == "GET":
             action = "download"
+        else:
+            action = "unknown"
 
         if r.status_code == 200 or r.status_code == 201:
             if endpoint_type == "jcds":
