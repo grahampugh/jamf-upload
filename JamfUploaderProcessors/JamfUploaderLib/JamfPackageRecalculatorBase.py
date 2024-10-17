@@ -135,6 +135,6 @@ class JamfPackageRecalculatorBase(JamfUploaderBase):
             "summary_text": "JCDS package recalculation resuilt.",
             "report_fields": ["packages_recalculated"],
             "data": {
-                "packages_recalculated": packages_recalculated,
+                "packages_recalculated": str(packages_recalculated),
             },
         }

@@ -11,12 +11,13 @@ verbosity="$2"
 url="$3"
 
 # path to test items
-pkg_path="/Users/Shared/plistyamlplist-0.6.4.pkg"
+# pkg_path="/Users/Shared/plistyamlplist-0.6.4.pkg"
+pkg_path="/Users/gpugh/Downloads/NetworkShareMounter-3.0.3.pkg"
 pkg_name="$(basename "$pkg_path")"
 
 # other variables (ensure some of the temporary variables are not in the prefs)
-# prefs="$HOME/Library/Preferences/com.github.autopkg.plist"
-prefs="/Users/Shared/com.github.autopkg.plist"
+prefs="$HOME/Library/Preferences/com.github.autopkg.plist"
+# prefs="/Users/Shared/com.github.autopkg.plist"
 
 # ensure pkg upload modes are disabled
 defaults write "$prefs" jcds_mode -bool False
@@ -303,8 +304,8 @@ elif [[ $test_type == "pkg" ]]; then
         --info "Uploaded directly by JamfPackageUploader in JCDS mode" \
         --notes "$(date)" \
         "$verbosity" \
-        --recalculate \
         --replace
+        # --recalculate \
 
 elif [[ $test_type == "pkg-jcds2" ]]; then
     /usr/local/autopkg/python -m pip install boto3
@@ -319,7 +320,6 @@ elif [[ $test_type == "pkg-jcds2" ]]; then
         --category "Testing" \
         "$verbosity" \
         --jcds2 \
-        --recalculate \
         --replace
         # --name "erase-install-30" \
 
@@ -371,7 +371,6 @@ elif [[ $test_type == "pkgcalc" ]]; then
         --prefs "$prefs" \
         --recipe-dir /Users/gpugh/sourcecode/jamf-upload/_tests \
         "$verbosity" 
-        # --name "erase-install" \
 
 elif [[ $test_type == "script" ]]; then
     # upload a script

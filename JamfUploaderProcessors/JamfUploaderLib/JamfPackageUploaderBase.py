@@ -1351,6 +1351,6 @@ class JamfPackageUploaderBase(JamfUploaderBase):
                     "pkg_display_name": self.pkg_display_name,
                     "pkg_path": self.pkg_path,
                     "version": self.version,
-                    "packages_recalculated": packages_recalculated,
+                    "packages_recalculated": str(packages_recalculated),
                 },
             }
