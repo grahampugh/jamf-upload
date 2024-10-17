@@ -988,7 +988,7 @@ class JamfPackageUploaderBase(JamfUploaderBase):
 
         if APLooseVersion(jamf_pro_version) >= APLooseVersion("11.5"):
             # set default mode to pkg_api_mode if using Jamf Cloud / AWS
-            if not self.smb_shares and not self.jcds2_mode and not self.aws_cdp_mode:
+            if not self.jcds2_mode and not self.aws_cdp_mode:
                 self.pkg_api_mode = True
 
         # get token using oauth or basic auth depending on the credentials given
