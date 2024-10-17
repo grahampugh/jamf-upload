@@ -140,7 +140,7 @@ class JamfUploaderSlacker(JamfUploaderBase):
                 + f"URL: {jss_url}\n"
                 + f"Title: *{selfservice_policy_name}*\n"
                 + f"Version: *{version}*\n"
-                + f"Category: *{category}*\n"
+                + f"Category: *{policy_category}*\n"
                 + f"Policy Name: *{policy_name}*\n"
                 + f"Package: *{pkg_name}*"
             )
@@ -149,7 +149,7 @@ class JamfUploaderSlacker(JamfUploaderBase):
                 "*New Item uploaded to Jamf Pro:*\n"
                 + f"URL: {jss_url}\n"
                 + f"Title: *{selfservice_policy_name}*\n"
-                + f"Category: *{category}*\n"
+                + f"Category: *{policy_category}*\n"
                 + f"Policy Name: *{policy_name}*\n"
                 + "No new package uploaded"
             )
