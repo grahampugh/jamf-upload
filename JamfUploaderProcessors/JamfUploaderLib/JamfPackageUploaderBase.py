@@ -993,12 +993,7 @@ class JamfPackageUploaderBase(JamfUploaderBase):
 
         # get token using oauth or basic auth depending on the credentials given
         # (dbfileupload requires basic auth)
-        if (
-            self.jamf_url
-            and self.client_id
-            and self.client_secret
-            and (self.jcds2_mode or self.pkg_api_mode)
-        ):
+        if self.jamf_url and self.client_id and self.client_secret:
             token = self.handle_oauth(self.jamf_url, self.client_id, self.client_secret)
         elif self.jamf_url and self.jamf_user and self.jamf_password:
             token = self.handle_api_auth(
@@ -1191,14 +1186,8 @@ class JamfPackageUploaderBase(JamfUploaderBase):
 
         # check token again using oauth or basic auth depending on the credentials given
         # as package upload may have taken some time
-        # (dbfileupload requires basic auth)
         # (not required for jcds_mode)
-        if (
-            self.jamf_url
-            and self.client_id
-            and self.client_secret
-            and (self.jcds2_mode or self.aws_cdp_mode or self.pkg_api_mode)
-        ):
+        if self.jamf_url and self.client_id and self.client_secret:
             token = self.handle_oauth(self.jamf_url, self.client_id, self.client_secret)
         elif self.jamf_url and self.jamf_user and self.jamf_password:
             token = self.handle_api_auth(
@@ -1222,7 +1211,7 @@ class JamfPackageUploaderBase(JamfUploaderBase):
                 f"Updating package metadata for {pkg_id}",
                 verbose_level=1,
             )
-            if self.pkg_api_mode:
+            if APLooseVersion(jamf_pro_version) >= APLooseVersion("11.5"):
                 self.update_pkg_metadata_api(
                     self.jamf_url,
                     self.pkg_name,
@@ -1252,7 +1241,7 @@ class JamfPackageUploaderBase(JamfUploaderBase):
                 "Creating package metadata",
                 verbose_level=1,
             )
-            if self.pkg_api_mode:
+            if APLooseVersion(jamf_pro_version) >= APLooseVersion("11.5"):
                 obj_id = self.update_pkg_metadata_api(
                     self.jamf_url,
                     self.pkg_name,
@@ -1282,7 +1271,11 @@ class JamfPackageUploaderBase(JamfUploaderBase):
             self.pkg_metadata_updated = False
 
         # upload package (has to be done last for pkg_api_mode) if the metadata was updated
-        if self.pkg_api_mode and self.pkg_metadata_updated:
+        if (
+            (self.pkg_api_mode and not self.smb_shares)
+            or (self.pkg_api_mode and self.cloud_dp)
+            and self.pkg_metadata_updated
+        ):
             self.output(f"ID: {obj_id}", verbose_level=3)  # TEMP
             if obj_id != "-1":
                 self.output(f"Package '{self.pkg_name}' metadata exists: ID {obj_id}")
