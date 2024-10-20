@@ -1063,6 +1063,7 @@ class JamfPackageUploaderBase(JamfUploaderBase):
                     self.pkg_uploaded = False
 
         # otherwise process for cloud DP
+        pkg_id = 0
         if self.cloud_dp or not self.smb_shares:
             self.output("Handling Cloud Distribution Point", verbose_level=2)
             if obj_id == "-1" or self.replace:
