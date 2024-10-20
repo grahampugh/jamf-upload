@@ -995,6 +995,8 @@ class JamfPackageUploaderBase(JamfUploaderBase):
         jamf_pro_version = self.get_jamf_pro_version(self.jamf_url, token)
         if APLooseVersion(jamf_pro_version) < APLooseVersion("11.5"):
             self.legacy_mode = True
+        else:
+            self.legacy_mode = False
 
         # check for existing pkg (use new API if 11.5+)
         if self.legacy_mode:
