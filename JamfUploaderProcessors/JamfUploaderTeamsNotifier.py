@@ -251,7 +251,7 @@ class JamfUploaderTeamsNotifier(JamfUploaderBase):
             webhook_text["attachments"][0]["content"]["body"].append(
                 {
                     "type": "TextBlock",
-                    "text": "No new package uploaded.",
+                    "text": "No new policy uploaded.",
                     "wrap": True,
                     "separator": True
                 }
