@@ -111,6 +111,9 @@ class JamfUploaderTeamsNotifier(JamfUploaderBase):
             "jamfpolicyuploader_summary_result"
         )
 
+        if (not category and jamfpackageuploader_summary_result):
+            category = jamfpackageuploader_summary_result["data"]["category"]
+
         teams_webhook_url = self.env.get("teams_webhook_url")
         teams_username = self.env.get("teams_username")
         teams_icon_url = (
