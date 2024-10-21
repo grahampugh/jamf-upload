@@ -546,44 +546,11 @@ class JamfUploaderBase(Processor):
                 self.output(f"{endpoint_type} '{obj_name}' {action} successful")
             return "break"
         else:
-            parser = self.ParseHTMLForError()
-            try:
-                parser.feed(r.output.decode())
-            except (AttributeError, IndexError) as e:
-                self.output(
-                    f"Could not parse output for error type {e}", verbose_level=2
-                )
-            if parser.error:
-                self.output(f"API {parser.error}", verbose_level=2)
             self.output(f"API response:\n{r.output}", verbose_level=3)
-            if r.status_code == 409:
+            if r.status_code >= 400:
                 raise ProcessorError(
-                    f"ERROR: {endpoint_type} '{obj_name}' {action} failed due to the following "
-                    f"conflict: {parser.error.replace('Error: ', '')}"
-                )
-            elif r.status_code == 400:
-                raise ProcessorError(
-                    f"ERROR: {endpoint_type} '{obj_name}' {action} failed due to the following "
-                    f"{parser.data[6]}: {parser.data[8]}"
-                )
-            elif r.status_code == 401:
-                raise ProcessorError(
-                    f"ERROR: {endpoint_type} '{obj_name}' {action} failed due to permissions error"
-                )
-            elif r.status_code == 405:
-                raise ProcessorError(
-                    f"ERROR: {endpoint_type} '{obj_name}' {action} failed due to a "
-                    "'method not allowed' error"
-                )
-            elif r.status_code == 500:
-                raise ProcessorError(
-                    f"ERROR: {endpoint_type} '{obj_name}' {action} failed due to an "
-                    "internal server error"
-                )
-            else:
-                self.output(
-                    f"UNKNOWN ERROR: {endpoint_type} '{obj_name}' {action} failed (response code {r.status_code}). "
-                    "Will try again."
+                    f"ERROR: {endpoint_type} '{obj_name}' {action} failed due to: "
+                    + r.output["errors"][0]["description"]
                 )
 
     def get_jamf_pro_version(self, jamf_url, token):
