@@ -1239,6 +1239,7 @@ class JamfPackageUploaderBase(JamfUploaderBase):
             self.pkg_metadata_updated = True
         elif int(pkg_id) <= 0 and (
             self.pkg_uploaded
+            or self.replace_metadata
             or (not self.legacy_mode and not self.jcds2_mode and not self.aws_cdp_mode)
         ):
             # create new package metadata object when no existing package found
