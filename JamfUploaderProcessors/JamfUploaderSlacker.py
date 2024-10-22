@@ -125,6 +125,9 @@ class JamfUploaderSlacker(JamfUploaderBase):
         slack_channel = self.env.get("slack_channel") or ""
         slack_icon_emoji = self.env.get("slack_icon_emoji") or ""
 
+        if (not category and jamfpackageuploader_summary_result):
+            category = jamfpackageuploader_summary_result["data"]["category"]
+
         selfservice_policy_name = name
         self.output(f"JSS address: {jss_url}")
         self.output(f"Title: {selfservice_policy_name}")
