@@ -58,6 +58,8 @@ class JamfUploaderSlacker(JamfUploaderBase):
         },
         "NAME": {"required": False, "description": ("Generic product name.")},
         "pkg_name": {"required": False, "description": ("Package in policy.")},
+        "PROFILE_NAME": {"required": False, "description": ("Profile name.")},
+        "PROFILE_CATEGORY": {"required": False, "description": ("Profile category.")},
         "version": {
             "required": False,
             "description": ("Package version."),
@@ -69,6 +71,10 @@ class JamfUploaderSlacker(JamfUploaderBase):
         "jamfpolicyuploader_summary_result": {
             "required": False,
             "description": ("Summary results of policy processors."),
+        },
+        "jamfcomputerprofileuploader_summary_result": {
+            "required": False,
+            "description": ("Summary results of computer profile processors."),
         },
         "slack_webhook_url": {"required": True, "description": ("Slack webhook.")},
         "slack_username": {
@@ -112,11 +118,16 @@ class JamfUploaderSlacker(JamfUploaderBase):
         name = self.env.get("NAME")
         version = self.env.get("version")
         pkg_name = self.env.get("pkg_name")
+        profile_name = self.env.get("PROFILE_NAME")
+        profile_category = self.env.get("PROFILE_CATEGORY")
         jamfpackageuploader_summary_result = self.env.get(
             "jamfpackageuploader_summary_result"
         )
         jamfpolicyuploader_summary_result = self.env.get(
             "jamfpolicyuploader_summary_result"
+        )
+        jamfcomputerprofileuploader_summary_result = self.env.get(
+            "jamfcomputerprofileuploader_summary_result"
         )
 
         slack_username = self.env.get("slack_username")
@@ -131,12 +142,14 @@ class JamfUploaderSlacker(JamfUploaderBase):
         self.output(f"Policy: {policy_name}")
         self.output(f"Version: {version}")
         self.output(f"Package: {pkg_name}")
+        self.output(f"Profile: {profile_name}")
         self.output(f"Package Category: {category}")
         self.output(f"Policy Category: {policy_category}")
+        self.output(f"Profile Category: {profile_category}")
 
         if jamfpackageuploader_summary_result and jamfpolicyuploader_summary_result:
             slack_text = (
-                "*New Item uploaded to Jamf Pro:*\n"
+                "*New Policy and Package uploaded to Jamf Pro:*\n"
                 + f"URL: {jss_url}\n"
                 + f"Title: *{selfservice_policy_name}*\n"
                 + f"Version: *{version}*\n"
@@ -146,7 +159,7 @@ class JamfUploaderSlacker(JamfUploaderBase):
             )
         elif jamfpolicyuploader_summary_result:
             slack_text = (
-                "*New Item uploaded to Jamf Pro:*\n"
+                "*New Policy uploaded to Jamf Pro:*\n"
                 + f"URL: {jss_url}\n"
                 + f"Title: *{selfservice_policy_name}*\n"
                 + f"Category: *{policy_category}*\n"
@@ -155,11 +168,18 @@ class JamfUploaderSlacker(JamfUploaderBase):
             )
         elif jamfpackageuploader_summary_result:
             slack_text = (
-                "*New Item uploaded to Jamf Pro:*\n"
+                "*New Package uploaded to Jamf Pro:*\n"
                 + f"URL: {jss_url}\n"
                 + f"Version: *{version}*\n"
                 + f"Category: *{category}*\n"
                 + f"Package: *{pkg_name}*"
+            )
+        elif jamfcomputerprofileuploader_summary_result:
+            slack_text = (
+                "*New Computer Profile uploaded to Jamf Pro:*\n"
+                + f"URL: {jss_url}\n"
+                + f"Category: *{profile_category}*\n"
+                + f"Profile: *{profile_name}*"
             )
         else:
             self.output("Nothing to report to Slack")
