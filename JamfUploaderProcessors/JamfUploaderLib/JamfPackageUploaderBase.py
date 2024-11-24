@@ -84,9 +84,18 @@ class JamfPackageUploaderBase(JamfUploaderBase):
         return h.hexdigest()
 
     def sha256sum(self, filename):
-        """calculate the SHA256 hash of the package
-        (see https://stackoverflow.com/a/44873382)"""
+        """calculate the SHA256 hash of the package"""
         h = hashlib.sha256()
+        b = bytearray(128 * 1024)
+        mv = memoryview(b)
+        with open(filename, "rb", buffering=0) as f:
+            for n in iter(lambda: f.readinto(mv), 0):
+                h.update(mv[:n])
+        return h.hexdigest()
+
+    def md5sum(self, filename):
+        """calculate the MD5 hash of the package"""
+        h = hashlib.md5()
         b = bytearray(128 * 1024)
         mv = memoryview(b)
         with open(filename, "rb", buffering=0) as f:
@@ -595,7 +604,8 @@ class JamfPackageUploaderBase(JamfUploaderBase):
         pkg_name,
         pkg_display_name,
         pkg_metadata,
-        hash_value,
+        sha512sum,
+        md5sum,
         pkg_id=0,
         token="",
     ):
@@ -628,10 +638,10 @@ class JamfPackageUploaderBase(JamfUploaderBase):
             "suppressRegistration": 0,
         }
 
-        if hash_value:
+        if sha512sum:
             hash_type = "SHA_512"
             pkg_data["hashType"] = hash_type
-            pkg_data["hashValue"] = hash_value
+            pkg_data["hashValue"] = sha512sum
 
         self.output(
             "Package metadata:",
@@ -970,6 +980,9 @@ class JamfPackageUploaderBase(JamfUploaderBase):
         # calculate the SHA-256 hash of the package
         # self.sha256string = self.sha256sum(self.pkg_path)
 
+        # calculate the SHA-512 hash of the package
+        self.md5string = self.md5sum(self.pkg_path)
+
         # now start the process of uploading the package
         self.output(
             f"Checking for existing package '{self.pkg_name}' on {self.jamf_url}"
@@ -1233,6 +1246,7 @@ class JamfPackageUploaderBase(JamfUploaderBase):
                     self.pkg_display_name,
                     self.pkg_metadata,
                     self.sha512string,
+                    self.md5string,
                     pkg_id=pkg_id,
                     token=token,
                 )
@@ -1254,6 +1268,7 @@ class JamfPackageUploaderBase(JamfUploaderBase):
                     self.pkg_display_name,
                     self.pkg_metadata,
                     self.sha512string,
+                    self.md5string,
                     pkg_id=pkg_id,
                     token=token,
                 )
