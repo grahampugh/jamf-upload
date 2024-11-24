@@ -83,6 +83,16 @@ class JamfPackageUploaderBase(JamfUploaderBase):
                 h.update(mv[:n])
         return h.hexdigest()
 
+    def sha3sum(self, pkg_path):
+        """calculate the SHA-3 512 hash of the package"""
+        h = hashlib.sha3_512()
+        b = bytearray(128 * 1024)
+        mv = memoryview(b)
+        with open(pkg_path, "rb", buffering=0) as f:
+            for n in iter(lambda: f.readinto(mv), 0):
+                h.update(mv[:n])
+        return h.hexdigest()
+
     def sha256sum(self, filename):
         """calculate the SHA256 hash of the package"""
         h = hashlib.sha256()
@@ -226,7 +236,7 @@ class JamfPackageUploaderBase(JamfUploaderBase):
     # ------------------------------------------------------------------------
     # Beginning of functions for uploading to v1/packages endpoint
 
-    def upload_pkg(self, pkg_path, pkg_name, pkg_id, jamf_url, token):
+    def upload_pkg(self, pkg_path, pkg_name, pkg_id, sleep_time, jamf_url, token):
         """Upload a package to a Cloud Distribution Point using the v1/packages endpoint"""
 
         # if pkg_name does not match the package name in pkg_path we copy the package locally first
@@ -274,8 +284,8 @@ class JamfPackageUploaderBase(JamfUploaderBase):
                     verbose_level=1,
                 )
                 raise ProcessorError("ERROR: Package upload failed ")
-            if int(self.sleep) > 30:
-                sleep(int(self.sleep))
+            if int(sleep_time) > 30:
+                sleep(int(sleep_time))
             else:
                 sleep(30)
 
@@ -296,17 +306,6 @@ class JamfPackageUploaderBase(JamfUploaderBase):
     # End of function for uploading to v1/packages endpoint
     # ------------------------------------------------------------------------
     # Beginning of functions for upload to JCDS2 endpoint (not needed for 11.5+)
-
-    def sha3sum(self, pkg_path):
-        """calculate the SHA-3 512 hash of the package
-        (see https://stackoverflow.com/a/44873382)"""
-        h = hashlib.sha3_512()
-        b = bytearray(128 * 1024)
-        mv = memoryview(b)
-        with open(pkg_path, "rb", buffering=0) as f:
-            for n in iter(lambda: f.readinto(mv), 0):
-                h.update(mv[:n])
-        return h.hexdigest()
 
     def check_jcds_for_pkg(self, pkg_path, pkg_name, jamf_url, token):
         """check if a package with the same name exists in the JCDS S3 bucket.
@@ -395,6 +394,7 @@ class JamfPackageUploaderBase(JamfUploaderBase):
     def initiate_jcds2_upload(
         self,
         pkg_name,
+        sleep_time,
         jamf_url,
         token,
     ):
@@ -416,7 +416,7 @@ class JamfPackageUploaderBase(JamfUploaderBase):
                 url=url,
                 token=token,
             )
-            self.credentials = r.output
+            credentials = r.output
 
             # check HTTP response
             if self.status_check(r, "jcds", pkg_name, request) == "break":
@@ -436,16 +436,12 @@ class JamfPackageUploaderBase(JamfUploaderBase):
                 raise ProcessorError(
                     "ERROR: JCDS2 credentials were not successfully received"
                 )
-            if int(self.sleep) > 30:
-                sleep(int(self.sleep))
+            if int(sleep_time) > 30:
+                sleep(int(sleep_time))
             else:
                 sleep(30)
 
-            # populate the credentials required for the JCDS upload
-            self.output(
-                f"HTTP output: {self.credentials}",
-                verbose_level=2,
-            )
+            return credentials
 
     def upload_to_jcds2_s3_bucket(
         self,
@@ -606,6 +602,7 @@ class JamfPackageUploaderBase(JamfUploaderBase):
         pkg_metadata,
         sha512sum,
         md5sum,
+        sleep_time,
         pkg_id=0,
         token="",
     ):
@@ -665,7 +662,7 @@ class JamfPackageUploaderBase(JamfUploaderBase):
         while True:
             count += 1
             self.output(
-                "Package metadata upload attempt {}".format(count),
+                f"Package metadata upload attempt {count}",
                 verbose_level=2,
             )
             request = "PUT" if pkg_id else "POST"
@@ -675,10 +672,10 @@ class JamfPackageUploaderBase(JamfUploaderBase):
                 break
             if count > 5:
                 self.output("Package metadata upload did not succeed after 5 attempts")
-                self.output("\nHTTP POST Response Code: {}".format(r.status_code))
+                self.output(f"\nHTTP POST Response Code: {r.status_code}")
                 raise ProcessorError("ERROR: Package metadata upload failed ")
-            if int(self.sleep) > 30:
-                sleep(int(self.sleep))
+            if int(sleep_time) > 30:
+                sleep(int(sleep_time))
             else:
                 sleep(30)
         if r.status_code == 201:
@@ -704,6 +701,7 @@ class JamfPackageUploaderBase(JamfUploaderBase):
         pkg_metadata,
         hash_value,
         jcds2_mode,
+        sleep_time,
         pkg_id=0,
         token="",
     ):
@@ -773,8 +771,8 @@ class JamfPackageUploaderBase(JamfUploaderBase):
                     verbose_level=1,
                 )
                 raise ProcessorError("ERROR: Package metadata upload failed ")
-            if int(self.sleep) > 30:
-                sleep(int(self.sleep))
+            if int(sleep_time) > 30:
+                sleep(int(sleep_time))
             else:
                 sleep(30)
 
@@ -819,56 +817,56 @@ class JamfPackageUploaderBase(JamfUploaderBase):
     ):  # pylint: disable=too-many-branches, too-many-locals, too-many-statements
         """Perform the package upload"""
 
-        self.pkg_path = self.env.get("pkg_path")
-        if not self.pkg_path:
+        pkg_path = self.env.get("pkg_path")
+        if not pkg_path:
             try:
                 pathname = self.env.get("pathname")
                 if pathname.endswith(".pkg"):
-                    self.pkg_path = pathname
+                    pkg_path = pathname
             except KeyError:
                 pass
-        self.pkg_name = self.env.get("pkg_name")
-        self.pkg_display_name = self.env.get("pkg_display_name")
-        self.version = self.env.get("version")
-        self.replace = self.env.get("replace_pkg")
-        self.sleep = self.env.get("sleep")
-        self.replace_metadata = self.env.get("replace_pkg_metadata")
-        self.skip_metadata_upload = self.env.get("skip_metadata_upload")
-        self.jcds2_mode = self.env.get("jcds2_mode")
-        self.aws_cdp_mode = self.env.get("aws_cdp_mode")
-        self.recalculate = self.env.get("recalculate")
-        self.jamf_url = self.env.get("JSS_URL").rstrip("/")
-        self.jamf_user = self.env.get("API_USERNAME")
-        self.jamf_password = self.env.get("API_PASSWORD")
-        self.client_id = self.env.get("CLIENT_ID")
-        self.client_secret = self.env.get("CLIENT_SECRET")
-        self.cloud_dp = self.env.get("CLOUD_DP")
-        self.recipe_cache_dir = self.env.get("RECIPE_CACHE_DIR")
-        self.pkg_uploaded = False
-        self.pkg_metadata_updated = False
+        pkg_name = self.env.get("pkg_name")
+        pkg_display_name = self.env.get("pkg_display_name")
+        version = self.env.get("version")
+        replace = self.env.get("replace_pkg")
+        sleep_time = self.env.get("sleep")
+        replace_metadata = self.env.get("replace_pkg_metadata")
+        skip_metadata_upload = self.env.get("skip_metadata_upload")
+        jcds2_mode = self.env.get("jcds2_mode")
+        aws_cdp_mode = self.env.get("aws_cdp_mode")
+        recalculate = self.env.get("recalculate")
+        jamf_url = self.env.get("JSS_URL").rstrip("/")
+        jamf_user = self.env.get("API_USERNAME")
+        jamf_password = self.env.get("API_PASSWORD")
+        client_id = self.env.get("CLIENT_ID")
+        client_secret = self.env.get("CLIENT_SECRET")
+        cloud_dp = self.env.get("CLOUD_DP")
+        recipe_cache_dir = self.env.get("RECIPE_CACHE_DIR")
+        pkg_uploaded = False
+        pkg_metadata_updated = False
 
         # handle setting true/false variables in overrides
-        if not self.replace or self.replace == "False":
-            self.replace = False
-        if not self.replace_metadata or self.replace_metadata == "False":
-            self.replace_metadata = False
-        if not self.skip_metadata_upload or self.skip_metadata_upload == "False":
-            self.skip_metadata_upload = False
-        if not self.jcds2_mode or self.jcds2_mode == "False":
-            self.jcds2_mode = False
-        if not self.aws_cdp_mode or self.aws_cdp_mode == "False":
-            self.aws_cdp_mode = False
-        if not self.recalculate or self.recalculate == "False":
-            self.recalculate = False
-        if not self.cloud_dp or self.cloud_dp == "False":
-            self.cloud_dp = False
+        if not replace or replace == "False":
+            replace = False
+        if not replace_metadata or replace_metadata == "False":
+            replace_metadata = False
+        if not skip_metadata_upload or skip_metadata_upload == "False":
+            skip_metadata_upload = False
+        if not jcds2_mode or jcds2_mode == "False":
+            jcds2_mode = False
+        if not aws_cdp_mode or aws_cdp_mode == "False":
+            aws_cdp_mode = False
+        if not recalculate or recalculate == "False":
+            recalculate = False
+        if not cloud_dp or cloud_dp == "False":
+            cloud_dp = False
 
         # set pkg_name if not separately defined
-        if not self.pkg_name:
-            self.pkg_name = os.path.basename(self.pkg_path)
+        if not pkg_name:
+            pkg_name = os.path.basename(pkg_path)
 
         # Create a list of smb shares in tuples
-        self.smb_shares = []
+        smb_shares = []
         if self.env.get("SMB_URL"):
             if not self.env.get("SMB_USERNAME") or not self.env.get("SMB_PASSWORD"):
                 raise ProcessorError("SMB_URL defined but no credentials supplied.")
@@ -937,23 +935,23 @@ class JamfPackageUploaderBase(JamfUploaderBase):
                 )
 
         # create a dictionary of package metadata from the inputs
-        self.pkg_category = self.env.get("pkg_category")
-        self.reboot_required = self.env.get("reboot_required")
-        if not self.reboot_required or self.reboot_required == "False":
-            self.reboot_required = False
-        self.send_notification = self.env.get("send_notification")
-        if not self.send_notification or self.send_notification == "False":
-            self.send_notification = False
+        pkg_category = self.env.get("pkg_category")
+        reboot_required = self.env.get("reboot_required")
+        if not reboot_required or self.reboot_required == "False":
+            reboot_required = False
+        send_notification = self.env.get("send_notification")
+        if not send_notification or send_notification == "False":
+            send_notification = False
 
-        self.pkg_metadata = {
+        pkg_metadata = {
             "category": self.env.get("pkg_category"),
             "info": self.env.get("pkg_info"),
             "notes": self.env.get("pkg_notes"),
-            "reboot_required": self.reboot_required,
+            "reboot_required": reboot_required,
             "priority": self.env.get("pkg_priority"),
             "os_requirements": self.env.get("os_requirements"),
             "required_processor": self.env.get("required_processor"),
-            "send_notification": self.send_notification,
+            "send_notification": send_notification,
         }
 
         # clear any pre-existing summary result
@@ -964,38 +962,34 @@ class JamfPackageUploaderBase(JamfUploaderBase):
         # If so, zip_pkg_path will look for an existing .zip
         # If that doesn't exist, it will create the zip and return the pkg_path with .zip added
         # In that case, we need to add .zip to the pkg_name key too, if we don't already have it
-        if os.path.isdir(self.pkg_path):
-            self.pkg_path = self.zip_pkg_path(self.pkg_path, self.recipe_cache_dir)
-            if ".zip" not in self.pkg_name:
-                self.pkg_name += ".zip"
+        if os.path.isdir(pkg_path):
+            pkg_path = self.zip_pkg_path(pkg_path, recipe_cache_dir)
+            if ".zip" not in pkg_name:
+                pkg_name += ".zip"
 
         # we need to ensure that a zipped package's display name matches the new pkg_name for
         # comparison with an existing package
-        if not self.pkg_display_name:
-            self.pkg_display_name = self.pkg_name
+        if not pkg_display_name:
+            pkg_display_name = pkg_name
 
         # calculate the SHA-512 hash of the package
-        self.sha512string = self.sha512sum(self.pkg_path)
+        sha512string = self.sha512sum(pkg_path)
 
         # calculate the SHA-256 hash of the package
-        # self.sha256string = self.sha256sum(self.pkg_path)
+        # sha256string = self.sha256sum(pkg_path)
 
         # calculate the SHA-512 hash of the package
-        self.md5string = self.md5sum(self.pkg_path)
+        md5string = self.md5sum(pkg_path)
 
         # now start the process of uploading the package
-        self.output(
-            f"Checking for existing package '{self.pkg_name}' on {self.jamf_url}"
-        )
+        self.output(f"Checking for existing package '{pkg_name}' on {jamf_url}")
 
         # get token using oauth or basic auth depending on the credentials given
         # (dbfileupload requires basic auth)
-        if self.jamf_url and self.client_id and self.client_secret:
-            token = self.handle_oauth(self.jamf_url, self.client_id, self.client_secret)
-        elif self.jamf_url and self.jamf_user and self.jamf_password:
-            token = self.handle_api_auth(
-                self.jamf_url, self.jamf_user, self.jamf_password
-            )
+        if jamf_url and client_id and client_secret:
+            token = self.handle_oauth(jamf_url, client_id, client_secret)
+        elif jamf_url and jamf_user and jamf_password:
+            token = self.handle_api_auth(jamf_url, jamf_user, jamf_password)
         else:
             raise ProcessorError(
                 "ERROR: Valid credentials not supplied (note that API Clients cannot "
@@ -1005,110 +999,108 @@ class JamfPackageUploaderBase(JamfUploaderBase):
         # get Jamf Pro version to determine default mode
         # Version 11.5+ will use the v1/packages endpoint
         # Version 11.4- will use JSSResource/packages and dbfileupload
-        jamf_pro_version = self.get_jamf_pro_version(self.jamf_url, token)
+        jamf_pro_version = self.get_jamf_pro_version(jamf_url, token)
         if APLooseVersion(jamf_pro_version) < APLooseVersion("11.5"):
-            self.legacy_mode = True
+            legacy_mode = True
         else:
-            self.legacy_mode = False
+            legacy_mode = False
 
         # check for existing pkg (use new API if 11.5+)
-        if self.legacy_mode:
-            obj_id = self.check_pkg(self.pkg_name, self.jamf_url, token=token)
+        if legacy_mode:
+            obj_id = self.check_pkg(pkg_name, jamf_url, token=token)
             self.output(f"Package ID: {obj_id}", verbose_level=3)  # TEMP
             if obj_id and obj_id != "-1":
-                self.output(f"Package '{self.pkg_name}' already exists: ID {obj_id}")
+                self.output(f"Package '{pkg_name}' already exists: ID {obj_id}")
                 pkg_id = obj_id  # assign pkg_id for smb runs - JCDS runs get it from the pkg upload
             else:
-                self.output(f"Package '{self.pkg_name}' not found on server")
+                self.output(f"Package '{pkg_name}' not found on server")
                 pkg_id = 0
         else:
             filter_name = "packageName"
             obj_id = self.get_uapi_obj_id_from_name(
-                self.jamf_url,
+                jamf_url,
                 "package_v1",
-                self.pkg_name,
+                pkg_name,
                 token=token,
                 filter_name=filter_name,
             )
             if obj_id:
-                self.output(f"Package '{self.pkg_name}' already exists: ID {obj_id}")
+                self.output(f"Package '{pkg_name}' already exists: ID {obj_id}")
                 pkg_id = obj_id  # assign pkg_id for smb runs - JCDS runs get it from the pkg upload
             else:
-                self.output(f"Package '{self.pkg_name}' not found on server")
+                self.output(f"Package '{pkg_name}' not found on server")
                 pkg_id = 0
             self.output(f"Package ID: {obj_id}", verbose_level=3)  # TEMP
 
         # Process for SMB shares if defined
         self.output(
-            "Number of File Share DPs: " + str(len(self.smb_shares)), verbose_level=2
+            "Number of File Share DPs: " + str(len(smb_shares)), verbose_level=2
         )
-        for smb_share in self.smb_shares:
+        for smb_share in smb_shares:
             smb_url, smb_user, smb_password = smb_share[0], smb_share[1], smb_share[2]
             self.output(f"Begin upload to File Share DP {smb_url}", verbose_level=1)
             if "smb://" in smb_url:
                 # mount the share
                 self.mount_smb(smb_url, smb_user, smb_password)
             # check for existing package
-            local_pkg = self.check_local_pkg(smb_url, self.pkg_name)
-            if not local_pkg or self.replace:
-                if self.replace:
+            local_pkg = self.check_local_pkg(smb_url, pkg_name)
+            if not local_pkg or replace:
+                if replace:
                     self.output(
                         "Replacing existing package as 'replace_pkg' is set to True",
                         verbose_level=1,
                     )
                 # copy the file
-                self.copy_pkg(smb_url, self.pkg_path, self.pkg_name)
+                self.copy_pkg(smb_url, pkg_path, pkg_name)
                 if "smb://" in smb_url:
                     # unmount the share
                     self.umount_smb(smb_url)
                 # Don't set this property if
-                # 1. We need to upload to the cloud (self.cloud_dp == True)
+                # 1. We need to upload to the cloud (cloud_dp == True)
                 # 2. We have more SMB shares to process
-                if not self.cloud_dp and (
-                    len(self.smb_shares) - 1
-                ) == self.smb_shares.index(smb_share):
-                    self.pkg_uploaded = True
+                if not cloud_dp and (len(smb_shares) - 1) == smb_shares.index(
+                    smb_share
+                ):
+                    pkg_uploaded = True
             else:
                 self.output(
-                    f"Not replacing existing {self.pkg_name} as 'replace_pkg' is set to "
-                    f"{self.replace}. Use replace_pkg='True' to enforce."
+                    f"Not replacing existing {pkg_name} as 'replace_pkg' is set to "
+                    f"{replace}. Use replace_pkg='True' to enforce."
                 )
                 if "smb://" in smb_url:
                     # unmount the share
                     self.umount_smb(smb_url)
-                if self.smb_shares and not self.replace_metadata:
+                if smb_shares and not replace_metadata:
                     # even if we don't upload a package, we still need to pass it on so that a
                     # subsequent processor can use it
-                    self.env["pkg_name"] = self.pkg_name
-                    self.pkg_uploaded = False
+                    self.env["pkg_name"] = pkg_name
+                    pkg_uploaded = False
 
         # otherwise process for cloud DP
-        if self.cloud_dp or not self.smb_shares:
+        if cloud_dp or not smb_shares:
             self.output("Handling Cloud Distribution Point", verbose_level=2)
-            if not pkg_id or self.replace:
-                if self.replace:
+            if not pkg_id or replace:
+                if replace:
                     self.output(
                         "Replacing existing package as 'replace_pkg' is set to True",
                         verbose_level=1,
                     )
-                if self.jcds2_mode:
+                if jcds2_mode:
                     # use jcds endpoint if jcds2_mode is True
                     self.output(
                         "Checking if the same package already exists in the JCDS",
                         verbose_level=1,
                     )
                     pkg_match = self.check_jcds_for_pkg(
-                        self.pkg_path,
-                        self.pkg_name,
-                        self.jamf_url,
+                        pkg_path,
+                        pkg_name,
+                        jamf_url,
                         token=token,
                     )
 
                     # if package doesn't match, we need to delete the one in the JCDS
                     if pkg_match == "different":
-                        pkg_deleted = self.delete_jcds_pkg(
-                            self.pkg_name, self.jamf_url, token
-                        )
+                        pkg_deleted = self.delete_jcds_pkg(pkg_name, jamf_url, token)
                         if pkg_deleted != 1:
                             self.output(
                                 (
@@ -1125,38 +1117,45 @@ class JamfPackageUploaderBase(JamfUploaderBase):
                             verbose_level=1,
                         )
                         # obtain the session credentials to upload the package
-                        self.initiate_jcds2_upload(
-                            self.pkg_name,
-                            self.jamf_url,
+                        credentials = self.initiate_jcds2_upload(
+                            pkg_name,
+                            sleep_time,
+                            jamf_url,
                             token=token,
+                        )
+
+                        # populate the credentials required for the JCDS upload
+                        self.output(
+                            f"HTTP output: {credentials}",
+                            verbose_level=2,
                         )
 
                         # upload the package
                         self.upload_to_jcds2_s3_bucket(
-                            self.pkg_path,
-                            self.pkg_name,
-                            self.credentials,
+                            pkg_path,
+                            pkg_name,
+                            credentials,
                         )
 
                     # fake that the package was replaced even if it wasn't
                     # so that the metadata gets replaced
-                    self.pkg_uploaded = True
+                    pkg_uploaded = True
 
-                elif self.aws_cdp_mode:
+                elif aws_cdp_mode:
                     # upload the package - this uses sync so we don't need to check if it's changed
-                    self.upload_to_aws_s3_bucket(self.pkg_path, self.pkg_name)
+                    self.upload_to_aws_s3_bucket(pkg_path, pkg_name)
 
                     # fake that the package was replaced even if it wasn't
                     # so that the metadata gets replaced
-                    self.pkg_uploaded = True
+                    pkg_uploaded = True
 
-                elif self.legacy_mode:  # dbfileupload mode
+                elif legacy_mode:  # dbfileupload mode
                     # generate enc_creds
-                    enc_creds = self.get_enc_creds(self.jamf_user, self.jamf_password)
+                    enc_creds = self.get_enc_creds(jamf_user, jamf_password)
 
                     # post the package (won't run if the pkg exists and replace is False)
                     r = self.pkg_dbfileupload(
-                        self.pkg_name, self.pkg_path, self.jamf_url, enc_creds, obj_id
+                        pkg_name, pkg_path, jamf_url, enc_creds, obj_id
                     )
                     try:
                         pkg_id = ElementTree.fromstring(r.output).findtext("id")
@@ -1168,7 +1167,7 @@ class JamfPackageUploaderBase(JamfUploaderBase):
                                 self.output(
                                     f"Package uploaded successfully, ID={pkg_id}"
                                 )
-                                self.pkg_uploaded = True
+                                pkg_uploaded = True
                             else:
                                 raise ProcessorError(
                                     "WARNING: Response reported 'Error uploading file to the JSS'"
@@ -1183,78 +1182,71 @@ class JamfPackageUploaderBase(JamfUploaderBase):
                     else:
                         # check HTTP response
                         if (
-                            not self.status_check(r, "Package", self.pkg_name, "POST")
+                            not self.status_check(r, "Package", pkg_name, "POST")
                             == "break"
                         ):
                             raise ProcessorError("ERROR: Package upload failed.")
             else:
                 self.output(
                     (
-                        f"Not replacing existing {self.pkg_name} as 'replace_pkg' is set to "
-                        f"{self.replace}. Use replace_pkg='True' to enforce."
+                        f"Not replacing existing {pkg_name} as 'replace_pkg' is set to "
+                        f"{replace}. Use replace_pkg='True' to enforce."
                     ),
                     verbose_level=1,
                 )
-                self.pkg_uploaded = False
+                pkg_uploaded = False
 
         # check token again using oauth or basic auth depending on the credentials given
         # as package upload may have taken some time
         # (not required for standard mode)
-        if (
-            not self.smb_shares
-            and not self.aws_cdp_mode
-            and not self.jcds2_mode
-            and not self.legacy_mode
-        ):
-            if self.jamf_url and self.client_id and self.client_secret:
-                token = self.handle_oauth(
-                    self.jamf_url, self.client_id, self.client_secret
-                )
-            elif self.jamf_url and self.jamf_user and self.jamf_password:
-                token = self.handle_api_auth(
-                    self.jamf_url, self.jamf_user, self.jamf_password
-                )
+        if not smb_shares and not aws_cdp_mode and not jcds2_mode and not legacy_mode:
+            if jamf_url and client_id and client_secret:
+                token = self.handle_oauth(jamf_url, client_id, client_secret)
+            elif jamf_url and jamf_user and jamf_password:
+                token = self.handle_api_auth(jamf_url, jamf_user, jamf_password)
             else:
                 raise ProcessorError("ERROR: Valid credentials not supplied")
 
         # now process the package metadata
         if (
             int(pkg_id) > 0
-            and (self.pkg_uploaded or self.replace_metadata or self.replace)
-            and not self.skip_metadata_upload
+            and (pkg_uploaded or replace_metadata or replace)
+            and not skip_metadata_upload
         ):
             # replace existing package metadata
             self.output(
                 f"Updating package metadata for {pkg_id}",
                 verbose_level=1,
             )
-            if self.legacy_mode:
+            if legacy_mode:
                 self.update_pkg_metadata(
-                    self.jamf_url,
-                    self.pkg_name,
-                    self.pkg_display_name,
-                    self.pkg_metadata,
-                    self.sha512string,
-                    self.jcds2_mode,
+                    jamf_url,
+                    pkg_name,
+                    pkg_display_name,
+                    pkg_metadata,
+                    sha512string,
+                    jcds2_mode,
+                    sleep_time,
                     pkg_id=pkg_id,
                     token=token,
                 )
             else:
                 self.update_pkg_metadata_api(
-                    self.jamf_url,
-                    self.pkg_name,
-                    self.pkg_display_name,
-                    self.pkg_metadata,
-                    self.sha512string,
-                    self.md5string,
+                    jamf_url,
+                    pkg_name,
+                    pkg_display_name,
+                    pkg_metadata,
+                    sha512string,
+                    md5string,
+                    sleep_time,
                     pkg_id=pkg_id,
                     token=token,
                 )
-            self.pkg_metadata_updated = True
+            pkg_metadata_updated = True
         elif int(pkg_id) <= 0 and (
-            self.pkg_uploaded
-            or self.replace_metadata
-            or (not self.legacy_mode and not self.jcds2_mode and not self.aws_cdp_mode)
+            pkg_uploaded
+            or replace_metadata
+            or (not legacy_mode and not jcds2_mode and not aws_cdp_mode)
         ):
             # create new package metadata object when no existing package found
             self.output(
@@ -1263,46 +1255,48 @@ class JamfPackageUploaderBase(JamfUploaderBase):
             )
             if APLooseVersion(jamf_pro_version) >= APLooseVersion("11.5"):
                 obj_id = self.update_pkg_metadata_api(
-                    self.jamf_url,
-                    self.pkg_name,
-                    self.pkg_display_name,
-                    self.pkg_metadata,
-                    self.sha512string,
-                    self.md5string,
+                    jamf_url,
+                    pkg_name,
+                    pkg_display_name,
+                    pkg_metadata,
+                    sha512string,
+                    md5string,
+                    sleep_time,
                     pkg_id=pkg_id,
                     token=token,
                 )
             else:
                 self.update_pkg_metadata(
-                    self.jamf_url,
-                    self.pkg_name,
-                    self.pkg_display_name,
-                    self.pkg_metadata,
-                    self.sha512string,
-                    self.jcds2_mode,
+                    jamf_url,
+                    pkg_name,
+                    pkg_display_name,
+                    pkg_metadata,
+                    sha512string,
+                    jcds2_mode,
+                    sleep_time,
                     pkg_id=pkg_id,
                     token=token,
                 )
-            self.pkg_metadata_updated = True
-        elif not self.skip_metadata_upload:
+            pkg_metadata_updated = True
+        elif not skip_metadata_upload:
             self.output(
                 "Not updating package metadata",
                 verbose_level=1,
             )
-            self.pkg_metadata_updated = False
+            pkg_metadata_updated = False
 
         # upload package if the metadata was updated - has to be done last with v1/packages
         # (already done with smb_shares, jcds2_mode and aws_cdp_mode)
         if (
-            not self.jcds2_mode
-            and not self.aws_cdp_mode
-            and not self.legacy_mode
-            and (not self.smb_shares or self.cloud_dp)
-            and self.pkg_metadata_updated
+            not jcds2_mode
+            and not aws_cdp_mode
+            and not legacy_mode
+            and (not smb_shares or cloud_dp)
+            and pkg_metadata_updated
         ):
             self.output(f"ID: {obj_id}", verbose_level=3)  # TEMP
             if obj_id != "-1":
-                self.output(f"Package '{self.pkg_name}' metadata exists: ID {obj_id}")
+                self.output(f"Package '{pkg_name}' metadata exists: ID {obj_id}")
                 pkg_id = obj_id  # assign pkg_id for v1/packages runs
             else:
                 raise ProcessorError(
@@ -1313,43 +1307,37 @@ class JamfPackageUploaderBase(JamfUploaderBase):
                 "Uploading package to Cloud DP",
                 verbose_level=1,
             )
-            r = self.upload_pkg(
-                self.pkg_path, self.pkg_name, pkg_id, self.jamf_url, token
-            )
+            r = self.upload_pkg(pkg_path, pkg_name, pkg_id, sleep_time, jamf_url, token)
             # if we get this far then there was a 200 success response so the package was uploaded
-            self.pkg_uploaded = True
+            pkg_uploaded = True
 
         # recalculate packages on JCDS if the metadata was updated and recalculation requested
         # Jamf Pro 11.10+ only
         if (
             APLooseVersion(jamf_pro_version) >= APLooseVersion("11.10")
-            and self.pkg_metadata_updated
-            and self.recalculate
+            and pkg_metadata_updated
+            and recalculate
         ):
             # check token again using oauth or basic auth depending on the credentials given
             # as package upload may have taken some time
-            if self.client_id and self.client_secret:
-                token = self.handle_oauth(
-                    self.jamf_url, self.client_id, self.client_secret
-                )
-            elif self.jamf_user and self.jamf_password:
-                token = self.handle_api_auth(
-                    self.jamf_url, self.jamf_user, self.jamf_password
-                )
+            if client_id and client_secret:
+                token = self.handle_oauth(jamf_url, client_id, client_secret)
+            elif jamf_user and jamf_password:
+                token = self.handle_api_auth(jamf_url, jamf_user, jamf_password)
             else:
                 raise ProcessorError("ERROR: Valid credentials not supplied")
 
             # now send the recalculation request
-            packages_recalculated = self.recalculate_packages(self.jamf_url, token)
+            packages_recalculated = self.recalculate_packages(jamf_url, token)
         else:
             packages_recalculated = False
 
         # output the summary
-        self.env["pkg_name"] = self.pkg_name
-        self.env["pkg_display_name"] = self.pkg_display_name
-        self.env["pkg_uploaded"] = self.pkg_uploaded
-        self.env["pkg_metadata_updated"] = self.pkg_metadata_updated
-        if self.pkg_metadata_updated or self.pkg_uploaded:
+        self.env["pkg_name"] = pkg_name
+        self.env["pkg_display_name"] = pkg_display_name
+        self.env["pkg_uploaded"] = pkg_uploaded
+        self.env["pkg_metadata_updated"] = pkg_metadata_updated
+        if pkg_metadata_updated or pkg_uploaded:
             self.env["jamfpackageuploader_summary_result"] = {
                 "summary_text": "The following packages were uploaded to or updated in Jamf Pro:",
                 "report_fields": [
@@ -1362,12 +1350,12 @@ class JamfPackageUploaderBase(JamfUploaderBase):
                     "packages_recalculated",
                 ],
                 "data": {
-                    "category": self.pkg_category,
+                    "category": pkg_category,
                     "name": str(self.env.get("NAME")),
-                    "pkg_name": self.pkg_name,
-                    "pkg_display_name": self.pkg_display_name,
-                    "pkg_path": self.pkg_path,
-                    "version": self.version,
+                    "pkg_name": pkg_name,
+                    "pkg_display_name": pkg_display_name,
+                    "pkg_path": pkg_path,
+                    "version": version,
                     "packages_recalculated": str(packages_recalculated),
                 },
             }
