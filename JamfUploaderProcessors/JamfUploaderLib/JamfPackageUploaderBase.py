@@ -600,8 +600,8 @@ class JamfPackageUploaderBase(JamfUploaderBase):
         pkg_name,
         pkg_display_name,
         pkg_metadata,
-        sha512sum,
-        md5sum,
+        sha512string,
+        md5string,
         sleep_time,
         pkg_id=0,
         token="",
@@ -635,10 +635,14 @@ class JamfPackageUploaderBase(JamfUploaderBase):
             "suppressRegistration": 0,
         }
 
-        if sha512sum:
+        if md5string:
+            hash_type = "MD5"
+            pkg_data["hashType"] = hash_type
+            pkg_data["hashValue"] = md5string
+        elif sha512string:
             hash_type = "SHA_512"
             pkg_data["hashType"] = hash_type
-            pkg_data["hashValue"] = sha512sum
+            pkg_data["hashValue"] = sha512string
 
         self.output(
             "Package metadata:",
@@ -835,6 +839,7 @@ class JamfPackageUploaderBase(JamfUploaderBase):
         jcds2_mode = self.env.get("jcds2_mode")
         aws_cdp_mode = self.env.get("aws_cdp_mode")
         recalculate = self.env.get("recalculate")
+        use_md5 = self.env.get("md5")
         jamf_url = self.env.get("JSS_URL").rstrip("/")
         jamf_user = self.env.get("API_USERNAME")
         jamf_password = self.env.get("API_PASSWORD")
@@ -979,7 +984,7 @@ class JamfPackageUploaderBase(JamfUploaderBase):
         # sha256string = self.sha256sum(pkg_path)
 
         # calculate the SHA-512 hash of the package
-        md5string = self.md5sum(pkg_path)
+        md5string = self.md5sum(pkg_path) if use_md5 else None
 
         # now start the process of uploading the package
         self.output(f"Checking for existing package '{pkg_name}' on {jamf_url}")
