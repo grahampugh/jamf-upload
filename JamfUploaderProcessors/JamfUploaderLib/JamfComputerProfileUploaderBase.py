@@ -76,10 +76,15 @@ class JamfComputerProfileUploaderBase(JamfUploaderBase):
 
         return existing_uuid, existing_identifier
 
-    def replace_uuid_and_identifier_in_mobileconfig(
-        self, mobileconfig_contents, existing_uuid, existing_identifier
+    def replace_identifiers_in_mobileconfig(
+        self,
+        mobileconfig_name,
+        mobileconfig_contents,
+        existing_uuid,
+        existing_identifier,
     ):
         self.output("Updating the UUIDs in the mobileconfig", verbose_level=2)
+        mobileconfig_contents["PayloadDisplayName"] = mobileconfig_name
         mobileconfig_contents["PayloadIdentifier"] = existing_identifier
         mobileconfig_contents["PayloadUUID"] = existing_uuid
         # with open(self.mobileconfig, "wb") as file:
@@ -361,7 +366,10 @@ class JamfComputerProfileUploaderBase(JamfUploaderBase):
                 )
                 mobileconfig_contents = plistlib.loads(mobileconfig_plist)
             try:
-                mobileconfig_name = mobileconfig_contents["PayloadDisplayName"]
+                if self.profile_name:
+                    mobileconfig_name = self.profile_name
+                else:
+                    mobileconfig_name = mobileconfig_contents["PayloadDisplayName"]
                 self.output(f"Configuration Profile name: {mobileconfig_name}")
                 self.output("Mobileconfig contents:", verbose_level=2)
                 self.output(mobileconfig_plist.decode("UTF-8"), verbose_level=2)
@@ -452,10 +460,11 @@ class JamfComputerProfileUploaderBase(JamfUploaderBase):
 
                 if self.mobileconfig:
                     # need to inject the existing payload identifier to prevent ghost profiles
-                    mobileconfig_contents = (
-                        self.replace_uuid_and_identifier_in_mobileconfig(
-                            mobileconfig_contents, existing_uuid, existing_identifier
-                        )
+                    mobileconfig_contents = self.replace_identifiers_in_mobileconfig(
+                        mobileconfig_name,
+                        mobileconfig_contents,
+                        existing_uuid,
+                        existing_identifier,
                     )
                     mobileconfig_plist = plistlib.dumps(mobileconfig_contents)
                 else:
