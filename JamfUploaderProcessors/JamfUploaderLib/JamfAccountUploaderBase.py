@@ -55,9 +55,8 @@ class JamfAccountUploaderBase(JamfUploaderBase):
                 verbose_level=4,
             )
             obj_id = 0
-            if account_type == "user":
-                object_subtype = "users"
-            elif account_type == "group":
+            object_subtype = "users"
+            if account_type == "group":
                 object_subtype = "groups"
 
             self.output(f"Object name: {object_name}")  # TEMP
@@ -157,9 +156,6 @@ class JamfAccountUploaderBase(JamfUploaderBase):
         if not self.replace or self.replace == "False":
             self.replace = False
         self.account_updated = False
-
-        # print out version with v1 or more
-        self.output(f"Version: {self.version()}", verbose_level=1)
 
         # clear any pre-existing summary result
         if "jamfaccountuploader_summary_result" in self.env:
