@@ -942,7 +942,7 @@ class JamfPackageUploaderBase(JamfUploaderBase):
         # create a dictionary of package metadata from the inputs
         pkg_category = self.env.get("pkg_category")
         reboot_required = self.env.get("reboot_required")
-        if not reboot_required or self.reboot_required == "False":
+        if not reboot_required or reboot_required == "False":
             reboot_required = False
         send_notification = self.env.get("send_notification")
         if not send_notification or send_notification == "False":
