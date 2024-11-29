@@ -12,7 +12,7 @@ url="$3"
 
 # path to test items
 # pkg_path="/Users/Shared/plistyamlplist-0.6.4.pkg"
-pkg_path="/Users/gpugh/Downloads/NetworkShareMounter-3.0.3.pkg"
+pkg_path="/Users/gpugh/Downloads/vanta-universal.pkg"
 pkg_name="$(basename "$pkg_path")"
 
 # other variables (ensure some of the temporary variables are not in the prefs)
@@ -301,11 +301,27 @@ elif [[ $test_type == "pkg" ]]; then
         --pkg-name "$(basename "$pkg_path")" \
         --name "$(basename "$pkg_path")" \
         --category JamfUploadTest \
-        --info "Uploaded directly by JamfPackageUploader in JCDS mode" \
+        --info "Uploaded directly by JamfPackageUploader using v1/packages" \
         --notes "$(date)" \
         "$verbosity" \
         --replace
+        # --md5 \
         # --recalculate \
+
+elif [[ $test_type == "pkg-noreplace" ]]; then
+    # upload a package
+    "$DIR"/../jamf-upload.sh pkg \
+        --prefs "$prefs" \
+        --recipe-dir /Users/gpugh/sourcecode/jamf-upload/_tests \
+        --pkg "$pkg_path" \
+        --pkg-name "$(basename "$pkg_path")" \
+        --name "$(basename "$pkg_path")" \
+        --category JamfUploadTest \
+        --info "Uploaded directly by JamfPackageUploader using v1/packages" \
+        --notes "$(date)" \
+        "$verbosity"
+        # --recalculate \
+
 
 elif [[ $test_type == "pkg-jcds2" ]]; then
     /usr/local/autopkg/python -m pip install boto3
@@ -318,6 +334,7 @@ elif [[ $test_type == "pkg-jcds2" ]]; then
         --pkg-name "$(basename "$pkg_path")" \
         --name "$(basename "$pkg_path")" \
         --category "Testing" \
+        --info "Uploaded directly by JamfPackageUploader in JCDS mode" \
         "$verbosity" \
         --jcds2 \
         --replace
@@ -335,6 +352,7 @@ elif [[ $test_type == "pkg-aws" ]]; then
         --name "$(basename "$pkg_path")" \
         --category "Testing" \
         "$verbosity" \
+        --info "Uploaded directly by JamfPackageUploader in AWS-CLI mode" \
         --aws \
         --key "S3_BUCKET_NAME=jamf2360b29f101f4e0881cf6422ee2be25e" \
         --replace
@@ -348,7 +366,8 @@ elif [[ $test_type == "pkg-api" ]]; then
         --pkg "$pkg_path" \
         --pkg-name "$(basename "$pkg_path")" \
         --name "$(basename "$pkg_path")" \
-        --category "Testing - Graham" \
+        --category "Testing" \
+        --info "Uploaded directly by JamfPackageUploader using v1/packages" \
         "$verbosity" \
         --api \
         --recalculate \
