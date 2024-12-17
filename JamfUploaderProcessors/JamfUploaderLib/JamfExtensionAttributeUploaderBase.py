@@ -43,6 +43,7 @@ class JamfExtensionAttributeUploaderBase(JamfUploaderBase):
         self,
         jamf_url,
         ea_name,
+        ea_description,
         ea_data_type,
         ea_inventory_display,
         script_path,
@@ -70,7 +71,7 @@ class JamfExtensionAttributeUploaderBase(JamfUploaderBase):
             "<computer_extension_attribute>"
             + "<name>{}</name>".format(ea_name)
             + "<enabled>true</enabled>"
-            + "<description/>"
+            + "<description>{}</description>".format(ea_description)
             + "<data_type>{}</data_type>".format(ea_data_type)
             + "<input_type>"
             + "  <type>script</type>"
@@ -90,7 +91,7 @@ class JamfExtensionAttributeUploaderBase(JamfUploaderBase):
             verbose_level=2,
         )
 
-        self.output("Uploading Extension Attribute..")
+        self.output("Uploading Extension Attribute...")
         # write the template to temp file
         template_xml = self.write_temp_file(ea_data)
 
@@ -136,6 +137,7 @@ class JamfExtensionAttributeUploaderBase(JamfUploaderBase):
         self.client_secret = self.env.get("CLIENT_SECRET")
         self.ea_script_path = self.env.get("ea_script_path")
         self.ea_name = self.env.get("ea_name")
+        self.ea_description = self.env.get("ea_description")
         self.skip_script_key_substitution = self.env.get("skip_script_key_substitution")
         self.replace = self.env.get("replace_ea")
         self.ea_data_type = self.env.get("ea_data_type")
@@ -210,6 +212,7 @@ class JamfExtensionAttributeUploaderBase(JamfUploaderBase):
         self.upload_ea(
             self.jamf_url,
             self.ea_name,
+            self.ea_description,
             self.ea_data_type,
             self.ea_inventory_display,
             self.ea_script_path,
