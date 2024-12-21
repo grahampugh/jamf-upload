@@ -40,6 +40,8 @@ from autopkglib import (  # pylint: disable=import-error
     ProcessorError,
 )
 
+from . import keychain_access
+
 
 class JamfUploaderBase(Processor):
     """Common functions used by at least two JamfUploader processors."""

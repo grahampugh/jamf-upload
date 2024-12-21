@@ -1,4 +1,5 @@
 #!/usr/local/autopkg/python
+# pylint: disable=invalid-name
 
 """
 Copyright 2023 Graham Pugh
@@ -71,58 +72,52 @@ class JamfComputerGroupDeleterBase(JamfUploaderBase):
 
     def execute(self):
         """Delete a computer group"""
-        self.jamf_url = self.env.get("JSS_URL")
-        self.jamf_user = self.env.get("API_USERNAME")
-        self.jamf_password = self.env.get("API_PASSWORD")
-        self.client_id = self.env.get("CLIENT_ID")
-        self.client_secret = self.env.get("CLIENT_SECRET")
-        self.computergroup_name = self.env.get("computergroup_name")
+        jamf_url = self.env.get("JSS_URL")
+        jamf_user = self.env.get("API_USERNAME")
+        jamf_password = self.env.get("API_PASSWORD")
+        client_id = self.env.get("CLIENT_ID")
+        client_secret = self.env.get("CLIENT_SECRET")
+        computergroup_name = self.env.get("computergroup_name")
 
         # clear any pre-existing summary result
         if "jamfcomputergroupdeleter_summary_result" in self.env:
             del self.env["jamfcomputergroupdeleter_summary_result"]
 
         # now start the process of deleting the object
-        self.output(
-            f"Checking for existing '{self.computergroup_name}' on {self.jamf_url}"
-        )
+        self.output(f"Checking for existing '{computergroup_name}' on {jamf_url}")
 
         # get token using oauth or basic auth depending on the credentials given
-        if self.jamf_url and self.client_id and self.client_secret:
-            token = self.handle_oauth(self.jamf_url, self.client_id, self.client_secret)
-        elif self.jamf_url and self.jamf_user and self.jamf_password:
-            token = self.handle_api_auth(
-                self.jamf_url, self.jamf_user, self.jamf_password
-            )
+        if jamf_url and client_id and client_secret:
+            token = self.handle_oauth(jamf_url, client_id, client_secret)
+        elif jamf_url and jamf_user and jamf_password:
+            token = self.handle_api_auth(jamf_url, jamf_user, jamf_password)
         else:
             raise ProcessorError("ERROR: Credentials not supplied")
 
         # check for existing - requires obj_name
         obj_type = "computer_group"
-        obj_name = self.computergroup_name
+        obj_name = computergroup_name
         obj_id = self.get_api_obj_id_from_name(
-            self.jamf_url,
+            jamf_url,
             obj_name,
             obj_type,
             token,
         )
 
         if obj_id:
-            self.output(
-                f"Computer Group '{self.computergroup_name}' exists: ID {obj_id}"
-            )
+            self.output(f"Computer Group '{computergroup_name}' exists: ID {obj_id}")
             self.output(
                 "Deleting existing computer group",
                 verbose_level=1,
             )
             self.delete_computer_group(
-                self.jamf_url,
+                jamf_url,
                 obj_id,
                 token,
             )
         else:
             self.output(
-                f"Computer Group '{self.computergroup_name}' not found on {self.jamf_url}.",
+                f"Computer Group '{computergroup_name}' not found on {jamf_url}.",
                 verbose_level=1,
             )
             return
@@ -131,5 +126,5 @@ class JamfComputerGroupDeleterBase(JamfUploaderBase):
         self.env["jamfcomputergroupdeleter_summary_result"] = {
             "summary_text": "The following computer groups were deleted from Jamf Pro:",
             "report_fields": ["computer_group"],
-            "data": {"computer_group": self.computergroup_name},
+            "data": {"computer_group": computergroup_name},
         }

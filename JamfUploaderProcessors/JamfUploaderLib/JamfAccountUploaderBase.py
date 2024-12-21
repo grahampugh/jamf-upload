@@ -1,5 +1,5 @@
 #!/usr/local/autopkg/python
-
+# pylint: disable=invalid-name
 """
 Copyright 2023 Graham Pugh
 
@@ -55,9 +55,8 @@ class JamfAccountUploaderBase(JamfUploaderBase):
                 verbose_level=4,
             )
             obj_id = 0
-            if account_type == "user":
-                object_subtype = "users"
-            elif account_type == "group":
+            object_subtype = "users"
+            if account_type == "group":
                 object_subtype = "groups"
 
             self.output(f"Object name: {object_name}")  # TEMP
@@ -78,7 +77,7 @@ class JamfAccountUploaderBase(JamfUploaderBase):
         """prepare the account contents"""
         # import template from file and replace any keys in the template
         if os.path.exists(account_template):
-            with open(account_template, "r") as file:
+            with open(account_template, "r", encoding="utf-8") as file:
                 template_contents = file.read()
         else:
             raise ProcessorError("Template does not exist!")
@@ -103,6 +102,7 @@ class JamfAccountUploaderBase(JamfUploaderBase):
         object_type,
         template_xml,
         token,
+        sleep_time,
         obj_id=0,
     ):
         """Upload account"""
@@ -110,14 +110,12 @@ class JamfAccountUploaderBase(JamfUploaderBase):
         self.output(f"Uploading {object_type}...")
 
         # if we find an object ID we put, if not, we post
-        url = "{}/JSSResource/accounts/{}id/{}".format(jamf_url, object_type, obj_id)
+        url = f"{jamf_url}/JSSResource/accounts/{object_type}id/{obj_id}"
 
         count = 0
         while True:
             count += 1
-            self.output(
-                "{} upload attempt {}".format(object_type, count), verbose_level=2
-            )
+            self.output(f"{object_type} upload attempt {count}", verbose_level=2)
             request = "PUT" if obj_id else "POST"
             r = self.curl(
                 request=request,
@@ -132,31 +130,31 @@ class JamfAccountUploaderBase(JamfUploaderBase):
                 self.output(
                     f"WARNING: {object_type} upload did not succeed after 5 attempts"
                 )
-                self.output("\nHTTP POST Response Code: {}".format(r.status_code))
+                self.output(f"\nHTTP POST Response Code: {r.status_code}")
                 raise ProcessorError(f"ERROR: {object_type} upload failed ")
-            if int(self.sleep) > 30:
-                sleep(int(self.sleep))
+            if int(sleep_time) > 30:
+                sleep(int(sleep_time))
             else:
                 sleep(30)
         return r
 
     def execute(self):
         """Upload the account"""
-        self.jamf_url = self.env.get("JSS_URL")
-        self.jamf_user = self.env.get("API_USERNAME")
-        self.jamf_password = self.env.get("API_PASSWORD")
-        self.client_id = self.env.get("CLIENT_ID")
-        self.client_secret = self.env.get("CLIENT_SECRET")
-        self.account_name = self.env.get("account_name")
-        self.account_type = self.env.get("account_type")
-        self.domain = self.env.get("domain")
-        self.account_template = self.env.get("account_template")
-        self.replace = self.env.get("replace_account")
-        self.sleep = self.env.get("sleep")
+        jamf_url = self.env.get("JSS_URL")
+        jamf_user = self.env.get("API_USERNAME")
+        jamf_password = self.env.get("API_PASSWORD")
+        client_id = self.env.get("CLIENT_ID")
+        client_secret = self.env.get("CLIENT_SECRET")
+        account_name = self.env.get("account_name")
+        account_type = self.env.get("account_type")
+        domain = self.env.get("domain")
+        account_template = self.env.get("account_template")
+        replace_account = self.env.get("replace_account")
+        sleep_time = self.env.get("sleep")
         # handle setting replace in overrides
-        if not self.replace or self.replace == "False":
-            self.replace = False
-        self.account_updated = False
+        if not replace_account or replace_account == "False":
+            replace_account = False
+        account_updated = False
 
         # print out version with v1 or more
         self.output(f"Version: {self.version()}", verbose_level=1)
@@ -166,62 +164,54 @@ class JamfAccountUploaderBase(JamfUploaderBase):
             del self.env["jamfaccountuploader_summary_result"]
 
         # handle files with a relative path
-        if not self.account_template.startswith("/"):
-            found_template = self.get_path_to_file(self.account_template)
+        if not account_template.startswith("/"):
+            found_template = self.get_path_to_file(account_template)
             if found_template:
-                self.account_template = found_template
+                account_template = found_template
             else:
-                raise ProcessorError(
-                    f"ERROR: Policy file {self.account_template} not found"
-                )
+                raise ProcessorError(f"ERROR: Policy file {account_template} not found")
 
         # now start the process of uploading the object
-        self.output(f"Checking for existing '{self.account_name}' on {self.jamf_url}")
+        self.output(f"Checking for existing '{account_name}' on {jamf_url}")
 
         # get token using oauth or basic auth depending on the credentials given
-        if self.jamf_url and self.client_id and self.client_secret:
-            token = self.handle_oauth(self.jamf_url, self.client_id, self.client_secret)
-        elif self.jamf_url and self.jamf_user and self.jamf_password:
-            token = self.handle_api_auth(
-                self.jamf_url, self.jamf_user, self.jamf_password
-            )
+        if jamf_url and client_id and client_secret:
+            token = self.handle_oauth(jamf_url, client_id, client_secret)
+        elif jamf_url and jamf_user and jamf_password:
+            token = self.handle_api_auth(jamf_url, jamf_user, jamf_password)
         else:
             raise ProcessorError("ERROR: Credentials not supplied")
 
         # check for existing account - requires obj_name and account type
         obj_id = self.get_account_id_from_name(
-            self.jamf_url,
-            self.account_name,
-            self.account_type,
+            jamf_url,
+            account_name,
+            account_type,
             token=token,
         )
 
         # check for existing domain - requires obj_name and account type
-        if self.domain:
+        if domain:
             domain_id = self.get_api_obj_id_from_name(
-                self.jamf_url,
-                self.domain,
+                jamf_url,
+                domain,
                 "ldap_server",
                 token=token,
             )
-            self.env["domain"] = self.domain
+            self.env["domain"] = domain
             self.env["domain_id"] = domain_id
 
         # we need to substitute the values in the account name and template now to
         # account for version strings in the name
-        self.account_name, template_xml = self.prepare_account_template(
-            self.account_name, self.account_template
+        account_name, template_xml = self.prepare_account_template(
+            account_name, account_template
         )
 
         if obj_id:
-            self.output(
-                "account '{}' already exists: ID {}".format(self.account_name, obj_id)
-            )
-            if self.replace:
+            self.output(f"account '{account_name}' already exists: ID {obj_id}")
+            if replace_account:
                 self.output(
-                    "Replacing existing account as 'replace_account' is set to {}".format(
-                        self.replace
-                    ),
+                    f"Replacing existing account as 'replace_account' is set to {replace_account}",
                     verbose_level=1,
                 )
             else:
@@ -233,25 +223,26 @@ class JamfAccountUploaderBase(JamfUploaderBase):
 
         # upload the account
         self.upload_account(
-            self.jamf_url,
-            self.account_name,
-            self.account_type,
+            jamf_url,
+            account_name,
+            account_type,
             template_xml,
             token,
+            sleep_time,
             obj_id=obj_id,
         )
-        self.account_updated = True
+        account_updated = True
 
         # output the summary
-        self.env["account_name"] = self.account_name
-        self.env["account_type"] = self.account_type
-        self.env["account_updated"] = self.account_updated
-        if self.account_updated:
+        self.env["account_name"] = account_name
+        self.env["account_type"] = account_type
+        self.env["account_updated"] = account_updated
+        if account_updated:
             self.env["jamfaccountuploader_summary_result"] = {
                 "summary_text": "The following accounts were updated in Jamf Pro:",
                 "report_fields": ["account", "template"],
                 "data": {
-                    "account": self.account_name,
-                    "template": self.account_template,
+                    "account": account_name,
+                    "template": account_template,
                 },
             }
