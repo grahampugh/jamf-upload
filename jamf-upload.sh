@@ -159,6 +159,8 @@ Package arguments:
     --aws                   Use AWS CDP for package upload. Requires aws-cli to be installed 
     --api                   Use v1/packages endpoint for package upload to cloud DP
     --recalculate           Recalculate packages if using --jcds2 or --api modes
+    --md5                   Use MD5 hash instead of SHA512. Required for packages 
+                            to be installable via MDM InstallEnterpriseApplication
 
 Package Clean arguments:
     --name <string>         The name to match
@@ -894,6 +896,13 @@ while test $# -gt 0 ; do
             if [[ $processor == "JamfPackageUploader" ]]; then
                 if plutil -replace recalculate -string "true" "$temp_processor_plist"; then
                     echo "   [jamf-upload] Wrote recalculate='True' into $temp_processor_plist"
+                fi
+            fi
+            ;;
+        --md5) 
+            if [[ $processor == "JamfPackageUploader" ]]; then
+                if plutil -replace md5 -string "true" "$temp_processor_plist"; then
+                    echo "   [jamf-upload] Wrote md5='True' into $temp_processor_plist"
                 fi
             fi
             ;;

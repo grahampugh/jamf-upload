@@ -1,4 +1,5 @@
 #!/usr/local/autopkg/python
+# pylint: disable=invalid-name
 
 """
 Copyright 2023 Graham Pugh
@@ -43,6 +44,7 @@ class JamfComputerGroupUploaderBase(JamfUploaderBase):
         jamf_url,
         computergroup_name,
         computergroup_template,
+        sleep_time,
         token,
         obj_id=0,
     ):
@@ -50,32 +52,29 @@ class JamfComputerGroupUploaderBase(JamfUploaderBase):
 
         # import template from file and replace any keys in the template
         if os.path.exists(computergroup_template):
-            with open(computergroup_template, "r") as file:
+            with open(computergroup_template, "r", encoding="utf-8") as file:
                 template_contents = file.read()
         else:
             raise ProcessorError("Template does not exist!")
 
         # if JSS_INVENTORY_NAME is not given, make it equivalent to %NAME%.app
         # (this is to allow use of legacy JSSImporter group templates)
-        try:
-            self.env["JSS_INVENTORY_NAME"]
+        if self.env.get("JSS_INVENTORY_NAME"):
             self.output(
                 f"Assigned {self.env['JSS_INVENTORY_NAME']}.app to JSS_INVENTORY_NAME key.",
                 verbose_level=2,
             )
-        except KeyError:
-            try:
-                self.env["JSS_INVENTORY_NAME"] = self.env["NAME"] + ".app"
-                self.output(
-                    f"Assigned {self.env['NAME']}.app to JSS_INVENTORY_NAME key.",
-                    verbose_level=2,
-                )
-            except KeyError:
-                self.output(
-                    f"WARNING: Could not assign value to JSS_INVENTORY_NAME key.",
-                    verbose_level=2,
-                )
-                pass
+        elif self.env.get("NAME"):
+            self.env["JSS_INVENTORY_NAME"] = self.env["NAME"] + ".app"
+            self.output(
+                f"Assigned {self.env['NAME']}.app to JSS_INVENTORY_NAME key.",
+                verbose_level=2,
+            )
+        else:
+            self.output(
+                "WARNING: Could not assign value to JSS_INVENTORY_NAME key.",
+                verbose_level=2,
+            )
 
         # substitute user-assignable keys
         template_contents = self.substitute_assignable_keys(template_contents)
@@ -89,7 +88,7 @@ class JamfComputerGroupUploaderBase(JamfUploaderBase):
 
         # if we find an object ID we put, if not, we post
         object_type = "computer_group"
-        url = "{}/{}/id/{}".format(jamf_url, self.api_endpoints(object_type), obj_id)
+        url = f"{jamf_url}/{self.api_endpoints(object_type)}/id/{obj_id}"
 
         count = 0
         while True:
@@ -115,25 +114,25 @@ class JamfComputerGroupUploaderBase(JamfUploaderBase):
                 )
                 self.output(f"\nHTTP POST Response Code: {r.status_code}")
                 raise ProcessorError("ERROR: Computer Group upload failed ")
-            if int(self.sleep) > 30:
-                sleep(int(self.sleep))
+            if int(sleep_time) > 30:
+                sleep(int(sleep_time))
             else:
                 sleep(30)
 
     def execute(self):
         """Upload a computer group"""
-        self.jamf_url = self.env.get("JSS_URL")
-        self.jamf_user = self.env.get("API_USERNAME")
-        self.jamf_password = self.env.get("API_PASSWORD")
-        self.client_id = self.env.get("CLIENT_ID")
-        self.client_secret = self.env.get("CLIENT_SECRET")
-        self.computergroup_name = self.env.get("computergroup_name")
-        self.computergroup_template = self.env.get("computergroup_template")
-        self.replace = self.env.get("replace_group")
-        self.sleep = self.env.get("sleep")
+        jamf_url = self.env.get("JSS_URL")
+        jamf_user = self.env.get("API_USERNAME")
+        jamf_password = self.env.get("API_PASSWORD")
+        client_id = self.env.get("CLIENT_ID")
+        client_secret = self.env.get("CLIENT_SECRET")
+        computergroup_name = self.env.get("computergroup_name")
+        computergroup_template = self.env.get("computergroup_template")
+        replace_group = self.env.get("replace_group")
+        sleep_time = self.env.get("sleep")
         # handle setting replace in overrides
-        if not self.replace or self.replace == "False":
-            self.replace = False
+        if not replace_group or replace_group == "False":
+            replace_group = False
 
         # clear any pre-existing summary result
         if "jamfcomputergroupuploader_summary_result" in self.env:
@@ -141,35 +140,31 @@ class JamfComputerGroupUploaderBase(JamfUploaderBase):
         group_uploaded = False
 
         # handle files with a relative path
-        if not self.computergroup_template.startswith("/"):
-            found_template = self.get_path_to_file(self.computergroup_template)
+        if not computergroup_template.startswith("/"):
+            found_template = self.get_path_to_file(computergroup_template)
             if found_template:
-                self.computergroup_template = found_template
+                computergroup_template = found_template
             else:
                 raise ProcessorError(
-                    f"ERROR: Computer Group file {self.computergroup_template} not found"
+                    f"ERROR: Computer Group file {computergroup_template} not found"
                 )
 
         # now start the process of uploading the object
-        self.output(
-            f"Checking for existing '{self.computergroup_name}' on {self.jamf_url}"
-        )
+        self.output(f"Checking for existing '{computergroup_name}' on {jamf_url}")
 
         # get token using oauth or basic auth depending on the credentials given
-        if self.jamf_url and self.client_id and self.client_secret:
-            token = self.handle_oauth(self.jamf_url, self.client_id, self.client_secret)
-        elif self.jamf_url and self.jamf_user and self.jamf_password:
-            token = self.handle_api_auth(
-                self.jamf_url, self.jamf_user, self.jamf_password
-            )
+        if jamf_url and client_id and client_secret:
+            token = self.handle_oauth(jamf_url, client_id, client_secret)
+        elif jamf_url and jamf_user and jamf_password:
+            token = self.handle_api_auth(jamf_url, jamf_user, jamf_password)
         else:
             raise ProcessorError("ERROR: Credentials not supplied")
 
         # check for existing - requires obj_name
         obj_type = "computer_group"
-        obj_name = self.computergroup_name
+        obj_name = computergroup_name
         obj_id = self.get_api_obj_id_from_name(
-            self.jamf_url,
+            jamf_url,
             obj_name,
             obj_type,
             token=token,
@@ -177,12 +172,12 @@ class JamfComputerGroupUploaderBase(JamfUploaderBase):
 
         if obj_id:
             self.output(
-                f"Computer group '{self.computergroup_name}' already exists: ID {obj_id}"
+                f"Computer group '{computergroup_name}' already exists: ID {obj_id}"
             )
-            if self.replace:
+            if replace_group:
                 self.output(
                     "Replacing existing Computer Group as 'replace_group' is set "
-                    f"to {self.replace}",
+                    f"to {replace_group}",
                     verbose_level=1,
                 )
             else:
@@ -194,16 +189,17 @@ class JamfComputerGroupUploaderBase(JamfUploaderBase):
 
         # upload the group
         self.upload_computergroup(
-            self.jamf_url,
-            self.computergroup_name,
-            self.computergroup_template,
+            jamf_url,
+            computergroup_name,
+            computergroup_template,
+            sleep_time,
             token=token,
             obj_id=obj_id,
         )
         group_uploaded = True
 
-        if int(self.sleep) > 0:
-            sleep(int(self.sleep))
+        if int(sleep_time) > 0:
+            sleep(int(sleep_time))
 
         # output the summary
         self.env["group_uploaded"] = group_uploaded
@@ -215,7 +211,7 @@ class JamfComputerGroupUploaderBase(JamfUploaderBase):
                 ),
                 "report_fields": ["group", "template"],
                 "data": {
-                    "group": self.computergroup_name,
-                    "template": self.computergroup_template,
+                    "group": computergroup_name,
+                    "template": computergroup_template,
                 },
             }

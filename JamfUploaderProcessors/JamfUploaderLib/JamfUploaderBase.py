@@ -40,6 +40,8 @@ from autopkglib import (  # pylint: disable=import-error
     ProcessorError,
 )
 
+from . import keychain_access
+
 
 class JamfUploaderBase(Processor):
     """Common functions used by at least two JamfUploader processors."""
@@ -123,10 +125,10 @@ class JamfUploaderBase(Processor):
             json.dump(data, fp)
         return tf
 
-    def write_token_to_json_file(self, url, data):
+    def write_token_to_json_file(self, url, jamf_user, data):
         """dump the token, expiry, url and user as json to a temporary token file"""
         data["url"] = url
-        data["user"] = self.jamf_user
+        data["user"] = jamf_user
         if not self.env.get("jamfupload_token_file"):
             self.env["jamfupload_token_file"] = self.init_temp_file(
                 prefix="jamf_upload_token_"
@@ -171,7 +173,7 @@ class JamfUploaderBase(Processor):
         enc_creds = str(enc_creds_bytes, "utf-8")
         return enc_creds
 
-    def check_api_token(self, url):
+    def check_api_token(self, jamf_url, jamf_user):
         """Check validity of an existing token"""
         if self.env.get("jamfupload_token_file"):
             token_file = self.env["jamfupload_token_file"]
@@ -183,9 +185,9 @@ class JamfUploaderBase(Processor):
                 # check that there is a 'token' key
                 try:
                     self.output(
-                        f"Checking {data['url']} against {url}", verbose_level=2
+                        f"Checking {data['url']} against {jamf_url}", verbose_level=2
                     )
-                    if data["url"] == url and data["user"] == self.jamf_user:
+                    if data["url"] == jamf_url and data["user"] == jamf_user:
                         self.output(
                             "URL and user for token matches current request",
                             verbose_level=2,
@@ -250,7 +252,7 @@ class JamfUploaderBase(Processor):
                     expires = expires_str.strftime("%Y-%m-%dT%H:%M:%S.%fZ")
 
                     # write the data to a file
-                    self.write_token_to_json_file(jamf_url, output)
+                    self.write_token_to_json_file(jamf_url, client_id, output)
                     self.output("Session token received")
                     self.output(f"Token: {token}", verbose_level=2)
                     self.output(f"Expires: {expires}", verbose_level=2)
@@ -262,9 +264,10 @@ class JamfUploaderBase(Processor):
         else:
             self.output("ERROR: Insufficient credentials provided")
 
-    def get_api_token_from_basic_auth(self, jamf_url="", enc_creds=""):
+    def get_api_token_from_basic_auth(self, jamf_url="", jamf_user="", password=""):
         """get a token for the Jamf Pro API or Classic API using basic auth"""
-        if enc_creds:
+        if jamf_user:
+            enc_creds = self.get_enc_creds(jamf_user, password)
             url = jamf_url + "/" + self.api_endpoints("token")
             r = self.curl(
                 request="POST",
@@ -278,7 +281,7 @@ class JamfUploaderBase(Processor):
                     expires = str(output["expires"])
 
                     # write the data to a file
-                    self.write_token_to_json_file(jamf_url, output)
+                    self.write_token_to_json_file(jamf_url, jamf_user, output)
                     self.output("Session token received")
                     self.output(f"Token: {token}", verbose_level=2)
                     self.output(f"Expires: {expires}", verbose_level=2)
@@ -290,21 +293,18 @@ class JamfUploaderBase(Processor):
         else:
             raise ProcessorError("No credentials given, cannot continue")
 
-    def handle_api_auth(self, url, user, password):
+    def handle_api_auth(self, jamf_url, jamf_user, password):
         """obtain token using basic auth"""
         # check for existing token
         self.output("Checking for existing authentication token", verbose_level=2)
-        token = self.check_api_token(url)
+        token = self.check_api_token(jamf_url, jamf_user)
 
         # if no valid token, get one
         if not token:
-            enc_creds = self.get_enc_creds(user, password)
             self.output(
                 "Getting an authentication token using Basic Auth", verbose_level=2
             )
-            token = self.get_api_token_from_basic_auth(
-                jamf_url=url, enc_creds=enc_creds
-            )
+            token = self.get_api_token_from_basic_auth(jamf_url, jamf_user, password)
 
         if not token:
             raise ProcessorError("No token found, cannot continue")
@@ -312,18 +312,16 @@ class JamfUploaderBase(Processor):
         # return token and classic creds
         return token
 
-    def handle_oauth(self, url, client_id, client_secret):
+    def handle_oauth(self, jamf_url, client_id, client_secret):
         """obtain token"""
         # check for existing token using OAuth
         self.output("Checking for existing authentication token", verbose_level=2)
-        token = self.check_api_token(url)
+        token = self.check_api_token(jamf_url, client_id)
 
         # if no valid token, get one
         if not token:
             self.output("Getting an authentication token using OAuth", verbose_level=2)
-            token = self.get_api_token_from_oauth(
-                jamf_url=url, client_id=client_id, client_secret=client_secret
-            )
+            token = self.get_api_token_from_oauth(jamf_url, client_id, client_secret)
 
         if not token:
             raise ProcessorError("No token found, cannot continue")
@@ -548,10 +546,16 @@ class JamfUploaderBase(Processor):
         else:
             self.output(f"API response:\n{r.output}", verbose_level=3)
             if r.status_code >= 400:
-                raise ProcessorError(
-                    f"ERROR: {endpoint_type} '{obj_name}' {action} failed due to: "
-                    + r.output["errors"][0]["description"]
-                )
+                try:
+                    description = r.output["errors"][0]["description"]
+                    raise ProcessorError(
+                        f"ERROR: {endpoint_type} '{obj_name}' {action} failed due to: "
+                        + description
+                    )
+                except IndexError as e:
+                    raise ProcessorError(
+                        f"ERROR: {endpoint_type} '{obj_name}' {action} failed - status code {r.status_code}"
+                    ) from e
 
     def get_jamf_pro_version(self, jamf_url, token):
         """get the Jamf Pro version so that we can figure out which auth method to use for the
