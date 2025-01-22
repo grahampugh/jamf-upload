@@ -140,7 +140,7 @@ class JamfAccountUploaderBase(JamfUploaderBase):
 
     def execute(self):
         """Upload the account"""
-        jamf_url = self.env.get("JSS_URL")
+        jamf_url = self.env.get("JSS_URL").rstrip("/")
         jamf_user = self.env.get("API_USERNAME")
         jamf_password = self.env.get("API_PASSWORD")
         client_id = self.env.get("CLIENT_ID")
