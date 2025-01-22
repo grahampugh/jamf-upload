@@ -369,8 +369,8 @@ class JamfComputerProfileUploaderBase(JamfUploaderBase):
                 )
                 mobileconfig_contents = plistlib.loads(mobileconfig_plist)
             try:
-                if self.profile_name:
-                    mobileconfig_name = self.profile_name
+                if profile_name:
+                    mobileconfig_name = profile_name
                 else:
                     mobileconfig_name = mobileconfig_contents["PayloadDisplayName"]
                 self.output(f"Configuration Profile name: {mobileconfig_name}")
