@@ -156,9 +156,6 @@ class JamfAccountUploaderBase(JamfUploaderBase):
             replace_account = False
         account_updated = False
 
-        # print out version with v1 or more
-        self.output(f"Version: {self.version()}", verbose_level=1)
-
         # clear any pre-existing summary result
         if "jamfaccountuploader_summary_result" in self.env:
             del self.env["jamfaccountuploader_summary_result"]
