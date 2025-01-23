@@ -16,6 +16,10 @@ pkg_path="/Users/gpugh/Downloads/vanta-universal.pkg"
 pkg_name="$(basename "$pkg_path")"
 
 # other variables (ensure some of the temporary variables are not in the prefs)
+# These keys are required to interact with a Jamf instance
+# JSS_URL
+# API_USERNAME
+# API_PASSWORD
 prefs="$HOME/Library/Preferences/com.github.autopkg.plist"
 # prefs="/Users/Shared/com.github.autopkg.plist"
 
