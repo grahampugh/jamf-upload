@@ -35,7 +35,7 @@ if [[ $url ]]; then
 fi
 
 if [[ $test_type == "ldap_server" ]]; then
-    # upload a category
+    # upload an ldap server
     "$DIR"/../jamf-upload.sh ldap_server \
         --prefs "$prefs" \
         --name "d.ethz.ch" \
@@ -64,7 +64,7 @@ elif [[ $test_type == "group" ]]; then
         --replace
 
 elif [[ $test_type == "groupdelete" ]]; then
-    # upload a policy
+    # delete a computer group
     "$DIR"/../jamf-upload.sh groupdelete \
         --prefs "$prefs" \
         --recipe-dir /Users/gpugh/sourcecode/jamf-upload/_tests \
@@ -170,7 +170,7 @@ elif [[ $test_type == "macapp" ]]; then
         --replace
 
 elif [[ $test_type == "macapp2" ]]; then
-    # clone a mac app
+    # clone a mac app with no scope
     "$DIR"/../jamf-upload.sh macapp \
         --prefs "$prefs" \
         --recipe-dir /Users/gpugh/sourcecode/jamf-upload/_tests \
@@ -183,7 +183,7 @@ elif [[ $test_type == "macapp2" ]]; then
         --replace
 
 elif [[ $test_type == "mobiledeviceprofile" ]]; then
-    # upload a profile (mobileconfig)
+    # upload a mobile device profile (mobileconfig)
     "$DIR"/../jamf-upload.sh mobiledeviceprofile \
         --prefs "$prefs" \
         --recipe-dir /Users/gpugh/sourcecode/jamf-upload/_tests \
@@ -209,7 +209,7 @@ elif [[ $test_type == "policy" ]]; then
         --replace
 
 elif [[ $test_type == "policy_retain_scope" ]]; then
-    # upload a policy
+    # upload a policy (retain scope)
     "$DIR"/../jamf-upload.sh policy \
         --prefs "$prefs" \
         --recipe-dir /Users/gpugh/sourcecode/jamf-upload/_tests \
@@ -224,7 +224,7 @@ elif [[ $test_type == "policy_retain_scope" ]]; then
         --retain-existing-scope
 
 elif [[ $test_type == "policydelete" ]]; then
-    # upload a policy
+    # delete a policy
     "$DIR"/../jamf-upload.sh policydelete \
         --prefs "$prefs" \
         --recipe-dir /Users/gpugh/sourcecode/jamf-upload/_tests \
@@ -232,7 +232,7 @@ elif [[ $test_type == "policydelete" ]]; then
         "$verbosity"
 
 elif [[ $test_type == "policy_flush" ]]; then
-    # upload a policy
+    # flush a policy
     "$DIR"/../jamf-upload.sh policy_flush \
         --prefs "$prefs" \
         --recipe-dir /Users/gpugh/sourcecode/jamf-upload/_tests \
@@ -241,7 +241,7 @@ elif [[ $test_type == "policy_flush" ]]; then
         "$verbosity"
 
 elif [[ $test_type == "account" ]]; then
-    # upload an account
+    # upload a group
     "$DIR"/../jamf-upload.sh account \
         --prefs "$prefs" \
         --recipe-dir /Users/gpugh/sourcecode/jamf-upload/_tests \
@@ -251,7 +251,7 @@ elif [[ $test_type == "account" ]]; then
         "$verbosity"
 
 elif [[ $test_type == "account2" ]]; then
-    # upload an account
+    # upload an account with group access
     "$DIR"/../jamf-upload.sh account \
         --prefs "$prefs" \
         --recipe-dir /Users/gpugh/sourcecode/jamf-upload/_tests \
@@ -265,7 +265,7 @@ elif [[ $test_type == "account2" ]]; then
         "$verbosity"
 
 elif [[ $test_type == "account3" ]]; then
-    # upload an account
+    # upload an account with full access
     "$DIR"/../jamf-upload.sh account \
         --prefs "$prefs" \
         --recipe-dir /Users/gpugh/sourcecode/jamf-upload/_tests \
@@ -309,7 +309,7 @@ elif [[ $test_type == "pkg" ]]; then
         # --recalculate \
 
 elif [[ $test_type == "pkg-noreplace" ]]; then
-    # upload a package
+    # upload a package but don't replace an existing one
     "$DIR"/../jamf-upload.sh pkg \
         --prefs "$prefs" \
         --recipe-dir /Users/gpugh/sourcecode/jamf-upload/_tests \
@@ -326,7 +326,7 @@ elif [[ $test_type == "pkg-noreplace" ]]; then
 elif [[ $test_type == "pkg-jcds2" ]]; then
     /usr/local/autopkg/python -m pip install boto3
 
-    # upload a package
+    # upload a package (JCDS2 mode)
     "$DIR"/../jamf-upload.sh pkg \
         --prefs "$prefs" \
         --recipe-dir /Users/gpugh/sourcecode/jamf-upload/_tests \
@@ -343,7 +343,7 @@ elif [[ $test_type == "pkg-jcds2" ]]; then
 elif [[ $test_type == "pkg-aws" ]]; then
     /usr/local/autopkg/python -m pip install boto3
 
-    # upload a package
+    # upload a package (AWS-CLI mode)
     "$DIR"/../jamf-upload.sh pkg \
         --prefs "$prefs" \
         --recipe-dir /Users/gpugh/sourcecode/jamf-upload/_tests \
@@ -358,22 +358,6 @@ elif [[ $test_type == "pkg-aws" ]]; then
         --replace
         # --name "erase-install-30" \
 
-elif [[ $test_type == "pkg-api" ]]; then
-    # upload a package
-    "$DIR"/../jamf-upload.sh pkg \
-        --prefs "$prefs" \
-        --recipe-dir /Users/gpugh/sourcecode/jamf-upload/_tests \
-        --pkg "$pkg_path" \
-        --pkg-name "$(basename "$pkg_path")" \
-        --name "$(basename "$pkg_path")" \
-        --category "Testing" \
-        --info "Uploaded directly by JamfPackageUploader using v1/packages" \
-        "$verbosity" \
-        --api \
-        --recalculate \
-        --replace
-        # --name "erase-install-30" \
-
 elif [[ $test_type == "pkgclean" ]]; then
     # cleanup a package type
     "$DIR"/../jamf-upload.sh pkgclean \
@@ -385,7 +369,7 @@ elif [[ $test_type == "pkgclean" ]]; then
         # --name "erase-install" \
 
 elif [[ $test_type == "pkgcalc" ]]; then
-    # cleanup a package type
+    # recalculate a package
     "$DIR"/../jamf-upload.sh pkgcalc \
         --prefs "$prefs" \
         --recipe-dir /Users/gpugh/sourcecode/jamf-upload/_tests \
@@ -403,7 +387,7 @@ elif [[ $test_type == "script" ]]; then
         --replace
 
 elif [[ $test_type == "patch" ]]; then
-    # upload a policy
+    # upload a patch policy
     "$DIR"/../jamf-upload.sh patch \
         --prefs "$prefs" \
         --recipe-dir /Users/gpugh/sourcecode/jamf-upload/_tests \
@@ -418,7 +402,7 @@ elif [[ $test_type == "patch" ]]; then
         --replace
 
 elif [[ $test_type == "patch2" ]]; then
-    # upload a policy
+    # upload a patch policy
     "$DIR"/../jamf-upload.sh patch \
         --prefs "$prefs" \
         --recipe-dir /Users/gpugh/sourcecode/jamf-upload/_tests \
@@ -446,7 +430,7 @@ elif [[ $test_type == "dock" ]]; then
         --replace
 
 elif [[ $test_type == "icon" ]]; then
-    # upload an icon
+    # upload an icon from a URL
     "$DIR"/../jamf-upload.sh icon \
         --prefs "$prefs" \
         --icon-uri "https://ics.services.jamfcloud.com/icon/hash_13139b4d9732a8b2fa3bbe25e6c6373e8ef6b85a7c7ba2bd15615195d63bc648" \
@@ -454,7 +438,7 @@ elif [[ $test_type == "icon" ]]; then
         "$url"
 
 elif [[ $test_type == "icon2" ]]; then
-    # upload an icon
+    # upload an icon from a file
     "$DIR"/../jamf-upload.sh icon \
         --prefs "$prefs" \
         --icon "/tmp/Apple Configurator.png" \
@@ -480,7 +464,7 @@ elif [[ $test_type == "slack" ]]; then
         --replace
 
 elif [[ $test_type == "teams" ]]; then
-    # send a webhook to slack
+    # send a webhook to teams
     "$DIR"/../jamf-upload.sh teams \
         --prefs "$prefs" \
         --name "JamfUploaderTeamsNotifier Test - please ignore" \
