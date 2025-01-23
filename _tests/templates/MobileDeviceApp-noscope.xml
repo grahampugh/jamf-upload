@@ -10,7 +10,7 @@
         <itunes_store_url>%itunes_store_url%</itunes_store_url>
         <make_available_after_install>true</make_available_after_install>
         <deployment_type>%DEPLOYMENT_TYPE%</deployment_type>
-        <deploy_automatically>true</deploy_automatically>
+        <deploy_automatically>false</deploy_automatically>
         <deploy_as_managed_app>true</deploy_as_managed_app>
         <remove_app_when_mdm_profile_is_removed>false</remove_app_when_mdm_profile_is_removed>
         <prevent_backup_of_app_data>false</prevent_backup_of_app_data>
@@ -28,11 +28,21 @@
             <mobile_devices/>
         </exclusions>
     </scope>
-    <self_service/>
-    <vpp_codes/>
-    <vpp>
-        <assign_vpp_device_based_licenses>true</assign_vpp_device_based_licenses>
-        <vpp_admin_account_id>%vpp_id%</vpp_admin_account_id>
-    </vpp>
-    <app_configuration/>
+	<self_service>
+		<self_service_install_button_text>Install</self_service_install_button_text>
+		<self_service_icon>
+            <uri>%selfservice_icon_uri%</uri>
+		</self_service_icon>
+		<feature_on_main_page>false</feature_on_main_page>
+		<self_service_categories/>
+		<notification>false</notification>
+		<notification_subject/>
+		<notification_message/>
+	</self_service>
+	<vpp_codes/>
+	<vpp>
+		<assign_vpp_device_based_licenses>true</assign_vpp_device_based_licenses>
+		<vpp_admin_account_id>3</vpp_admin_account_id>
+	</vpp>
+	<app_configuration/>
 </mobile_device_application>
