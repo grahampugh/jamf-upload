@@ -63,6 +63,7 @@ class JamfUploaderBase(Processor):
             "logflush": "JSSResource/logflush",
             "ldap_server": "JSSResource/ldapservers",
             "mac_application": "JSSResource/macapplications",
+            "mobile_device_application": "JSSResource/mobiledeviceapplications",
             "mobile_device_group": "JSSResource/mobiledevicegroups",
             "package": "JSSResource/packages",
             "package_v1": "api/v1/packages",
