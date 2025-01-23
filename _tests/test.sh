@@ -162,9 +162,9 @@ elif [[ $test_type == "macapp" ]]; then
     "$DIR"/../jamf-upload.sh macapp \
         --prefs "$prefs" \
         --recipe-dir /Users/gpugh/sourcecode/jamf-upload/_tests \
-        --name "Numbers" \
+        --name "Bitwarden" \
         --template "templates/MacApp-allcomputers.xml" \
-        --key CATEGORY="Applications" \
+        --key CATEGORY="JSPP - Applications" \
         --key DEPLOYMENT_TYPE="Make Available in Self Service" \
         "$verbosity" \
         --replace
@@ -174,10 +174,10 @@ elif [[ $test_type == "macapp2" ]]; then
     "$DIR"/../jamf-upload.sh macapp \
         --prefs "$prefs" \
         --recipe-dir /Users/gpugh/sourcecode/jamf-upload/_tests \
-        --name "Numbers - auto-install" \
-        --clone-from "Numbers" \
+        --name "Bitwarden - auto-install" \
+        --clone-from "Bitwarden" \
         --template "templates/MacApp-noscope-autoinstall.xml" \
-        --key CATEGORY="Applications" \
+        --key CATEGORY="JSPP - Applications" \
         --key DEPLOYMENT_TYPE="Install Automatically/Prompt Users to Install" \
         "$verbosity" \
         --replace
