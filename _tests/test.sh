@@ -182,6 +182,19 @@ elif [[ $test_type == "macapp2" ]]; then
         "$verbosity" \
         --replace
 
+elif [[ $test_type == "mobiledeviceapp" ]]; then
+    # clone a mac app with no scope
+    "$DIR"/../jamf-upload.sh mobiledeviceapp \
+        --prefs "$prefs" \
+        --recipe-dir /Users/Shared/GitHub/jamf-upload/_tests \
+        --name "Keynote - Automatic" \
+        --clone-from "Keynote" \
+        --template "templates/MobileDeviceApp-noscope-autoinstall.xml" \
+        --key CATEGORY="Applications" \
+        --key DEPLOYMENT_TYPE="Install Automatically/Prompt Users to Install" \
+        "$verbosity" \
+        --replace
+
 elif [[ $test_type == "mobiledeviceprofile" ]]; then
     # upload a mobile device profile (mobileconfig)
     "$DIR"/../jamf-upload.sh mobiledeviceprofile \

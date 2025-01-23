@@ -148,7 +148,7 @@ class JamfMobileDeviceAppUploaderBase(JamfUploaderBase):
                 mobiledeviceapp_template = found_template
             else:
                 raise ProcessorError(
-                    f"ERROR: Policy file {mobiledeviceapp_template} not found"
+                    f"ERROR: Mobile device app file {mobiledeviceapp_template} not found"
                 )
 
         # now start the process of uploading the object
