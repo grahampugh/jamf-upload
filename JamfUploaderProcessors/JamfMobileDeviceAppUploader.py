@@ -16,7 +16,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 
 NOTES:
-All functions are in JamfUploaderLib/JamfMacAppUploaderBase.py
+All functions are in JamfUploaderLib/JamfMobileDeviceAppUploaderBase.py
 """
 
 import os
@@ -27,18 +27,18 @@ import sys
 # imports require noqa comments for E402
 sys.path.insert(0, os.path.dirname(__file__))
 
-from JamfUploaderLib.JamfMacAppUploaderBase import (  # noqa: E402
-    JamfMacAppUploaderBase,
+from JamfUploaderLib.JamfMobileDeviceAppUploaderBase import (  # noqa: E402
+    JamfMobileDeviceAppUploaderBase,
 )
 
-__all__ = ["JamfMacAppUploader"]
+__all__ = ["JamfMobileDeviceAppUploader"]
 
 
-class JamfMacAppUploader(JamfMacAppUploaderBase):
+class JamfMobileDeviceAppUploader(JamfMobileDeviceAppUploaderBase):
     description = (
-        "A processor for AutoPkg that will update or clone a Mac App Store app "
+        "A processor for AutoPkg that will update or clone a Mobile device app "
         "object on a Jamf Pro server."
-        "Note that an icon can only be successsfully injected into a Mac App Store app "
+        "Note that an icon can only be successsfully injected into a Mobile device app "
         "item if Cloud Services Connection is enabled."
     )
 
@@ -71,28 +71,28 @@ class JamfMacAppUploader(JamfMacAppUploaderBase):
             "description": "Secret associated with the Client ID, optionally set as a key in "
             "the com.github.autopkg preference file.",
         },
-        "macapp_name": {
+        "mobiledeviceapp_name": {
             "required": False,
-            "description": "Mac App Store app name",
+            "description": "Mobile device app name",
             "default": "",
         },
         "clone_from": {
             "required": False,
-            "description": "Mac App Store app name from which to clone this entry",
+            "description": "Mobile device app name from which to clone this entry",
             "default": "",
         },
         "selfservice_icon_uri": {
             "required": False,
-            "description": "Mac App Store app icon URI",
+            "description": "Mobile device app icon URI",
             "default": "",
         },
-        "macapp_template": {
+        "mobiledeviceapp_template": {
             "required": False,
             "description": "Full path to the XML template",
         },
-        "replace_macapp": {
+        "replace_mobiledeviceapp": {
             "required": False,
-            "description": "Overwrite an existing Mac App Store app if True.",
+            "description": "Overwrite an existing Mobile device app if True.",
             "default": False,
         },
         "sleep": {
@@ -103,15 +103,15 @@ class JamfMacAppUploader(JamfMacAppUploaderBase):
     }
 
     output_variables = {
-        "jamfmacappuploader_summary_result": {
+        "jamfmobiledeviceappuploader_summary_result": {
             "description": "Description of interesting results.",
         },
-        "macapp_name": {
-            "description": "Jamf object name of the newly created or modified macapp.",
+        "mobiledeviceapp_name": {
+            "description": "Jamf object name of the newly created or modified Mobile device app.",
         },
-        "macapp_updated": {"description": "Boolean - True if the macapp was changed."},
-        "changed_macapp_id": {
-            "description": "Jamf object ID of the newly created or modified macapp.",
+        "mobiledeviceapp_updated": {"description": "Boolean - True if the Mobile device app was changed."},
+        "changed_mobiledeviceapp_id": {
+            "description": "Jamf object ID of the newly created or modified Mobile device app.",
         },
     }
 
@@ -122,5 +122,5 @@ class JamfMacAppUploader(JamfMacAppUploaderBase):
 
 
 if __name__ == "__main__":
-    PROCESSOR = JamfMacAppUploader()
+    PROCESSOR = JamfMobileDeviceAppUploader()
     PROCESSOR.execute_shell()
