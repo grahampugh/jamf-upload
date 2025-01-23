@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mobile_device_application>
+    <general>
+        <name>%mobiledeviceapp_name%</name>
+        <bundle_id>%bundleid%</bundle_id>
+        <version>%mobiledeviceapp_version%</version>
+        <category>
+            <name>%CATEGORY%</name>
+        </category>
+        <itunes_store_url>%itunes_store_url%</itunes_store_url>
+        <make_available_after_install>true</make_available_after_install>
+        <deployment_type>%DEPLOYMENT_TYPE%</deployment_type>
+        <deploy_automatically>true</deploy_automatically>
+        <deploy_as_managed_app>true</deploy_as_managed_app>
+        <remove_app_when_mdm_profile_is_removed>false</remove_app_when_mdm_profile_is_removed>
+        <prevent_backup_of_app_data>false</prevent_backup_of_app_data>
+        <allow_user_to_delete>true</allow_user_to_delete>
+        <require_network_tethered>false</require_network_tethered>
+        <keep_description_and_icon_up_to_date>false</keep_description_and_icon_up_to_date>
+        <keep_app_updated_on_devices>false</keep_app_updated_on_devices>
+        <free>true</free>
+        <take_over_management>true</take_over_management>
+    </general>
+    <scope>
+        <all_mobile_devices>false</all_mobile_devices>
+        <mobile_device_groups/>
+        <exclusions>
+            <mobile_devices/>
+        </exclusions>
+    </scope>
+    <self_service/>
+    <vpp_codes/>
+    <vpp>
+        <assign_vpp_device_based_licenses>true</assign_vpp_device_based_licenses>
+        <vpp_admin_account_id>%vpp_id%</vpp_admin_account_id>
+    </vpp>
+    <app_configuration/>
+</mobile_device_application>
