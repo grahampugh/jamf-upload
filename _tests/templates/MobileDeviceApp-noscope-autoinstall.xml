@@ -36,5 +36,5 @@
     </vpp>
     <app_configuration>
         <preferences>%appconfig%</preferences>
-	</app_configuration>
+    </app_configuration>
 </mobile_device_application>
