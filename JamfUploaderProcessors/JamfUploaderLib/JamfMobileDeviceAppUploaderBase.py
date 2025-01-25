@@ -56,6 +56,26 @@ class JamfMobileDeviceAppUploaderBase(JamfUploaderBase):
         else:
             self.output(f"Return code: {r.status_code}", verbose_level=2)
 
+    def make_escaped_appconfig_from_template(self, appconfig_template):
+        """create xml escaped appconfig data using a template file"""
+        if not appconfig_template.startswith("/"):
+            found_template = self.get_path_to_file(appconfig_template)
+            if found_template:
+                appconfig_template = found_template
+                with open(appconfig_template, "r", encoding="utf-8") as file:
+                    appconfig_xml = file.read()
+            
+                """substitute user assignable keys and escape XML"""
+                appconfig = self.substitute_assignable_keys(
+                    appconfig_xml, xml_escape=True
+                )
+                self.output("AppConfig written into template")
+                return appconfig
+            else:
+                raise ProcessorError(
+                    f"ERROR: AppConfig XML file {appconfig_template} not found"
+                )
+
     def prepare_mobiledeviceapp_template(self, mobiledeviceapp_name, mobiledeviceapp_template):
         """prepare the mobiledeviceapp contents"""
         # import template from file and replace any keys in the template
@@ -130,6 +150,7 @@ class JamfMobileDeviceAppUploaderBase(JamfUploaderBase):
         clone_from = self.env.get("clone_from")
         selfservice_icon_uri = self.env.get("selfservice_icon_uri")
         mobiledeviceapp_template = self.env.get("mobiledeviceapp_template")
+        appconfig_template = self.env.get("appconfig_template")
         replace_mobiledeviceapp = self.env.get("replace_mobiledeviceapp")
         sleep_time = self.env.get("sleep")
         # handle setting replace in overrides
@@ -262,6 +283,17 @@ class JamfMobileDeviceAppUploaderBase(JamfUploaderBase):
                     self.output(
                         "Didn't retrieve a VPP ID", verbose_level=2
                     )
+                # obtain appconfig
+                if not appconfig_template:
+                    appconfig = self.get_api_obj_value_from_id(
+                        jamf_url,
+                        "mobile_device_application",
+                        obj_id,
+                        "app_configuration/preferences",
+                        token=token,
+                    )
+                if appconfig_template:
+                    appconfig = self.make_escaped_appconfig_from_template(appconfig_template)
 
                 # we need to substitute the values in the Mobile device app name and template now to
                 # account for URL and Bundle ID
@@ -272,6 +304,7 @@ class JamfMobileDeviceAppUploaderBase(JamfUploaderBase):
                 self.env["itunes_store_url"] = itunes_store_url
                 self.env["selfservice_icon_uri"] = selfservice_icon_uri
                 self.env["vpp_id"] = vpp_id
+                self.env["appconfig"] = appconfig
                 mobiledeviceapp_name, template_xml = self.prepare_mobiledeviceapp_template(
                     mobiledeviceapp_name, mobiledeviceapp_template
                 )
@@ -399,6 +432,17 @@ class JamfMobileDeviceAppUploaderBase(JamfUploaderBase):
                     self.output(
                         "Didn't retrieve a VPP ID", verbose_level=2
                     )
+                # obtain appconfig
+                if not appconfig_template:
+                    appconfig = self.get_api_obj_value_from_id(
+                        jamf_url,
+                        "mobile_device_application",
+                        obj_id,
+                        "app_configuration/preferences",
+                        token=token,
+                    )
+                if appconfig_template:
+                    appconfig = self.make_escaped_appconfig_from_template(appconfig_template)
 
                 # we need to substitute the values in the Mobile device app name and template now to
                 # account for URL and Bundle ID
@@ -409,6 +453,7 @@ class JamfMobileDeviceAppUploaderBase(JamfUploaderBase):
                 self.env["itunes_store_url"] = itunes_store_url
                 self.env["selfservice_icon_uri"] = selfservice_icon_uri
                 self.env["vpp_id"] = vpp_id
+                self.env["appconfig"] = appconfig
                 mobiledeviceapp_name, template_xml = self.prepare_mobiledeviceapp_template(
                     mobiledeviceapp_name, mobiledeviceapp_template
                 )

@@ -90,6 +90,10 @@ class JamfMobileDeviceAppUploader(JamfMobileDeviceAppUploaderBase):
             "required": False,
             "description": "Full path to the XML template",
         },
+        "appconfig_template": {
+            "required": False,
+            "description": "Full path to the AppConfig XML template",
+        },
         "replace_mobiledeviceapp": {
             "required": False,
             "description": "Overwrite an existing Mobile device app if True.",

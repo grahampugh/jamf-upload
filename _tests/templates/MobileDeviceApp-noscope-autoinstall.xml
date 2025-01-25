@@ -34,5 +34,7 @@
         <assign_vpp_device_based_licenses>true</assign_vpp_device_based_licenses>
         <vpp_admin_account_id>%vpp_id%</vpp_admin_account_id>
     </vpp>
-    <app_configuration/>
+    <app_configuration>
+        <preferences>%appconfig%</preferences>
+	</app_configuration>
 </mobile_device_application>

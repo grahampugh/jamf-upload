@@ -114,6 +114,14 @@ Mac App Store App arguments:
     --key X=Y               Substitutable values in the template. Multiple values can be supplied
     --replace               Replace existing item
 
+Mobile Device app arguments:
+    --name <string>         The name
+    --cloned-from           The name of the Mobile Device app from which to clone
+    --template <path>       XML template
+    --appconfig <path>      AppConfig file
+    --key X=Y               Substitutable values in the template and AppConfig. Multiple values can be supplied
+    --replace               Replace existing item
+
 Mobile Device Group arguments:
     --name <string>         The name
     --template <path>       XML template
@@ -614,6 +622,14 @@ while test $# -gt 0 ; do
             elif [[ $processor == "JamfSoftwareRestrictionUploader" ]]; then
                 if plutil -replace restriction_template -string "$1" "$temp_processor_plist"; then
                     echo "   [jamf-upload] Wrote restriction_template='$1' into $temp_processor_plist"
+                fi
+            fi
+            ;;
+        --appconfig)
+            shift
+            if [[ $processor == "JamfMobileDeviceAppUploader" ]]; then
+                if plutil -replace appconfig_template -string "$1" "$temp_processor_plist"; then
+                    echo "   [jamf-upload] Wrote appconfig_template='$1' into $temp_processor_plist"
                 fi
             fi
             ;;

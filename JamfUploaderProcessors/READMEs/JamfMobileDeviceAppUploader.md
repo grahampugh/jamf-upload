@@ -36,6 +36,9 @@ A processor for AutoPkg that will update or clone a Mobile Device app object on 
 - **mobiledeviceapp_template:**
   - **required:** False
   - **description:** Full path to the XML template
+- **appconfig_template:**
+  - **required:** False
+  - **description:** Full path to the AppConfig XML template
 - **replace_mobiledeviceapp:**
   - **required:** False
   - **description:** Overwrite an existing Mobile Device app if True.

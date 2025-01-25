@@ -195,6 +195,20 @@ elif [[ $test_type == "mobiledeviceappauto" ]]; then
         "$verbosity" \
         --replace
 
+elif [[ $test_type == "mobiledeviceappautoconfig" ]]; then
+    # clone a mac app with no scope
+    "$DIR"/../jamf-upload.sh mobiledeviceapp \
+        --prefs "$prefs" \
+        --recipe-dir /Users/Shared/GitHub/jamf-upload/_tests \
+        --name "Keynote - Automatic" \
+        --clone-from "Keynote" \
+        --template "templates/MobileDeviceApp-noscope-autoinstall.xml" \
+        --appconfig "templates/AppConfig.xml" \
+        --key CATEGORY="Applications" \
+        --key DEPLOYMENT_TYPE="Install Automatically/Prompt Users to Install" \
+        "$verbosity" \
+        --replace
+
 elif [[ $test_type == "mobiledeviceappselfservice" ]]; then
     # clone a mac app with no scope
     "$DIR"/../jamf-upload.sh mobiledeviceapp \
@@ -203,6 +217,20 @@ elif [[ $test_type == "mobiledeviceappselfservice" ]]; then
         --name "Keynote" \
         --clone-from "Keynote" \
         --template "templates/MobileDeviceApp-noscope.xml" \
+        --key CATEGORY="Applications" \
+        --key DEPLOYMENT_TYPE="Make Available in Self Service" \
+        "$verbosity" \
+        --replace
+
+elif [[ $test_type == "mobiledeviceappselfserviceconfig" ]]; then
+    # clone a mac app with no scope
+    "$DIR"/../jamf-upload.sh mobiledeviceapp \
+        --prefs "$prefs" \
+        --recipe-dir /Users/Shared/GitHub/jamf-upload/_tests \
+        --name "Keynote" \
+        --clone-from "Keynote" \
+        --template "templates/MobileDeviceApp-noscope.xml" \
+        --appconfig "templates/AppConfig.xml" \
         --key CATEGORY="Applications" \
         --key DEPLOYMENT_TYPE="Make Available in Self Service" \
         "$verbosity" \

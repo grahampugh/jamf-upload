@@ -1,0 +1,18 @@
+<dict>
+    <key>INVITATION_STRING</key>
+    <string>$MOBILEDEVICEAPPINVITE</string>
+    <key>JSS_ID</key>
+    <string>$JSSID</string>
+    <key>SERIAL_NUMBER</key>
+    <string>$SERIALNUMBER</string>
+    <key>DEVICE_NAME</key>
+    <string>$DEVICENAME</string>
+    <key>MAC_ADDRESS</key>
+    <string>$MACADDRESS</string>
+    <key>MANAGEMENT_ID</key>
+    <string>$MANAGEMENTID</string>
+    <key>JSS_URL</key>      
+    <string>$JPS_URL</string>
+    <key>JAMFUPLOAD_VARIABLE</key>
+    <string>%CATEGORY%</string>
+</dict>
