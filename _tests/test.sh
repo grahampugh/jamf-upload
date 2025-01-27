@@ -16,6 +16,10 @@ pkg_path="/Users/gpugh/Downloads/vanta-universal.pkg"
 pkg_name="$(basename "$pkg_path")"
 
 # other variables (ensure some of the temporary variables are not in the prefs)
+# These keys are required to interact with a Jamf instance
+# JSS_URL
+# API_USERNAME
+# API_PASSWORD
 prefs="$HOME/Library/Preferences/com.github.autopkg.plist"
 # prefs="/Users/Shared/com.github.autopkg.plist"
 
@@ -162,9 +166,9 @@ elif [[ $test_type == "macapp" ]]; then
     "$DIR"/../jamf-upload.sh macapp \
         --prefs "$prefs" \
         --recipe-dir /Users/gpugh/sourcecode/jamf-upload/_tests \
-        --name "Numbers" \
+        --name "Bitwarden" \
         --template "templates/MacApp-allcomputers.xml" \
-        --key CATEGORY="Applications" \
+        --key CATEGORY="JSPP - Applications" \
         --key DEPLOYMENT_TYPE="Make Available in Self Service" \
         "$verbosity" \
         --replace
@@ -174,11 +178,65 @@ elif [[ $test_type == "macapp2" ]]; then
     "$DIR"/../jamf-upload.sh macapp \
         --prefs "$prefs" \
         --recipe-dir /Users/gpugh/sourcecode/jamf-upload/_tests \
-        --name "Numbers - auto-install" \
-        --clone-from "Numbers" \
+        --name "Bitwarden - auto-install" \
+        --clone-from "Bitwarden" \
         --template "templates/MacApp-noscope-autoinstall.xml" \
+        --key CATEGORY="JSPP - Applications" \
+        --key DEPLOYMENT_TYPE="Install Automatically/Prompt Users to Install" \
+        "$verbosity" \
+        --replace
+
+elif [[ $test_type == "mobiledeviceappauto" ]]; then
+    # clone a mac app with no scope
+    "$DIR"/../jamf-upload.sh mobiledeviceapp \
+        --prefs "$prefs" \
+        --recipe-dir /Users/Shared/GitHub/jamf-upload/_tests \
+        --name "Keynote - Automatic" \
+        --clone-from "Keynote" \
+        --template "templates/MobileDeviceApp-noscope-autoinstall.xml" \
         --key CATEGORY="Applications" \
         --key DEPLOYMENT_TYPE="Install Automatically/Prompt Users to Install" \
+        "$verbosity" \
+        --replace
+
+elif [[ $test_type == "mobiledeviceappautoconfig" ]]; then
+    # clone a mac app with no scope
+    "$DIR"/../jamf-upload.sh mobiledeviceapp \
+        --prefs "$prefs" \
+        --recipe-dir /Users/Shared/GitHub/jamf-upload/_tests \
+        --name "Keynote - Automatic" \
+        --clone-from "Keynote" \
+        --template "templates/MobileDeviceApp-noscope-autoinstall.xml" \
+        --appconfig "templates/AppConfig.xml" \
+        --key CATEGORY="Applications" \
+        --key DEPLOYMENT_TYPE="Install Automatically/Prompt Users to Install" \
+        "$verbosity" \
+        --replace
+
+elif [[ $test_type == "mobiledeviceappselfservice" ]]; then
+    # clone a mac app with no scope
+    "$DIR"/../jamf-upload.sh mobiledeviceapp \
+        --prefs "$prefs" \
+        --recipe-dir /Users/Shared/GitHub/jamf-upload/_tests \
+        --name "Keynote" \
+        --clone-from "Keynote" \
+        --template "templates/MobileDeviceApp-noscope.xml" \
+        --key CATEGORY="Applications" \
+        --key DEPLOYMENT_TYPE="Make Available in Self Service" \
+        "$verbosity" \
+        --replace
+
+elif [[ $test_type == "mobiledeviceappselfserviceconfig" ]]; then
+    # clone a mac app with no scope
+    "$DIR"/../jamf-upload.sh mobiledeviceapp \
+        --prefs "$prefs" \
+        --recipe-dir /Users/Shared/GitHub/jamf-upload/_tests \
+        --name "Keynote" \
+        --clone-from "Keynote" \
+        --template "templates/MobileDeviceApp-noscope.xml" \
+        --appconfig "templates/AppConfig.xml" \
+        --key CATEGORY="Applications" \
+        --key DEPLOYMENT_TYPE="Make Available in Self Service" \
         "$verbosity" \
         --replace
 

@@ -36,8 +36,8 @@ from JamfUploaderBase import (  # pylint: disable=import-error, wrong-import-pos
 )
 
 
-class JamfMacAppUploaderBase(JamfUploaderBase):
-    """Class for functions used to upload a mac app to Jamf"""
+class JamfMobileDeviceAppUploaderBase(JamfUploaderBase):
+    """Class for functions used to upload a mobile device app to Jamf"""
 
     def get_vpp_id(self, jamf_url, token):
         """Get the first Volume Purchasing Location ID."""
@@ -56,49 +56,69 @@ class JamfMacAppUploaderBase(JamfUploaderBase):
         else:
             self.output(f"Return code: {r.status_code}", verbose_level=2)
 
-    def prepare_macapp_template(self, macapp_name, macapp_template):
-        """prepare the macapp contents"""
+    def make_escaped_appconfig_from_template(self, appconfig_template):
+        """create xml escaped appconfig data using a template file"""
+        if not appconfig_template.startswith("/"):
+            found_template = self.get_path_to_file(appconfig_template)
+            if found_template:
+                appconfig_template = found_template
+                with open(appconfig_template, "r", encoding="utf-8") as file:
+                    appconfig_xml = file.read()
+            
+                """substitute user assignable keys and escape XML"""
+                appconfig = self.substitute_assignable_keys(
+                    appconfig_xml, xml_escape=True
+                )
+                self.output("AppConfig written into template")
+                return appconfig
+            else:
+                raise ProcessorError(
+                    f"ERROR: AppConfig XML file {appconfig_template} not found"
+                )
+
+    def prepare_mobiledeviceapp_template(self, mobiledeviceapp_name, mobiledeviceapp_template):
+        """prepare the mobiledeviceapp contents"""
         # import template from file and replace any keys in the template
-        if os.path.exists(macapp_template):
-            with open(macapp_template, "r", encoding="utf-8") as file:
+        if os.path.exists(mobiledeviceapp_template):
+            with open(mobiledeviceapp_template, "r", encoding="utf-8") as file:
                 template_contents = file.read()
         else:
             raise ProcessorError("Template does not exist!")
 
         # substitute user-assignable keys
-        macapp_name = self.substitute_assignable_keys(macapp_name)
+        mobiledeviceapp_name = self.substitute_assignable_keys(mobiledeviceapp_name)
         template_contents = self.substitute_assignable_keys(
             template_contents, xml_escape=True
         )
 
-        self.output("MAS app data:", verbose_level=2)
+        self.output("Mobile device app data:", verbose_level=2)
         self.output(template_contents, verbose_level=2)
 
         # write the template to temp file
         template_xml = self.write_temp_file(template_contents)
-        return macapp_name, template_xml
+        return mobiledeviceapp_name, template_xml
 
-    def upload_macapp(
+    def upload_mobiledeviceapp(
         self,
         jamf_url,
-        macapp_name,
+        mobiledeviceapp_name,
         template_xml,
         sleep_time,
         token,
         obj_id=0,
     ):
-        """Upload MAS app"""
+        """Upload Mobile device app"""
 
-        self.output("Uploading MAS app...")
+        self.output("Uploading Mobile device app...")
 
         # if we find an object ID we put, if not, we post
-        object_type = "mac_application"
+        object_type = "mobile_device_application"
         url = f"{jamf_url}/{self.api_endpoints(object_type)}/id/{obj_id}"
 
         count = 0
         while True:
             count += 1
-            self.output(f"MAS app upload attempt {count}", verbose_level=2)
+            self.output(f"Mobile device app upload attempt {count}", verbose_level=2)
             request = "PUT" if obj_id else "POST"
             r = self.curl(
                 request=request,
@@ -107,12 +127,12 @@ class JamfMacAppUploaderBase(JamfUploaderBase):
                 data=template_xml,
             )
             # check HTTP response
-            if self.status_check(r, "mac_application", macapp_name, request) == "break":
+            if self.status_check(r, "mobile_device_application", mobiledeviceapp_name, request) == "break":
                 break
             if count > 5:
-                self.output("WARNING: MAS app upload did not succeed after 5 attempts")
+                self.output("WARNING: Mobile device app upload did not succeed after 5 attempts")
                 self.output(f"\nHTTP POST Response Code: {r.status_code}")
-                raise ProcessorError("ERROR: Mac app upload failed ")
+                raise ProcessorError("ERROR: Mobile device app upload failed ")
             if int(sleep_time) > 30:
                 sleep(int(sleep_time))
             else:
@@ -120,39 +140,40 @@ class JamfMacAppUploaderBase(JamfUploaderBase):
         return r
 
     def execute(self):
-        """Upload a mac app"""
+        """Upload a mobile device app"""
         jamf_url = self.env.get("JSS_URL").rstrip("/")
         jamf_user = self.env.get("API_USERNAME")
         jamf_password = self.env.get("API_PASSWORD")
         client_id = self.env.get("CLIENT_ID")
         client_secret = self.env.get("CLIENT_SECRET")
-        macapp_name = self.env.get("macapp_name")
+        mobiledeviceapp_name = self.env.get("mobiledeviceapp_name")
         clone_from = self.env.get("clone_from")
         selfservice_icon_uri = self.env.get("selfservice_icon_uri")
-        macapp_template = self.env.get("macapp_template")
-        replace_macapp = self.env.get("replace_macapp")
+        mobiledeviceapp_template = self.env.get("mobiledeviceapp_template")
+        appconfig_template = self.env.get("appconfig_template")
+        replace_mobiledeviceapp = self.env.get("replace_mobiledeviceapp")
         sleep_time = self.env.get("sleep")
         # handle setting replace in overrides
-        if not replace_macapp or replace_macapp == "False":
-            replace_macapp = False
-        macapp_updated = False
+        if not replace_mobiledeviceapp or replace_mobiledeviceapp == "False":
+            replace_mobiledeviceapp = False
+        mobiledeviceapp_updated = False
 
         # clear any pre-existing summary result
-        if "jamfmacappuploader_summary_result" in self.env:
-            del self.env["jamfmacappuploader_summary_result"]
+        if "jamfmobiledeviceappuploader_summary_result" in self.env:
+            del self.env["jamfmobiledeviceappuploader_summary_result"]
 
         # handle files with a relative path
-        if not macapp_template.startswith("/"):
-            found_template = self.get_path_to_file(macapp_template)
+        if not mobiledeviceapp_template.startswith("/"):
+            found_template = self.get_path_to_file(mobiledeviceapp_template)
             if found_template:
-                macapp_template = found_template
+                mobiledeviceapp_template = found_template
             else:
                 raise ProcessorError(
-                    f"ERROR: Policy file {macapp_template} not found"
+                    f"ERROR: Mobile device app file {mobiledeviceapp_template} not found"
                 )
 
         # now start the process of uploading the object
-        self.output(f"Checking for existing '{macapp_name}' on {jamf_url}")
+        self.output(f"Checking for existing '{mobiledeviceapp_name}' on {jamf_url}")
 
         # get token using oauth or basic auth depending on the credentials given
         if jamf_url and client_id and client_secret:
@@ -165,8 +186,8 @@ class JamfMacAppUploaderBase(JamfUploaderBase):
             raise ProcessorError("ERROR: Credentials not supplied")
 
         # check for existing - requires obj_name
-        obj_type = "mac_application"
-        obj_name = macapp_name
+        obj_type = "mobile_device_application"
+        obj_name = mobiledeviceapp_name
         obj_id = self.get_api_obj_id_from_name(
             jamf_url,
             obj_name,
@@ -176,18 +197,18 @@ class JamfMacAppUploaderBase(JamfUploaderBase):
 
         if obj_id:
             self.output(
-                f"MAS app '{macapp_name}' already exists: ID {obj_id}"
+                f"Mobile device app '{mobiledeviceapp_name}' already exists: ID {obj_id}"
             )
-            if replace_macapp:
+            if replace_mobiledeviceapp:
                 self.output(
-                    f"Replacing existing MAS app as 'replace_macapp' is set to {replace_macapp}",
+                    f"Replacing existing Mobile device app as 'replace_mobiledeviceapp' is set to {replace_mobiledeviceapp}",
                     verbose_level=1,
                 )
 
-                # obtain the MAS app bundleid
+                # obtain the Mobile device app bundleid
                 bundleid = self.get_api_obj_value_from_id(
                     jamf_url,
-                    "mac_application",
+                    "mobile_device_application",
                     obj_id,
                     "general/bundle_id",
                     token=token,
@@ -196,49 +217,49 @@ class JamfMacAppUploaderBase(JamfUploaderBase):
                     self.output(
                         f"Existing bundle ID is '{bundleid}'", verbose_level=1
                     )
-                # obtain the MAS app version
-                macapp_version = self.get_api_obj_value_from_id(
+                # obtain the Mobile device app version
+                mobiledeviceapp_version = self.get_api_obj_value_from_id(
                     jamf_url,
-                    "mac_application",
+                    "mobile_device_application",
                     obj_id,
                     "general/version",
                     token=token,
                 )
-                if macapp_version:
+                if mobiledeviceapp_version:
                     self.output(
-                        f"Existing MAS app version is '{macapp_version}'",
+                        f"Existing Mobile device app version is '{mobiledeviceapp_version}'",
                         verbose_level=1,
                     )
-                # obtain the MAS app free status
-                macapp_is_free = self.get_api_obj_value_from_id(
+                # obtain the Mobile device app free status
+                mobiledeviceapp_free = self.get_api_obj_value_from_id(
                     jamf_url,
-                    "mac_application",
+                    "mobile_device_application",
                     obj_id,
-                    "general/is_free",
+                    "general/free",
                     token=token,
                 )
-                if macapp_is_free:
+                if mobiledeviceapp_free:
                     self.output(
-                        f"Existing MAS app free status is '{macapp_is_free}'",
+                        f"Existing Mobile device app free status is '{mobiledeviceapp_free}'",
                         verbose_level=1,
                     )
-                # obtain the MAS app URL
-                appstore_url = self.get_api_obj_value_from_id(
+                # obtain the Mobile device app URL
+                itunes_store_url = self.get_api_obj_value_from_id(
                     jamf_url,
-                    "mac_application",
+                    "mobile_device_application",
                     obj_id,
-                    "general/url",
+                    "general/itunes_store_url",
                     token=token,
                 )
-                if appstore_url:
+                if itunes_store_url:
                     self.output(
-                        f"Existing MAS URL is '{appstore_url}'", verbose_level=1
+                        f"Existing Mobile device URL is '{itunes_store_url}'", verbose_level=1
                     )
-                # obtain the MAS app icon
+                # obtain the Mobile device app icon
                 if not selfservice_icon_uri:
                     selfservice_icon_uri = self.get_api_obj_value_from_id(
                         jamf_url,
-                        "mac_application",
+                        "mobile_device_application",
                         obj_id,
                         "self_service/self_service_icon/uri",
                         token=token,
@@ -262,52 +283,64 @@ class JamfMacAppUploaderBase(JamfUploaderBase):
                     self.output(
                         "Didn't retrieve a VPP ID", verbose_level=2
                     )
+                # obtain appconfig
+                if not appconfig_template:
+                    appconfig = self.get_api_obj_value_from_id(
+                        jamf_url,
+                        "mobile_device_application",
+                        obj_id,
+                        "app_configuration/preferences",
+                        token=token,
+                    )
+                if appconfig_template:
+                    appconfig = self.make_escaped_appconfig_from_template(appconfig_template)
 
-                # we need to substitute the values in the MAS app name and template now to
+                # we need to substitute the values in the Mobile device app name and template now to
                 # account for URL and Bundle ID
-                self.env["macapp_name"] = macapp_name
-                self.env["macapp_version"] = macapp_version
-                self.env["macapp_is_free"] = str(macapp_is_free)
+                self.env["mobiledeviceapp_name"] = mobiledeviceapp_name
+                self.env["mobiledeviceapp_version"] = mobiledeviceapp_version
+                self.env["mobiledeviceapp_free"] = str(mobiledeviceapp_free)
                 self.env["bundleid"] = bundleid
-                self.env["appstore_url"] = appstore_url
+                self.env["itunes_store_url"] = itunes_store_url
                 self.env["selfservice_icon_uri"] = selfservice_icon_uri
                 self.env["vpp_id"] = vpp_id
-                macapp_name, template_xml = self.prepare_macapp_template(
-                    macapp_name, macapp_template
+                self.env["appconfig"] = appconfig
+                mobiledeviceapp_name, template_xml = self.prepare_mobiledeviceapp_template(
+                    mobiledeviceapp_name, mobiledeviceapp_template
                 )
 
-                # upload the macapp
-                self.upload_macapp(
+                # upload the mobiledeviceapp
+                self.upload_mobiledeviceapp(
                     jamf_url,
-                    macapp_name,
+                    mobiledeviceapp_name,
                     template_xml,
                     sleep_time,
                     token,
                     obj_id=obj_id,
                 )
-                macapp_updated = True
+                mobiledeviceapp_updated = True
 
                 # output the summary
-                self.env["macapp_name"] = macapp_name
-                self.env["macapp_updated"] = macapp_updated
-                if macapp_updated:
-                    self.env["jamfmacappuploader_summary_result"] = {
-                        "summary_text": "The following MAS apps were updated in Jamf Pro:",
-                        "report_fields": ["macapp", "template"],
+                self.env["mobiledeviceapp_name"] = mobiledeviceapp_name
+                self.env["mobiledeviceapp_updated"] = mobiledeviceapp_updated
+                if mobiledeviceapp_updated:
+                    self.env["jamfmobiledeviceappuploader_summary_result"] = {
+                        "summary_text": "The following Mobile device apps were updated in Jamf Pro:",
+                        "report_fields": ["mobiledeviceapp", "template"],
                         "data": {
-                            "macapp": macapp_name,
-                            "template": macapp_template,
+                            "mobiledeviceapp": mobiledeviceapp_name,
+                            "template": mobiledeviceapp_template,
                         },
                     }
             else:
                 self.output(
-                    "Not replacing existing MAS app. Use replace_macapp='True' to enforce.",
+                    "Not replacing existing Mobile device app. Use replace_mobiledeviceapp='True' to enforce.",
                     verbose_level=1,
                 )
                 return
         elif clone_from:
             # check for existing - requires obj_name
-            obj_type = "mac_application"
+            obj_type = "mobile_device_application"
             obj_name = clone_from
             obj_id = self.get_api_obj_id_from_name(
                 jamf_url,
@@ -317,13 +350,13 @@ class JamfMacAppUploaderBase(JamfUploaderBase):
             )
             if obj_id:
                 self.output(
-                    f"MAS app '{clone_from}' already exists: ID {obj_id}"
+                    f"Mobile device app '{clone_from}' already exists: ID {obj_id}"
                 )
 
-                # obtain the MAS app bundleid
+                # obtain the Mobile device app bundleid
                 bundleid = self.get_api_obj_value_from_id(
                     jamf_url,
-                    "mac_application",
+                    "mobile_device_application",
                     obj_id,
                     "general/bundle_id",
                     token=token,
@@ -332,49 +365,49 @@ class JamfMacAppUploaderBase(JamfUploaderBase):
                     self.output(
                         f"Existing bundle ID is '{bundleid}'", verbose_level=1
                     )
-                # obtain the MAS app version
-                macapp_version = self.get_api_obj_value_from_id(
+                # obtain the Mobile device app version
+                mobiledeviceapp_version = self.get_api_obj_value_from_id(
                     jamf_url,
-                    "mac_application",
+                    "mobile_device_application",
                     obj_id,
                     "general/version",
                     token=token,
                 )
-                if macapp_version:
+                if mobiledeviceapp_version:
                     self.output(
-                        f"Existing MAS app version is '{macapp_version}'",
+                        f"Existing Mobile device app version is '{mobiledeviceapp_version}'",
                         verbose_level=1,
                     )
-                # obtain the MAS app free status
-                macapp_is_free = self.get_api_obj_value_from_id(
+                # obtain the Mobile device app free status
+                mobiledeviceapp_free = self.get_api_obj_value_from_id(
                     jamf_url,
-                    "mac_application",
+                    "mobile_device_application",
                     obj_id,
-                    "general/is_free",
+                    "general/free",
                     token=token,
                 )
-                if macapp_is_free:
+                if mobiledeviceapp_free:
                     self.output(
-                        f"Existing MAS app free status is '{macapp_is_free}'",
+                        f"Existing Mobile device app free status is '{mobiledeviceapp_free}'",
                         verbose_level=1,
                     )
-                # obtain the MAS app URL
-                appstore_url = self.get_api_obj_value_from_id(
+                # obtain the Mobile device app URL
+                itunes_store_url = self.get_api_obj_value_from_id(
                     jamf_url,
-                    "mac_application",
+                    "mobile_device_application",
                     obj_id,
-                    "general/url",
+                    "general/itunes_store_url",
                     token=token,
                 )
-                if appstore_url:
+                if itunes_store_url:
                     self.output(
-                        f"Existing MAS URL is '{appstore_url}'", verbose_level=1
+                        f"Existing Mobile device URL is '{itunes_store_url}'", verbose_level=1
                     )
-                # obtain the MAS app icon
+                # obtain the Mobile device app icon
                 if not selfservice_icon_uri:
                     selfservice_icon_uri = self.get_api_obj_value_from_id(
                         jamf_url,
-                        "mac_application",
+                        "mobile_device_application",
                         obj_id,
                         "self_service/self_service_icon/uri",
                         token=token,
@@ -399,53 +432,65 @@ class JamfMacAppUploaderBase(JamfUploaderBase):
                     self.output(
                         "Didn't retrieve a VPP ID", verbose_level=2
                     )
+                # obtain appconfig
+                if not appconfig_template:
+                    appconfig = self.get_api_obj_value_from_id(
+                        jamf_url,
+                        "mobile_device_application",
+                        obj_id,
+                        "app_configuration/preferences",
+                        token=token,
+                    )
+                if appconfig_template:
+                    appconfig = self.make_escaped_appconfig_from_template(appconfig_template)
 
-                # we need to substitute the values in the MAS app name and template now to
+                # we need to substitute the values in the Mobile device app name and template now to
                 # account for URL and Bundle ID
-                self.env["macapp_name"] = macapp_name
-                self.env["macapp_version"] = macapp_version
-                self.env["macapp_is_free"] = str(macapp_is_free)
+                self.env["mobiledeviceapp_name"] = mobiledeviceapp_name
+                self.env["mobiledeviceapp_version"] = mobiledeviceapp_version
+                self.env["mobiledeviceapp_free"] = str(mobiledeviceapp_free)
                 self.env["bundleid"] = bundleid
-                self.env["appstore_url"] = appstore_url
+                self.env["itunes_store_url"] = itunes_store_url
                 self.env["selfservice_icon_uri"] = selfservice_icon_uri
                 self.env["vpp_id"] = vpp_id
-                macapp_name, template_xml = self.prepare_macapp_template(
-                    macapp_name, macapp_template
+                self.env["appconfig"] = appconfig
+                mobiledeviceapp_name, template_xml = self.prepare_mobiledeviceapp_template(
+                    mobiledeviceapp_name, mobiledeviceapp_template
                 )
 
-                # upload the macapp
-                self.upload_macapp(
+                # upload the mobiledeviceapp
+                self.upload_mobiledeviceapp(
                     jamf_url,
-                    macapp_name,
+                    mobiledeviceapp_name,
                     template_xml,
                     sleep_time,
                     token,
                     obj_id=0,
                 )
-                macapp_updated = True
+                mobiledeviceapp_updated = True
 
                 # output the summary
-                self.env["macapp_name"] = macapp_name
-                self.env["macapp_updated"] = macapp_updated
-                if macapp_updated:
-                    self.env["jamfmacappuploader_summary_result"] = {
-                        "summary_text": "The following MAS apps were updated in Jamf Pro:",
-                        "report_fields": ["macapp", "template"],
+                self.env["mobiledeviceapp_name"] = mobiledeviceapp_name
+                self.env["mobiledeviceapp_updated"] = mobiledeviceapp_updated
+                if mobiledeviceapp_updated:
+                    self.env["jamfmobiledeviceappuploader_summary_result"] = {
+                        "summary_text": "The following Mobile device apps were updated in Jamf Pro:",
+                        "report_fields": ["mobiledeviceapp", "template"],
                         "data": {
-                            "macapp": macapp_name,
-                            "template": macapp_template,
+                            "mobiledeviceapp": mobiledeviceapp_name,
+                            "template": mobiledeviceapp_template,
                         },
                     }
             else:
                 self.output(
-                    "No existing MAS app item in Jamf from which to clone.",
+                    "No existing Mobile device app item in Jamf from which to clone.",
                     verbose_level=1,
                 )
                 return
 
         else:
             self.output(
-                "No existing MAS app item in Jamf. This must be assigned in Apple "
+                "No existing Mobile device app item in Jamf. This must be assigned in Apple "
                 "Business Manager or Apple School Manager",
                 verbose_level=1,
             )
