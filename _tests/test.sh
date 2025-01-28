@@ -47,6 +47,14 @@ if [[ $test_type == "ldap_server" ]]; then
         "$verbosity" \
         --replace
 
+elif [[ $test_type == "classicobjread" ]]; then
+    # read a generic Classic API object
+    "$DIR"/../jamf-upload.sh classicobjread \
+        --prefs "$prefs" \
+        --type "policy" \
+        --name "JSPP - Collect Logs" \
+        "$verbosity"
+
 elif [[ $test_type == "category" ]]; then
     # upload a category
     "$DIR"/../jamf-upload.sh category \

@@ -16,6 +16,8 @@ Usage:
 Valid object types:
     account
     category
+    classicobj
+    classicobjread
     group | computergroup
     groupdelete | computergroupdelete
     mobiledevicegroup
@@ -96,6 +98,17 @@ Extension Attribute arguments:
     --script <path>         Full path of the script to be uploaded
     --key X=Y               Substitutable values in the template. Multiple values can be supplied
     --replace               Replace existing item
+
+Generic Classic API Object arguments:
+    --name <string>         The name
+    --type <string>         The API object type. This is the name of the key in the XML template.
+    --template <path>       XML template
+    --key X=Y               Substitutable values in the template. Multiple values can be supplied
+    --replace               Replace existing item
+
+Generic Classic API Object Read arguments:
+    --name <string>         The name
+    --type <string>         The API object type. This is the name of the key in the XML template.
 
 Icon arguments:
     --icon <path>           Full path to an icon file
@@ -308,6 +321,10 @@ if [[ $object == "account" ]]; then
     processor="JamfAccountUploader"
 elif [[ $object == "category" ]]; then 
     processor="JamfCategoryUploader"
+elif [[ $object == "classicobj" ]]; then
+    processor="JamfClassicAPIObjectUploader"
+elif [[ $object == "classicobjread" ]]; then
+    processor="JamfClassicAPIObjectReader"
 elif [[ $object == "group" || $object == "computergroup" ]]; then
     processor="JamfComputerGroupUploader"
 elif [[ $object == "groupdelete" || $object == "computergroupdelete" ]]; then
@@ -428,6 +445,9 @@ while test $# -gt 0 ; do
                 if plutil -replace account_type -string "$1" "$temp_processor_plist"; then
                     echo "   [jamf-upload] Wrote account_type='$1' into $temp_processor_plist"
                 fi
+            elif [[ $processor == "JamfClassicAPIObjectReader" || $processor == "JamfClassicAPIObjectUploader" ]]; then
+                # override for generic items, as this key is written later, normally providing the value of $object
+                object="$1"
             elif [[ $processor == "JamfDockItemUploader" ]]; then
                 if plutil -replace dock_item_type -string "$1" "$temp_processor_plist"; then
                     echo "   [jamf-upload] Wrote dock_item_type='$1' into $temp_processor_plist"
@@ -519,7 +539,7 @@ while test $# -gt 0 ; do
                 if plutil -replace category_name -string "$1" "$temp_processor_plist"; then
                     echo "   [jamf-upload] Wrote category_name='$1' into $temp_processor_plist"
                 fi
-            elif [[ $processor == "JamfClassicAPIObjectUploader" ]]; then
+            elif [[ $processor == "JamfClassicAPIObjectReader" || $processor == "JamfClassicAPIObjectUploader" ]]; then
                 if plutil -replace object_name -string "$1" "$temp_processor_plist"; then
                     echo "   [jamf-upload] Wrote object_name='$1' into $temp_processor_plist"
                 fi
@@ -622,14 +642,6 @@ while test $# -gt 0 ; do
             elif [[ $processor == "JamfSoftwareRestrictionUploader" ]]; then
                 if plutil -replace restriction_template -string "$1" "$temp_processor_plist"; then
                     echo "   [jamf-upload] Wrote restriction_template='$1' into $temp_processor_plist"
-                fi
-            fi
-            ;;
-        --appconfig)
-            shift
-            if [[ $processor == "JamfMobileDeviceAppUploader" ]]; then
-                if plutil -replace appconfig_template -string "$1" "$temp_processor_plist"; then
-                    echo "   [jamf-upload] Wrote appconfig_template='$1' into $temp_processor_plist"
                 fi
             fi
             ;;
@@ -761,6 +773,14 @@ while test $# -gt 0 ; do
             if [[ $processor == "JamfMacAppUploader" || $processor == "JamfMobileDeviceAppUploader" ]]; then
                 if plutil -replace clone_from -string "$1" "$temp_processor_plist"; then
                     echo "   [jamf-upload] Wrote clone_from='$1' into $temp_processor_plist"
+                fi
+            fi
+            ;;
+        --appconfig)
+            shift
+            if [[ $processor == "JamfMobileDeviceAppUploader" ]]; then
+                if plutil -replace appconfig_template -string "$1" "$temp_processor_plist"; then
+                    echo "   [jamf-upload] Wrote appconfig_template='$1' into $temp_processor_plist"
                 fi
             fi
             ;;
@@ -1150,10 +1170,10 @@ while test $# -gt 0 ; do
     shift
 done
 
-# add the object type for items using the generic JamfClassicAPIObjectUploader processor
-if [[ $processor == "JamfClassicAPIObjectUploader" ]]; then
+# add the object type for items using the generic JamfClassicAPIObjectReader and JamfClassicAPIObjectUploader processors
+if [[ $processor == "JamfClassicAPIObjectReader" || $processor == "JamfClassicAPIObjectUploader" ]]; then
     if plutil -replace object_type -string "$object" "$temp_processor_plist"; then
-        echo "   [jamf-upload] Wrote account_type='$object' into $temp_processor_plist"
+        echo "   [jamf-upload] Wrote object_type='$object' into $temp_processor_plist"
     fi
 fi
 

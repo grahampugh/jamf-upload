@@ -769,11 +769,11 @@ class JamfUploaderBase(Processor):
                         self.output(f"File found at: {matched_filepath}")
                         return matched_filepath
 
-    def get_api_obj_xml_from_id(self, jamf_url, object_type, obj_id, obj_path, token):
+    def get_api_obj_xml_from_id(self, jamf_url, object_type, obj_id, obj_path="", token=""):
         """get the value of an item in a Classic API object"""
         # define the relationship between the object types and their URL
         # we could make this shorter with some regex but I think this way is clearer
-        url = "{}/{}/id/{}".format(jamf_url, self.api_endpoints(object_type), obj_id)
+        url = f"{jamf_url}/{self.api_endpoints(object_type)}/id/{obj_id}"
         request = "GET"
         r = self.curl(request=request, url=url, token=token, accept_header="xml")
         if r.status_code == 200:
@@ -782,14 +782,18 @@ class JamfUploaderBase(Processor):
                 obj_xml = ET.fromstring(r.output)
             except ET.ParseError as xml_error:
                 raise ProcessorError from xml_error
-            obj_content = obj_xml.find(obj_path)
-            return obj_content
+            if obj_path:
+                obj_content = obj_xml.find(obj_path)
+            else:
+                ET.indent(obj_xml)
+                obj_content = ET.tostring(obj_xml, encoding="UTF-8")
+            return obj_content.decode("UTF-8")
 
     def get_api_obj_value_from_id(self, jamf_url, object_type, obj_id, obj_path, token):
         """get the value of an item in a Classic API object"""
         # define the relationship between the object types and their URL
         # we could make this shorter with some regex but I think this way is clearer
-        url = "{}/{}/id/{}".format(jamf_url, self.api_endpoints(object_type), obj_id)
+        url = f"{jamf_url}/{self.api_endpoints(object_type)}/id/{obj_id}"
         request = "GET"
         r = self.curl(request=request, url=url, token=token)
         if r.status_code == 200:
@@ -809,11 +813,12 @@ class JamfUploaderBase(Processor):
                         break
             if value:
                 self.output(
-                    "Value of '{}': {}".format(obj_path, value), verbose_level=2
+                    f"Value of '{obj_path}': {value}", verbose_level=2
                 )
             return value
 
     def pretty_print_xml(self, xml):
+        """prettifies XML"""
         proc = subprocess.Popen(
             ["xmllint", "--format", "/dev/stdin"],
             stdin=subprocess.PIPE,
