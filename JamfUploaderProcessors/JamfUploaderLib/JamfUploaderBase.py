@@ -195,12 +195,23 @@ class JamfUploaderBase(Processor):
                                 # this may not always work due to inconsistent
                                 # ISO 8601 time format in the expiry token,
                                 # so we look for a ValueError
-                                expires = datetime.strptime(
+                                # expires = datetime.strptime(
+                                #     data["expires"], "%Y-%m-%dT%H:%M:%S.%fZ"
+                                # )
+                                # if expires > datetime.now(timezone.utc):
+                                #     self.output("Existing token is valid")
+                                #     return data["token"]
+
+                                expires_timestamp = datetime.strptime(
                                     data["expires"], "%Y-%m-%dT%H:%M:%S.%fZ"
-                                )
-                                if expires > datetime.now(timezone.utc):
+                                ).timestamp()
+                                if (
+                                    expires_timestamp
+                                    > datetime.now(timezone.utc).timestamp()
+                                ):
                                     self.output("Existing token is valid")
                                     return data["token"]
+
                             except ValueError:
                                 self.output(
                                     "Token expiry could not be parsed", verbose_level=2
@@ -769,7 +780,9 @@ class JamfUploaderBase(Processor):
                         self.output(f"File found at: {matched_filepath}")
                         return matched_filepath
 
-    def get_api_obj_xml_from_id(self, jamf_url, object_type, obj_id, obj_path="", token=""):
+    def get_api_obj_xml_from_id(
+        self, jamf_url, object_type, obj_id, obj_path="", token=""
+    ):
         """get the value of an item in a Classic API object"""
         # define the relationship between the object types and their URL
         # we could make this shorter with some regex but I think this way is clearer
@@ -812,9 +825,7 @@ class JamfUploaderBase(Processor):
                         value = ""
                         break
             if value:
-                self.output(
-                    f"Value of '{obj_path}': {value}", verbose_level=2
-                )
+                self.output(f"Value of '{obj_path}': {value}", verbose_level=2)
             return value
 
     def pretty_print_xml(self, xml):
