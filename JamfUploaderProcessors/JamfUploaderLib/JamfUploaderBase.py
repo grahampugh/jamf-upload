@@ -255,7 +255,8 @@ class JamfUploaderBase(Processor):
                         seconds=expires_in
                     )
                     expires_str = datetime.strptime(
-                        str(expires_timestamp), "%Y-%m-%d %H:%M:%S.%f"
+                        str(expires_timestamp).removesuffix("+00:00"),
+                        "%Y-%m-%d %H:%M:%S.%f",
                     )
                     expires = expires_str.strftime("%Y-%m-%dT%H:%M:%S.%fZ")
 
