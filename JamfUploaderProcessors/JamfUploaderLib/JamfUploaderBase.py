@@ -42,7 +42,7 @@ class JamfUploaderBase(Processor):
     """Common functions used by at least two JamfUploader processors."""
 
     # Global version
-    __version__ = "2024.10.17.0"
+    __version__ = "2025.1.28.0"
 
     def api_endpoints(self, object_type):
         """Return the endpoint URL from the object type"""
@@ -255,7 +255,8 @@ class JamfUploaderBase(Processor):
                         seconds=expires_in
                     )
                     expires_str = datetime.strptime(
-                        str(expires_timestamp), "%Y-%m-%d %H:%M:%S.%f"
+                        str(expires_timestamp).removesuffix("+00:00"),
+                        "%Y-%m-%d %H:%M:%S.%f",
                     )
                     expires = expires_str.strftime("%Y-%m-%dT%H:%M:%S.%fZ")
 
