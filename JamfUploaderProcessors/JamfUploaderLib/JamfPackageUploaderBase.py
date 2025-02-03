@@ -580,10 +580,10 @@ class JamfPackageUploaderBase(JamfUploaderBase):
         self.output(f"Checking for '{category_name}' on {jamf_url}")
         obj_type = "category"
         obj_name = category_name
-        obj_id = self.get_uapi_obj_id_from_name(
+        obj_id = self.get_api_obj_id_from_name(
             jamf_url,
-            obj_type,
             obj_name,
+            obj_type,
             token,
         )
 
@@ -1022,10 +1022,10 @@ class JamfPackageUploaderBase(JamfUploaderBase):
                 pkg_id = 0
         else:
             filter_name = "packageName"
-            obj_id = self.get_uapi_obj_id_from_name(
+            obj_id = self.get_api_obj_id_from_name(
                 jamf_url,
-                "package_v1",
                 pkg_name,
+                "package_v1",
                 token=token,
                 filter_name=filter_name,
             )

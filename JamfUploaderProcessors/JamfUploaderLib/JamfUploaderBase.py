@@ -580,7 +580,7 @@ class JamfUploaderBase(Processor):
                 self.output(f"ERROR: No version of Jamf Pro received.  Error:\n{error}")
                 raise ProcessorError("No version of Jamf Pro received") from error
 
-    # def get_uapi_obj_id_from_name(
+    # def get_api_obj_id_from_name(
     #     self, jamf_url, object_type, object_name, token, filter_name="name"
     # ):
     #     """Get the Jamf Pro API object by name. This requires use of RSQL filtering"""
