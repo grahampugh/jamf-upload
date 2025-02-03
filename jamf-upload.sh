@@ -17,7 +17,7 @@ Valid object types:
     account
     category
     classicobj
-    classicobjread
+    read
     group | computergroup
     groupdelete | computergroupdelete
     mobiledevicegroup
@@ -235,6 +235,11 @@ Patch Policy arguments:
     --key X=Y               Substitutable values in the template. Multiple values can be supplied
     --replace               Replace existing item
 
+Read Classic API Object arguments:
+    --name <string>         The object name
+    --type <string>         The object type (e.g. policy)
+    --output <string>       Optional path to output the parsed XML to. Directories to path must exist.
+
 Script arguments:
     --name <string>         The name
     --script <path>         Full path of the script to be uploaded
@@ -323,8 +328,8 @@ elif [[ $object == "category" ]]; then
     processor="JamfCategoryUploader"
 elif [[ $object == "classicobj" ]]; then
     processor="JamfClassicAPIObjectUploader"
-elif [[ $object == "classicobjread" ]]; then
-    processor="JamfClassicAPIObjectReader"
+elif [[ $object == "read" ]]; then
+    processor="JamfObjectReader"
 elif [[ $object == "group" || $object == "computergroup" ]]; then
     processor="JamfComputerGroupUploader"
 elif [[ $object == "groupdelete" || $object == "computergroupdelete" ]]; then
@@ -445,7 +450,7 @@ while test $# -gt 0 ; do
                 if plutil -replace account_type -string "$1" "$temp_processor_plist"; then
                     echo "   [jamf-upload] Wrote account_type='$1' into $temp_processor_plist"
                 fi
-            elif [[ $processor == "JamfClassicAPIObjectReader" || $processor == "JamfClassicAPIObjectUploader" ]]; then
+            elif [[ $processor == "JamfObjectReader" || $processor == "JamfClassicAPIObjectUploader" ]]; then
                 # override for generic items, as this key is written later, normally providing the value of $object
                 object="$1"
             elif [[ $processor == "JamfDockItemUploader" ]]; then
@@ -539,7 +544,7 @@ while test $# -gt 0 ; do
                 if plutil -replace category_name -string "$1" "$temp_processor_plist"; then
                     echo "   [jamf-upload] Wrote category_name='$1' into $temp_processor_plist"
                 fi
-            elif [[ $processor == "JamfClassicAPIObjectReader" || $processor == "JamfClassicAPIObjectUploader" ]]; then
+            elif [[ $processor == "JamfObjectReader" || $processor == "JamfClassicAPIObjectUploader" ]]; then
                 if plutil -replace object_name -string "$1" "$temp_processor_plist"; then
                     echo "   [jamf-upload] Wrote object_name='$1' into $temp_processor_plist"
                 fi
@@ -642,6 +647,14 @@ while test $# -gt 0 ; do
             elif [[ $processor == "JamfSoftwareRestrictionUploader" ]]; then
                 if plutil -replace restriction_template -string "$1" "$temp_processor_plist"; then
                     echo "   [jamf-upload] Wrote restriction_template='$1' into $temp_processor_plist"
+                fi
+            fi
+            ;;
+        --output)
+            shift
+            if [[ $processor == "JamfObjectReader" ]]; then
+                if plutil -replace output_path -string "$1" "$temp_processor_plist"; then
+                    echo "   [jamf-upload] Wrote output_path='$1' into $temp_processor_plist"
                 fi
             fi
             ;;
@@ -1170,8 +1183,8 @@ while test $# -gt 0 ; do
     shift
 done
 
-# add the object type for items using the generic JamfClassicAPIObjectReader and JamfClassicAPIObjectUploader processors
-if [[ $processor == "JamfClassicAPIObjectReader" || $processor == "JamfClassicAPIObjectUploader" ]]; then
+# add the object type for items using the generic JamfObjectReader and JamfClassicAPIObjectUploader processors
+if [[ $processor == "JamfObjectReader" || $processor == "JamfClassicAPIObjectUploader" ]]; then
     if plutil -replace object_type -string "$object" "$temp_processor_plist"; then
         echo "   [jamf-upload] Wrote object_type='$object' into $temp_processor_plist"
     fi

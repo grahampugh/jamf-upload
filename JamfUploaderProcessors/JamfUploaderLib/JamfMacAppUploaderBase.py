@@ -147,9 +147,7 @@ class JamfMacAppUploaderBase(JamfUploaderBase):
             if found_template:
                 macapp_template = found_template
             else:
-                raise ProcessorError(
-                    f"ERROR: Policy file {macapp_template} not found"
-                )
+                raise ProcessorError(f"ERROR: Policy file {macapp_template} not found")
 
         # now start the process of uploading the object
         self.output(f"Checking for existing '{macapp_name}' on {jamf_url}")
@@ -158,9 +156,7 @@ class JamfMacAppUploaderBase(JamfUploaderBase):
         if jamf_url and client_id and client_secret:
             token = self.handle_oauth(jamf_url, client_id, client_secret)
         elif jamf_url and jamf_user and jamf_password:
-            token = self.handle_api_auth(
-                jamf_url, jamf_user, jamf_password
-            )
+            token = self.handle_api_auth(jamf_url, jamf_user, jamf_password)
         else:
             raise ProcessorError("ERROR: Credentials not supplied")
 
@@ -175,9 +171,7 @@ class JamfMacAppUploaderBase(JamfUploaderBase):
         )
 
         if obj_id:
-            self.output(
-                f"MAS app '{macapp_name}' already exists: ID {obj_id}"
-            )
+            self.output(f"MAS app '{macapp_name}' already exists: ID {obj_id}")
             if replace_macapp:
                 self.output(
                     f"Replacing existing MAS app as 'replace_macapp' is set to {replace_macapp}",
@@ -185,7 +179,7 @@ class JamfMacAppUploaderBase(JamfUploaderBase):
                 )
 
                 # obtain the MAS app bundleid
-                bundleid = self.get_api_obj_value_from_id(
+                bundleid = self.get_classic_api_obj_value_from_id(
                     jamf_url,
                     "mac_application",
                     obj_id,
@@ -193,11 +187,9 @@ class JamfMacAppUploaderBase(JamfUploaderBase):
                     token=token,
                 )
                 if bundleid:
-                    self.output(
-                        f"Existing bundle ID is '{bundleid}'", verbose_level=1
-                    )
+                    self.output(f"Existing bundle ID is '{bundleid}'", verbose_level=1)
                 # obtain the MAS app version
-                macapp_version = self.get_api_obj_value_from_id(
+                macapp_version = self.get_classic_api_obj_value_from_id(
                     jamf_url,
                     "mac_application",
                     obj_id,
@@ -210,7 +202,7 @@ class JamfMacAppUploaderBase(JamfUploaderBase):
                         verbose_level=1,
                     )
                 # obtain the MAS app free status
-                macapp_is_free = self.get_api_obj_value_from_id(
+                macapp_is_free = self.get_classic_api_obj_value_from_id(
                     jamf_url,
                     "mac_application",
                     obj_id,
@@ -223,7 +215,7 @@ class JamfMacAppUploaderBase(JamfUploaderBase):
                         verbose_level=1,
                     )
                 # obtain the MAS app URL
-                appstore_url = self.get_api_obj_value_from_id(
+                appstore_url = self.get_classic_api_obj_value_from_id(
                     jamf_url,
                     "mac_application",
                     obj_id,
@@ -236,7 +228,7 @@ class JamfMacAppUploaderBase(JamfUploaderBase):
                     )
                 # obtain the MAS app icon
                 if not selfservice_icon_uri:
-                    selfservice_icon_uri = self.get_api_obj_value_from_id(
+                    selfservice_icon_uri = self.get_classic_api_obj_value_from_id(
                         jamf_url,
                         "mac_application",
                         obj_id,
@@ -249,9 +241,7 @@ class JamfMacAppUploaderBase(JamfUploaderBase):
                             verbose_level=1,
                         )
                 # obtain the VPP location
-                self.output(
-                    "Obtaining VPP ID", verbose_level=2
-                )
+                self.output("Obtaining VPP ID", verbose_level=2)
                 vpp_id = self.get_vpp_id(jamf_url, token)
                 if vpp_id:
                     self.output(
@@ -259,9 +249,7 @@ class JamfMacAppUploaderBase(JamfUploaderBase):
                         verbose_level=1,
                     )
                 else:
-                    self.output(
-                        "Didn't retrieve a VPP ID", verbose_level=2
-                    )
+                    self.output("Didn't retrieve a VPP ID", verbose_level=2)
 
                 # we need to substitute the values in the MAS app name and template now to
                 # account for URL and Bundle ID
@@ -316,12 +304,10 @@ class JamfMacAppUploaderBase(JamfUploaderBase):
                 token=token,
             )
             if obj_id:
-                self.output(
-                    f"MAS app '{clone_from}' already exists: ID {obj_id}"
-                )
+                self.output(f"MAS app '{clone_from}' already exists: ID {obj_id}")
 
                 # obtain the MAS app bundleid
-                bundleid = self.get_api_obj_value_from_id(
+                bundleid = self.get_classic_api_obj_value_from_id(
                     jamf_url,
                     "mac_application",
                     obj_id,
@@ -329,11 +315,9 @@ class JamfMacAppUploaderBase(JamfUploaderBase):
                     token=token,
                 )
                 if bundleid:
-                    self.output(
-                        f"Existing bundle ID is '{bundleid}'", verbose_level=1
-                    )
+                    self.output(f"Existing bundle ID is '{bundleid}'", verbose_level=1)
                 # obtain the MAS app version
-                macapp_version = self.get_api_obj_value_from_id(
+                macapp_version = self.get_classic_api_obj_value_from_id(
                     jamf_url,
                     "mac_application",
                     obj_id,
@@ -346,7 +330,7 @@ class JamfMacAppUploaderBase(JamfUploaderBase):
                         verbose_level=1,
                     )
                 # obtain the MAS app free status
-                macapp_is_free = self.get_api_obj_value_from_id(
+                macapp_is_free = self.get_classic_api_obj_value_from_id(
                     jamf_url,
                     "mac_application",
                     obj_id,
@@ -359,7 +343,7 @@ class JamfMacAppUploaderBase(JamfUploaderBase):
                         verbose_level=1,
                     )
                 # obtain the MAS app URL
-                appstore_url = self.get_api_obj_value_from_id(
+                appstore_url = self.get_classic_api_obj_value_from_id(
                     jamf_url,
                     "mac_application",
                     obj_id,
@@ -372,7 +356,7 @@ class JamfMacAppUploaderBase(JamfUploaderBase):
                     )
                 # obtain the MAS app icon
                 if not selfservice_icon_uri:
-                    selfservice_icon_uri = self.get_api_obj_value_from_id(
+                    selfservice_icon_uri = self.get_classic_api_obj_value_from_id(
                         jamf_url,
                         "mac_application",
                         obj_id,
@@ -386,9 +370,7 @@ class JamfMacAppUploaderBase(JamfUploaderBase):
                         )
 
                 # obtain the VPP location
-                self.output(
-                    "Obtaining VPP ID", verbose_level=2
-                )
+                self.output("Obtaining VPP ID", verbose_level=2)
                 vpp_id = self.get_vpp_id(jamf_url, token)
                 if vpp_id:
                     self.output(
@@ -396,9 +378,7 @@ class JamfMacAppUploaderBase(JamfUploaderBase):
                         verbose_level=1,
                     )
                 else:
-                    self.output(
-                        "Didn't retrieve a VPP ID", verbose_level=2
-                    )
+                    self.output("Didn't retrieve a VPP ID", verbose_level=2)
 
                 # we need to substitute the values in the MAS app name and template now to
                 # account for URL and Bundle ID

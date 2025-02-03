@@ -47,18 +47,70 @@ if [[ $test_type == "ldap_server" ]]; then
         "$verbosity" \
         --replace
 
-elif [[ $test_type == "classicobjread" ]]; then
+# example object types (Classic API)
+# computer_group
+# os_x_configuration_profile
+# configuration_profile
+# mac_application
+
+# example object types (Jamf Pro API)
+# script
+
+elif [[ $test_type == "read-policy" ]]; then
     # read a generic Classic API object
-    "$DIR"/../jamf-upload.sh classicobjread \
+    "$DIR"/../jamf-upload.sh read \
         --prefs "$prefs" \
+        --recipe-dir /Users/gpugh/sourcecode/jamf-upload/_tests \
         --type "policy" \
-        --name "JSPP - Collect Logs" \
+        --name "Firefox" \
+        --output "/Users/Shared/Jamf/JamfUploaderTests/Policy-Template-Firefox.xml" \
+        "$verbosity"
+
+elif [[ $test_type == "read-macapp" ]]; then
+    # read a generic Classic API object
+    "$DIR"/../jamf-upload.sh read \
+        --prefs "$prefs" \
+        --recipe-dir /Users/gpugh/sourcecode/jamf-upload/_tests \
+        --type "mac_application" \
+        --name "Numbers" \
+        --output "/Users/Shared/Jamf/JamfUploaderTests/MacApp-Template-Numbers.xml" \
+        "$verbosity"
+
+elif [[ $test_type == "read-profile" ]]; then
+    # read a generic Classic API object
+    "$DIR"/../jamf-upload.sh read \
+        --prefs "$prefs" \
+        --recipe-dir /Users/gpugh/sourcecode/jamf-upload/_tests \
+        --type "os_x_configuration_profile" \
+        --name "Nudge" \
+        --output "/Users/Shared/Jamf/JamfUploaderTests/Profile-Template-Nudge.xml" \
+        "$verbosity"
+
+elif [[ $test_type == "read-script" ]]; then
+    # read a generic Jamf Pro API object
+    "$DIR"/../jamf-upload.sh read \
+        --prefs "$prefs" \
+        --recipe-dir /Users/gpugh/sourcecode/jamf-upload/_tests \
+        --type "script" \
+        --name "SpotifyPostinstall.sh" \
+        --output "/Users/Shared/Jamf/JamfUploaderTests/Script-Template-SpotifyPostinstall.json" \
+        "$verbosity"
+
+elif [[ $test_type == "read-category" ]]; then
+    # read a generic Jamf Pro API object
+    "$DIR"/../jamf-upload.sh read \
+        --prefs "$prefs" \
+        --recipe-dir /Users/gpugh/sourcecode/jamf-upload/_tests \
+        --type "category" \
+        --name "Applications" \
+        --output "/Users/Shared/Jamf/JamfUploaderTests/Category-Template-Applications.json" \
         "$verbosity"
 
 elif [[ $test_type == "category" ]]; then
     # upload a category
     "$DIR"/../jamf-upload.sh category \
         --prefs "$prefs" \
+        --recipe-dir /Users/gpugh/sourcecode/jamf-upload/_tests \
         --name JamfUploadTest \
         --priority 18 \
         "$verbosity" \

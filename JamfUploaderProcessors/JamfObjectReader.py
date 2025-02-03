@@ -18,7 +18,7 @@ limitations under the License.
 NOTES:
 The API endpoint must be defined in the api_endpoints function in JamfUploaderBase.py
 
-All functions are in JamfUploaderLib/JamfClassicAPIObjectReaderBase.py
+All functions are in JamfUploaderLib/JamfObjectReaderBase.py
 """
 
 import os.path
@@ -29,14 +29,16 @@ import sys
 # imports require noqa comments for E402
 sys.path.insert(0, os.path.dirname(__file__))
 
-from JamfUploaderLib.JamfClassicAPIObjectReaderBase import (  # noqa: E402
-    JamfClassicAPIObjectReaderBase,
+from JamfUploaderLib.JamfObjectReaderBase import (  # pylint: disable=import-error, wrong-import-position
+    JamfObjectReaderBase,
 )
 
-__all__ = ["JamfClassicAPIObjectReader"]
+__all__ = ["JamfObjectReader"]
 
 
-class JamfClassicAPIObjectReader(JamfClassicAPIObjectReaderBase):
+class JamfObjectReader(JamfObjectReaderBase):
+    """Processor to read an API object"""
+
     description = (
         "A processor for AutoPkg that will read an API object template "
         "on a Jamf Pro server."
@@ -82,6 +84,11 @@ class JamfClassicAPIObjectReader(JamfClassicAPIObjectReaderBase):
             "description": "Type of the object. This is the name of the key in the XML template",
             "default": "",
         },
+        "output_path": {
+            "required": False,
+            "description": "Path to dump the xml",
+            "default": "",
+        },
     }
 
     output_variables = {
@@ -90,6 +97,15 @@ class JamfClassicAPIObjectReader(JamfClassicAPIObjectReaderBase):
         },
         "object_id": {
             "description": "Jamf object ID of the object.",
+        },
+        "raw_object": {
+            "description": "String containing the complete raw downloaded XML",
+        },
+        "parsed_object": {
+            "description": "String containing parsed XML (removes IDs and computers)",
+        },
+        "output_path": {
+            "description": "Path of dumped xml",
         },
     }
 
@@ -100,5 +116,5 @@ class JamfClassicAPIObjectReader(JamfClassicAPIObjectReaderBase):
 
 
 if __name__ == "__main__":
-    PROCESSOR = JamfClassicAPIObjectReader()
+    PROCESSOR = JamfObjectReader()
     PROCESSOR.execute_shell()

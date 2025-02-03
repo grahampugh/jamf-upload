@@ -20,8 +20,6 @@ limitations under the License.
 import os.path
 import sys
 
-from time import sleep
-
 from autopkglib import (  # pylint: disable=import-error
     ProcessorError,
 )
@@ -36,7 +34,7 @@ from JamfUploaderBase import (  # pylint: disable=import-error, wrong-import-pos
 )
 
 
-class JamfClassicAPIObjectReaderBase(JamfUploaderBase):
+class JamfObjectReaderBase(JamfUploaderBase):
     """Class for functions used to read a generic Classic API object in Jamf"""
 
     def execute(self):
@@ -48,6 +46,7 @@ class JamfClassicAPIObjectReaderBase(JamfUploaderBase):
         client_secret = self.env.get("CLIENT_SECRET")
         object_name = self.env.get("object_name")
         object_type = self.env.get("object_type")
+        output_path = self.env.get("output_path")
 
         # clear any pre-existing summary result
         if "jamfclassicapiobjectreader_summary_result" in self.env:
@@ -76,14 +75,36 @@ class JamfClassicAPIObjectReaderBase(JamfUploaderBase):
         if obj_id:
             self.output(f"{object_type} '{object_name}' exists: ID {obj_id}")
             # get the XML
-            existing_object_xml = self.get_api_obj_xml_from_id(
+            raw_object = self.get_api_obj_contents_from_id(
                 jamf_url, object_type, obj_id, obj_path="", token=token
             )
+            self.output(raw_object, verbose_level=2)  # TEMP
 
-            self.output(existing_object_xml) # TEMP
+            # parse the XML
+            parsed_object = self.parse_downloaded_api_object(raw_object, object_type)
+            # self.output(parsed_object, verbose_level=2)  # TEMP
 
+            # dump the XML to file is output_path is specified
+            if output_path:
+                # check that parent folder exists
+                if os.path.exists(os.path.dirname(output_path)):
+                    try:
+                        with open(output_path, "w", encoding="utf-8") as fp:
+                            fp.write(parsed_object)
+                        self.output(f"Wrote parsed object to {output_path}")
+                    except IOError as e:
+                        raise ProcessorError(
+                            f"Could not write XML to {output_path} - {str(e)}"
+                        ) from e
+                else:
+                    self.output(f"Cannot write to {output_path} as it doesn't exist")
+        else:
+            self.output(f"{object_type} '{object_name}' not found on {jamf_url}")
 
         # output the summary
         self.env["object_name"] = object_name
         self.env["object_id"] = obj_id
         self.env["object_type"] = object_type
+        self.env["raw_object"] = raw_object or None
+        self.env["parsed_object"] = parsed_object or None
+        self.env["output_path"] = output_path
