@@ -49,7 +49,7 @@ class JamfUploaderBase(Processor):
         api_endpoints = {
             "account": "JSSResource/accounts",
             "category": "uapi/v1/categories",
-            "extension_attribute": "JSSResource/computerextensionattributes",
+            "extension_attribute": "api/v1/computer-extension-attributes",
             "computer_group": "JSSResource/computergroups",
             "configuration_profile": "JSSResource/mobiledeviceconfigurationprofiles",
             "dock_item": "JSSResource/dockitems",
