@@ -546,7 +546,7 @@ class JamfUploaderBase(Processor):
         else:
             action = "unknown"
 
-        if r.status_code == 200 or r.status_code == 201:
+        if r.status_code == 200 or r.status_code == 201 or r.status_code == 202:
             if endpoint_type == "jcds":
                 self.output("JCDS2 credentials successfully received", verbose_level=2)
             else:
