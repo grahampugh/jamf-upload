@@ -65,11 +65,21 @@ class JamfObjectReaderBase(JamfUploaderBase):
         # Check for existing item
         self.output(f"Checking for existing '{object_name}' on {jamf_url}")
 
+        # prestages have a displayName key instead of the normal name key
+        if (
+            object_type == "computer_prestage"
+            or object_type == "mobile_device_prestage"
+        ):
+            filter_name = "displayName"
+        else:
+            filter_name = "name"
+
         obj_id = self.get_api_obj_id_from_name(
             jamf_url,
             object_name,
             object_type,
             token=token,
+            filter_name=filter_name,
         )
 
         if obj_id:

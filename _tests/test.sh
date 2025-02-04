@@ -21,7 +21,7 @@ pkg_name="$(basename "$pkg_path")"
 # API_USERNAME
 # API_PASSWORD
 prefs="$HOME/Library/Preferences/com.github.autopkg.plist"
-# prefs="/Users/Shared/com.github.autopkg.plist"
+prefs_alt="/Users/Shared/com.github.autopkg.plist"
 
 # ensure pkg upload modes are disabled
 defaults write "$prefs" jcds_mode -bool False
@@ -52,6 +52,7 @@ if [[ $test_type == "ldap_server" ]]; then
 # os_x_configuration_profile
 # configuration_profile
 # mac_application
+# mobile_device_application
 
 # example object types (Jamf Pro API)
 # script
@@ -64,6 +65,16 @@ elif [[ $test_type == "read-policy" ]]; then
         --type "policy" \
         --name "Firefox" \
         --output "/Users/Shared/Jamf/JamfUploaderTests/Policy-Template-Firefox.xml" \
+        "$verbosity"
+
+elif [[ $test_type == "read-mobiledeviceapp" ]]; then
+    # read a generic Classic API object
+    "$DIR"/../jamf-upload.sh read \
+        --prefs "$prefs_alt" \
+        --recipe-dir /Users/gpugh/sourcecode/jamf-upload/_tests \
+        --type "mobile_device_application" \
+        --name "Jamf Self Service" \
+        --output "/Users/Shared/Jamf/JamfUploaderTests/MobileDeviceApp-Template-JamfSelfService.xml" \
         "$verbosity"
 
 elif [[ $test_type == "read-macapp" ]]; then
@@ -104,6 +115,16 @@ elif [[ $test_type == "read-category" ]]; then
         --type "category" \
         --name "Applications" \
         --output "/Users/Shared/Jamf/JamfUploaderTests/Category-Template-Applications.json" \
+        "$verbosity"
+
+elif [[ $test_type == "read-prestage" ]]; then
+    # read a generic Jamf Pro API object
+    "$DIR"/../jamf-upload.sh read \
+        --prefs "$prefs_alt" \
+        --recipe-dir /Users/gpugh/sourcecode/jamf-upload/_tests \
+        --type "computer_prestage" \
+        --name "1:1" \
+        --output "/Users/Shared/Jamf/JamfUploaderTests/PreStage-Template-1-1.json" \
         "$verbosity"
 
 elif [[ $test_type == "category" ]]; then
@@ -279,7 +300,6 @@ elif [[ $test_type == "mobiledeviceappselfservice" ]]; then
         --prefs "$prefs" \
         --recipe-dir /Users/Shared/GitHub/jamf-upload/_tests \
         --name "Keynote" \
-        --clone-from "Keynote" \
         --template "templates/MobileDeviceApp-noscope.xml" \
         --key CATEGORY="Applications" \
         --key DEPLOYMENT_TYPE="Make Available in Self Service" \
@@ -292,11 +312,20 @@ elif [[ $test_type == "mobiledeviceappselfserviceconfig" ]]; then
         --prefs "$prefs" \
         --recipe-dir /Users/Shared/GitHub/jamf-upload/_tests \
         --name "Keynote" \
-        --clone-from "Keynote" \
         --template "templates/MobileDeviceApp-noscope.xml" \
         --appconfig "templates/AppConfig.xml" \
         --key CATEGORY="Applications" \
         --key DEPLOYMENT_TYPE="Make Available in Self Service" \
+        "$verbosity" \
+        --replace
+
+elif [[ $test_type == "mobiledeviceapp-fromread" ]]; then
+    # clone a mac app with no scope
+    "$DIR"/../jamf-upload.sh mobiledeviceapp \
+        --prefs "$prefs_alt" \
+        --recipe-dir /Users/Shared/GitHub/jamf-upload/_tests \
+        --name "Jamf Self Service" \
+        --template "/Users/Shared/Jamf/JamfUploaderTests/MobileDeviceApp-Template-JamfSelfService.xml" \
         "$verbosity" \
         --replace
 

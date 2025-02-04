@@ -42,7 +42,7 @@ class JamfMacAppUploaderBase(JamfUploaderBase):
     def get_vpp_id(self, jamf_url, token):
         """Get the first Volume Purchasing Location ID."""
         url_filter = "?page=0&page-size=100&sort=id"
-        object_type = "volume_purchasing_locations"
+        object_type = "volume_purchasing_location"
         url = jamf_url + "/" + self.api_endpoints(object_type) + url_filter
         r = self.curl(request="GET", url=url, token=token)
         if r.status_code == 200:

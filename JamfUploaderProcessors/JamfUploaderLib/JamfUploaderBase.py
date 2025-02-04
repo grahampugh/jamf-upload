@@ -16,6 +16,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 """
 
+import collections
 import json
 import os
 import re
@@ -51,6 +52,7 @@ class JamfUploaderBase(Processor):
             "category": "api/v1/categories",
             "extension_attribute": "JSSResource/computerextensionattributes",
             "computer_group": "JSSResource/computergroups",
+            "computer_prestage": "api/v3/computer-prestages",
             "configuration_profile": "JSSResource/mobiledeviceconfigurationprofiles",
             "dock_item": "JSSResource/dockitems",
             "failover": "api/v1/sso/failover",
@@ -62,6 +64,7 @@ class JamfUploaderBase(Processor):
             "mac_application": "JSSResource/macapplications",
             "mobile_device_application": "JSSResource/mobiledeviceapplications",
             "mobile_device_group": "JSSResource/mobiledevicegroups",
+            "mobile_device_prestage": "api/v3/mobile_-evice-prestages",
             "package": "JSSResource/packages",
             "package_v1": "api/v1/packages",
             "package_upload": "dbfileupload",
@@ -74,7 +77,7 @@ class JamfUploaderBase(Processor):
             "restricted_software": "JSSResource/restrictedsoftware",
             "script": "api/v1/scripts",
             "token": "api/v1/auth/token",
-            "volume_purchasing_locations": "api/v1/volume-purchasing-locations",
+            "volume_purchasing_location": "api/v1/volume-purchasing-locations",
         }
         return api_endpoints[object_type]
 
@@ -580,26 +583,6 @@ class JamfUploaderBase(Processor):
                 self.output(f"ERROR: No version of Jamf Pro received.  Error:\n{error}")
                 raise ProcessorError("No version of Jamf Pro received") from error
 
-    # def get_api_obj_id_from_name(
-    #     self, jamf_url, object_type, object_name, token, filter_name="name"
-    # ):
-    #     """Get the Jamf Pro API object by name. This requires use of RSQL filtering"""
-    #     url_filter = f"?page=0&page-size=1000&sort=id&filter={filter_name}%3D%3D%22{quote(object_name)}%22"
-    #     url = jamf_url + "/" + self.api_endpoints(object_type) + url_filter
-    #     r = self.curl(request="GET", url=url, token=token)
-    #     if r.status_code == 200:
-    #         obj_id = 0
-    #         # output = json.loads(r.output)
-    #         output = r.output
-    #         for obj in output["results"]:
-    #             self.output(
-    #                 f"ID: {obj['id']} NAME: {obj[filter_name]}", verbose_level=3
-    #             )
-    #             if obj[filter_name] == object_name:
-    #                 obj_id = obj["id"]
-    #                 break
-    #         return obj_id
-
     def get_api_obj_id_from_name(
         self, jamf_url, object_name, object_type, token, filter_name="name"
     ):
@@ -637,11 +620,11 @@ class JamfUploaderBase(Processor):
             r = self.curl(request="GET", url=url, token=token)
             if r.status_code == 200:
                 obj_id = 0
-                # output = json.loads(r.output)
                 output = r.output
                 for obj in output["results"]:
                     self.output(
-                        f"ID: {obj['id']} NAME: {obj[filter_name]}", verbose_level=3
+                        f"ID: {obj.get('id')} NAME: {obj.get(filter_name)}",
+                        verbose_level=3,
                     )
                     if obj[filter_name] == object_name:
                         obj_id = obj["id"]
@@ -998,11 +981,19 @@ class JamfUploaderBase(Processor):
             return parsed_xml.decode("UTF-8")
         else:
             # do json stuff
-            # remove any id tags
+            # remove any id-type tags
             if "id" in existing_object:
                 existing_object.pop("id")
             if "categoryId" in existing_object:
                 existing_object.pop("categoryId")
+            if "deviceEnrollmentProgramInstanceId" in existing_object:
+                existing_object.pop("deviceEnrollmentProgramInstanceId")
+            # now go one deep and look for more id keys. Hopefully we don't have to go deeper!
+            for elem in existing_object.values():
+                elem_check = elem
+                if isinstance(elem_check, collections.abc.Mapping):
+                    if "id" in elem:
+                        elem.pop("id")
             return json.dumps(existing_object, indent=4)
 
     class ParseHTMLForError(HTMLParser):
