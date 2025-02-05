@@ -112,7 +112,7 @@ elif [[ $test_type == "read-eas" ]]; then
     "$DIR"/../jamf-upload.sh read \
         --prefs "$prefs" \
         --recipe-dir /Users/gpugh/sourcecode/jamf-upload/_tests \
-        --type "extension_attribute" \
+        --type "computer_extension_attribute" \
         --all \
         --output "/Users/Shared/Jamf/JamfUploaderTests" \
         "$verbosity"

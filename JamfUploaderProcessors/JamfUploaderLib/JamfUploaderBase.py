@@ -49,7 +49,7 @@ class JamfUploaderBase(Processor):
         api_endpoints = {
             "account": "JSSResource/accounts",
             "category": "api/v1/categories",
-            "extension_attribute": "JSSResource/computerextensionattributes",
+            "computer_extension_attribute": "JSSResource/computerextensionattributes",
             "computer_group": "JSSResource/computergroups",
             "computer_prestage": "api/v3/computer-prestages",
             "configuration_profile": "JSSResource/mobiledeviceconfigurationprofiles",
@@ -89,7 +89,7 @@ class JamfUploaderBase(Processor):
             "dock_item": "dockitems",
             "mobile_device_group": "mobiledevicegroups",
             "policy": "policies",
-            "extension_attribute": "computerextensionattributes",
+            "computer_extension_attribute": "computerextensionattributes",
             "restricted_software": "restrictedsoftware",
             "os_x_configuration_profile": "osxconfigurationprofiles",
         }
@@ -104,7 +104,7 @@ class JamfUploaderBase(Processor):
             "computer_prestage": "computer_prestages",
             "configuration_profile": "configuration_profiles",
             "dock_item": "dock_items",
-            "extension_attribute": "computer_extension_attributes",
+            "computer_extension_attribute": "computer_extension_attributes",
             "ldap_server": "ldap_servers",
             "mac_application": "mac_applications",
             "mobile_device_application": "mobile_device_applications",
