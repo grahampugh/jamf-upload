@@ -107,6 +107,16 @@ elif [[ $test_type == "read-profiles" ]]; then
         --output "/Users/Shared/Jamf/JamfUploaderTests" \
         "$verbosity"
 
+elif [[ $test_type == "read-ea" ]]; then
+    # read a generic Classic API object
+    "$DIR"/../jamf-upload.sh read \
+        --prefs "$prefs" \
+        --recipe-dir /Users/gpugh/sourcecode/jamf-upload/_tests \
+        --type "computer_extension_attribute" \
+        --name "AdobeFlashVersion" \
+        --output "/Users/Shared/Jamf/JamfUploaderTests" \
+        "$verbosity"
+
 elif [[ $test_type == "read-eas" ]]; then
     # read a generic Classic API object
     "$DIR"/../jamf-upload.sh read \

@@ -17,8 +17,12 @@ See the License for the specific language governing permissions and
 limitations under the License.
 """
 
+import json
 import os.path
 import sys
+import xml.etree.ElementTree as ET
+
+from xml.sax.saxutils import unescape
 
 from autopkglib import (  # pylint: disable=import-error
     ProcessorError,
@@ -120,6 +124,35 @@ class JamfObjectReaderBase(JamfUploaderBase):
             # parse the object
             parsed_object = self.parse_downloaded_api_object(raw_object, object_type)
 
+            # for certain types we also want to extract the payload
+            payload = ""
+            payload_filetype = "sh"
+            if object_type == "computer_extension_attribute":
+                try:
+                    obj_xml = ET.fromstring(parsed_object)
+                except ET.ParseError as xml_error:
+                    raise ProcessorError from xml_error
+                payload_value = obj_xml.find("input_type/script")
+                payload = payload_value.text
+                # determine the script type
+                if "python" in payload.partition("\n")[0]:
+                    payload_filetype = "py"
+            elif object_type == "script":
+                payload = json.loads(parsed_object)["scriptContents"]
+            elif (
+                object_type == "os_x_configuration_profile"
+                or object_type == "configuration_profile"
+            ):
+                try:
+                    obj_xml = ET.fromstring(parsed_object)
+                except ET.ParseError as xml_error:
+                    raise ProcessorError from xml_error
+                payload_value = obj_xml.find("general/payloads")
+                payload = self.pretty_print_xml(
+                    unescape(payload_value.text).encode()
+                ).decode("UTF-8")
+                payload_filetype = "mobileconfig"
+
             # dump the object to file is output_path is specified
             if output_path:
                 # construct the filename
@@ -141,6 +174,20 @@ class JamfObjectReaderBase(JamfUploaderBase):
                         with open(file_path, "w", encoding="utf-8") as fp:
                             fp.write(parsed_object)
                         self.output(f"Wrote parsed object to {file_path}")
+                        # also output the payload if appropriate
+                        if payload:
+                            payload_output_filename = f"{subdomain}-{self.object_list_types(object_type)}-{n}.{payload_filetype}"
+                            payload_file_path = os.path.join(
+                                output_path, payload_output_filename
+                            )
+                            with open(payload_file_path, "w", encoding="utf-8") as fp:
+                                fp.write(payload)
+                            self.output(
+                                f"Wrote {object_type} payload to {payload_file_path}"
+                            )
+                        else:
+                            self.output(f"No payload - {payload}")  # TEMP
+
                     except IOError as e:
                         raise ProcessorError(
                             f"Could not write XML to {file_path} - {str(e)}"
