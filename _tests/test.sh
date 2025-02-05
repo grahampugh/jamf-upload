@@ -21,7 +21,7 @@ pkg_name="$(basename "$pkg_path")"
 # API_USERNAME
 # API_PASSWORD
 prefs="$HOME/Library/Preferences/com.github.autopkg.plist"
-# prefs="/Users/Shared/com.github.autopkg.plist"
+prefs_alt="/Users/Shared/com.github.autopkg.plist"
 
 # ensure pkg upload modes are disabled
 defaults write "$prefs" jcds_mode -bool False
@@ -47,18 +47,141 @@ if [[ $test_type == "ldap_server" ]]; then
         "$verbosity" \
         --replace
 
-elif [[ $test_type == "classicobjread" ]]; then
+# example object types (Classic API)
+# computer_group
+# os_x_configuration_profile
+# configuration_profile
+# mac_application
+# mobile_device_application
+
+# example object types (Jamf Pro API)
+# script
+
+elif [[ $test_type == "read-policy" ]]; then
     # read a generic Classic API object
-    "$DIR"/../jamf-upload.sh classicobjread \
+    "$DIR"/../jamf-upload.sh read \
         --prefs "$prefs" \
+        --recipe-dir /Users/gpugh/sourcecode/jamf-upload/_tests \
         --type "policy" \
-        --name "JSPP - Collect Logs" \
+        --name "Firefox" \
+        --output "/Users/Shared/Jamf/JamfUploaderTests" \
+        "$verbosity"
+
+elif [[ $test_type == "read-mobiledeviceapp" ]]; then
+    # read a generic Classic API object
+    "$DIR"/../jamf-upload.sh read \
+        --prefs "$prefs_alt" \
+        --recipe-dir /Users/gpugh/sourcecode/jamf-upload/_tests \
+        --type "mobile_device_application" \
+        --name "Jamf Self Service" \
+        --output "/Users/Shared/Jamf/JamfUploaderTests" \
+        "$verbosity"
+
+elif [[ $test_type == "read-macapp" ]]; then
+    # read a generic Classic API object
+    "$DIR"/../jamf-upload.sh read \
+        --prefs "$prefs" \
+        --recipe-dir /Users/gpugh/sourcecode/jamf-upload/_tests \
+        --type "mac_application" \
+        --name "Numbers" \
+        --output "/Users/Shared/Jamf/JamfUploaderTests" \
+        "$verbosity"
+
+elif [[ $test_type == "read-profile" ]]; then
+    # read a generic Classic API object
+    "$DIR"/../jamf-upload.sh read \
+        --prefs "$prefs" \
+        --recipe-dir /Users/gpugh/sourcecode/jamf-upload/_tests \
+        --type "os_x_configuration_profile" \
+        --name "Nudge" \
+        --output "/Users/Shared/Jamf/JamfUploaderTests" \
+        "$verbosity"
+
+elif [[ $test_type == "read-profiles" ]]; then
+    # read a generic Classic API object
+    "$DIR"/../jamf-upload.sh read \
+        --prefs "$prefs" \
+        --recipe-dir /Users/gpugh/sourcecode/jamf-upload/_tests \
+        --type "os_x_configuration_profile" \
+        --all \
+        --output "/Users/Shared/Jamf/JamfUploaderTests" \
+        "$verbosity"
+
+elif [[ $test_type == "read-eas" ]]; then
+    # read a generic Classic API object
+    "$DIR"/../jamf-upload.sh read \
+        --prefs "$prefs" \
+        --recipe-dir /Users/gpugh/sourcecode/jamf-upload/_tests \
+        --type "extension_attribute" \
+        --all \
+        --output "/Users/Shared/Jamf/JamfUploaderTests" \
+        "$verbosity"
+
+elif [[ $test_type == "read-script" ]]; then
+    # read a generic Jamf Pro API object
+    "$DIR"/../jamf-upload.sh read \
+        --prefs "$prefs" \
+        --recipe-dir /Users/gpugh/sourcecode/jamf-upload/_tests \
+        --type "script" \
+        --name "SpotifyPostinstall.sh" \
+        --output "/Users/Shared/Jamf/JamfUploaderTests" \
+        "$verbosity"
+
+elif [[ $test_type == "read-category" ]]; then
+    # read a generic Jamf Pro API object
+    "$DIR"/../jamf-upload.sh read \
+        --prefs "$prefs" \
+        --recipe-dir /Users/gpugh/sourcecode/jamf-upload/_tests \
+        --type "category" \
+        --name "Applications" \
+        --output "/Users/Shared/Jamf/JamfUploaderTests" \
+        "$verbosity"
+
+elif [[ $test_type == "read-categories" ]]; then
+    # read a generic Jamf Pro API object
+    "$DIR"/../jamf-upload.sh read \
+        --prefs "$prefs" \
+        --recipe-dir /Users/gpugh/sourcecode/jamf-upload/_tests \
+        --type "category" \
+        --all \
+        --output "/Users/Shared/Jamf/JamfUploaderTests" \
+        "$verbosity"
+
+elif [[ $test_type == "read-prestage" ]]; then
+    # read a generic Jamf Pro API object
+    "$DIR"/../jamf-upload.sh read \
+        --prefs "$prefs_alt" \
+        --recipe-dir /Users/gpugh/sourcecode/jamf-upload/_tests \
+        --type "computer_prestage" \
+        --name "1:1" \
+        --output "/Users/Shared/Jamf/JamfUploaderTests" \
+        "$verbosity"
+
+elif [[ $test_type == "read-prestages" ]]; then
+    # read a generic Jamf Pro API object
+    "$DIR"/../jamf-upload.sh read \
+        --prefs "$prefs_alt" \
+        --recipe-dir /Users/gpugh/sourcecode/jamf-upload/_tests \
+        --type "computer_prestage" \
+        --all \
+        --output "/Users/Shared/Jamf/JamfUploaderTests" \
+        "$verbosity"
+
+elif [[ $test_type == "read-device-prestages" ]]; then
+    # read a generic Jamf Pro API object
+    "$DIR"/../jamf-upload.sh read \
+        --prefs "$prefs_alt" \
+        --recipe-dir /Users/gpugh/sourcecode/jamf-upload/_tests \
+        --type "mobile_device_prestage" \
+        --all \
+        --output "/Users/Shared/Jamf/JamfUploaderTests" \
         "$verbosity"
 
 elif [[ $test_type == "category" ]]; then
     # upload a category
     "$DIR"/../jamf-upload.sh category \
         --prefs "$prefs" \
+        --recipe-dir /Users/gpugh/sourcecode/jamf-upload/_tests \
         --name JamfUploadTest \
         --priority 18 \
         "$verbosity" \
@@ -92,6 +215,7 @@ elif [[ $test_type == "mobiledevicegroup" ]]; then
         --template "templates/AllowScreenRecording-mobiledevicegroup.xml" \
         --key GROUP_NAME="Allow Screen Recording" \
         --key TESTING_GROUP_NAME="Testing" \
+        --key custom_curl_opts="--max-time 3600" \
         "$verbosity" \
         --replace
 
@@ -227,7 +351,6 @@ elif [[ $test_type == "mobiledeviceappselfservice" ]]; then
         --prefs "$prefs" \
         --recipe-dir /Users/Shared/GitHub/jamf-upload/_tests \
         --name "Keynote" \
-        --clone-from "Keynote" \
         --template "templates/MobileDeviceApp-noscope.xml" \
         --key CATEGORY="Applications" \
         --key DEPLOYMENT_TYPE="Make Available in Self Service" \
@@ -240,11 +363,20 @@ elif [[ $test_type == "mobiledeviceappselfserviceconfig" ]]; then
         --prefs "$prefs" \
         --recipe-dir /Users/Shared/GitHub/jamf-upload/_tests \
         --name "Keynote" \
-        --clone-from "Keynote" \
         --template "templates/MobileDeviceApp-noscope.xml" \
         --appconfig "templates/AppConfig.xml" \
         --key CATEGORY="Applications" \
         --key DEPLOYMENT_TYPE="Make Available in Self Service" \
+        "$verbosity" \
+        --replace
+
+elif [[ $test_type == "mobiledeviceapp-fromread" ]]; then
+    # clone a mac app with no scope
+    "$DIR"/../jamf-upload.sh mobiledeviceapp \
+        --prefs "$prefs_alt" \
+        --recipe-dir /Users/Shared/GitHub/jamf-upload/_tests \
+        --name "Jamf Self Service" \
+        --template "/Users/Shared/Jamf/JamfUploaderTests/MobileDeviceApp-Template-JamfSelfService.xml" \
         "$verbosity" \
         --replace
 

@@ -196,10 +196,10 @@ class JamfScriptUploaderBase(JamfUploaderBase):
             # check for existing category - requires obj_name
             obj_type = "category"
             obj_name = self.script_category
-            category_id = self.get_uapi_obj_id_from_name(
+            category_id = self.get_api_obj_id_from_name(
                 self.jamf_url,
-                obj_type,
                 obj_name,
+                obj_type,
                 token,
             )
 
@@ -236,10 +236,10 @@ class JamfScriptUploaderBase(JamfUploaderBase):
         )
         obj_type = "script"
         obj_name = self.script_name
-        obj_id = self.get_uapi_obj_id_from_name(
+        obj_id = self.get_api_obj_id_from_name(
             self.jamf_url,
-            obj_type,
             obj_name,
+            obj_type,
             token,
         )
 

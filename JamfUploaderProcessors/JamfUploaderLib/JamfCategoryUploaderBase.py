@@ -112,10 +112,10 @@ class JamfCategoryUploaderBase(JamfUploaderBase):
         self.output(f"Checking for existing '{category_name}' on {jamf_url}")
         obj_type = "category"
         obj_name = category_name
-        obj_id = self.get_uapi_obj_id_from_name(
+        obj_id = self.get_api_obj_id_from_name(
             jamf_url,
-            obj_type,
             obj_name,
+            obj_type,
             token,
         )
 
