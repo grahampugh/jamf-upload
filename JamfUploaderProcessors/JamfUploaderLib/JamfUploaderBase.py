@@ -16,7 +16,6 @@ See the License for the specific language governing permissions and
 limitations under the License.
 """
 
-import collections
 import json
 import os
 import re
@@ -25,7 +24,7 @@ import tempfile
 import xml.etree.ElementTree as ET
 
 from base64 import b64encode
-from collections import namedtuple
+from collections import abc, namedtuple
 from datetime import datetime, timedelta, timezone
 from html.parser import HTMLParser
 from pathlib import Path
@@ -805,12 +804,12 @@ class JamfUploaderBase(Processor):
         # for Classic API
         if "JSSResource" in url:
             object_list = json.loads(r.output)[self.object_list_types(object_type)]
-            self.output(f"List of objects:\n{object_list}", verbose_level=3)  # TEMP
+            self.output(f"List of objects:\n{object_list}", verbose_level=3)
 
         # for Jamf Pro API
         else:
             object_list = r.output["results"]
-            self.output(f"List of objects:\n{object_list}", verbose_level=3)  # TEMP
+            self.output(f"List of objects:\n{object_list}", verbose_level=3)
 
         return object_list
 
@@ -1016,7 +1015,7 @@ class JamfUploaderBase(Processor):
             # now go one deep and look for more id keys. Hopefully we don't have to go deeper!
             for elem in existing_object.values():
                 elem_check = elem
-                if isinstance(elem_check, collections.abc.Mapping):
+                if isinstance(elem_check, abc.Mapping):
                     if "id" in elem:
                         elem.pop("id")
             return json.dumps(existing_object, indent=4)

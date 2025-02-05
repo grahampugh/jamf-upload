@@ -107,12 +107,8 @@ class JamfObjectReaderBase(JamfUploaderBase):
                 self.output("ERROR: no output path provided")
                 return
 
-        self.output("here's the list")  # TEMP
-        self.output(object_list)  # TEMP
-
         # now iterate through all the objects
         for obj in object_list:
-            self.output(obj, verbose_level=2)  # TEMP
             i = obj["id"]
             n = obj[name_key]
 
@@ -120,11 +116,9 @@ class JamfObjectReaderBase(JamfUploaderBase):
             raw_object = self.get_api_obj_contents_from_id(
                 jamf_url, object_type, i, obj_path="", token=token
             )
-            self.output(raw_object, verbose_level=2)  # TEMP
 
             # parse the object
             parsed_object = self.parse_downloaded_api_object(raw_object, object_type)
-            # self.output(parsed_object, verbose_level=2)  # TEMP
 
             # dump the object to file is output_path is specified
             if output_path:
