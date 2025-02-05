@@ -175,10 +175,10 @@ class JamfExtensionAttributeUploaderBase(JamfUploaderBase):
         # check for existing - requires obj_name
         obj_type = "computer_extension_attribute"
         obj_name = self.ea_name
-        obj_id = self.get_uapi_obj_id_from_name(
+        obj_id = self.get_api_obj_id_from_name(
             self.jamf_url,
-            obj_type,
             obj_name,
+            obj_type,
             token,
         )
 
