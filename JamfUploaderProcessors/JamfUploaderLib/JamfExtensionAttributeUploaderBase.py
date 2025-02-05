@@ -93,9 +93,9 @@ class JamfExtensionAttributeUploaderBase(JamfUploaderBase):
         ea_json = self.write_json_file(ea_data)
 
         # if we find an object ID we put, if not, we post
-        object_type = "extension_attribute"
+        object_type = "computer_extension_attribute"
         if obj_id:
-            url = "{}/{}/{}".format(jamf_url, self.api_endpoints(object_type), obj_id)
+            url = "{}/{}/id/{}".format(jamf_url, self.api_endpoints(object_type), obj_id)
         else:
             url = "{}/{}".format(jamf_url, self.api_endpoints(object_type))
 
@@ -173,7 +173,7 @@ class JamfExtensionAttributeUploaderBase(JamfUploaderBase):
             raise ProcessorError("ERROR: Credentials not supplied")
 
         # check for existing - requires obj_name
-        obj_type = "extension_attribute"
+        obj_type = "computer_extension_attribute"
         obj_name = self.ea_name
         obj_id = self.get_uapi_obj_id_from_name(
             self.jamf_url,

@@ -24,7 +24,7 @@ import tempfile
 import xml.etree.ElementTree as ET
 
 from base64 import b64encode
-from collections import namedtuple
+from collections import abc, namedtuple
 from datetime import datetime, timedelta, timezone
 from html.parser import HTMLParser
 from pathlib import Path
@@ -48,9 +48,10 @@ class JamfUploaderBase(Processor):
         """Return the endpoint URL from the object type"""
         api_endpoints = {
             "account": "JSSResource/accounts",
-            "category": "uapi/v1/categories",
-            "extension_attribute": "api/v1/computer-extension-attributes",
+            "category": "api/v1/categories",
+            "computer_extension_attribute": "api/v1/computer-extension-attributes",
             "computer_group": "JSSResource/computergroups",
+            "computer_prestage": "api/v3/computer-prestages",
             "configuration_profile": "JSSResource/mobiledeviceconfigurationprofiles",
             "dock_item": "JSSResource/dockitems",
             "failover": "api/v1/sso/failover",
@@ -62,6 +63,7 @@ class JamfUploaderBase(Processor):
             "mac_application": "JSSResource/macapplications",
             "mobile_device_application": "JSSResource/mobiledeviceapplications",
             "mobile_device_group": "JSSResource/mobiledevicegroups",
+            "mobile_device_prestage": "api/v1/mobile-device-prestages",
             "package": "JSSResource/packages",
             "package_v1": "api/v1/packages",
             "package_upload": "dbfileupload",
@@ -72,9 +74,9 @@ class JamfUploaderBase(Processor):
             "policy": "JSSResource/policies",
             "policy_icon": "JSSResource/fileuploads/policies",
             "restricted_software": "JSSResource/restrictedsoftware",
-            "script": "uapi/v1/scripts",
+            "script": "api/v1/scripts",
             "token": "api/v1/auth/token",
-            "volume_purchasing_locations": "api/v1/volume-purchasing-locations",
+            "volume_purchasing_location": "api/v1/volume-purchasing-locations",
         }
         return api_endpoints[object_type]
 
@@ -87,7 +89,7 @@ class JamfUploaderBase(Processor):
             "dock_item": "dockitems",
             "mobile_device_group": "mobiledevicegroups",
             "policy": "policies",
-            "extension_attribute": "computerextensionattributes",
+            "computer_extension_attribute": "computerextensionattributes",
             "restricted_software": "restrictedsoftware",
             "os_x_configuration_profile": "osxconfigurationprofiles",
         }
@@ -97,14 +99,17 @@ class JamfUploaderBase(Processor):
         """Return a XML dictionary type from the object type"""
         object_list_types = {
             "account": "accounts",
+            "category": "categories",
             "computer_group": "computer_groups",
+            "computer_prestage": "computer_prestages",
             "configuration_profile": "configuration_profiles",
             "dock_item": "dock_items",
-            "extension_attribute": "computer_extension_attributes",
+            "computer_extension_attribute": "computer_extension_attributes",
             "ldap_server": "ldap_servers",
             "mac_application": "mac_applications",
             "mobile_device_application": "mobile_device_applications",
             "mobile_device_group": "mobile_device_groups",
+            "mobile_device_prestage": "mobile_device_prestages",
             "os_x_configuration_profile": "os_x_configuration_profiles",
             "package": "packages",
             "patch_policy": "patch_policies",
@@ -500,7 +505,8 @@ class JamfUploaderBase(Processor):
 
         # add custom curl options specified
         if self.env.get("custom_curl_opts"):
-            curl_cmd.extend(self.env.get("custom_curl_opts"))
+            custom_curl_opts_list = self.env.get("custom_curl_opts").split()
+            curl_cmd.extend(custom_curl_opts_list)
 
         self.output(f"curl command: {' '.join(curl_cmd)}", verbose_level=3)
 
@@ -580,52 +586,57 @@ class JamfUploaderBase(Processor):
                 self.output(f"ERROR: No version of Jamf Pro received.  Error:\n{error}")
                 raise ProcessorError("No version of Jamf Pro received") from error
 
-    def get_uapi_obj_id_from_name(
-        self, jamf_url, object_type, object_name, token, filter_name="name"
+    def get_api_obj_id_from_name(
+        self, jamf_url, object_name, object_type, token, filter_name="name"
     ):
-        """Get the Jamf Pro API object by name. This requires use of RSQL filtering"""
-        url_filter = f"?page=0&page-size=1000&sort=id&filter={filter_name}%3D%3D%22{quote(object_name)}%22"
-        url = jamf_url + "/" + self.api_endpoints(object_type) + url_filter
-        r = self.curl(request="GET", url=url, token=token)
-        if r.status_code == 200:
-            obj_id = 0
-            # output = json.loads(r.output)
-            output = r.output
-            for obj in output["results"]:
-                self.output(
-                    f"ID: {obj['id']} NAME: {obj[filter_name]}", verbose_level=3
-                )
-                if obj[filter_name] == object_name:
-                    obj_id = obj["id"]
-                    break
-            return obj_id
-
-    def get_api_obj_id_from_name(self, jamf_url, object_name, object_type, token):
         """check if a Classic API object with the same name exists on the server"""
         # define the relationship between the object types and their URL
-        url = jamf_url + "/" + self.api_endpoints(object_type)
-        r = self.curl(request="GET", url=url, token=token)
+        if "JSSResource" in self.api_endpoints(object_type):
+            # do XML stuff
+            url = jamf_url + "/" + self.api_endpoints(object_type)
+            r = self.curl(request="GET", url=url, token=token)
 
-        if r.status_code == 200:
-            object_list = json.loads(r.output)
-            self.output(
-                object_list,
-                verbose_level=4,
-            )
-            obj_id = 0
-            for obj in object_list[self.object_list_types(object_type)]:
+            if r.status_code == 200:
+                object_list = json.loads(r.output)
                 self.output(
-                    obj,
+                    object_list,
                     verbose_level=4,
                 )
-                # we need to check for a case-insensitive match
-                if obj["name"].lower() == object_name.lower():
-                    obj_id = obj["id"]
-            return obj_id
-        elif r.status_code == 401:
-            raise ProcessorError(
-                "ERROR: Jamf returned status code '401' - Access denied."
-            )
+                obj_id = 0
+                for obj in object_list[self.object_list_types(object_type)]:
+                    self.output(
+                        obj,
+                        verbose_level=4,
+                    )
+                    # we need to check for a case-insensitive match
+                    if obj["name"].lower() == object_name.lower():
+                        obj_id = obj["id"]
+                return obj_id
+            elif r.status_code == 401:
+                raise ProcessorError(
+                    "ERROR: Jamf returned status code '401' - Access denied."
+                )
+        else:
+            # do JSON stuff
+            url_filter = f"?page=0&page-size=1000&sort=id&filter={filter_name}%3D%3D%22{quote(object_name)}%22"
+            url = jamf_url + "/" + self.api_endpoints(object_type) + url_filter
+            r = self.curl(request="GET", url=url, token=token)
+            if r.status_code == 200:
+                obj_id = 0
+                output = r.output
+                for obj in output["results"]:
+                    self.output(
+                        f"ID: {obj.get('id')} NAME: {obj.get(filter_name)}",
+                        verbose_level=3,
+                    )
+                    if obj[filter_name] == object_name:
+                        obj_id = obj["id"]
+                        break
+                return obj_id
+            elif r.status_code == 401:
+                raise ProcessorError(
+                    "ERROR: Jamf returned status code '401' - Access denied."
+                )
 
     def substitute_assignable_keys(self, data, xml_escape=False):
         """substitutes any key in the inputted text using the %MY_KEY% nomenclature"""
@@ -781,29 +792,67 @@ class JamfUploaderBase(Processor):
                         self.output(f"File found at: {matched_filepath}")
                         return matched_filepath
 
-    def get_api_obj_xml_from_id(
+    def get_all_api_objects(self, jamf_url, object_type, token=""):
+        """get a list of all objects of a particular type"""
+        # Get all objects from Jamf Pro as JSON object
+        self.output(f"Getting all {self.api_endpoints(object_type)} from {jamf_url}")
+
+        # check for existing
+        url = f"{jamf_url}/{self.api_endpoints(object_type)}"
+        r = self.curl(request="GET", url=url, token=token)
+
+        # for Classic API
+        if "JSSResource" in url:
+            object_list = json.loads(r.output)[self.object_list_types(object_type)]
+            self.output(f"List of objects:\n{object_list}", verbose_level=3)
+
+        # for Jamf Pro API
+        else:
+            object_list = r.output["results"]
+            self.output(f"List of objects:\n{object_list}", verbose_level=3)
+
+        return object_list
+
+    def get_api_obj_contents_from_id(
         self, jamf_url, object_type, obj_id, obj_path="", token=""
     ):
-        """get the value of an item in a Classic API object"""
+        """get the full contents or the value of an item in a Classic or Jamf Pro API object"""
         # define the relationship between the object types and their URL
-        # we could make this shorter with some regex but I think this way is clearer
-        url = f"{jamf_url}/{self.api_endpoints(object_type)}/id/{obj_id}"
-        request = "GET"
-        r = self.curl(request=request, url=url, token=token, accept_header="xml")
-        if r.status_code == 200:
-            # Parse response as xml
-            try:
-                obj_xml = ET.fromstring(r.output)
-            except ET.ParseError as xml_error:
-                raise ProcessorError from xml_error
-            if obj_path:
-                obj_content = obj_xml.find(obj_path)
-            else:
-                ET.indent(obj_xml)
-                obj_content = ET.tostring(obj_xml, encoding="UTF-8")
-            return obj_content.decode("UTF-8")
+        if "JSSResource" in self.api_endpoints(object_type):
+            # do XML stuff
+            url = f"{jamf_url}/{self.api_endpoints(object_type)}/id/{obj_id}"
+            request = "GET"
+            r = self.curl(request=request, url=url, token=token, accept_header="xml")
+            if r.status_code == 200:
+                # Parse response as xml
+                try:
+                    obj_xml = ET.fromstring(r.output)
+                except ET.ParseError as xml_error:
+                    raise ProcessorError from xml_error
+                if obj_path:
+                    obj_content = obj_xml.find(obj_path)
+                else:
+                    ET.indent(obj_xml)
+                    obj_content = ET.tostring(obj_xml, encoding="UTF-8")
+                return obj_content.decode("UTF-8")
+        else:
+            # do JSON stuff
+            url = f"{jamf_url}/{self.api_endpoints(object_type)}/{obj_id}"
+            request = "GET"
+            r = self.curl(request=request, url=url, token=token, accept_header="json")
+            if r.status_code == 200:
+                # Parse response as json
+                # obj_content = json.loads(r.output)
+                obj_content = r.output
+                self.output(
+                    obj_content,
+                    verbose_level=4,
+                )
+                return obj_content
 
-    def get_api_obj_value_from_id(self, jamf_url, object_type, obj_id, obj_path, token):
+    def get_classic_api_obj_value_from_id(
+        self, jamf_url, object_type, obj_id, obj_path, token
+    ):
         """get the value of an item in a Classic API object"""
         # define the relationship between the object types and their URL
         # we could make this shorter with some regex but I think this way is clearer
@@ -841,7 +890,7 @@ class JamfUploaderBase(Processor):
 
     def get_existing_scope(self, jamf_url, obj_type, obj_id, token):
         """return the existing scope"""
-        existing_scope_xml = self.get_api_obj_xml_from_id(
+        existing_scope_xml = self.get_api_obj_contents_from_id(
             jamf_url,
             obj_type,
             obj_id,
@@ -863,7 +912,7 @@ class JamfUploaderBase(Processor):
             raise ProcessorError from xml_error
 
         if template_contents_xml.find("scope"):
-            # Remove old, probably empty package element
+            # Remove scope element
             template_contents_xml.remove(template_contents_xml.find("scope"))
         # Inject scope element into version element
         template_contents_xml.append(existing_scope)
@@ -912,7 +961,68 @@ class JamfUploaderBase(Processor):
         except subprocess.CalledProcessError:
             self.output("WARNING! Unmount failed.")
 
+    def remove_elements_from_xml(self, object_xml, element):
+        """removes all instances of an object from XML"""
+        for parent in object_xml.findall(f".//{element}/.."):
+            for elem in parent.findall(element):
+                parent.remove(elem)
+
+    def substitute_elements_in_xml(self, object_xml, element, replacement_value):
+        """substitutes all instances of an object from XML with a provided replaceement value"""
+        for parent in object_xml.findall(f".//{element}/.."):
+            for elem in parent.findall(element):
+                # parent.remove(elem)
+                elem.text = replacement_value
+
+    def parse_downloaded_api_object(self, existing_object, object_type):
+        """Removes or replaces instance-specific items such as ID and computer objects"""
+        # first determine if this object is using Classic API or Jamf Pro
+        if "JSSResource" in self.api_endpoints(object_type):
+            # do XML stuff
+            # Parse response as xml
+            parsed_xml = ""
+            try:
+                object_xml = ET.fromstring(existing_object)
+
+                # remove any id tags
+                self.remove_elements_from_xml(object_xml, "id")
+                # remove any computer objects
+                self.remove_elements_from_xml(object_xml, "computers")
+                # remove any mobile device objects
+                self.remove_elements_from_xml(object_xml, "mobile_devices")
+                # remove any user-based objects
+                self.remove_elements_from_xml(object_xml, "users")
+                self.remove_elements_from_xml(object_xml, "user_groups")
+                self.remove_elements_from_xml(object_xml, "limit_to_users")
+                # remove any self service icons
+                self.remove_elements_from_xml(object_xml, "self_service_icon")
+                # for profiles ensure that they are redeployed to all
+                self.substitute_elements_in_xml(object_xml, "redeploy_on_update", "All")
+
+                parsed_xml = ET.tostring(object_xml, encoding="UTF-8")
+            except ET.ParseError as xml_error:
+                raise ProcessorError from xml_error
+            return parsed_xml.decode("UTF-8")
+        else:
+            # do json stuff
+            # remove any id-type tags
+            if "id" in existing_object:
+                existing_object.pop("id")
+            if "categoryId" in existing_object:
+                existing_object.pop("categoryId")
+            if "deviceEnrollmentProgramInstanceId" in existing_object:
+                existing_object.pop("deviceEnrollmentProgramInstanceId")
+            # now go one deep and look for more id keys. Hopefully we don't have to go deeper!
+            for elem in existing_object.values():
+                elem_check = elem
+                if isinstance(elem_check, abc.Mapping):
+                    if "id" in elem:
+                        elem.pop("id")
+            return json.dumps(existing_object, indent=4)
+
     class ParseHTMLForError(HTMLParser):
+        """Parses HTML output for the appropriate error"""
+
         def __init__(self):
             HTMLParser.__init__(self)
             self.error = None
