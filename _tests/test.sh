@@ -165,6 +165,7 @@ elif [[ $test_type == "mobiledevicegroup" ]]; then
         --template "templates/AllowScreenRecording-mobiledevicegroup.xml" \
         --key GROUP_NAME="Allow Screen Recording" \
         --key TESTING_GROUP_NAME="Testing" \
+        --key custom_curl_opts="--max-time 3600" \
         "$verbosity" \
         --replace
 

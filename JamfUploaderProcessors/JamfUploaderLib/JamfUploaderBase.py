@@ -503,7 +503,8 @@ class JamfUploaderBase(Processor):
 
         # add custom curl options specified
         if self.env.get("custom_curl_opts"):
-            curl_cmd.extend(self.env.get("custom_curl_opts"))
+            custom_curl_opts_list = self.env.get("custom_curl_opts").split()
+            curl_cmd.extend(custom_curl_opts_list)
 
         self.output(f"curl command: {' '.join(curl_cmd)}", verbose_level=3)
 
