@@ -1021,7 +1021,7 @@ while test $# -gt 0 ; do
                 fi
             fi
             ;;
-        "--script_parameter"*|"--script-parameter"*|"--parameter"*|--p[4|5|6|7|8|9|10|11])
+        "--script_parameter"*|"--script-parameter"*|"--parameter"*|--p4|--p5|--p6|--p7|--p8|--p9|--p10|--p11)
             param_number="${1: -1}"
             if [[ ! $param_number ]]; then
                 exit 1
