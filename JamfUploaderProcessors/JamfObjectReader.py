@@ -75,8 +75,8 @@ class JamfObjectReader(JamfObjectReaderBase):
             "the com.github.autopkg preference file.",
         },
         "object_name": {
-            "required": True,
-            "description": "Name of the object",
+            "required": False,
+            "description": "Name of the object. Required unless using 'all_objects'",
             "default": "",
         },
         "object_type": {
@@ -86,8 +86,13 @@ class JamfObjectReader(JamfObjectReaderBase):
         },
         "output_path": {
             "required": False,
-            "description": "Path to dump the xml or json file",
+            "description": "Path (folder) to dump the xml or json file",
             "default": "",
+        },
+        "all_objects": {
+            "required": False,
+            "description": "Download all objects of the specific object type",
+            "default": "False",
         },
     }
 

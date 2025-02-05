@@ -64,7 +64,7 @@ class JamfUploaderBase(Processor):
             "mac_application": "JSSResource/macapplications",
             "mobile_device_application": "JSSResource/mobiledeviceapplications",
             "mobile_device_group": "JSSResource/mobiledevicegroups",
-            "mobile_device_prestage": "api/v3/mobile_-evice-prestages",
+            "mobile_device_prestage": "api/v1/mobile-device-prestages",
             "package": "JSSResource/packages",
             "package_v1": "api/v1/packages",
             "package_upload": "dbfileupload",
@@ -100,7 +100,9 @@ class JamfUploaderBase(Processor):
         """Return a XML dictionary type from the object type"""
         object_list_types = {
             "account": "accounts",
+            "category": "categories",
             "computer_group": "computer_groups",
+            "computer_prestage": "computer_prestages",
             "configuration_profile": "configuration_profiles",
             "dock_item": "dock_items",
             "extension_attribute": "computer_extension_attributes",
@@ -108,6 +110,7 @@ class JamfUploaderBase(Processor):
             "mac_application": "mac_applications",
             "mobile_device_application": "mobile_device_applications",
             "mobile_device_group": "mobile_device_groups",
+            "mobile_device_prestage": "mobile_device_prestages",
             "os_x_configuration_profile": "os_x_configuration_profiles",
             "package": "packages",
             "patch_policy": "patch_policies",
@@ -789,6 +792,27 @@ class JamfUploaderBase(Processor):
                     if matched_filepath:
                         self.output(f"File found at: {matched_filepath}")
                         return matched_filepath
+
+    def get_all_api_objects(self, jamf_url, object_type, token=""):
+        """get a list of all objects of a particular type"""
+        # Get all objects from Jamf Pro as JSON object
+        self.output(f"Getting all {self.api_endpoints(object_type)} from {jamf_url}")
+
+        # check for existing
+        url = f"{jamf_url}/{self.api_endpoints(object_type)}"
+        r = self.curl(request="GET", url=url, token=token)
+
+        # for Classic API
+        if "JSSResource" in url:
+            object_list = json.loads(r.output)[self.object_list_types(object_type)]
+            self.output(f"List of objects:\n{object_list}", verbose_level=3)  # TEMP
+
+        # for Jamf Pro API
+        else:
+            object_list = r.output["results"]
+            self.output(f"List of objects:\n{object_list}", verbose_level=3)  # TEMP
+
+        return object_list
 
     def get_api_obj_contents_from_id(
         self, jamf_url, object_type, obj_id, obj_path="", token=""

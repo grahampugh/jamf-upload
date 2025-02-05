@@ -64,7 +64,7 @@ elif [[ $test_type == "read-policy" ]]; then
         --recipe-dir /Users/gpugh/sourcecode/jamf-upload/_tests \
         --type "policy" \
         --name "Firefox" \
-        --output "/Users/Shared/Jamf/JamfUploaderTests/Policy-Template-Firefox.xml" \
+        --output "/Users/Shared/Jamf/JamfUploaderTests" \
         "$verbosity"
 
 elif [[ $test_type == "read-mobiledeviceapp" ]]; then
@@ -74,7 +74,7 @@ elif [[ $test_type == "read-mobiledeviceapp" ]]; then
         --recipe-dir /Users/gpugh/sourcecode/jamf-upload/_tests \
         --type "mobile_device_application" \
         --name "Jamf Self Service" \
-        --output "/Users/Shared/Jamf/JamfUploaderTests/MobileDeviceApp-Template-JamfSelfService.xml" \
+        --output "/Users/Shared/Jamf/JamfUploaderTests" \
         "$verbosity"
 
 elif [[ $test_type == "read-macapp" ]]; then
@@ -84,7 +84,7 @@ elif [[ $test_type == "read-macapp" ]]; then
         --recipe-dir /Users/gpugh/sourcecode/jamf-upload/_tests \
         --type "mac_application" \
         --name "Numbers" \
-        --output "/Users/Shared/Jamf/JamfUploaderTests/MacApp-Template-Numbers.xml" \
+        --output "/Users/Shared/Jamf/JamfUploaderTests" \
         "$verbosity"
 
 elif [[ $test_type == "read-profile" ]]; then
@@ -94,7 +94,27 @@ elif [[ $test_type == "read-profile" ]]; then
         --recipe-dir /Users/gpugh/sourcecode/jamf-upload/_tests \
         --type "os_x_configuration_profile" \
         --name "Nudge" \
-        --output "/Users/Shared/Jamf/JamfUploaderTests/Profile-Template-Nudge.xml" \
+        --output "/Users/Shared/Jamf/JamfUploaderTests" \
+        "$verbosity"
+
+elif [[ $test_type == "read-profiles" ]]; then
+    # read a generic Classic API object
+    "$DIR"/../jamf-upload.sh read \
+        --prefs "$prefs" \
+        --recipe-dir /Users/gpugh/sourcecode/jamf-upload/_tests \
+        --type "os_x_configuration_profile" \
+        --all \
+        --output "/Users/Shared/Jamf/JamfUploaderTests" \
+        "$verbosity"
+
+elif [[ $test_type == "read-eas" ]]; then
+    # read a generic Classic API object
+    "$DIR"/../jamf-upload.sh read \
+        --prefs "$prefs" \
+        --recipe-dir /Users/gpugh/sourcecode/jamf-upload/_tests \
+        --type "extension_attribute" \
+        --all \
+        --output "/Users/Shared/Jamf/JamfUploaderTests" \
         "$verbosity"
 
 elif [[ $test_type == "read-script" ]]; then
@@ -104,7 +124,7 @@ elif [[ $test_type == "read-script" ]]; then
         --recipe-dir /Users/gpugh/sourcecode/jamf-upload/_tests \
         --type "script" \
         --name "SpotifyPostinstall.sh" \
-        --output "/Users/Shared/Jamf/JamfUploaderTests/Script-Template-SpotifyPostinstall.json" \
+        --output "/Users/Shared/Jamf/JamfUploaderTests" \
         "$verbosity"
 
 elif [[ $test_type == "read-category" ]]; then
@@ -114,7 +134,17 @@ elif [[ $test_type == "read-category" ]]; then
         --recipe-dir /Users/gpugh/sourcecode/jamf-upload/_tests \
         --type "category" \
         --name "Applications" \
-        --output "/Users/Shared/Jamf/JamfUploaderTests/Category-Template-Applications.json" \
+        --output "/Users/Shared/Jamf/JamfUploaderTests" \
+        "$verbosity"
+
+elif [[ $test_type == "read-categories" ]]; then
+    # read a generic Jamf Pro API object
+    "$DIR"/../jamf-upload.sh read \
+        --prefs "$prefs" \
+        --recipe-dir /Users/gpugh/sourcecode/jamf-upload/_tests \
+        --type "category" \
+        --all \
+        --output "/Users/Shared/Jamf/JamfUploaderTests" \
         "$verbosity"
 
 elif [[ $test_type == "read-prestage" ]]; then
@@ -124,7 +154,27 @@ elif [[ $test_type == "read-prestage" ]]; then
         --recipe-dir /Users/gpugh/sourcecode/jamf-upload/_tests \
         --type "computer_prestage" \
         --name "1:1" \
-        --output "/Users/Shared/Jamf/JamfUploaderTests/PreStage-Template-1-1.json" \
+        --output "/Users/Shared/Jamf/JamfUploaderTests" \
+        "$verbosity"
+
+elif [[ $test_type == "read-prestages" ]]; then
+    # read a generic Jamf Pro API object
+    "$DIR"/../jamf-upload.sh read \
+        --prefs "$prefs_alt" \
+        --recipe-dir /Users/gpugh/sourcecode/jamf-upload/_tests \
+        --type "computer_prestage" \
+        --all \
+        --output "/Users/Shared/Jamf/JamfUploaderTests" \
+        "$verbosity"
+
+elif [[ $test_type == "read-device-prestages" ]]; then
+    # read a generic Jamf Pro API object
+    "$DIR"/../jamf-upload.sh read \
+        --prefs "$prefs_alt" \
+        --recipe-dir /Users/gpugh/sourcecode/jamf-upload/_tests \
+        --type "mobile_device_prestage" \
+        --all \
+        --output "/Users/Shared/Jamf/JamfUploaderTests" \
         "$verbosity"
 
 elif [[ $test_type == "category" ]]; then

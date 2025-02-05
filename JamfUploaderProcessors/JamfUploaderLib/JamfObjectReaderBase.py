@@ -45,8 +45,13 @@ class JamfObjectReaderBase(JamfUploaderBase):
         client_id = self.env.get("CLIENT_ID")
         client_secret = self.env.get("CLIENT_SECRET")
         object_name = self.env.get("object_name")
+        all_objects = self.env.get("all_objects")
         object_type = self.env.get("object_type")
         output_path = self.env.get("output_path")
+
+        # handle setting true/false variables in overrides
+        if not all_objects or all_objects == "False":
+            all_objects = False
 
         # clear any pre-existing summary result
         if "jamfclassicapiobjectreader_summary_result" in self.env:
@@ -62,59 +67,100 @@ class JamfObjectReaderBase(JamfUploaderBase):
         else:
             raise ProcessorError("ERROR: Credentials not supplied")
 
-        # Check for existing item
-        self.output(f"Checking for existing '{object_name}' on {jamf_url}")
+        # declare object list
+        object_list = []
 
-        # prestages have a displayName key instead of the normal name key
+        # declare name key
+        name_key = "name"
         if (
             object_type == "computer_prestage"
             or object_type == "mobile_device_prestage"
         ):
-            filter_name = "displayName"
-        else:
-            filter_name = "name"
+            name_key = "displayName"
 
-        obj_id = self.get_api_obj_id_from_name(
-            jamf_url,
-            object_name,
-            object_type,
-            token=token,
-            filter_name=filter_name,
-        )
+        # if requesting all objects we need to generate a list of all to iterate through
+        if object_name:
+            # Check for existing item
+            self.output(f"Checking for existing '{object_name}' on {jamf_url}")
 
-        if obj_id:
-            self.output(f"{object_type} '{object_name}' exists: ID {obj_id}")
-            # get the XML
+            obj_id = self.get_api_obj_id_from_name(
+                jamf_url,
+                object_name,
+                object_type,
+                token=token,
+                filter_name=name_key,
+            )
+
+            if obj_id:
+                self.output(
+                    f"{object_type} '{object_name}' exists: ID {obj_id}",
+                    verbose_level=2,
+                )
+                object_list = [{"id": obj_id, name_key: object_name}]
+            else:
+                self.output(f"{object_type} '{object_name}' not found on {jamf_url}")
+                return
+        elif all_objects:
+            object_list = self.get_all_api_objects(jamf_url, object_type, token)
+            # we really need an output path for all_objects, so exit if not provided
+            if not output_path:
+                self.output("ERROR: no output path provided")
+                return
+
+        self.output("here's the list")  # TEMP
+        self.output(object_list)  # TEMP
+
+        # now iterate through all the objects
+        for obj in object_list:
+            self.output(obj, verbose_level=2)  # TEMP
+            i = obj["id"]
+            n = obj[name_key]
+
+            # get the object
             raw_object = self.get_api_obj_contents_from_id(
-                jamf_url, object_type, obj_id, obj_path="", token=token
+                jamf_url, object_type, i, obj_path="", token=token
             )
             self.output(raw_object, verbose_level=2)  # TEMP
 
-            # parse the XML
+            # parse the object
             parsed_object = self.parse_downloaded_api_object(raw_object, object_type)
             # self.output(parsed_object, verbose_level=2)  # TEMP
 
-            # dump the XML to file is output_path is specified
+            # dump the object to file is output_path is specified
             if output_path:
+                # construct the filename
+                if "JSSResource" in self.api_endpoints(object_type):
+                    filetype = "xml"
+                else:
+                    filetype = "json"
+                # get instance name from URL
+                host = jamf_url.partition("://")[2]
+                subdomain = host.partition(".")[0]
+
+                output_filename = (
+                    f"{subdomain}-{self.object_list_types(object_type)}-{n}.{filetype}"
+                )
+                file_path = os.path.join(output_path, output_filename)
                 # check that parent folder exists
-                if os.path.exists(os.path.dirname(output_path)):
+                if os.path.isdir(output_path):
                     try:
-                        with open(output_path, "w", encoding="utf-8") as fp:
+                        with open(file_path, "w", encoding="utf-8") as fp:
                             fp.write(parsed_object)
-                        self.output(f"Wrote parsed object to {output_path}")
+                        self.output(f"Wrote parsed object to {file_path}")
                     except IOError as e:
                         raise ProcessorError(
-                            f"Could not write XML to {output_path} - {str(e)}"
+                            f"Could not write XML to {file_path} - {str(e)}"
                         ) from e
                 else:
-                    self.output(f"Cannot write to {output_path} as it doesn't exist")
-        else:
-            self.output(f"{object_type} '{object_name}' not found on {jamf_url}")
+                    self.output(
+                        f"Cannot write to {output_path} as the folder doesn't exist"
+                    )
 
         # output the summary
-        self.env["object_name"] = object_name
-        self.env["object_id"] = obj_id
         self.env["object_type"] = object_type
-        self.env["raw_object"] = raw_object or None
-        self.env["parsed_object"] = parsed_object or None
         self.env["output_path"] = output_path
+        if not all_objects:
+            self.env["object_name"] = object_name
+            self.env["object_id"] = obj_id
+            self.env["raw_object"] = raw_object or None
+            self.env["parsed_object"] = parsed_object or None

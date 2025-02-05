@@ -235,8 +235,9 @@ Patch Policy arguments:
     --key X=Y               Substitutable values in the template. Multiple values can be supplied
     --replace               Replace existing item
 
-Read Classic API Object arguments:
-    --name <string>         The object name
+Read  API Object arguments:
+    --name <string>         The object name, if --all is not specified
+    --all                   Read all objects
     --type <string>         The object type (e.g. policy)
     --output <string>       Optional path to output the parsed XML to. Directories to path must exist.
 
@@ -802,6 +803,13 @@ while test $# -gt 0 ; do
             if [[ $processor == "JamfMobileDeviceProfileUploader" ]]; then
                 if plutil -replace profile_mobiledevicegroup -string "$1" "$temp_processor_plist"; then
                     echo "   [jamf-upload] Wrote profile_mobiledevicegroup='$1' into $temp_processor_plist"
+                fi
+            fi
+            ;;
+        --all) 
+            if [[ $processor == "JamfObjectReader" ]]; then
+                if plutil -replace all_objects -string "True" "$temp_processor_plist"; then
+                    echo "   [jamf-upload] Wrote all_objects='True' into $temp_processor_plist"
                 fi
             fi
             ;;
