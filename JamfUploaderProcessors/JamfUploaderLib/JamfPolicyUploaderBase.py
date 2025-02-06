@@ -145,7 +145,7 @@ class JamfPolicyUploaderBase(JamfUploaderBase):
                 )
 
         # Now grab the name of the existing icon using the API
-        existing_icon = self.get_api_obj_value_from_id(
+        existing_icon = self.get_classic_api_obj_value_from_id(
             jamf_url,
             "policy",
             obj_id,

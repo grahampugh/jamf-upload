@@ -316,7 +316,7 @@ class JamfPatchUploaderBase(JamfUploaderBase):
                 obj_type = "policy"
                 obj_id = self.patch_icon_policy_id
                 obj_path = "self_service/self_service_icon/id"
-                self.patch_icon_id = self.get_api_obj_value_from_id(
+                self.patch_icon_id = self.get_classic_api_obj_value_from_id(
                     self.jamf_url,
                     obj_type,
                     obj_id,

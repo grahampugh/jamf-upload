@@ -45,7 +45,7 @@ class JamfMobileDeviceProfileUploaderBase(JamfUploaderBase):
         """return the existing UUID to ensure we don't change it"""
         # first grab the payload from the xml object
         obj_type = "configuration_profile"
-        existing_plist = self.get_api_obj_value_from_id(
+        existing_plist = self.get_classic_api_obj_value_from_id(
             jamf_url,
             obj_type,
             obj_id,
@@ -251,6 +251,8 @@ class JamfMobileDeviceProfileUploaderBase(JamfUploaderBase):
 
         # if an unsigned mobileconfig file is supplied we can get the name, organization and
         # description from it, but allowing the values to be substituted by Input keys
+        description = ""
+        organization = ""
         if self.mobileconfig:
             self.output(f"mobileconfig file supplied: {self.mobileconfig}")
             # check if the file is signed
@@ -285,11 +287,11 @@ class JamfMobileDeviceProfileUploaderBase(JamfUploaderBase):
             try:
                 description = mobileconfig_contents["PayloadDescription"]
             except KeyError:
-                description = ""
+                pass
             try:
                 organization = mobileconfig_contents["PayloadOrganization"]
             except KeyError:
-                organization = ""
+                pass
 
         # automatically provide a description and organisation from the mobileconfig
         # if not provided in the options
