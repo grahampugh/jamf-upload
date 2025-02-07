@@ -78,10 +78,6 @@ class JamfMobileDeviceProfileUploader(JamfMobileDeviceProfileUploaderBase):
             "required": False,
             "description": "Path to Configuration Profile mobileconfig file",
         },
-        "identifier": {
-            "required": False,
-            "description": "Configuration Profile payload identifier",
-        },
         "profile_template": {
             "required": False,
             "description": "Path to Configuration Profile XML template file",
@@ -101,14 +97,6 @@ class JamfMobileDeviceProfileUploader(JamfMobileDeviceProfileUploaderBase):
         "profile_mobiledevicegroup": {
             "required": False,
             "description": "a device group that will be scoped to the profile",
-        },
-        "unsign_profile": {
-            "required": False,
-            "description": (
-                "Unsign a mobileconfig file prior to uploading "
-                "if it is signed, if true."
-            ),
-            "default": False,
         },
         "replace_profile": {
             "required": False,

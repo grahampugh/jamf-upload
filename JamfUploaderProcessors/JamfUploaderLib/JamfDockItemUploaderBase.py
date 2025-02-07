@@ -68,7 +68,7 @@ class JamfDockItemUploaderBase(JamfUploaderBase):
         self.output("Uploading dock item..")
 
         object_type = "dock_item"
-        url = "{}/{}/id/{}".format(jamf_url, self.api_endpoints(object_type), obj_id)
+        url = f"{jamf_url}/{self.api_endpoints(object_type)}/id/{obj_id}"
 
         count = 0
         while True:

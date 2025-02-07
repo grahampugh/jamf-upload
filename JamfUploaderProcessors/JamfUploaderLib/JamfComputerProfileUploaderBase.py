@@ -20,7 +20,6 @@ limitations under the License.
 import os.path
 import sys
 import plistlib
-import subprocess
 import uuid
 
 from time import sleep
@@ -305,16 +304,12 @@ class JamfComputerProfileUploaderBase(JamfUploaderBase):
         replace_profile = self.env.get("replace_profile")
         retain_scope = self.env.get("retain_scope")
         sleep_time = self.env.get("sleep")
-        unsign = self.env.get("unsign_profile")
         # handle setting replace in overrides
         if not replace_profile or replace_profile == "False":
             replace_profile = False
         # handle setting retain_scope in overrides
         if not retain_scope or retain_scope == "False":
             retain_scope = False
-        # handle setting unsign in overrides
-        if not unsign or unsign == "False":
-            unsign = False
 
         # clear any pre-existing summary result
         if "jamfcomputerprofileuploader_summary_result" in self.env:

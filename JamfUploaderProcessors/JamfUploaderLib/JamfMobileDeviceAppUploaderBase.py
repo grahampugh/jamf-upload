@@ -65,7 +65,7 @@ class JamfMobileDeviceAppUploaderBase(JamfUploaderBase):
                 with open(appconfig_template, "r", encoding="utf-8") as file:
                     appconfig_xml = file.read()
 
-                """substitute user assignable keys and escape XML"""
+                # substitute user assignable keys and escape XML
                 appconfig = self.substitute_assignable_keys(
                     appconfig_xml, xml_escape=True
                 )
@@ -208,7 +208,8 @@ class JamfMobileDeviceAppUploaderBase(JamfUploaderBase):
             )
             if replace_mobiledeviceapp:
                 self.output(
-                    f"Replacing existing Mobile device app as 'replace_mobiledeviceapp' is set to {replace_mobiledeviceapp}",
+                    f"Replacing existing Mobile device app as 'replace_mobiledeviceapp' "
+                    f"is set to {replace_mobiledeviceapp}",
                     verbose_level=1,
                 )
 
@@ -332,7 +333,10 @@ class JamfMobileDeviceAppUploaderBase(JamfUploaderBase):
                 self.env["mobiledeviceapp_updated"] = mobiledeviceapp_updated
                 if mobiledeviceapp_updated:
                     self.env["jamfmobiledeviceappuploader_summary_result"] = {
-                        "summary_text": "The following Mobile device apps were updated in Jamf Pro:",
+                        "summary_text": (
+                            "The following Mobile device apps were updated in "
+                            "Jamf Pro:"
+                        ),
                         "report_fields": ["mobiledeviceapp", "template"],
                         "data": {
                             "mobiledeviceapp": mobiledeviceapp_name,
@@ -341,7 +345,8 @@ class JamfMobileDeviceAppUploaderBase(JamfUploaderBase):
                     }
             else:
                 self.output(
-                    "Not replacing existing Mobile device app. Use replace_mobiledeviceapp='True' to enforce.",
+                    "Not replacing existing Mobile device app. "
+                    "Use replace_mobiledeviceapp='True' to enforce.",
                     verbose_level=1,
                 )
                 return
@@ -480,7 +485,10 @@ class JamfMobileDeviceAppUploaderBase(JamfUploaderBase):
                 self.env["mobiledeviceapp_updated"] = mobiledeviceapp_updated
                 if mobiledeviceapp_updated:
                     self.env["jamfmobiledeviceappuploader_summary_result"] = {
-                        "summary_text": "The following Mobile device apps were updated in Jamf Pro:",
+                        "summary_text": (
+                            "The following Mobile device apps were updated "
+                            "in Jamf Pro:"
+                        ),
                         "report_fields": ["mobiledeviceapp", "template"],
                         "data": {
                             "mobiledeviceapp": mobiledeviceapp_name,
