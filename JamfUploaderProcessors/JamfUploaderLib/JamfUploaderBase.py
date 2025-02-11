@@ -1,4 +1,5 @@
 #!/usr/local/autopkg/python
+# pylint: disable=invalid-name, too-many-lines
 
 """
 Copyright 2023 Graham Pugh
@@ -123,7 +124,7 @@ class JamfUploaderBase(Processor):
     def write_json_file(self, data):
         """dump some json to a temporary file"""
         tf = self.init_temp_file(suffix=".json")
-        with open(tf, "w") as fp:
+        with open(tf, "w", encoding="utf-8") as fp:
             json.dump(data, fp)
         return tf
 
@@ -135,7 +136,7 @@ class JamfUploaderBase(Processor):
             self.env["jamfupload_token_file"] = self.init_temp_file(
                 prefix="jamf_upload_token_"
             )
-        with open(self.env["jamfupload_token_file"], "w") as fp:
+        with open(self.env["jamfupload_token_file"], "w", encoding="utf-8") as fp:
             json.dump(data, fp)
 
     def write_xml_file(self, data):
@@ -148,23 +149,27 @@ class JamfUploaderBase(Processor):
     def write_temp_file(self, data):
         """dump some text to a temporary file"""
         tf = self.init_temp_file(suffix=".txt")
-        with open(tf, "w") as fp:
+        with open(tf, "w", encoding="utf-8") as fp:
             fp.write(data)
         return tf
 
     def make_tmp_dir(self, tmp_dir="/tmp/jamf_upload_"):
         """make the tmp directory"""
         if not self.env.get("jamfupload_tmp_dir"):
-            base_dir, dir = tmp_dir.rsplit("/", 1)
-            self.env["jamfupload_tmp_dir"] = tempfile.mkdtemp(prefix=dir, dir=base_dir)
+            base_dir, dir_name = tmp_dir.rsplit("/", 1)
+            self.env["jamfupload_tmp_dir"] = tempfile.mkdtemp(
+                prefix=dir_name, dir=base_dir
+            )
         return self.env["jamfupload_tmp_dir"]
 
-    def init_temp_file(self, prefix="jamf_upload_", suffix=None, dir=None, text=True):
+    def init_temp_file(
+        self, prefix="jamf_upload_", suffix=None, dir_name=None, text=True
+    ):
         """dump some text to a temporary file"""
         return tempfile.mkstemp(
             prefix=prefix,
             suffix=suffix,
-            dir=self.make_tmp_dir() if dir is None else dir,
+            dir=self.make_tmp_dir() if dir_name is None else dir_name,
             text=text,
         )[1]
 
@@ -518,14 +523,14 @@ class JamfUploaderBase(Processor):
             "r", ["headers", "status_code", "output"], defaults=(None, None, None)
         )
         try:
-            with open(headers_file, "r") as file:
+            with open(headers_file, "r", encoding="utf-8") as file:
                 headers = file.readlines()
             r.headers = [x.strip() for x in headers]
             for header in r.headers:  # pylint: disable=not-an-iterable
                 if re.match(r"HTTP/(1.1|2)", header) and "Continue" not in header:
                     r.status_code = int(header.split()[1])
-        except IOError:
-            raise ProcessorError(f"WARNING: {headers_file} not found")
+        except IOError as exc:
+            raise ProcessorError(f"WARNING: {headers_file} not found") from exc
         if os.path.exists(output_file) and os.path.getsize(output_file) > 0:
             if "ics.services.jamfcloud.com" in url:
                 r.output = output_file
@@ -569,7 +574,8 @@ class JamfUploaderBase(Processor):
                     )
                 except IndexError as e:
                     raise ProcessorError(
-                        f"ERROR: {endpoint_type} '{obj_name}' {action} failed - status code {r.status_code}"
+                        f"ERROR: {endpoint_type} '{obj_name}' {action} failed - "
+                        f"status code {r.status_code}"
                     ) from e
 
     def get_jamf_pro_version(self, jamf_url, token):
@@ -618,7 +624,10 @@ class JamfUploaderBase(Processor):
                 )
         else:
             # do JSON stuff
-            url_filter = f"?page=0&page-size=1000&sort=id&filter={filter_name}%3D%3D%22{quote(object_name)}%22"
+            url_filter = (
+                f"?page=0&page-size=1000&sort=id&filter={filter_name}"
+                f"%3D%3D%22{quote(object_name)}%22"
+            )
             url = jamf_url + "/" + self.api_endpoints(object_type) + url_filter
             r = self.curl(request="GET", url=url, token=token)
             if r.status_code == 200:
@@ -665,7 +674,7 @@ class JamfUploaderBase(Processor):
                         f"'{str(self.env.get(found_key))}'",
                         verbose_level=2,
                     )
-                    if xml_escape and type(self.env.get(found_key)) is not int:
+                    if xml_escape and not isinstance(self.env.get(found_key), int):
                         replacement_key = escape(str(self.env.get(found_key)))
                     else:
                         replacement_key = self.env.get(found_key)
@@ -706,7 +715,7 @@ class JamfUploaderBase(Processor):
                         f"'{str(cli_custom_keys[found_key])}'",
                         verbose_level=2,
                     )
-                    if xml_escape and type(self.env.get(found_key)) is not int:
+                    if xml_escape and not isinstance(self.env.get(found_key), int):
                         replacement_key = escape(cli_custom_keys[found_key])
                     else:
                         replacement_key = cli_custom_keys[found_key]
@@ -866,14 +875,16 @@ class JamfUploaderBase(Processor):
             # convert an xpath to json
             xpath_list = obj_path.split("/")
             value = obj_content[object_type]
-            for i in range(0, len(xpath_list)):
-                if xpath_list[i]:
+
+            for _, xpath in enumerate(xpath_list):
+                if xpath:
                     try:
-                        value = value[xpath_list[i]]
+                        value = value[xpath]
                         self.output(value, verbose_level=3)
                     except KeyError:
                         value = ""
                         break
+
             if value:
                 self.output(f"Value of '{obj_path}': {value}", verbose_level=2)
             return value
@@ -1020,7 +1031,7 @@ class JamfUploaderBase(Processor):
                         elem.pop("id")
             return json.dumps(existing_object, indent=4)
 
-    class ParseHTMLForError(HTMLParser):
+    class ParseHTMLForError(HTMLParser):  # pylint: disable=abstract-method
         """Parses HTML output for the appropriate error"""
 
         def __init__(self):

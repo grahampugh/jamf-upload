@@ -1,4 +1,5 @@
 #!/usr/local/autopkg/python
+# pylint: disable=invalid-name
 
 """
 Copyright 2023 Graham Pugh
@@ -48,13 +49,13 @@ class JamfPatchUploaderBase(JamfUploaderBase):
         Prepares the patch template. Mostly copied from the policy processor.
         """
         if os.path.exists(patch_template):
-            with open(patch_template, "r") as file:
+            with open(patch_template, "r", encoding="utf-8") as file:
                 template_contents = file.read()
         else:
             raise ProcessorError("Patch template does not exist!")
 
         patch_name = self.substitute_assignable_keys(patch_name)
-        self.env["patch_name"] = self.patch_name
+        self.env["patch_name"] = patch_name
         template_contents = self.substitute_assignable_keys(
             template_contents, xml_escape=True
         )
@@ -73,6 +74,7 @@ class JamfPatchUploaderBase(JamfUploaderBase):
         patch_softwaretitle_id,
         pkg_version,
         pkg_name,
+        sleep_time,
         token="",
     ):
         """Uploads an updated patch softwaretitle including the linked pkg"""
@@ -90,7 +92,7 @@ class JamfPatchUploaderBase(JamfUploaderBase):
             obj_type = "package"
             obj_name = pkg_name
             pkg_id = self.get_api_obj_id_from_name(
-                self.jamf_url,
+                jamf_url,
                 obj_name,
                 obj_type,
                 token=token,
@@ -106,8 +108,8 @@ class JamfPatchUploaderBase(JamfUploaderBase):
 
         # Get current softwaretitle
         object_type = "patch_software_title"
-        url = "{}/{}/id/{}".format(
-            jamf_url, self.api_endpoints(object_type), patch_softwaretitle_id
+        url = (
+            f"{jamf_url}/{self.api_endpoints(object_type)}/id/{patch_softwaretitle_id}"
         )
 
         # No need to loop over curl function, since we only make a "GET" request.
@@ -185,8 +187,8 @@ class JamfPatchUploaderBase(JamfUploaderBase):
                     "ERROR: Uploading updated Patch Softwaretitle did not succeed after 5 attempts."
                 )
                 raise ProcessorError("ERROR: Patch Softwaretitle upload failed.")
-            if int(self.sleep) > 30:
-                sleep(int(self.sleep))
+            if int(sleep_time) > 30:
+                sleep(int(sleep_time))
             else:
                 sleep(30)
 
@@ -196,6 +198,7 @@ class JamfPatchUploaderBase(JamfUploaderBase):
         patch_name,
         patch_softwaretitle_id,
         token,
+        sleep_time,
         patch_template,
         patch_id=0,
     ):
@@ -205,18 +208,17 @@ class JamfPatchUploaderBase(JamfUploaderBase):
         # For patch policies the url differs when creating a new one or updating one.
         object_type = "patch_policy"
         if patch_id:
-            url = "{}/{}/id/{}".format(
-                jamf_url, self.api_endpoints(object_type), patch_id
-            )
+            url = f"{jamf_url}/{self.api_endpoints(object_type)}/id/{patch_id}"
         else:
-            url = "{}/{}/softwaretitleconfig/id/{}".format(
-                jamf_url, self.api_endpoints(object_type), patch_softwaretitle_id
+            url = (
+                f"{jamf_url}/{self.api_endpoints(object_type)}/softwaretitleconfig"
+                f"/id/{patch_softwaretitle_id}"
             )
 
         count = 0
         while True:
             count += 1
-            self.output("Patch upload attempt {}".format(count), verbose_level=2)
+            self.output(f"Patch upload attempt {count}", verbose_level=2)
             request = "PUT" if patch_id else "POST"
             r = self.curl(
                 request=request,
@@ -231,48 +233,46 @@ class JamfPatchUploaderBase(JamfUploaderBase):
                 self.output(
                     "WARNING: Patch policy upload did not succeed after 5 attempts"
                 )
-                self.output("\nHTTP POST Response Code: {}".format(r.status_code))
+                self.output(f"\nHTTP POST Response Code: {r.status_code}")
                 raise ProcessorError("ERROR: Policy upload failed.")
-            if int(self.sleep) > 30:
-                sleep(int(self.sleep))
+            if int(sleep_time) > 30:
+                sleep(int(sleep_time))
             else:
                 sleep(30)
         return r
 
     def execute(self):
         """Upload a patch policy"""
-        self.jamf_url = self.env.get("JSS_URL").rstrip("/")
-        self.jamf_user = self.env.get("API_USERNAME")
-        self.jamf_password = self.env.get("API_PASSWORD")
-        self.client_id = self.env.get("CLIENT_ID")
-        self.client_secret = self.env.get("CLIENT_SECRET")
-        self.pkg_name = self.env.get("pkg_name")
-        self.version = self.env.get("version")
-        self.patch_softwaretitle = self.env.get("patch_softwaretitle")
-        self.patch_name = self.env.get("patch_name")
-        self.patch_template = self.env.get("patch_template")
-        self.patch_icon_policy_name = self.env.get("patch_icon_policy_name")
-        self.replace = self.env.get("replace_patch")
-        self.sleep = self.env.get("sleep")
-        if not self.replace or self.replace == "False":
-            self.replace = False
+        jamf_url = self.env.get("JSS_URL").rstrip("/")
+        jamf_user = self.env.get("API_USERNAME")
+        jamf_password = self.env.get("API_PASSWORD")
+        client_id = self.env.get("CLIENT_ID")
+        client_secret = self.env.get("CLIENT_SECRET")
+        pkg_name = self.env.get("pkg_name")
+        version = self.env.get("version")
+        patch_softwaretitle = self.env.get("patch_softwaretitle")
+        patch_name = self.env.get("patch_name")
+        patch_template = self.env.get("patch_template")
+        patch_icon_policy_name = self.env.get("patch_icon_policy_name")
+        replace_patchpolicy = self.env.get("replace_patch")
+        sleep_time = self.env.get("sleep")
+        if not replace_patchpolicy or replace_patchpolicy == "False":
+            replace_patchpolicy = False
 
         # clear any pre-existing summary result
         if "jamfpatchuploader_summary_result" in self.env:
             del self.env["jamfpatchuploader_summary_result"]
 
-        if self.patch_template:
+        if patch_template:
             patch_policy_enabled = True
-            if not self.patch_template.startswith("/"):
-                found_template = self.get_path_to_file(self.patch_template)
+            if not patch_template.startswith("/"):
+                found_template = self.get_path_to_file(patch_template)
                 if found_template:
-                    self.patch_template = found_template
-                    self.output(
-                        f"Patch template: {self.patch_template}", verbose_level=2
-                    )
+                    patch_template = found_template
+                    self.output(f"Patch template: {patch_template}", verbose_level=2)
                 else:
                     raise ProcessorError(
-                        f"ERROR: Patch Template file {self.patch_template} not found"
+                        f"ERROR: Patch Template file {patch_template} not found"
                     )
         else:
             patch_policy_enabled = False
@@ -281,17 +281,13 @@ class JamfPatchUploaderBase(JamfUploaderBase):
                 "be linked."
             )
 
-        self.output(
-            f"Checking for existing '{self.patch_softwaretitle}' on {self.jamf_url}"
-        )
+        self.output(f"Checking for existing '{patch_softwaretitle}' on {jamf_url}")
 
         # get token using oauth or basic auth depending on the credentials given
-        if self.jamf_url and self.client_id and self.client_secret:
-            token = self.handle_oauth(self.jamf_url, self.client_id, self.client_secret)
-        elif self.jamf_url and self.jamf_user and self.jamf_password:
-            token = self.handle_api_auth(
-                self.jamf_url, self.jamf_user, self.jamf_password
-            )
+        if jamf_url and client_id and client_secret:
+            token = self.handle_oauth(jamf_url, client_id, client_secret)
+        elif jamf_url and jamf_user and jamf_password:
+            token = self.handle_api_auth(jamf_url, jamf_user, jamf_password)
         else:
             raise ProcessorError("ERROR: Credentials not supplied")
 
@@ -302,50 +298,50 @@ class JamfPatchUploaderBase(JamfUploaderBase):
         # Since most AutoPKG workflows include a policy (incl. an icon), we simply provide a way
         # to extract the icon from a specified policy (if desired).
 
-        if self.patch_icon_policy_name:
+        if patch_icon_policy_name:
             obj_type = "policy"
-            obj_name = self.patch_icon_policy_name
-            self.patch_icon_policy_id = self.get_api_obj_id_from_name(
-                self.jamf_url,
+            obj_name = patch_icon_policy_name
+            patch_icon_policy_id = self.get_api_obj_id_from_name(
+                jamf_url,
                 obj_name,
                 obj_type,
                 token=token,
             )
-            if self.patch_icon_policy_id:
+            if patch_icon_policy_id:
                 # Only try to extract an icon, if a policy with the given name was found.
                 obj_type = "policy"
-                obj_id = self.patch_icon_policy_id
+                obj_id = patch_icon_policy_id
                 obj_path = "self_service/self_service_icon/id"
-                self.patch_icon_id = self.get_api_obj_value_from_id(
-                    self.jamf_url,
+                patch_icon_id = self.get_classic_api_obj_value_from_id(
+                    jamf_url,
                     obj_type,
                     obj_id,
                     obj_path,
                     token=token,
                 )
-                if self.patch_icon_id:
+                if patch_icon_id:
                     # Icon id could be extracted
                     self.output(
-                        f"Set 'patch_icon_id' to '{self.patch_icon_id}'.",
+                        f"Set 'patch_icon_id' to '{patch_icon_id}'.",
                         verbose_level=2,
                     )
                     # Convert int to str to avoid errors while mapping the template later on
-                    self.env["patch_icon_id"] = str(self.patch_icon_id)
+                    self.env["patch_icon_id"] = str(patch_icon_id)
                 else:
                     # Found policy by name, but no icon id could  be extracted
                     self.output(
-                        f"WARNING: No icon found in given policy '{self.patch_icon_policy_name}'!"
+                        f"WARNING: No icon found in given policy '{patch_icon_policy_name}'!"
                     )
             else:
                 # Name was given, but no matching id could be found
                 self.output(
                     (
-                        f"No policy with the given name '{self.patch_icon_policy_name}' was found."
+                        f"No policy with the given name '{patch_icon_policy_name}' was found."
                         "Not able to extract an icon. Continuing..."
                     )
                 )
         else:
-            self.patch_icon_policy_id = 0
+            patch_icon_policy_id = 0
             self.env["patch_icon_id"] = "0"
             self.output(
                 "No 'patch_icon_policy_name' was provided. Skipping icon extraction...",
@@ -354,67 +350,67 @@ class JamfPatchUploaderBase(JamfUploaderBase):
 
         # Patch Softwaretitle
         obj_type = "patch_software_title"
-        obj_name = self.patch_softwaretitle
-        self.patch_softwaretitle_id = self.get_api_obj_id_from_name(
-            self.jamf_url,
+        obj_name = patch_softwaretitle
+        patch_softwaretitle_id = self.get_api_obj_id_from_name(
+            jamf_url,
             obj_name,
             obj_type,
             token=token,
         )
 
-        if not self.patch_softwaretitle_id:
+        if not patch_softwaretitle_id:
             raise ProcessorError(
-                f"ERROR: Couldn't find patch softwaretitle with name '{self.patch_softwaretitle}'.",
+                f"ERROR: Couldn't find patch softwaretitle with name '{patch_softwaretitle}'.",
                 "You need to create the patch softwaretitle by hand in Jamf Pro.",
                 "There is currently no way to create a patch softwaretitle via API.",
             )
-        self.env["patch_softwaretitle_id"] = self.patch_softwaretitle_id
+        self.env["patch_softwaretitle_id"] = patch_softwaretitle_id
 
         # Patch Package Definition
         # Links the (AutoPKG) reported version with the reported pkg.
-        if not self.version:
+        if not version:
             raise ProcessorError(
                 "ERROR: No variable 'version' was reported by AutoPKG."
             )
 
         self.handle_patch_pkg(
-            self.jamf_url,
-            self.patch_softwaretitle,
-            self.patch_softwaretitle_id,
-            self.version,
-            self.pkg_name,
+            jamf_url,
+            patch_softwaretitle,
+            patch_softwaretitle_id,
+            version,
+            pkg_name,
+            sleep_time,
             token,
         )
 
         # Patch Policy
         if patch_policy_enabled:
-            if not self.patch_name:
-                self.patch_name = self.patch_softwaretitle + " - " + self.version
+            if not patch_name:
+                patch_name = patch_softwaretitle + " - " + version
                 self.output(
-                    f"Set `patch_name` to '{self.patch_name}' since no name was provided."
+                    f"Set `patch_name` to '{patch_name}' since no name was provided."
                 )
 
-            self.patch_name, patch_template_xml = self.prepare_patch_template(
-                self.patch_name, self.patch_template
+            patch_name, patch_template_xml = self.prepare_patch_template(
+                patch_name, patch_template
             )
 
             obj_type = "patch_policy"
-            obj_name = self.patch_name
+            obj_name = patch_name
             patch_id = self.get_api_obj_id_from_name(
-                self.jamf_url,
+                jamf_url,
                 obj_name,
                 obj_type,
                 token=token,
             )
 
             if patch_id:
-                self.output(
-                    "Patch '{}' already exists: ID {}".format(self.patch_name, patch_id)
-                )
-                if self.replace:
+                self.output(f"Patch '{patch_name}' already exists: ID {patch_id}")
+                if replace_patchpolicy:
                     self.output(
-                        "Replacing existing patch as 'replace_patch' is set to {}".format(
-                            self.replace
+                        (
+                            "Replacing existing patch as 'replace_patch' is set to "
+                            + replace_patchpolicy
                         ),
                         verbose_level=1,
                     )
@@ -427,9 +423,10 @@ class JamfPatchUploaderBase(JamfUploaderBase):
 
             # Upload the patch
             r = self.upload_patch(
-                self.jamf_url,
-                self.patch_name,
-                self.patch_softwaretitle_id,
+                jamf_url,
+                patch_name,
+                patch_softwaretitle_id,
+                sleep_time,
                 token,
                 patch_template=patch_template_xml,
                 patch_id=patch_id,
@@ -442,11 +439,11 @@ class JamfPatchUploaderBase(JamfUploaderBase):
             except ET.ParseError as xml_error:
                 raise ProcessorError from xml_error
         else:
-            self.patch_name = "Not created - missing template"
+            patch_name = "Not created - missing template"
             patch_id = 0
 
         # Summary
-        self.env["patch"] = self.patch_name
+        self.env["patch"] = patch_name
         self.env["jamfpatchuploader_summary_result"] = {
             "summary_text": "The following patch policies were created or updated in Jamf Pro:",
             "report_fields": [
@@ -457,8 +454,8 @@ class JamfPatchUploaderBase(JamfUploaderBase):
             ],
             "data": {
                 "patch_id": str(patch_id),
-                "patch_policy_name": self.patch_name,
-                "patch_softwaretitle": self.patch_softwaretitle,
-                "patch_version": self.version,
+                "patch_policy_name": patch_name,
+                "patch_softwaretitle": patch_softwaretitle,
+                "patch_version": version,
             },
         }

@@ -1,4 +1,5 @@
 #!/usr/local/autopkg/python
+# pylint: disable=invalid-name
 
 """
 Copyright 2023 Graham Pugh
@@ -65,54 +66,52 @@ class JamfPolicyDeleterBase(JamfUploaderBase):
 
     def execute(self):
         """Delete a policy"""
-        self.jamf_url = self.env.get("JSS_URL").rstrip("/")
-        self.jamf_user = self.env.get("API_USERNAME")
-        self.jamf_password = self.env.get("API_PASSWORD")
-        self.client_id = self.env.get("CLIENT_ID")
-        self.client_secret = self.env.get("CLIENT_SECRET")
-        self.policy_name = self.env.get("policy_name")
+        jamf_url = self.env.get("JSS_URL").rstrip("/")
+        jamf_user = self.env.get("API_USERNAME")
+        jamf_password = self.env.get("API_PASSWORD")
+        client_id = self.env.get("CLIENT_ID")
+        client_secret = self.env.get("CLIENT_SECRET")
+        policy_name = self.env.get("policy_name")
 
         # clear any pre-existing summary result
         if "jamfpolicydeleter_summary_result" in self.env:
             del self.env["jamfpolicydeleter_summary_result"]
 
         # now start the process of deleting the object
-        self.output(f"Checking for existing '{self.policy_name}' on {self.jamf_url}")
+        self.output(f"Checking for existing '{policy_name}' on {jamf_url}")
 
         # get token using oauth or basic auth depending on the credentials given
-        if self.jamf_url and self.client_id and self.client_secret:
-            token = self.handle_oauth(self.jamf_url, self.client_id, self.client_secret)
-        elif self.jamf_url and self.jamf_user and self.jamf_password:
-            token = self.handle_api_auth(
-                self.jamf_url, self.jamf_user, self.jamf_password
-            )
+        if jamf_url and client_id and client_secret:
+            token = self.handle_oauth(jamf_url, client_id, client_secret)
+        elif jamf_url and jamf_user and jamf_password:
+            token = self.handle_api_auth(jamf_url, jamf_user, jamf_password)
         else:
             raise ProcessorError("ERROR: Credentials not supplied")
 
         # check for existing - requires obj_name
         obj_type = "policy"
-        obj_name = self.policy_name
+        obj_name = policy_name
         obj_id = self.get_api_obj_id_from_name(
-            self.jamf_url,
+            jamf_url,
             obj_name,
             obj_type,
             token,
         )
 
         if obj_id:
-            self.output(f"Policy '{self.policy_name}' exists: ID {obj_id}")
+            self.output(f"Policy '{policy_name}' exists: ID {obj_id}")
             self.output(
                 "Deleting existing policy",
                 verbose_level=1,
             )
             self.delete_policy(
-                self.jamf_url,
+                jamf_url,
                 obj_id,
                 token,
             )
         else:
             self.output(
-                f"Policy '{self.policy_name}' not found on {self.jamf_url}.",
+                f"Policy '{policy_name}' not found on {jamf_url}.",
                 verbose_level=1,
             )
             return
@@ -121,5 +120,5 @@ class JamfPolicyDeleterBase(JamfUploaderBase):
         self.env["jamfpolicydeleter_summary_result"] = {
             "summary_text": "The following policies were deleted from Jamf Pro:",
             "report_fields": ["policy"],
-            "data": {"policy": self.policy_name},
+            "data": {"policy": policy_name},
         }
