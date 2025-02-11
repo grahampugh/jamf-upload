@@ -208,12 +208,22 @@ elif [[ $test_type == "group" ]]; then
         "$verbosity" \
         --replace
 
-elif [[ $test_type == "groupdelete" ]]; then
+elif [[ $test_type == "delete-group" ]]; then
     # delete a computer group
-    "$DIR"/../jamf-upload.sh groupdelete \
+    "$DIR"/../jamf-upload.sh delete \
         --prefs "$prefs" \
         --recipe-dir /Users/gpugh/sourcecode/jamf-upload/_tests \
-        --name "Adium-update-smart" \
+        --type "computer_group" \
+        --name "1Password-update-smart" \
+        "$verbosity"
+
+elif [[ $test_type == "delete-script" ]]; then
+    # delete a computer group
+    "$DIR"/../jamf-upload.sh delete \
+        --prefs "$prefs" \
+        --recipe-dir /Users/gpugh/sourcecode/jamf-upload/_tests \
+        --type "script" \
+        --name "EndNote-postinstall.sh" \
         "$verbosity"
 
 elif [[ $test_type == "mobiledevicegroup" ]]; then
