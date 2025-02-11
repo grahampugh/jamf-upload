@@ -20,7 +20,6 @@ limitations under the License.
 import os.path
 import sys
 
-from xml.sax.saxutils import escape
 from time import sleep
 
 from autopkglib import (  # pylint: disable=import-error
@@ -99,7 +98,7 @@ class JamfExtensionAttributeUploaderBase(JamfUploaderBase):
         if obj_id:
             url = f"{jamf_url}/{self.api_endpoints(object_type)}/{obj_id}"
         else:
-            url = "{}/{}".format(jamf_url, self.api_endpoints(object_type))
+            url = f"{jamf_url}/{self.api_endpoints(object_type)}"
 
         count = 0
         while True:
@@ -183,7 +182,10 @@ class JamfExtensionAttributeUploaderBase(JamfUploaderBase):
             self.output(f"Extension Attribute '{ea_name}' already exists: ID {obj_id}")
             if replace_ea:
                 self.output(
-                    f"Replacing existing Extension Attribute as 'replace_ea' is set to {replace_ea}",
+                    (
+                        "Replacing existing Extension Attribute as 'replace_ea' is "
+                        f"set to {replace_ea}"
+                    ),
                     verbose_level=1,
                 )
             else:
