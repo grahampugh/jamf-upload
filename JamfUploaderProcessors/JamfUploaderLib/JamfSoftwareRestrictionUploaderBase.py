@@ -1,4 +1,5 @@
 #!/usr/local/autopkg/python
+# pylint: disable=invalid-name
 
 """
 Copyright 2023 Graham Pugh
@@ -51,6 +52,7 @@ class JamfSoftwareRestrictionUploaderBase(JamfUploaderBase):
         computergroup_name,
         template_contents,
         token,
+        sleep_time,
         obj_id=0,
     ):
         """Update Software Restriction metadata."""
@@ -82,7 +84,7 @@ class JamfSoftwareRestrictionUploaderBase(JamfUploaderBase):
 
         # if we find an object ID we put, if not, we post
         object_type = "restricted_software"
-        url = "{}/{}/id/{}".format(jamf_url, self.api_endpoints(object_type), obj_id)
+        url = f"{jamf_url}/{self.api_endpoints(object_type)}/id/{obj_id}"
 
         count = 0
         while True:
@@ -108,8 +110,8 @@ class JamfSoftwareRestrictionUploaderBase(JamfUploaderBase):
                 )
                 self.output(f"\nHTTP POST Response Code: {r.status_code}")
                 break
-            if int(self.sleep) > 30:
-                sleep(int(self.sleep))
+            if int(sleep_time) > 30:
+                sleep(int(sleep_time))
             else:
                 sleep(30)
 
@@ -117,42 +119,40 @@ class JamfSoftwareRestrictionUploaderBase(JamfUploaderBase):
 
     def execute(self):
         """Upload a software restriction"""
-        self.jamf_url = self.env.get("JSS_URL").rstrip("/")
-        self.jamf_user = self.env.get("API_USERNAME")
-        self.jamf_password = self.env.get("API_PASSWORD")
-        self.client_id = self.env.get("CLIENT_ID")
-        self.client_secret = self.env.get("CLIENT_SECRET")
-        self.restriction_name = self.env.get("restriction_name")
-        self.process_name = self.env.get("process_name")
-        self.template = self.env.get("restriction_template")
-        self.restriction_computergroup = self.env.get("restriction_computergroup")
-        self.sleep = self.env.get("sleep")
-        self.replace = self.env.get("replace_restriction")
+        jamf_url = self.env.get("JSS_URL").rstrip("/")
+        jamf_user = self.env.get("API_USERNAME")
+        jamf_password = self.env.get("API_PASSWORD")
+        client_id = self.env.get("CLIENT_ID")
+        client_secret = self.env.get("CLIENT_SECRET")
+        restriction_name = self.env.get("restriction_name")
+        process_name = self.env.get("process_name")
+        template = self.env.get("restriction_template")
+        restriction_computergroup = self.env.get("restriction_computergroup")
+        sleep_time = self.env.get("sleep")
+        replace_restriction = self.env.get("replace_restriction")
         # handle setting display_message in overrides
-        self.display_message = self.env.get("display_message")
-        if not self.display_message:
-            self.display_message = "False"
+        display_message = self.env.get("display_message")
+        if not display_message:
+            display_message = "False"
         # handle setting match_exact_process_name in overrides
-        self.match_exact_process_name = self.env.get("match_exact_process_name")
-        if not self.match_exact_process_name:
-            self.match_exact_process_name = "False"
+        match_exact_process_name = self.env.get("match_exact_process_name")
+        if not match_exact_process_name:
+            match_exact_process_name = "False"
         # handle setting send_notification in overrides
-        self.restriction_send_notification = self.env.get(
-            "restriction_send_notification"
-        )
-        if not self.restriction_send_notification:
-            self.restriction_send_notification = "false"
+        restriction_send_notification = self.env.get("restriction_send_notification")
+        if not restriction_send_notification:
+            restriction_send_notification = "false"
         # handle setting kill_process in overrides
-        self.kill_process = self.env.get("kill_process")
-        if not self.kill_process:
-            self.kill_process = "false"
+        kill_process = self.env.get("kill_process")
+        if not kill_process:
+            kill_process = "false"
         # handle setting delete_executable in overrides
-        self.delete_executable = self.env.get("delete_executable")
-        if not self.delete_executable:
-            self.delete_executable = "false"
+        delete_executable = self.env.get("delete_executable")
+        if not delete_executable:
+            delete_executable = "false"
         # handle setting replace in overrides
-        if not self.replace or self.replace == "False":
-            self.replace = False
+        if not replace_restriction or replace_restriction == "False":
+            replace_restriction = False
 
         # clear any pre-existing summary result
         if "jamfsoftwarerestrictionuploader_summary_result" in self.env:
@@ -161,56 +161,50 @@ class JamfSoftwareRestrictionUploaderBase(JamfUploaderBase):
         restriction_updated = False
 
         # handle files with no path
-        if self.template and "/" not in self.template:
-            found_template = self.get_path_to_file(self.template)
+        if template and "/" not in template:
+            found_template = self.get_path_to_file(template)
             if found_template:
-                self.template = found_template
+                template = found_template
             else:
-                raise ProcessorError(
-                    f"ERROR: XML template file {self.template} not found"
-                )
+                raise ProcessorError(f"ERROR: XML template file {template} not found")
 
         # exit if essential values are not supplied
-        if not self.restriction_name:
+        if not restriction_name:
             raise ProcessorError(
                 "ERROR: No software restriction name supplied - cannot import"
             )
 
         # import restriction template
-        with open(self.template, "r") as file:
+        with open(template, "r", encoding="utf-8") as file:
             template_contents = file.read()
 
         # check for existing Software Restriction
-        self.output(
-            f"Checking for existing '{self.restriction_name}' on {self.jamf_url}"
-        )
+        self.output(f"Checking for existing '{restriction_name}' on {jamf_url}")
 
         # get token using oauth or basic auth depending on the credentials given
-        if self.jamf_url and self.client_id and self.client_secret:
-            token = self.handle_oauth(self.jamf_url, self.client_id, self.client_secret)
-        elif self.jamf_url and self.jamf_user and self.jamf_password:
-            token = self.handle_api_auth(
-                self.jamf_url, self.jamf_user, self.jamf_password
-            )
+        if jamf_url and client_id and client_secret:
+            token = self.handle_oauth(jamf_url, client_id, client_secret)
+        elif jamf_url and jamf_user and jamf_password:
+            token = self.handle_api_auth(jamf_url, jamf_user, jamf_password)
         else:
             raise ProcessorError("ERROR: Credentials not supplied")
 
         obj_type = "restricted_software"
-        obj_name = self.restriction_name
+        obj_name = restriction_name
         obj_id = self.get_api_obj_id_from_name(
-            self.jamf_url,
+            jamf_url,
             obj_name,
             obj_type,
             token=token,
         )
         if obj_id:
             self.output(
-                f"Software Restriction '{self.restriction_name}' already exists: ID {obj_id}"
+                f"Software Restriction '{restriction_name}' already exists: ID {obj_id}"
             )
-            if self.replace:
+            if replace_restriction:
                 self.output(
                     "Replacing existing Software Restriction as 'replace_restriction' is set "
-                    f"to {self.replace}",
+                    f"to {replace_restriction}",
                     verbose_level=1,
                 )
             else:
@@ -221,27 +215,28 @@ class JamfSoftwareRestrictionUploaderBase(JamfUploaderBase):
                 return
         else:
             self.output(
-                f"Software Restriction '{self.restriction_name}' not found - will create"
+                f"Software Restriction '{restriction_name}' not found - will create"
             )
 
         self.upload_restriction(
-            self.jamf_url,
-            self.restriction_name,
-            self.process_name,
-            self.display_message,
-            self.match_exact_process_name,
-            self.restriction_send_notification,
-            self.kill_process,
-            self.delete_executable,
-            self.restriction_computergroup,
+            jamf_url,
+            restriction_name,
+            process_name,
+            display_message,
+            match_exact_process_name,
+            restriction_send_notification,
+            kill_process,
+            delete_executable,
+            restriction_computergroup,
             template_contents,
             token,
+            sleep_time,
             obj_id=obj_id,
         )
         restriction_updated = True
 
         # output the summary
-        self.env["restriction_name"] = self.restriction_name
+        self.env["restriction_name"] = restriction_name
         self.env["restriction_updated"] = restriction_updated
         if restriction_updated:
             self.env["jamfsoftwarerestrictionuploadertest_summary_result"] = {
@@ -250,5 +245,5 @@ class JamfSoftwareRestrictionUploaderBase(JamfUploaderBase):
                     "or updated in Jamf Pro:"
                 ),
                 "report_fields": ["restriction_name"],
-                "data": {"mobileconfig_name": self.restriction_name},
+                "data": {"mobileconfig_name": restriction_name},
             }

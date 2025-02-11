@@ -1,4 +1,5 @@
 #!/usr/local/autopkg/python
+# pylint: disable=invalid-name
 
 """
 Copyright 2023 Graham Pugh
@@ -56,8 +57,8 @@ class JamfPatchCheckerBase(JamfUploaderBase):
 
         # Get current softwaretitle
         object_type = "patch_software_title"
-        url = "{}/{}/id/{}".format(
-            jamf_url, self.api_endpoints(object_type), patch_softwaretitle_id
+        url = (
+            f"{jamf_url}/{self.api_endpoints(object_type)}/id/{patch_softwaretitle_id}"
         )
 
         # No need to loop over curl function, since we only make a "GET" request.
@@ -101,75 +102,70 @@ class JamfPatchCheckerBase(JamfUploaderBase):
             latest_version = patch_softwaretitle_xml.find(
                 "versions/version/software_version"
             ).text
-            self.latest_version = latest_version  # Set as an attribute of the class
             self.env["patch_version_found"] = patch_version_found
             self.output(
                 "WARNING: Could not find matching version "
                 + f"'{pkg_version}' in patch softwaretitle '{patch_softwaretitle_name}'. "
-                + f"Latest reported version is '{self.latest_version}'."
+                + f"Latest reported version is '{latest_version}'."
             )
+            return latest_version
 
     def execute(self):
         """Do the main thing here"""
-        self.jamf_url = self.env.get("JSS_URL").rstrip('/')
-        self.jamf_user = self.env.get("API_USERNAME")
-        self.jamf_password = self.env.get("API_PASSWORD")
-        self.client_id = self.env.get("CLIENT_ID")
-        self.client_secret = self.env.get("CLIENT_SECRET")
-        self.pkg_name = self.env.get("pkg_name")
-        self.version = self.env.get("version")
-        self.patch_softwaretitle = self.env.get("patch_softwaretitle")
-        self.sleep = self.env.get("sleep")
+        jamf_url = self.env.get("JSS_URL").rstrip("/")
+        jamf_user = self.env.get("API_USERNAME")
+        jamf_password = self.env.get("API_PASSWORD")
+        client_id = self.env.get("CLIENT_ID")
+        client_secret = self.env.get("CLIENT_SECRET")
+        pkg_name = self.env.get("pkg_name")
+        version = self.env.get("version")
+        patch_softwaretitle = self.env.get("patch_softwaretitle")
 
         # Clear any pre-existing summary result
         if "jamfpatchchecker_summary_result" in self.env:
             del self.env["jamfpatchchecker_summary_result"]
 
-        self.output(
-            f"Checking for existing '{self.patch_softwaretitle}' on {self.jamf_url}"
-        )
+        self.output(f"Checking for existing '{patch_softwaretitle}' on {jamf_url}")
 
         # Get token using oauth or basic auth depending on the credentials given
-        if self.jamf_url and self.client_id and self.client_secret:
-            token = self.handle_oauth(self.jamf_url, self.client_id, self.client_secret)
-        elif self.jamf_url and self.jamf_user and self.jamf_password:
-            token = self.handle_api_auth(
-                self.jamf_url, self.jamf_user, self.jamf_password
-            )
+        if jamf_url and client_id and client_secret:
+            token = self.handle_oauth(jamf_url, client_id, client_secret)
+        elif jamf_url and jamf_user and jamf_password:
+            token = self.handle_api_auth(jamf_url, jamf_user, jamf_password)
         else:
             raise ProcessorError("ERROR: Credentials not supplied")
 
         # Patch Softwaretitle
         obj_type = "patch_software_title"
-        obj_name = self.patch_softwaretitle
-        self.patch_softwaretitle_id = self.get_api_obj_id_from_name(
-            self.jamf_url,
+        obj_name = patch_softwaretitle
+        patch_softwaretitle_id = self.get_api_obj_id_from_name(
+            jamf_url,
             obj_name,
             obj_type,
             token=token,
         )
 
-        if not self.patch_softwaretitle_id:
+        if not patch_softwaretitle_id:
             raise ProcessorError(
-                f"ERROR: Couldn't find patch softwaretitle with name '{self.patch_softwaretitle}'.",
+                f"ERROR: Couldn't find patch softwaretitle with name '{patch_softwaretitle}'.",
                 "You need to create the patch softwaretitle by hand in Jamf Pro.",
                 "There is currently no way to create a patch softwaretitle via API.",
             )
-        self.env["patch_softwaretitle_id"] = self.patch_softwaretitle_id
+        self.env["patch_softwaretitle_id"] = patch_softwaretitle_id
 
         # Patch Package Definition
         # Links the (AutoPKG) reported version with the reported pkg.
-        if not self.version:
+        if not version:
             raise ProcessorError(
                 "ERROR: No variable 'version' was reported by AutoPKG."
             )
 
-        self.handle_patch_pkg(
-            self.jamf_url,
-            self.patch_softwaretitle,
-            self.patch_softwaretitle_id,
-            self.version,
-            self.pkg_name,
+        latest_version = self.handle_patch_pkg(
+            jamf_url,
+            patch_softwaretitle,
+            patch_softwaretitle_id,
+            version,
+            pkg_name,
             token,
         )
 
@@ -182,17 +178,17 @@ class JamfPatchCheckerBase(JamfUploaderBase):
                 "package_version",
             ],
             "data": {
-                "patch_softwaretitle_id": str(self.patch_softwaretitle_id),
-                "patch_softwaretitle": self.patch_softwaretitle,
-                "package_version": self.version,
+                "patch_softwaretitle_id": str(patch_softwaretitle_id),
+                "patch_softwaretitle": patch_softwaretitle,
+                "package_version": version,
             },
         }
 
         # Conditionally add the latest_version_found if set
-        if hasattr(self, "latest_version") and self.latest_version:
+        if latest_version:
             summary_result["report_fields"].append("latest_version_found")
-            summary_result["data"]["latest_version_found"] = self.latest_version
+            summary_result["data"]["latest_version_found"] = latest_version
 
         # Set the environment variable for summary result
-        self.env["patch"] = self.patch_softwaretitle
+        self.env["patch"] = patch_softwaretitle
         self.env["jamfpatchchecker_summary_result"] = summary_result
