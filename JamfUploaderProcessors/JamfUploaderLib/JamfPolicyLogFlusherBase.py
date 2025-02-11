@@ -1,4 +1,5 @@
 #!/usr/local/autopkg/python
+# pylint: disable=invalid-name
 
 """
 Copyright 2023 Graham Pugh
@@ -39,20 +40,18 @@ from JamfUploaderBase import (  # pylint: disable=import-error, wrong-import-pos
 class JamfPolicyLogFlusherBase(JamfUploaderBase):
     """Class for functions used to flush a policy in Jamf"""
 
-    def flush_policy(self, jamf_url, obj_id, interval, token):
+    def flush_policy(self, jamf_url, obj_id, interval, sleep_time, token):
         """Send policy log flush request"""
 
         self.output("Sending policy log flush request...")
 
         object_type = "logflush"
-        url = "{}/{}/policy/id/{}/interval/{}".format(
-            jamf_url, self.api_endpoints(object_type), obj_id, quote(interval)
-        )
+        url = f"{jamf_url}/{self.api_endpoints(object_type)}/policy/id/{obj_id}/interval/{quote(interval)}"
 
         count = 0
         while True:
             count += 1
-            self.output("Log Flush Request attempt {}".format(count), verbose_level=2)
+            self.output(f"Log Flush Request attempt {count}", verbose_level=2)
             request = "DELETE"
             r = self.curl(
                 request=request,
@@ -67,63 +66,66 @@ class JamfPolicyLogFlusherBase(JamfUploaderBase):
                 self.output(
                     "WARNING: Log Flush Request did not succeed after 5 attempts"
                 )
-                self.output("\nHTTP POST Response Code: {}".format(r.status_code))
-                raise ProcessorError("ERROR: Log Flush Request failed ")
-            sleep(30)
+                self.output(f"\nHTTP POST Response Code: {r.status_code}")
+                raise ProcessorError("ERROR: Log Flush Request failed")
+            if int(sleep_time) > 30:
+                sleep(int(sleep_time))
+            else:
+                sleep(30)
         return r
 
     def execute(self):
         """Flush a policy log"""
-        self.jamf_url = self.env.get("JSS_URL").rstrip("/")
-        self.jamf_user = self.env.get("API_USERNAME")
-        self.jamf_password = self.env.get("API_PASSWORD")
-        self.client_id = self.env.get("CLIENT_ID")
-        self.client_secret = self.env.get("CLIENT_SECRET")
-        self.policy_name = self.env.get("policy_name")
-        self.logflush_interval = self.env.get("logflush_interval")
+        jamf_url = self.env.get("JSS_URL").rstrip("/")
+        jamf_user = self.env.get("API_USERNAME")
+        jamf_password = self.env.get("API_PASSWORD")
+        client_id = self.env.get("CLIENT_ID")
+        client_secret = self.env.get("CLIENT_SECRET")
+        policy_name = self.env.get("policy_name")
+        logflush_interval = self.env.get("logflush_interval")
+        sleep_time = self.env.get("sleep")
 
         # clear any pre-existing summary result
         if "jamfpolicylogflusher_summary_result" in self.env:
             del self.env["jamfpolicylogflusher_summary_result"]
 
         # now start the process of deleting the object
-        self.output(f"Checking for existing '{self.policy_name}' on {self.jamf_url}")
+        self.output(f"Checking for existing '{policy_name}' on {jamf_url}")
 
         # get token using oauth or basic auth depending on the credentials given
-        if self.jamf_url and self.client_id and self.client_secret:
-            token = self.handle_oauth(self.jamf_url, self.client_id, self.client_secret)
-        elif self.jamf_url and self.jamf_user and self.jamf_password:
-            token = self.handle_api_auth(
-                self.jamf_url, self.jamf_user, self.jamf_password
-            )
+        if jamf_url and client_id and client_secret:
+            token = self.handle_oauth(jamf_url, client_id, client_secret)
+        elif jamf_url and jamf_user and jamf_password:
+            token = self.handle_api_auth(jamf_url, jamf_user, jamf_password)
         else:
             raise ProcessorError("ERROR: Credentials not supplied")
 
         # check for existing - requires obj_name
         obj_type = "policy"
-        obj_name = self.policy_name
+        obj_name = policy_name
         obj_id = self.get_api_obj_id_from_name(
-            self.jamf_url,
+            jamf_url,
             obj_name,
             obj_type,
             token=token,
         )
 
         if obj_id:
-            self.output(f"Policy '{self.policy_name}' exists: ID {obj_id}")
+            self.output(f"Policy '{policy_name}' exists: ID {obj_id}")
             self.output(
                 "Flushing existing policy",
                 verbose_level=1,
             )
             self.flush_policy(
-                self.jamf_url,
+                jamf_url,
                 obj_id,
-                self.logflush_interval,
+                logflush_interval,
+                sleep_time,
                 token=token,
             )
         else:
             self.output(
-                f"Policy '{self.policy_name}' not found on {self.jamf_url}.",
+                f"Policy '{policy_name}' not found on {jamf_url}.",
                 verbose_level=1,
             )
             return
@@ -132,5 +134,5 @@ class JamfPolicyLogFlusherBase(JamfUploaderBase):
         self.env["jamfpolicylogflusher_summary_result"] = {
             "summary_text": "The following policies were flushed in Jamf Pro:",
             "report_fields": ["policy"],
-            "data": {"policy": self.policy_name},
+            "data": {"policy": policy_name},
         }

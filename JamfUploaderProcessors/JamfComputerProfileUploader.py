@@ -106,14 +106,6 @@ class JamfComputerProfileUploader(JamfComputerProfileUploaderBase):
             "required": False,
             "description": "a computer group that will be scoped to the profile",
         },
-        "unsign_profile": {
-            "required": False,
-            "description": (
-                "Unsign a mobileconfig file prior to uploading "
-                "if it is signed, if true."
-            ),
-            "default": False,
-        },
         "replace_profile": {
             "required": False,
             "description": "overwrite an existing Configuration Profile if True.",

@@ -1,4 +1,5 @@
 #!/usr/local/autopkg/python
+# pylint: disable=invalid-name
 
 """
 Copyright 2023 Graham Pugh
@@ -48,13 +49,14 @@ class JamfExtensionAttributeUploaderBase(JamfUploaderBase):
         ea_inventory_display,
         script_path,
         skip_script_key_substitution,
+        sleep_time,
         token,
         obj_id=None,
     ):
         """Update extension attribute metadata."""
         # import script from file and replace any keys in the script
         if os.path.exists(script_path):
-            with open(script_path, "r") as file:
+            with open(script_path, "r", encoding="utf-8") as file:
                 script_contents = file.read()
         else:
             raise ProcessorError("Script does not exist!")
@@ -69,16 +71,16 @@ class JamfExtensionAttributeUploaderBase(JamfUploaderBase):
         # build the object
         ea_data = (
             "<computer_extension_attribute>"
-            + "<name>{}</name>".format(ea_name)
+            + f"<name>{ea_name}</name>"
             + "<enabled>true</enabled>"
-            + "<description>{}</description>".format(ea_description)
-            + "<data_type>{}</data_type>".format(ea_data_type)
+            + f"<description>{ea_description}</description>"
+            + f"<data_type>{ea_data_type}</data_type>"
             + "<input_type>"
             + "  <type>script</type>"
             + "  <platform>Mac</platform>"
-            + "  <script>{}</script>".format(script_contents_escaped)
+            + f"  <script>{script_contents_escaped}</script>"
             + "</input_type>"
-            + "<inventory_display>{}</inventory_display>".format(ea_inventory_display)
+            + f"<inventory_display>{ea_inventory_display}</inventory_display>"
             + "<recon_display>Extension Attributes</recon_display>"
             + "</computer_extension_attribute>"
         )
@@ -97,13 +99,13 @@ class JamfExtensionAttributeUploaderBase(JamfUploaderBase):
 
         # if we find an object ID we put, if not, we post
         object_type = "computer_extension_attribute"
-        url = "{}/{}/id/{}".format(jamf_url, self.api_endpoints(object_type), obj_id)
+        url = f"{jamf_url}/{self.api_endpoints(object_type)}/id/{obj_id}"
 
         count = 0
         while True:
             count += 1
             self.output(
-                "Extension Attribute upload attempt {}".format(count),
+                f"Extension Attribute upload attempt {count}",
                 verbose_level=2,
             )
             request = "PUT" if obj_id else "POST"
@@ -121,36 +123,33 @@ class JamfExtensionAttributeUploaderBase(JamfUploaderBase):
                 self.output(
                     "ERROR: Extension Attribute upload did not succeed after 5 attempts"
                 )
-                self.output("\nHTTP POST Response Code: {}".format(r.status_code))
+                self.output(f"\nHTTP POST Response Code: {r.status_code}")
                 raise ProcessorError("ERROR: Extension Attribute upload failed ")
-            if int(self.sleep) > 30:
-                sleep(int(self.sleep))
+            if int(sleep_time) > 30:
+                sleep(int(sleep_time))
             else:
                 sleep(30)
 
     def execute(self):
         """Upload an extension attribute"""
-        self.jamf_url = self.env.get("JSS_URL").rstrip("/")
-        self.jamf_user = self.env.get("API_USERNAME")
-        self.jamf_password = self.env.get("API_PASSWORD")
-        self.client_id = self.env.get("CLIENT_ID")
-        self.client_secret = self.env.get("CLIENT_SECRET")
-        self.ea_script_path = self.env.get("ea_script_path")
-        self.ea_name = self.env.get("ea_name")
-        self.ea_description = self.env.get("ea_description")
-        self.skip_script_key_substitution = self.env.get("skip_script_key_substitution")
-        self.replace = self.env.get("replace_ea")
-        self.ea_data_type = self.env.get("ea_data_type")
-        self.ea_inventory_display = self.env.get("ea_inventory_display")
-        self.sleep = self.env.get("sleep")
+        jamf_url = self.env.get("JSS_URL").rstrip("/")
+        jamf_user = self.env.get("API_USERNAME")
+        jamf_password = self.env.get("API_PASSWORD")
+        client_id = self.env.get("CLIENT_ID")
+        client_secret = self.env.get("CLIENT_SECRET")
+        ea_script_path = self.env.get("ea_script_path")
+        ea_name = self.env.get("ea_name")
+        ea_description = self.env.get("ea_description")
+        skip_script_key_substitution = self.env.get("skip_script_key_substitution")
+        replace_ea = self.env.get("replace_ea")
+        ea_data_type = self.env.get("ea_data_type")
+        ea_inventory_display = self.env.get("ea_inventory_display")
+        sleep_time = self.env.get("sleep")
         # handle setting replace in overrides
-        if not self.replace or self.replace == "False":
-            self.replace = False
-        if (
-            not self.skip_script_key_substitution
-            or self.skip_script_key_substitution == "False"
-        ):
-            self.skip_script_key_substitution = False
+        if not replace_ea or replace_ea == "False":
+            replace_ea = False
+        if not skip_script_key_substitution or skip_script_key_substitution == "False":
+            skip_script_key_substitution = False
 
         # clear any pre-existing summary result
         if "jamfextensionattributeuploader_summary_result" in self.env:
@@ -158,47 +157,39 @@ class JamfExtensionAttributeUploaderBase(JamfUploaderBase):
         ea_uploaded = False
 
         # handle files with a relative path
-        if not self.ea_script_path.startswith("/"):
-            found_template = self.get_path_to_file(self.ea_script_path)
+        if not ea_script_path.startswith("/"):
+            found_template = self.get_path_to_file(ea_script_path)
             if found_template:
-                self.ea_script_path = found_template
+                ea_script_path = found_template
             else:
-                raise ProcessorError(f"ERROR: EA file {self.ea_script_path} not found")
+                raise ProcessorError(f"ERROR: EA file {ea_script_path} not found")
 
         # now start the process of uploading the object
-        self.output(f"Checking for existing '{self.ea_name}' on {self.jamf_url}")
+        self.output(f"Checking for existing '{ea_name}' on {jamf_url}")
 
         # get token using oauth or basic auth depending on the credentials given
-        if self.jamf_url and self.client_id and self.client_secret:
-            token = self.handle_oauth(self.jamf_url, self.client_id, self.client_secret)
-        elif self.jamf_url and self.jamf_user and self.jamf_password:
-            token = self.handle_api_auth(
-                self.jamf_url, self.jamf_user, self.jamf_password
-            )
+        if jamf_url and client_id and client_secret:
+            token = self.handle_oauth(jamf_url, client_id, client_secret)
+        elif jamf_url and jamf_user and jamf_password:
+            token = self.handle_api_auth(jamf_url, jamf_user, jamf_password)
         else:
             raise ProcessorError("ERROR: Credentials not supplied")
 
         # check for existing - requires obj_name
         obj_type = "computer_extension_attribute"
-        obj_name = self.ea_name
+        obj_name = ea_name
         obj_id = self.get_api_obj_id_from_name(
-            self.jamf_url,
+            jamf_url,
             obj_name,
             obj_type,
             token,
         )
 
         if obj_id:
-            self.output(
-                "Extension Attribute '{}' already exists: ID {}".format(
-                    self.ea_name, obj_id
-                )
-            )
-            if self.replace:
+            self.output(f"Extension Attribute '{ea_name}' already exists: ID {obj_id}")
+            if replace_ea:
                 self.output(
-                    "Replacing existing Extension Attribute as 'replace_ea' is set to {}".format(
-                        self.replace
-                    ),
+                    f"Replacing existing Extension Attribute as 'replace_ea' is set to {replace_ea}",
                     verbose_level=1,
                 )
             else:
@@ -210,20 +201,21 @@ class JamfExtensionAttributeUploaderBase(JamfUploaderBase):
 
         # upload the EA
         self.upload_ea(
-            self.jamf_url,
-            self.ea_name,
-            self.ea_description,
-            self.ea_data_type,
-            self.ea_inventory_display,
-            self.ea_script_path,
-            self.skip_script_key_substitution,
+            jamf_url,
+            ea_name,
+            ea_description,
+            ea_data_type,
+            ea_inventory_display,
+            ea_script_path,
+            skip_script_key_substitution,
+            sleep_time,
             token=token,
             obj_id=obj_id,
         )
         ea_uploaded = True
 
         # output the summary
-        self.env["extension_attribute"] = self.ea_name
+        self.env["extension_attribute"] = ea_name
         self.env["ea_uploaded"] = ea_uploaded
         if ea_uploaded:
             self.env["jamfextensionattributeuploader_summary_result"] = {
@@ -232,5 +224,5 @@ class JamfExtensionAttributeUploaderBase(JamfUploaderBase):
                     "updated in Jamf Pro:"
                 ),
                 "report_fields": ["name", "path"],
-                "data": {"name": self.ea_name, "path": self.ea_script_path},
+                "data": {"name": ea_name, "path": ea_script_path},
             }

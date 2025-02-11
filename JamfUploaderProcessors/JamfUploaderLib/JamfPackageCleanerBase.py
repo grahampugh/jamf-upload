@@ -1,4 +1,5 @@
 #!/usr/local/autopkg/python
+# pylint: disable=invalid-name
 
 """
 Copyright 2023 Graham Pugh
@@ -95,31 +96,30 @@ class JamfPackageCleanerBase(JamfUploaderBase):
         """Clean up old packages in Jamf Pro"""
 
         # Get the necessary environment variables
-        self.jamf_url = self.env.get("JSS_URL").rstrip("/")
-        self.jamf_user = self.env.get("API_USERNAME")
-        self.jamf_password = self.env.get("API_PASSWORD")
-        self.client_id = self.env.get("CLIENT_ID")
-        self.client_secret = self.env.get("CLIENT_SECRET")
-        self.pkg_name_match = (
-            self.env.get("pkg_name_match") or f"{self.env.get('NAME')}-"
-        )
-        self.versions_to_keep = int(self.env.get("versions_to_keep"))
-        self.minimum_name_length = int(self.env.get("minimum_name_length"))
-        self.maximum_allowed_packages_to_delete = int(
+        jamf_url = self.env.get("JSS_URL").rstrip("/")
+        jamf_user = self.env.get("API_USERNAME")
+        jamf_password = self.env.get("API_PASSWORD")
+        client_id = self.env.get("CLIENT_ID")
+        client_secret = self.env.get("CLIENT_SECRET")
+        pkg_name_match = self.env.get("pkg_name_match") or f"{self.env.get('NAME')}-"
+        versions_to_keep = int(self.env.get("versions_to_keep"))
+        minimum_name_length = int(self.env.get("minimum_name_length"))
+        maximum_allowed_packages_to_delete = int(
             self.env.get("maximum_allowed_packages_to_delete")
         )
-        self.dry_run = self.env.get("dry_run")
+        dry_run = self.env.get("dry_run")
 
         # Create a list of smb shares in tuples
-        self.smb_shares = []
+        smb_shares = []
         if self.env.get("SMB_URL"):
             if not self.env.get("SMB_USERNAME") or not self.env.get("SMB_PASSWORD"):
                 raise ProcessorError("SMB_URL defined but no credentials supplied.")
             self.output(
-                f"DP 1: {self.env.get('SMB_URL')}, {self.env.get('SMB_USERNAME')}, pass len: {len(self.env.get('SMB_PASSWORD'))}",
+                f"DP 1: {self.env.get('SMB_URL')}, {self.env.get('SMB_USERNAME')}, "
+                f"pass len: {len(self.env.get('SMB_PASSWORD'))}",
                 verbose_level=2,
             )
-            self.smb_shares.append(
+            smb_shares.append(
                 (
                     self.env.get("SMB_URL"),
                     self.env.get("SMB_USERNAME"),
@@ -136,7 +136,7 @@ class JamfPackageCleanerBase(JamfUploaderBase):
                             f"SMB{n}_URL defined but no credentials supplied."
                         )
                     self.output(
-                        "DP {}: {}, {}, pass len: {}".format(
+                        "DP {}: {}, {}, pass len: {}".format(  # pylint: disable=consider-using-f-string
                             n,
                             self.env.get(f"SMB{n}_URL"),
                             self.env.get(f"SMB{n}_USERNAME"),
@@ -144,7 +144,7 @@ class JamfPackageCleanerBase(JamfUploaderBase):
                         ),
                         verbose_level=2,
                     )
-                    self.smb_shares.append(
+                    smb_shares.append(
                         (
                             self.env.get(f"SMB{n}_URL"),
                             self.env.get(f"SMB{n}_USERNAME"),
@@ -164,7 +164,7 @@ class JamfPackageCleanerBase(JamfUploaderBase):
                     or not share["SMB_PASSWORD"]
                 ):
                     raise ProcessorError("Incorrect SMB credentials supplied.")
-                self.smb_shares.append(
+                smb_shares.append(
                     (
                         share["SMB_URL"],
                         share["SMB_USERNAME"],
@@ -177,59 +177,55 @@ class JamfPackageCleanerBase(JamfUploaderBase):
             del self.env["jamfpackagecleaner_summary_result"]
 
         # Abort if the package name match string is too short
-        if len(self.pkg_name_match) < self.minimum_name_length:
+        if len(pkg_name_match) < minimum_name_length:
             self.output(
-                f"'pkg_name_match' argument ({self.pkg_name_match}) needs at least "
-                f"{self.minimum_name_length} characters. "
+                f"'pkg_name_match' argument ({pkg_name_match}) needs at least "
+                f"{minimum_name_length} characters. "
                 "Override by changing the 'minimum_name_length' argument. Aborting."
             )
             return
 
         # Get all packages from Jamf Pro as JSON object
-        self.output(f"Getting all packages from {self.jamf_url}")
+        self.output(f"Getting all packages from {jamf_url}")
 
         # get token using oauth or basic auth depending on the credentials given
-        if self.jamf_url and self.client_id and self.client_secret:
-            token = self.handle_oauth(self.jamf_url, self.client_id, self.client_secret)
-        elif self.jamf_url and self.jamf_user and self.jamf_password:
-            token = self.handle_api_auth(
-                self.jamf_url, self.jamf_user, self.jamf_password
-            )
+        if jamf_url and client_id and client_secret:
+            token = self.handle_oauth(jamf_url, client_id, client_secret)
+        elif jamf_url and jamf_user and jamf_password:
+            token = self.handle_api_auth(jamf_url, jamf_user, jamf_password)
         else:
             raise ProcessorError("ERROR: Credentials not supplied")
 
         # check for existing
         obj_type = "package"
-        url = f"{self.jamf_url}/{self.api_endpoints(obj_type)}"
+        url = f"{jamf_url}/{self.api_endpoints(obj_type)}"
         r = self.curl(request="GET", url=url, token=token)
         jamf_packages = json.loads(r.output.decode("utf-8"))["packages"]
 
         # Find packages that match the name pattern
         found_packages = [
-            item
-            for item in jamf_packages
-            if item["name"].startswith(self.pkg_name_match)
+            item for item in jamf_packages if item["name"].startswith(pkg_name_match)
         ]
         found_packages = sorted(
             found_packages, key=lambda item: item["id"], reverse=True
         )
 
         # If there are not enough versions to delete, log it will skip the deletion step
-        if len(found_packages) <= self.versions_to_keep:
+        if len(found_packages) <= versions_to_keep:
             self.output(
                 f"No need to delete any packages. Only {len(found_packages)} found. "
-                f"Keeping up to {self.versions_to_keep} versions"
+                f"Keeping up to {versions_to_keep} versions"
             )
 
         # Divide the packages into those to keep and those to delete
-        packages_to_keep = found_packages[: self.versions_to_keep]
-        packages_to_delete = found_packages[self.versions_to_keep :]  # noqa: E203
+        packages_to_keep = found_packages[:versions_to_keep]
+        packages_to_delete = found_packages[versions_to_keep:]  # noqa: E203
 
         # Check that we're not going to delete too many packages
-        if len(packages_to_delete) > self.maximum_allowed_packages_to_delete:
+        if len(packages_to_delete) > maximum_allowed_packages_to_delete:
             self.output(
                 f"Too many matches. Found {len(packages_to_delete)} to delete. "
-                f"Maximum allowed is {self.maximum_allowed_packages_to_delete}. "
+                f"Maximum allowed is {maximum_allowed_packages_to_delete}. "
                 "Override by setting the 'maximum_allowed_packages_to_delete' argument. Aborting."
             )
             return
@@ -248,7 +244,7 @@ class JamfPackageCleanerBase(JamfUploaderBase):
             self.output(f"❌ {package['name']} (will be deleted)", verbose_level=2)
 
         # If performing a dry_run, print intentions and abort.
-        if self.dry_run:
+        if dry_run:
             self.output(
                 "INFO: Argument 'dry_run' is set to True. Nothing will be deleted. "
                 "Use '-vv' to see detailed information. "
@@ -258,25 +254,19 @@ class JamfPackageCleanerBase(JamfUploaderBase):
 
         for package in packages_to_delete:
             # package deletion could take time, so we check the token before each deletion
-            if self.jamf_url and self.client_id and self.client_secret:
-                token = self.handle_oauth(
-                    self.jamf_url, self.client_id, self.client_secret
-                )
-            elif self.jamf_url and self.jamf_user and self.jamf_password:
-                token = self.handle_api_auth(
-                    self.jamf_url, self.jamf_user, self.jamf_password
-                )
+            if jamf_url and client_id and client_secret:
+                token = self.handle_oauth(jamf_url, client_id, client_secret)
+            elif jamf_url and jamf_user and jamf_password:
+                token = self.handle_api_auth(jamf_url, jamf_user, jamf_password)
             else:
                 raise ProcessorError("ERROR: Credentials not supplied")
-            self.delete_package(
-                jamf_url=self.jamf_url, obj_id=package["id"], token=token
-            )
+            self.delete_package(jamf_url=jamf_url, obj_id=package["id"], token=token)
             self.output(f"Deleting {package['name']}", verbose_level=2)
 
             # Process for SMB shares if defined
-            if len(self.smb_shares) > 0:
+            if len(smb_shares) > 0:
                 self.output(
-                    "Number of File Share DPs: " + str(len(self.smb_shares)),
+                    "Number of File Share DPs: " + str(len(smb_shares)),
                     verbose_level=2,
                 )
             pkg_name = package["name"]
@@ -308,9 +298,9 @@ class JamfPackageCleanerBase(JamfUploaderBase):
                 "deleted",
             ],
             "data": {
-                "pkg_name_match": self.pkg_name_match,
+                "pkg_name_match": pkg_name_match,
                 "found_matches": str(len(found_packages)),
-                "versions_to_keep": str(self.versions_to_keep),
+                "versions_to_keep": str(versions_to_keep),
                 "deleted": str(len(packages_to_delete)),
             },
         }
