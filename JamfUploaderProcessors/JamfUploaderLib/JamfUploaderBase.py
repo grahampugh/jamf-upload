@@ -50,7 +50,7 @@ class JamfUploaderBase(Processor):
         api_endpoints = {
             "account": "JSSResource/accounts",
             "category": "api/v1/categories",
-            "computer_extension_attribute": "JSSResource/computerextensionattributes",
+            "computer_extension_attribute": "api/v1/computer-extension-attributes",
             "computer_group": "JSSResource/computergroups",
             "computer_prestage": "api/v3/computer-prestages",
             "configuration_profile": "JSSResource/mobiledeviceconfigurationprofiles",
@@ -557,7 +557,7 @@ class JamfUploaderBase(Processor):
         else:
             action = "unknown"
 
-        if r.status_code == 200 or r.status_code == 201:
+        if r.status_code == 200 or r.status_code == 201 or r.status_code == 202:
             if endpoint_type == "jcds":
                 self.output("JCDS2 credentials successfully received", verbose_level=2)
             else:

@@ -128,12 +128,7 @@ class JamfObjectReaderBase(JamfUploaderBase):
             payload = ""
             payload_filetype = "sh"
             if object_type == "computer_extension_attribute":
-                try:
-                    obj_xml = ET.fromstring(parsed_object)
-                except ET.ParseError as xml_error:
-                    raise ProcessorError from xml_error
-                payload_value = obj_xml.find("input_type/script")
-                payload = payload_value.text
+                payload = json.loads(parsed_object)["scriptContents"]
                 # determine the script type
                 if "python" in payload.partition("\n")[0]:
                     payload_filetype = "py"
@@ -190,7 +185,7 @@ class JamfObjectReaderBase(JamfUploaderBase):
 
                     except IOError as e:
                         raise ProcessorError(
-                            f"Could not write XML to {file_path} - {str(e)}"
+                            f"Could not write output to {file_path} - {str(e)}"
                         ) from e
                 else:
                     self.output(
@@ -203,5 +198,5 @@ class JamfObjectReaderBase(JamfUploaderBase):
         if not all_objects:
             self.env["object_name"] = object_name
             self.env["object_id"] = obj_id
-            self.env["raw_object"] = raw_object or None
-            self.env["parsed_object"] = parsed_object or None
+            self.env["raw_object"] = str(raw_object) or None
+            self.env["parsed_object"] = str(parsed_object) or None
