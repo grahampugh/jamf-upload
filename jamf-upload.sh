@@ -335,6 +335,10 @@ fi
 object="$1"
 if [[ $object == "account" ]]; then 
     processor="JamfAccountUploader"
+elif [[ $object == "apirole" ]]; then 
+    processor="JamfAPIRoleUploader"
+elif [[ $object == "apiclient" ]]; then 
+    processor="JamfAPIClientUploader"
 elif [[ $object == "category" ]]; then 
     processor="JamfCategoryUploader"
 elif [[ $object == "classicobj" ]]; then
@@ -493,6 +497,14 @@ while test $# -gt 0 ; do
                 if plutil -replace replace_account -string "True" "$temp_processor_plist"; then
                     echo "   [jamf-upload] Wrote replace_account='True' into $temp_processor_plist"
                 fi
+            elif [[ $processor == "JamfAPIRoleUploader" ]]; then
+                if plutil -replace replace_api_role -string "True" "$temp_processor_plist"; then
+                    echo "   [jamf-upload] Wrote replace_api_role='True' into $temp_processor_plist"
+                fi
+            elif [[ $processor == "JamfAPIClientUploader" ]]; then
+                if plutil -replace replace_api_client -string "True" "$temp_processor_plist"; then
+                    echo "   [jamf-upload] Wrote replace_api_client='True' into $temp_processor_plist"
+                fi
             elif [[ $processor == "JamfCategoryUploader" ]]; then
                 if plutil -replace replace_category -string "True" "$temp_processor_plist"; then
                     echo "   [jamf-upload] Wrote replace_category='True' into $temp_processor_plist"
@@ -553,9 +565,13 @@ while test $# -gt 0 ; do
                 if plutil -replace account_name -string "$1" "$temp_processor_plist"; then
                     echo "   [jamf-upload] Wrote account_name='$1' into $temp_processor_plist"
                 fi
-            elif [[ $processor == "JamfCategoryUploader" ]]; then
-                if plutil -replace category_name -string "$1" "$temp_processor_plist"; then
-                    echo "   [jamf-upload] Wrote category_name='$1' into $temp_processor_plist"
+            elif [[ $processor == "JamfAPIRoleUploader" ]]; then
+                if plutil -replace api_role_name -string "$1" "$temp_processor_plist"; then
+                    echo "   [jamf-upload] Wrote api_role_name='$1' into $temp_processor_plist"
+                fi
+            elif [[ $processor == "JamfAPIClientUploader" ]]; then
+                if plutil -replace api_client_name -string "$1" "$temp_processor_plist"; then
+                    echo "   [jamf-upload] Wrote api_client_name='$1' into $temp_processor_plist"
                 fi
             elif [[ $processor == "JamfObjectReader" || $processor == "JamfObjectDeleter" || $processor == "JamfClassicAPIObjectUploader" ]]; then
                 if plutil -replace object_name -string "$1" "$temp_processor_plist"; then
@@ -625,6 +641,10 @@ while test $# -gt 0 ; do
                 if plutil -replace account_template -string "$1" "$temp_processor_plist"; then
                     echo "   [jamf-upload] Wrote account_template='$1' into $temp_processor_plist"
                 fi
+            elif [[ $processor == "JamfAPIRoleUploader" ]]; then
+                if plutil -replace api_role_template -string "$1" "$temp_processor_plist"; then
+                    echo "   [jamf-upload] Wrote api_role_template='$1' into $temp_processor_plist"
+                fi
             elif [[ $processor == "JamfClassicAPIObjectUploader" ]]; then
                 if plutil -replace object_template -string "$1" "$temp_processor_plist"; then
                     echo "   [jamf-upload] Wrote object_template='$1' into $temp_processor_plist"
@@ -663,11 +683,34 @@ while test $# -gt 0 ; do
                 fi
             fi
             ;;
-        --output)
+        --api-client-id)
             shift
-            if [[ $processor == "JamfObjectReader" ]]; then
-                if plutil -replace output_path -string "$1" "$temp_processor_plist"; then
-                    echo "   [jamf-upload] Wrote output_path='$1' into $temp_processor_plist"
+            if [[ $processor == "JamfAPIClientUploader" ]]; then
+                if plutil -replace api_client_id -string "$1" "$temp_processor_plist"; then
+                    echo "   [jamf-upload] Wrote api_client_id='$1' into $temp_processor_plist"
+                fi
+            fi
+            ;;
+        --api-role-name)
+            shift
+            if [[ $processor == "JamfAPIClientUploader" ]]; then
+                if plutil -replace api_role_name -string "$1" "$temp_processor_plist"; then
+                    echo "   [jamf-upload] Wrote api_role_name='$1' into $temp_processor_plist"
+                fi
+            fi
+            ;;
+        --enabled)
+            if [[ $processor == "JamfAPIClientUploader" ]]; then
+                if plutil -replace api_client_enabled -string "True" "$temp_processor_plist"; then
+                    echo "   [jamf-upload] Wrote api_client_enabled='True' into $temp_processor_plist"
+                fi
+            fi
+            ;;
+        --lifetime|--access-token-lifetime)
+            shift
+            if [[ $processor == "JamfAPIClientUploader" ]]; then
+                if plutil -replace access_token_lifetime -string "$1" "$temp_processor_plist"; then
+                    echo "   [jamf-upload] Wrote access_token_lifetime='$1' into $temp_processor_plist"
                 fi
             fi
             ;;
@@ -822,6 +865,14 @@ while test $# -gt 0 ; do
             if [[ $processor == "JamfObjectReader" ]]; then
                 if plutil -replace all_objects -string "True" "$temp_processor_plist"; then
                     echo "   [jamf-upload] Wrote all_objects='True' into $temp_processor_plist"
+                fi
+            fi
+            ;;
+        --output)
+            shift
+            if [[ $processor == "JamfObjectReader" ]]; then
+                if plutil -replace output_path -string "$1" "$temp_processor_plist"; then
+                    echo "   [jamf-upload] Wrote output_path='$1' into $temp_processor_plist"
                 fi
             fi
             ;;

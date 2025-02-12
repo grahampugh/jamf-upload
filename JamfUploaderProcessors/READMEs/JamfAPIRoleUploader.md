@@ -1,8 +1,8 @@
-# JamfAccountUploader
+# JamfAPIRoleUploader
 
 ## Description
 
-A processor for AutoPkg that will upload an account to a Jamf Cloud or on-prem server, with privileges supplied by a template xml file.
+A processor for AutoPkg that will create or amend an API Role to a Jamf Pro server, with privileges supplied by a template json file.
 
 ## Input variables
 
@@ -21,18 +21,15 @@ A processor for AutoPkg that will upload an account to a Jamf Cloud or on-prem s
 - **CLIENT_SECRET:**
   - **required:** True
   - **description:** Secret associated with the Client ID, optionally set as a key in the com.github.autopkg preference file.
-- **account_name:**
+- **api_role_name:**
   - **required:** True
-  - **description:** Account name
-- **account_type:**
+  - **description:** API Role name
+- **api_role_template:**
   - **required:** True
-  - **description:** Account type; "user" or "group"
-- **account_template:**
-  - **required:** True
-  - **description:** Full path to the XML template
-- **replace_account:**
+  - **description:** Full path to the JSON template
+- **replace_api_role:**
   - **required:** False
-  - **description:** Overwrite an existing account if True.
+  - **description:** Overwrite an existing API Role if True.
   - **default:** False
 - **sleep:**
   - **required:** False
@@ -41,11 +38,9 @@ A processor for AutoPkg that will upload an account to a Jamf Cloud or on-prem s
 
 ## Output variables
 
-- **jamfaccountuploader_summary_result:**
+- **jamfapiroleuploader_summary_result:**
   - **description:** Description of interesting results.
-- **account_name:**
-  - **description:** Account name.
-- **account_updated:**
-  - **description:** Boolean - True if the account was changed.
-- **changed_account_id:**
-  - **description:** Jamf object ID of the newly created or modified account.
+- **api_role_name:**
+  - **description:** API Role name.
+- **api_role_updated:**
+  - **description:** Boolean - True if the API Role was changed.

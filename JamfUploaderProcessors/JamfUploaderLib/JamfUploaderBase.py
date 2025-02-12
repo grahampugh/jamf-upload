@@ -49,6 +49,8 @@ class JamfUploaderBase(Processor):
         """Return the endpoint URL from the object type"""
         api_endpoints = {
             "account": "JSSResource/accounts",
+            "api_client": "api/v1/api-integrations",
+            "api_role": "api/v1/api-roles",
             "category": "api/v1/categories",
             "computer_extension_attribute": "api/v1/computer-extension-attributes",
             "computer_group": "JSSResource/computergroups",
@@ -100,6 +102,8 @@ class JamfUploaderBase(Processor):
         """Return a XML dictionary type from the object type"""
         object_list_types = {
             "account": "accounts",
+            "api_client": "api_clients",
+            "api_role": "api_roles",
             "category": "categories",
             "computer_group": "computer_groups",
             "computer_prestage": "computer_prestages",

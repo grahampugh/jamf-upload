@@ -663,6 +663,28 @@ elif [[ $test_type == "icon2" ]]; then
         "$verbosity" \
         "$url"
 
+elif [[ $test_type == "apirole" ]]; then
+    # upload a group
+    "$DIR"/../jamf-upload.sh apirole \
+        --prefs "$prefs" \
+        --recipe-dir /Users/gpugh/sourcecode/jamf-upload/_tests \
+        --name "JamfUploader Test API Role" \
+        --template "templates/APIRoleTemplate-example.json" \
+        "$verbosity" \
+        --replace
+
+elif [[ $test_type == "apiclient" ]]; then
+    # upload a group
+    "$DIR"/../jamf-upload.sh apiclient \
+        --prefs "$prefs" \
+        --recipe-dir /Users/gpugh/sourcecode/jamf-upload/_tests \
+        --name "JamfUploader Test API Client" \
+        --api-role-name "JamfUploader Test API Role" \
+        --lifetime "150" \
+        --enabled \
+        "$verbosity" \
+        --replace
+
 elif [[ $test_type == "slack" ]]; then
     # send a webhook to slack
     "$DIR"/../jamf-upload.sh slack \

@@ -15,10 +15,7 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 
-NOTES:
-The API endpoint must be defined in the api_endpoints function in JamfUploaderBase.py
-
-All functions are in JamfUploaderLib/JamfClassicAPIObjectUploaderBase.py
+All functions are in JamfUploaderLib/JamfAPIRoleUploaderBase.py
 """
 
 import os.path
@@ -29,14 +26,16 @@ import sys
 # imports require noqa comments for E402
 sys.path.insert(0, os.path.dirname(__file__))
 
-from JamfUploaderLib.JamfClassicAPIObjectUploaderBase import (  # pylint: disable=import-error, wrong-import-position
-    JamfClassicAPIObjectUploaderBase,
+from JamfUploaderLib.JamfAPIRoleUploaderBase import (  # pylint: disable=import-error, wrong-import-position
+    JamfAPIRoleUploaderBase,
 )
 
-__all__ = ["JamfClassicAPIObjectUploader"]
+__all__ = ["JamfAPIRoleUploader"]
 
 
-class JamfClassicAPIObjectUploader(JamfClassicAPIObjectUploaderBase):
+class JamfAPIRoleUploader(JamfAPIRoleUploaderBase):
+    """Processor to create an API Role"""
+
     description = (
         "A processor for AutoPkg that will create or update an API object template "
         "on a Jamf Pro server."
@@ -72,23 +71,18 @@ class JamfClassicAPIObjectUploader(JamfClassicAPIObjectUploaderBase):
             "description": "Secret associated with the Client ID, optionally set as a key in "
             "the com.github.autopkg preference file.",
         },
-        "object_name": {
+        "api_role_name": {
             "required": True,
-            "description": "Name of the object",
+            "description": "Name of the API role",
             "default": "",
         },
-        "object_template": {
+        "api_role_template": {
             "required": True,
-            "description": "Full path to the XML template",
+            "description": "Full path to the template JSON file",
         },
-        "object_type": {
-            "required": True,
-            "description": "Type of the object. This is the name of the key in the XML template",
-            "default": "",
-        },
-        "replace_object": {
+        "replace_api_role": {
             "required": False,
-            "description": "Overwrite an existing object if True.",
+            "description": "Overwrite an existing API Role if True.",
             "default": False,
         },
         "sleep": {
@@ -99,13 +93,15 @@ class JamfClassicAPIObjectUploader(JamfClassicAPIObjectUploaderBase):
     }
 
     output_variables = {
-        "jamfclassicapiobjectuploader_summary_result": {
+        "jamfapiroleuploader_summary_result": {
             "description": "Description of interesting results.",
         },
-        "object_name": {
-            "description": "Jamf object name of the newly created or modified object.",
+        "api_role_name": {
+            "description": "Name of the newly created or modified API Role.",
         },
-        "object_updated": {"description": "Boolean - True if the object was changed."},
+        "api_role_updated": {
+            "description": "Boolean - True if the object was changed."
+        },
     }
 
     def main(self):
@@ -115,5 +111,5 @@ class JamfClassicAPIObjectUploader(JamfClassicAPIObjectUploaderBase):
 
 
 if __name__ == "__main__":
-    PROCESSOR = JamfClassicAPIObjectUploader()
+    PROCESSOR = JamfAPIRoleUploader()
     PROCESSOR.execute_shell()
