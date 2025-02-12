@@ -68,7 +68,7 @@ class JamfExtensionAttributeUploaderBase(JamfUploaderBase):
         ea_inventory_display = ea_inventory_display.replace(" ", "_").upper()
         ea_data_type = ea_data_type.upper()
 
-        self.output("Data type: " + type(ea_inventory_display), verbose_level=3)
+        self.output("Data type: " + str(ea_inventory_display), verbose_level=3)
 
         # build the object
         ea_data = {
