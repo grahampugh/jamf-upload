@@ -52,28 +52,27 @@ Arguments:
     --clientsecret <string> An API Client Secret
     --recipe-dir <RECIPE_DIR>
 
-Account arguments:
+UPLOAD OPTIONS
+
+Account Upload arguments:
     --name <string>         The name
     --type <string>         The account type. Must be 'user' or 'group'.
     --template <path>       XML template
     --key X=Y               Substitutable values in the template. Multiple values can be supplied
     --replace               Replace existing item
 
-Category arguments:
+Category Upload arguments:
     --name <string>         The name
     --priority <int>        The priority
     --replace               Replace existing item
 
-Computer Group arguments:
+Computer Group Upload arguments:
     --name <string>         The name
     --template <path>       XML template
     --key X=Y               Substitutable values in the template. Multiple values can be supplied
     --replace               Replace existing item
 
-Computer Group Delete arguments:
-    --name <string>         The computer group name
-
-Computer Profile arguments:
+Computer Profile Upload arguments:
     --name <string>         The name
     --template <path>       XML template
     --payload <path>        A profile payload
@@ -87,47 +86,43 @@ Computer Profile arguments:
     --replace               Replace existing item
     --retain-scope          Retain existing scope when updating an item
 
-Dock Item arguments:
+Dock Item Upload arguments:
     --name <string>         The name
     --type <string>         Type of Dock Item - either 'App', 'File' or 'Folder'
     --path <string>         Path of Dock Item - e.g. 'file:///Applications/Safari.app/'
     --replace               Replace existing item
 
-Extension Attribute arguments:
+Extension Attribute Upload arguments:
     --name <string>         The name
     --script <path>         Full path of the script to be uploaded
     --key X=Y               Substitutable values in the template. Multiple values can be supplied
     --replace               Replace existing item
 
-Generic Classic API Object arguments:
+Generic Classic API Object Upload arguments:
     --name <string>         The name
     --type <string>         The API object type. This is the name of the key in the XML template.
     --template <path>       XML template
     --key X=Y               Substitutable values in the template. Multiple values can be supplied
     --replace               Replace existing item
 
-Generic Classic API Object Read arguments:
-    --name <string>         The name
-    --type <string>         The API object type. This is the name of the key in the XML template.
-
-Icon arguments:
+Icon Upload arguments:
     --icon <path>           Full path to an icon file
     --icon-uri <url>        The icon URI from https://ics.services.jamfcloud.com/icon
 
-LDAP Server arguments:
+LDAP Server Upload arguments:
     --name <string>         The name
     --template <path>       XML template
     --key X=Y               Substitutable values in the template. Multiple values can be supplied
     --replace               Replace existing item
 
-Mac App Store App arguments:
+Mac App Store App Upload arguments:
     --name <string>         The name
     --cloned-from           The name of the Mac App Store app from which to clone
     --template <path>       XML template
     --key X=Y               Substitutable values in the template. Multiple values can be supplied
     --replace               Replace existing item
 
-Mobile Device app arguments:
+Mobile Device App Upload arguments:
     --name <string>         The name
     --cloned-from           The name of the Mobile Device app from which to clone
     --template <path>       XML template
@@ -135,13 +130,13 @@ Mobile Device app arguments:
     --key X=Y               Substitutable values in the template and AppConfig. Multiple values can be supplied
     --replace               Replace existing item
 
-Mobile Device Group arguments:
+Mobile Device Group Upload arguments:
     --name <string>         The name
     --template <path>       XML template
     --key X=Y               Substitutable values in the template. Multiple values can be supplied
     --replace               Replace existing item
 
-Mobile Device Profile arguments:
+Mobile Device Profile Upload arguments:
     --name <string>         The name
     --template <path>       XML template
     --mobileconfig <path>   A mobileconfig file
@@ -154,7 +149,7 @@ Mobile Device Profile arguments:
     --key X=Y               Substitutable values in the script. Multiple values can be supplied
     --replace               Replace existing item
 
-Package arguments:
+Package Upload arguments:
     --name <string>         The package display name
     --pkg_name <path>       The package filename
     --pkg <path>            Full path to the package to upload
@@ -184,15 +179,7 @@ Package arguments:
     --md5                   Use MD5 hash instead of SHA512. Required for packages 
                             to be installable via MDM InstallEnterpriseApplication
 
-Package Clean arguments:
-    --name <string>         The name to match
-    --smb-url <url>         URL of the fileshare distribution point (on premises Jamf Pro only)
-    --smb-user <SMB_USERNAME>
-                            Username with share access
-    --smb_pass <SMB_PASSWORD>
-                            Password of the user
-
-Package Metadata arguments:
+Package Metadata Upload arguments:
     --name <string>         The package display name
     --pkg <path>            The package filename
     --priority <int>        The priority
@@ -207,9 +194,7 @@ Package Metadata arguments:
     --send-notification     Set to send a notification when the package is installed
     --replace               Set to replace the pkg metadata if no package is uploaded
 
-Package Recalculate arguments: None
-
-Policy arguments:
+Policy Upload arguments:
     --name <string>         The name
     --template <path>       XML template
     --icon <path>           Full path to an icon file for Self Service policies
@@ -218,14 +203,7 @@ Policy arguments:
     --replace-icon          Set to replace the existing icon if it has the same name
     --retain-scope          Retain existing scope when updating an item
 
-Policy Delete arguments:
-    --name <string>         The policy name
-
-Policy Log Flush arguments:
-    --name <string>         The policy name
-    --interval              The log flush interval
-
-Patch Policy arguments:
+Patch Policy Upload arguments:
     --name <string>         The patch policy name
     --pkg <path>            Name of the package to uplaod
     --version <string>      The package (or app) version
@@ -235,13 +213,7 @@ Patch Policy arguments:
     --key X=Y               Substitutable values in the template. Multiple values can be supplied
     --replace               Replace existing item
 
-Read  API Object arguments:
-    --name <string>         The object name, if --all is not specified
-    --all                   Read all objects
-    --type <string>         The object type (e.g. policy)
-    --output <string>       Optional path to output the parsed XML to. Directories to path must exist.
-
-Script arguments:
+Script Upload arguments:
     --name <string>         The name
     --script <path>         Full path of the script to be uploaded
     --key X=Y               Substitutable values in the script. Multiple values can be supplied
@@ -249,7 +221,7 @@ Script arguments:
                             Script parameter labels 
     --replace               Replace existing item
 
-Software Restriction arguments
+Software Restriction Upload arguments
     --name <string>         The name
     --template <path>       XML template
     --process-name          Process name to restrict
@@ -261,6 +233,44 @@ Software Restriction arguments
     --delete-executable     Delete the executable when the restriction is invoked if True
     --key X=Y               Substitutable values in the template. Multiple values can be supplied
     --replace               Replace existing item
+
+READ OPTIONS
+
+API Object Read arguments:
+    --name <string>         The object name, if --all is not specified
+    --all                   Read all objects
+    --type <string>         The object type (e.g. policy)
+    --output <string>       Optional path to output the parsed XML to. Directories to path must exist.
+
+DELETE OPTIONS
+
+API Object Delete arguments:
+    --name <string>         The object name
+    --type <string>         The object type (e.g. policy)
+
+Computer Group Delete arguments:
+    --name <string>         The computer group name
+
+Policy Delete arguments:
+    --name <string>         The policy name
+
+MISCELLANEOUS ACTIONS OPTIONS
+
+Package Clean arguments:
+    --name <string>         The name to match
+    --smb-url <url>         URL of the fileshare distribution point (on premises Jamf Pro only)
+    --smb-user <SMB_USERNAME>
+                            Username with share access
+    --smb_pass <SMB_PASSWORD>
+                            Password of the user
+
+Package Recalculate arguments: None
+
+Policy Log Flush arguments:
+    --name <string>         The policy name
+    --interval              The log flush interval
+
+NOTIFICATION OPTIONS
 
 Slack arguments:
     --name <string>         The name
@@ -331,6 +341,8 @@ elif [[ $object == "classicobj" ]]; then
     processor="JamfClassicAPIObjectUploader"
 elif [[ $object == "read" ]]; then
     processor="JamfObjectReader"
+elif [[ $object == "delete" ]]; then
+    processor="JamfObjectDeleter"
 elif [[ $object == "group" || $object == "computergroup" ]]; then
     processor="JamfComputerGroupUploader"
 elif [[ $object == "groupdelete" || $object == "computergroupdelete" ]]; then
@@ -451,7 +463,7 @@ while test $# -gt 0 ; do
                 if plutil -replace account_type -string "$1" "$temp_processor_plist"; then
                     echo "   [jamf-upload] Wrote account_type='$1' into $temp_processor_plist"
                 fi
-            elif [[ $processor == "JamfObjectReader" || $processor == "JamfClassicAPIObjectUploader" ]]; then
+            elif [[ $processor == "JamfObjectReader" || $processor == "JamfObjectDeleter" || $processor == "JamfClassicAPIObjectUploader" ]]; then
                 # override for generic items, as this key is written later, normally providing the value of $object
                 object="$1"
             elif [[ $processor == "JamfDockItemUploader" ]]; then
@@ -545,7 +557,7 @@ while test $# -gt 0 ; do
                 if plutil -replace category_name -string "$1" "$temp_processor_plist"; then
                     echo "   [jamf-upload] Wrote category_name='$1' into $temp_processor_plist"
                 fi
-            elif [[ $processor == "JamfObjectReader" || $processor == "JamfClassicAPIObjectUploader" ]]; then
+            elif [[ $processor == "JamfObjectReader" || $processor == "JamfObjectDeleter" || $processor == "JamfClassicAPIObjectUploader" ]]; then
                 if plutil -replace object_name -string "$1" "$temp_processor_plist"; then
                     echo "   [jamf-upload] Wrote object_name='$1' into $temp_processor_plist"
                 fi
@@ -1192,7 +1204,7 @@ while test $# -gt 0 ; do
 done
 
 # add the object type for items using the generic JamfObjectReader and JamfClassicAPIObjectUploader processors
-if [[ $processor == "JamfObjectReader" || $processor == "JamfClassicAPIObjectUploader" ]]; then
+if [[ $processor == "JamfObjectReader" || $processor == "JamfObjectDeleter" || $processor == "JamfClassicAPIObjectUploader" ]]; then
     if plutil -replace object_type -string "$object" "$temp_processor_plist"; then
         echo "   [jamf-upload] Wrote object_type='$object' into $temp_processor_plist"
     fi

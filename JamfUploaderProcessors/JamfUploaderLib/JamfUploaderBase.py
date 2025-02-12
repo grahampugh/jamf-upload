@@ -557,26 +557,25 @@ class JamfUploaderBase(Processor):
         else:
             action = "unknown"
 
-        if r.status_code == 200 or r.status_code == 201 or r.status_code == 202:
+        self.output(f"HTTP response: {r.status_code}", verbose_level=2)
+        if r.status_code < 400:
             if endpoint_type == "jcds":
                 self.output("JCDS2 credentials successfully received", verbose_level=2)
             else:
                 self.output(f"{endpoint_type} '{obj_name}' {action} successful")
             return "break"
         else:
-            self.output(f"API response:\n{r.output}", verbose_level=3)
+            self.output("API response:", verbose_level=2)
+            if isinstance(r.output, (bytes, bytearray)):
+                self.output(r.output.decode("utf-8"), verbose_level=2)
+            else:
+                self.output(r.output, verbose_level=2)
+
             if r.status_code >= 400:
-                try:
-                    description = r.output["errors"][0]["description"]
-                    raise ProcessorError(
-                        f"ERROR: {endpoint_type} '{obj_name}' {action} failed due to: "
-                        + description
-                    )
-                except IndexError as e:
-                    raise ProcessorError(
-                        f"ERROR: {endpoint_type} '{obj_name}' {action} failed - "
-                        f"status code {r.status_code}"
-                    ) from e
+                raise ProcessorError(
+                    f"ERROR: {endpoint_type} '{obj_name}' {action} failed - "
+                    f"status code {r.status_code}"
+                )
 
     def get_jamf_pro_version(self, jamf_url, token):
         """get the Jamf Pro version so that we can figure out which auth method to use for the
