@@ -1,0 +1,8 @@
+{
+    "displayName": "%api_role_name%",
+    "privileges": [
+      "Create Static Computer Groups",
+      "Update Static Computer Groups",
+      "Read Static Computer Groups"
+    ]
+  }
