@@ -29,7 +29,7 @@ A processor for AutoPkg that will upload various Classic API objects to a Jamf C
   - **description**: Path to the API object template file
 - **object_type**:
   - **required**: True
-  - **description**: The API object type. This is in the singular form - the name of the key in the XML template.
+  - **description**: The API object type. This is in the singular form - the name of the key in the XML template. See the [Object Reference](./Object%20Reference.md) for valid objects.
 - **replace_object**:
   - **required**: False
   - **description**: overwrite an existing Computer Group if True.

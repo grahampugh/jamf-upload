@@ -2,7 +2,7 @@
 
 ## Description
 
-A processor for AutoPkg to read an API object and output to file (XML or JSON depending on whether the Classic or Jamf Pro API is used.)
+A processor for AutoPkg to delete an API object.
 
 ## Input variables
 
