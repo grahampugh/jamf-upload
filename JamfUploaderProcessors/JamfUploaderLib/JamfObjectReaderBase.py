@@ -180,8 +180,6 @@ class JamfObjectReaderBase(JamfUploaderBase):
                             self.output(
                                 f"Wrote {object_type} payload to {payload_file_path}"
                             )
-                        else:
-                            self.output(f"No payload - {payload}")  # TEMP
 
                     except IOError as e:
                         raise ProcessorError(
