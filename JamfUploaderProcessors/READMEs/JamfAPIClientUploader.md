@@ -1,8 +1,8 @@
-# JamfAccountUploader
+# JamfAPIRoleUploader
 
 ## Description
 
-A processor for AutoPkg that will upload an account to a Jamf Cloud or on-prem server, with privileges supplied by a template xml file.
+A processor for AutoPkg that will create or amend an API Client to a Jamf Pro server. Only one API Role can be given to each API Client using this processor.
 
 ## Input variables
 
@@ -21,18 +21,26 @@ A processor for AutoPkg that will upload an account to a Jamf Cloud or on-prem s
 - **CLIENT_SECRET:**
   - **required:** True
   - **description:** Secret associated with the Client ID, optionally set as a key in the com.github.autopkg preference file.
-- **account_name:**
+- **api_client_name:**
   - **required:** True
-  - **description:** Account name
-- **account_type:**
-  - **required:** True
-  - **description:** Account type; "user" or "group"
-- **account_template:**
-  - **required:** True
-  - **description:** Full path to the XML template
-- **replace_account:**
+  - **description:** API Client name.
+- **api_client_id:**
   - **required:** False
-  - **description:** Overwrite an existing account if True.
+  - **description:** API Client ID.
+- **api_role_name:**
+  - **required:** True
+  - **description:** API Role name that will be assigned to this API Client. Only one API Role can be given to each API Client using this processor.
+- **access_token_lifetime:**
+  - **required:** False
+  - **description:** Access Token lifetime in seconds.
+  - **default:** "300"
+- **api_client_enabled:**
+  - **required:** False
+  - **description:** Set the API Client to enabled if True
+  - **default:** False
+- **replace_api_client:**
+  - **required:** False
+  - **description:** Overwrite an existing API Role if True.
   - **default:** False
 - **sleep:**
   - **required:** False
@@ -41,11 +49,13 @@ A processor for AutoPkg that will upload an account to a Jamf Cloud or on-prem s
 
 ## Output variables
 
-- **jamfaccountuploader_summary_result:**
+- **jamfapiclientuploader_summary_result:**
   - **description:** Description of interesting results.
-- **account_name:**
-  - **description:** Account name.
-- **account_updated:**
-  - **description:** Boolean - True if the account was changed.
-- **changed_account_id:**
-  - **description:** Jamf object ID of the newly created or modified account.
+- **api_client_name:**
+  - **description:** API Client name.
+- **api_client_id:**
+  - **description:** API Client ID.
+- **api_client_secret:**
+  - **description:** API Client Secret.
+- **api_client_updated:**
+  - **description:** Boolean - True if the API Client was changed.
