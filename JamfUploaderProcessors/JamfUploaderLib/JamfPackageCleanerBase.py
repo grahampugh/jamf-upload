@@ -270,7 +270,7 @@ class JamfPackageCleanerBase(JamfUploaderBase):
                     verbose_level=2,
                 )
             pkg_name = package["name"]
-            for smb_share in self.smb_shares:
+            for smb_share in smb_shares:
                 smb_url, smb_user, smb_password = (
                     smb_share[0],
                     smb_share[1],
