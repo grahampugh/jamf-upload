@@ -197,8 +197,8 @@ class JamfPatchUploaderBase(JamfUploaderBase):
         jamf_url,
         patch_name,
         patch_softwaretitle_id,
-        token,
         sleep_time,
+        token,
         patch_template,
         patch_id=0,
     ):
@@ -336,7 +336,7 @@ class JamfPatchUploaderBase(JamfUploaderBase):
                 # Name was given, but no matching id could be found
                 self.output(
                     (
-                        f"No policy with the given name '{patch_icon_policy_name}' was found."
+                        f"No policy with the given name '{patch_icon_policy_name}' was found. "
                         "Not able to extract an icon. Continuing..."
                     )
                 )
