@@ -53,6 +53,7 @@ class JamfUploaderBase(Processor):
             "api_role": "api/v1/api-roles",
             "category": "api/v1/categories",
             "computer_extension_attribute": "api/v1/computer-extension-attributes",
+            "computer_extension_attribute_classic": "JSSResource/computerextensionattributes",
             "computer_group": "JSSResource/computergroups",
             "computer_prestage": "api/v3/computer-prestages",
             "configuration_profile": "JSSResource/mobiledeviceconfigurationprofiles",

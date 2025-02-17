@@ -21,6 +21,7 @@ import os.path
 import sys
 
 from time import sleep
+from xml.sax.saxutils import escape
 
 from autopkglib import (  # pylint: disable=import-error
     ProcessorError,
@@ -64,41 +65,32 @@ class JamfExtensionAttributeUploaderBase(JamfUploaderBase):
             # substitute user-assignable keys
             script_contents = self.substitute_assignable_keys(script_contents)
 
-        # format inventoryDisplayType & dataType correctly
-        ea_inventory_display = ea_inventory_display.replace(" ", "_").upper()
-        ea_data_type = ea_data_type.upper()
-
-        # self.output("Data type: " + str(type(ea_inventory_display)), verbose_level=3)
+        # XML-escape the script
+        script_contents_escaped = escape(script_contents)
 
         # build the object
-        ea_data = {
-            "name": ea_name,
-            "enabled": True,
-            "description": ea_description,
-            "dataType": ea_data_type,
-            "inventoryDisplayType": ea_inventory_display,
-            "inputType": "script",
-            "scriptContents": script_contents,
-        }
-
-        self.output(
-            "Extension Attribute data:",
-            verbose_level=2,
+        ea_data = (
+            "<computer_extension_attribute>"
+            + f"<name>{ea_name}</name>"
+            + "<enabled>true</enabled>"
+            + f"<description>{ea_description}</description>"
+            + f"<data_type>{ea_data_type}</data_type>"
+            + "<input_type>"
+            + "  <type>script</type>"
+            + "  <platform>Mac</platform>"
+            + f"  <script>{script_contents_escaped}</script>"
+            + "</input_type>"
+            + f"<inventory_display>{ea_inventory_display}</inventory_display>"
+            + "<recon_display>Extension Attributes</recon_display>"
+            + "</computer_extension_attribute>"
         )
-        self.output(
-            ea_data,
-            verbose_level=2,
-        )
-
         self.output("Uploading Extension Attribute...")
-        ea_json = self.write_json_file(ea_data)
+        # write the template to temp file
+        template_xml = self.write_temp_file(ea_data)
 
         # if we find an object ID we put, if not, we post
-        object_type = "computer_extension_attribute"
-        if obj_id:
-            url = f"{jamf_url}/{self.api_endpoints(object_type)}/{obj_id}"
-        else:
-            url = f"{jamf_url}/{self.api_endpoints(object_type)}"
+        object_type = "computer_extension_attribute_classic"
+        url = f"{jamf_url}/{self.api_endpoints(object_type)}/id/{obj_id}"
 
         count = 0
         while True:
@@ -108,7 +100,7 @@ class JamfExtensionAttributeUploaderBase(JamfUploaderBase):
                 verbose_level=2,
             )
             request = "PUT" if obj_id else "POST"
-            r = self.curl(request=request, url=url, token=token, data=ea_json)
+            r = self.curl(request=request, url=url, token=token, data=template_xml)
             # check HTTP response
             if self.status_check(r, "Extension Attribute", ea_name, request) == "break":
                 break
