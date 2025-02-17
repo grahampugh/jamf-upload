@@ -57,6 +57,16 @@ if [[ $test_type == "ldap_server" ]]; then
 # example object types (Jamf Pro API)
 # script
 
+elif [[ $test_type == "read-distributionpoint" ]]; then
+    # read a generic Classic API object
+    "$DIR"/../jamf-upload.sh read \
+        --prefs "$prefs" \
+        --recipe-dir /Users/gpugh/sourcecode/jamf-upload/_tests \
+        --type "distribution_point" \
+        --name "test-dp" \
+        --output "/Users/Shared/Jamf/JamfUploaderTests" \
+        "$verbosity"
+
 elif [[ $test_type == "read-policy" ]]; then
     # read a generic Classic API object
     "$DIR"/../jamf-upload.sh read \
@@ -523,8 +533,8 @@ elif [[ $test_type == "pkg" ]]; then
         --notes "$(date)" \
         "$verbosity" \
         --replace
-        # --md5 \
-        # --recalculate \
+    # --md5 \
+    # --recalculate \
 
 elif [[ $test_type == "pkg-noreplace" ]]; then
     # upload a package but don't replace an existing one
@@ -538,8 +548,7 @@ elif [[ $test_type == "pkg-noreplace" ]]; then
         --info "Uploaded directly by JamfPackageUploader using v1/packages" \
         --notes "$(date)" \
         "$verbosity"
-        # --recalculate \
-
+    # --recalculate \
 
 elif [[ $test_type == "pkg-jcds2" ]]; then
     /usr/local/autopkg/python -m pip install boto3
@@ -556,7 +565,7 @@ elif [[ $test_type == "pkg-jcds2" ]]; then
         "$verbosity" \
         --jcds2 \
         --replace
-        # --name "erase-install-30" \
+    # --name "erase-install-30" \
 
 elif [[ $test_type == "pkg-aws" ]]; then
     /usr/local/autopkg/python -m pip install boto3
@@ -574,7 +583,7 @@ elif [[ $test_type == "pkg-aws" ]]; then
         --aws \
         --key "S3_BUCKET_NAME=jamf2360b29f101f4e0881cf6422ee2be25e" \
         --replace
-        # --name "erase-install-30" \
+    # --name "erase-install-30" \
 
 elif [[ $test_type == "pkgclean" ]]; then
     # cleanup a package type
@@ -583,15 +592,15 @@ elif [[ $test_type == "pkgclean" ]]; then
         --recipe-dir /Users/gpugh/sourcecode/jamf-upload/_tests \
         --keep "3" \
         --key "NAME=plistyamlplist" \
-        "$verbosity" 
-        # --name "erase-install" \
+        "$verbosity"
+    # --name "erase-install" \
 
 elif [[ $test_type == "pkgcalc" ]]; then
     # recalculate a package
     "$DIR"/../jamf-upload.sh pkgcalc \
         --prefs "$prefs" \
         --recipe-dir /Users/gpugh/sourcecode/jamf-upload/_tests \
-        "$verbosity" 
+        "$verbosity"
 
 elif [[ $test_type == "script" ]]; then
     # upload a script
@@ -634,7 +643,6 @@ elif [[ $test_type == "patch2" ]]; then
         "$verbosity" \
         "$url" \
         --replace
-
 
 elif [[ $test_type == "dock" ]]; then
     # upload a dock item
