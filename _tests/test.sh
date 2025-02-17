@@ -202,9 +202,9 @@ elif [[ $test_type == "group" ]]; then
     "$DIR"/../jamf-upload.sh group \
         --prefs "$prefs" \
         --recipe-dir /Users/gpugh/sourcecode/jamf-upload/_tests \
-        --name "Firefox test users" \
+        --name "Firefox & stuff test users" \
         --template "templates/SmartGroupTemplate-test-users.xml" \
-        --key POLICY_NAME="Firefox" \
+        --key POLICY_NAME="Firefox & stuff" \
         "$verbosity" \
         --replace
 
@@ -664,7 +664,7 @@ elif [[ $test_type == "icon2" ]]; then
         "$url"
 
 elif [[ $test_type == "apirole" ]]; then
-    # upload a group
+    # upload an API role
     "$DIR"/../jamf-upload.sh apirole \
         --prefs "$prefs" \
         --recipe-dir /Users/gpugh/sourcecode/jamf-upload/_tests \
@@ -674,7 +674,7 @@ elif [[ $test_type == "apirole" ]]; then
         --replace
 
 elif [[ $test_type == "apiclient" ]]; then
-    # upload a group
+    # upload an API client
     "$DIR"/../jamf-upload.sh apiclient \
         --prefs "$prefs" \
         --recipe-dir /Users/gpugh/sourcecode/jamf-upload/_tests \
