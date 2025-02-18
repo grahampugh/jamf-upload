@@ -111,6 +111,7 @@ class JamfUploaderBase(Processor):
             "configuration_profile": "configuration_profiles",
             "dock_item": "dock_items",
             "computer_extension_attribute": "computer_extension_attributes",
+            "computer_extension_attribute_classic": "computer_extension_attributes",
             "ldap_server": "ldap_servers",
             "mac_application": "mac_applications",
             "mobile_device_application": "mobile_device_applications",
