@@ -161,7 +161,7 @@ class JamfExtensionAttributeUploaderBase(JamfUploaderBase):
             raise ProcessorError("ERROR: Credentials not supplied")
 
         # check for existing - requires obj_name
-        obj_type = "computer_extension_attribute"
+        obj_type = "computer_extension_attribute_classic"
         obj_name = ea_name
         obj_id = self.get_api_obj_id_from_name(
             jamf_url,
