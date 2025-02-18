@@ -143,9 +143,9 @@ class JamfObjectReaderBase(JamfUploaderBase):
                 except ET.ParseError as xml_error:
                     raise ProcessorError from xml_error
                 payload_value = obj_xml.find("general/payloads")
-                payload = self.pretty_print_xml(
-                    unescape(payload_value.text).encode()
-                ).decode("UTF-8")
+                payload = self.pretty_print_xml(payload_value.text.encode()).decode(
+                    "UTF-8"
+                )
                 payload_filetype = "mobileconfig"
 
             # dump the object to file is output_path is specified
