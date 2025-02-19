@@ -196,9 +196,10 @@ class JamfClassicAPIObjectUploaderBase(JamfUploaderBase):
         if object_updated:
             self.env["jamfclassicapiobjectuploader_summary_result"] = {
                 "summary_text": "The following objects were updated in Jamf Pro:",
-                "report_fields": [object_type, "template"],
+                "report_fields": ["object_name", "object_type", "template"],
                 "data": {
-                    object_type: object_name,
+                    "object_type": object_type,
+                    "object_name": object_name,
                     "template": object_template,
                 },
             }
