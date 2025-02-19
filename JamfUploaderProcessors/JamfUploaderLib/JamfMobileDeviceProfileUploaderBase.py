@@ -292,7 +292,7 @@ class JamfMobileDeviceProfileUploaderBase(JamfUploaderBase):
             organization = "AutoPkg"
 
         # import profile template
-        with open(self.template, "r", encoding="utf-8") as file:
+        with open(template, "r", encoding="utf-8") as file:
             template_contents = file.read()
 
         # check for existing Configuration Profile
