@@ -57,6 +57,29 @@ if [[ $test_type == "ldap_server" ]]; then
 # example object types (Jamf Pro API)
 # script
 
+elif [[ $test_type == "obj-category" ]]; then
+    # upload a generic Jamf Pro API object
+    "$DIR"/../jamf-upload.sh obj \
+        --prefs "$prefs" \
+        --recipe-dir /Users/gpugh/sourcecode/jamf-upload/_tests \
+        --type "category" \
+        --name "Testing" \
+        --template "templates/Category-Template-Testing.json" \
+        "$verbosity" \
+        --replace
+
+elif [[ $test_type == "obj-profile" ]]; then
+    # upload a generic Classic API object
+    "$DIR"/../jamf-upload.sh obj \
+        --prefs "$prefs" \
+        --recipe-dir /Users/gpugh/sourcecode/jamf-upload/_tests \
+        --type "os_x_configuration_profile" \
+        --name "VLC Settings" \
+        --template "templates/Profile-VLC-settings.xml" \
+        "$verbosity" \
+        --replace
+
+
 elif [[ $test_type == "read-distributionpoint" ]]; then
     # read a generic Classic API object
     "$DIR"/../jamf-upload.sh read \

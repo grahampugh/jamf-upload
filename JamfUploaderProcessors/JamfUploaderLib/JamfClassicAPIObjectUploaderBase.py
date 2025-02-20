@@ -41,34 +41,12 @@ class JamfClassicAPIObjectUploaderBase(JamfUploaderBase):
     Note: Individual processors in this repo for specific API endpoints should always
     be used if available"""
 
-    def prepare_template(self, object_name, object_template):
-        """prepare the object contents"""
-        # import template from file and replace any keys in the template
-        if os.path.exists(object_template):
-            with open(object_template, "r", encoding="utf-8") as file:
-                template_contents = file.read()
-        else:
-            raise ProcessorError("Template does not exist!")
-
-        # substitute user-assignable keys
-        object_name = self.substitute_assignable_keys(object_name)
-        template_contents = self.substitute_assignable_keys(
-            template_contents, xml_escape=True
-        )
-
-        self.output("object data:", verbose_level=2)
-        self.output(template_contents, verbose_level=2)
-
-        # write the template to temp file
-        template_xml = self.write_temp_file(template_contents)
-        return object_name, template_xml
-
     def upload_object(
         self,
         jamf_url,
         object_name,
         object_type,
-        template_xml,
+        template_file,
         sleep_time,
         token,
         obj_id=0,
@@ -89,7 +67,7 @@ class JamfClassicAPIObjectUploaderBase(JamfUploaderBase):
                 request=request,
                 url=url,
                 token=token,
-                data=template_xml,
+                data=template_file,
             )
             # check HTTP response
             if self.status_check(r, object_type, object_name, request) == "break":
@@ -139,7 +117,9 @@ class JamfClassicAPIObjectUploaderBase(JamfUploaderBase):
 
         # we need to substitute the values in the object name and template now to
         # account for version strings in the name
-        object_name, template_xml = self.prepare_template(object_name, object_template)
+        object_name, template_file = self.prepare_template(
+            object_name, object_template, xml_escape=True
+        )
 
         # now start the process of uploading the object
         self.output(f"Checking for existing '{object_name}' on {jamf_url}")
@@ -182,7 +162,7 @@ class JamfClassicAPIObjectUploaderBase(JamfUploaderBase):
             jamf_url,
             object_name,
             object_type,
-            template_xml,
+            template_file,
             sleep_time,
             token=token,
             obj_id=obj_id,

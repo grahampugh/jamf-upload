@@ -128,6 +128,28 @@ class JamfUploaderBase(Processor):
         }
         return object_list_types[object_type]
 
+    def prepare_template(self, object_name, object_template, xml_escape=False):
+        """prepare the object contents"""
+        # import template from file and replace any keys in the template
+        if os.path.exists(object_template):
+            with open(object_template, "r", encoding="utf-8") as file:
+                template_contents = file.read()
+        else:
+            raise ProcessorError("Template does not exist!")
+
+        # substitute user-assignable keys
+        object_name = self.substitute_assignable_keys(object_name)
+        template_contents = self.substitute_assignable_keys(
+            template_contents, xml_escape
+        )
+
+        self.output("object data:", verbose_level=2)
+        self.output(template_contents, verbose_level=2)
+
+        # write the template to temp file
+        template_file = self.write_temp_file(template_contents)
+        return object_name, template_file
+
     def write_json_file(self, data):
         """dump some json to a temporary file"""
         tf = self.init_temp_file(suffix=".json")

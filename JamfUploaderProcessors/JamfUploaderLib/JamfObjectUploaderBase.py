@@ -2,7 +2,7 @@
 # pylint: disable=invalid-name
 
 """
-Copyright 2025 Graham Pugh
+Copyright 2023 Graham Pugh
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -36,8 +36,10 @@ from JamfUploaderBase import (  # pylint: disable=import-error, wrong-import-pos
 )
 
 
-class JamfAPIRoleUploaderBase(JamfUploaderBase):
-    """Class for functions used to upload an API Role object to Jamf."""
+class JamfObjectUploaderBase(JamfUploaderBase):
+    """Class for functions used to upload a generic API object to Jamf.
+    Note: Individual processors in this repo for specific API endpoints should always
+    be used if available"""
 
     def upload_object(
         self,
@@ -54,10 +56,11 @@ class JamfAPIRoleUploaderBase(JamfUploaderBase):
         self.output(f"Uploading {object_type}...")
 
         # if we find an object ID we put, if not, we post
-        if obj_id:
-            url = f"{jamf_url}/{self.api_endpoints(object_type)}/{obj_id}"
+        if "JSSResource" in self.api_endpoints(object_type):
+            # do XML stuff
+            url = f"{jamf_url}/{self.api_endpoints(object_type)}/id/{obj_id}"
         else:
-            url = f"{jamf_url}/{self.api_endpoints(object_type)}"
+            url = f"{jamf_url}/{self.api_endpoints(object_type)}/{obj_id}"
 
         count = 0
         while True:
@@ -92,20 +95,19 @@ class JamfAPIRoleUploaderBase(JamfUploaderBase):
         jamf_password = self.env.get("API_PASSWORD")
         client_id = self.env.get("CLIENT_ID")
         client_secret = self.env.get("CLIENT_SECRET")
-        object_name = self.env.get("api_role_name")
-        object_template = self.env.get("api_role_template")
-        replace_object = self.env.get("replace_api_role")
+        object_name = self.env.get("object_name")
+        object_type = self.env.get("object_type")
+        object_template = self.env.get("object_template")
+        replace_object = self.env.get("replace_object")
         sleep_time = self.env.get("sleep")
         # handle setting replace in overrides
         if not replace_object or replace_object == "False":
             replace_object = False
         object_updated = False
 
-        object_type = "api_role"
-
         # clear any pre-existing summary result
-        if "jamfapiroleuploader_summary_result" in self.env:
-            del self.env["jamfapiroleuploader_summary_result"]
+        if "jamfapiobjectuploader_summary_result" in self.env:
+            del self.env["jamfapiobjectuploader_summary_result"]
 
         # handle files with a relative path
         if not object_template.startswith("/"):
@@ -113,12 +115,18 @@ class JamfAPIRoleUploaderBase(JamfUploaderBase):
             if found_template:
                 object_template = found_template
             else:
-                raise ProcessorError(f"ERROR: Policy file {object_template} not found")
+                raise ProcessorError(
+                    f"ERROR: {object_type} file {object_template} not found"
+                )
 
         # we need to substitute the values in the object name and template now to
         # account for version strings in the name
-        object_name, template_file = self.prepare_json_template(
-            object_name, object_template
+        if "JSSResource" in self.api_endpoints(object_type):
+            xml_escape = True
+        else:
+            xml_escape = False
+        object_name, template_file = self.prepare_template(
+            object_name, object_template, xml_escape
         )
 
         # now start the process of uploading the object
@@ -170,14 +178,16 @@ class JamfAPIRoleUploaderBase(JamfUploaderBase):
         object_updated = True
 
         # output the summary
-        self.env["api_role_name"] = object_name
-        self.env["api_role_updated"] = object_updated
+        self.env["object_name"] = object_name
+        self.env["object_type"] = object_type
+        self.env["object_updated"] = object_updated
         if object_updated:
-            self.env["jamfapiroleuploader_summary_result"] = {
+            self.env["jamfclassicapiobjectuploader_summary_result"] = {
                 "summary_text": "The following objects were updated in Jamf Pro:",
-                "report_fields": [object_type, "template"],
+                "report_fields": ["object_name", "object_type", "template"],
                 "data": {
-                    "api_role_name": object_name,
+                    "object_type": object_type,
+                    "object_name": object_name,
                     "template": object_template,
                 },
             }
