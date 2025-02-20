@@ -39,26 +39,6 @@ from JamfUploaderBase import (  # pylint: disable=import-error, wrong-import-pos
 class JamfAPIRoleUploaderBase(JamfUploaderBase):
     """Class for functions used to upload an API Role object to Jamf."""
 
-    def prepare_template(self, object_name, object_template):
-        """prepare the object contents"""
-        # import template from file and replace any keys in the template
-        if os.path.exists(object_template):
-            with open(object_template, "r", encoding="utf-8") as file:
-                template_contents = file.read()
-        else:
-            raise ProcessorError("Template does not exist!")
-
-        # substitute user-assignable keys
-        object_name = self.substitute_assignable_keys(object_name)
-        template_contents = self.substitute_assignable_keys(template_contents)
-
-        self.output("object data:", verbose_level=2)
-        self.output(template_contents, verbose_level=2)
-
-        # write the template to temp file
-        template_file = self.write_temp_file(template_contents)
-        return object_name, template_file
-
     def upload_object(
         self,
         jamf_url,

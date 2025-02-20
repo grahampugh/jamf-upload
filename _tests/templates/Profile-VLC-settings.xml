@@ -1,0 +1,71 @@
+<os_x_configuration_profile>
+  <general>
+    <name>VLC settings</name>
+    <description>Disables automatic updates and prevents sending telemetry.</description>
+    <site>
+      <name>NONE</name>
+    </site>
+    <category>
+      <name>Applications</name>
+    </category>
+    <distribution_method>Install Automatically</distribution_method>
+    <user_removable>false</user_removable>
+    <level>System</level>
+    <uuid>9699dc42-53d0-4465-a28f-f210f79aff78</uuid>
+    <redeploy_on_update>All</redeploy_on_update>
+    <payloads>&lt;?xml version="1.0" encoding="UTF-8"?&gt;&lt;!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd"&gt;
+&lt;plist version="1"&gt;&lt;dict&gt;&lt;key&gt;PayloadUUID&lt;/key&gt;&lt;string&gt;9699dc42-53d0-4465-a28f-f210f79aff78&lt;/string&gt;&lt;key&gt;PayloadType&lt;/key&gt;&lt;string&gt;Configuration&lt;/string&gt;&lt;key&gt;PayloadOrganization&lt;/key&gt;&lt;string&gt;AutoPkg&lt;/string&gt;&lt;key&gt;PayloadIdentifier&lt;/key&gt;&lt;string&gt;9699dc42-53d0-4465-a28f-f210f79aff78&lt;/string&gt;&lt;key&gt;PayloadDisplayName&lt;/key&gt;&lt;string&gt;VLC settings&lt;/string&gt;&lt;key&gt;PayloadDescription&lt;/key&gt;&lt;string&gt;Disables automatic updates and prevents sending telemetry.&lt;/string&gt;&lt;key&gt;PayloadVersion&lt;/key&gt;&lt;integer&gt;1&lt;/integer&gt;&lt;key&gt;PayloadEnabled&lt;/key&gt;&lt;true/&gt;&lt;key&gt;PayloadRemovalDisallowed&lt;/key&gt;&lt;true/&gt;&lt;key&gt;PayloadScope&lt;/key&gt;&lt;string&gt;System&lt;/string&gt;&lt;key&gt;PayloadContent&lt;/key&gt;&lt;array&gt;&lt;dict&gt;&lt;key&gt;PayloadDisplayName&lt;/key&gt;&lt;string&gt;Custom Settings&lt;/string&gt;&lt;key&gt;PayloadIdentifier&lt;/key&gt;&lt;string&gt;1a35d689-b353-4872-8720-28ff6769b79e&lt;/string&gt;&lt;key&gt;PayloadOrganization&lt;/key&gt;&lt;string&gt;JAMF Software&lt;/string&gt;&lt;key&gt;PayloadType&lt;/key&gt;&lt;string&gt;com.apple.ManagedClient.preferences&lt;/string&gt;&lt;key&gt;PayloadUUID&lt;/key&gt;&lt;string&gt;1a35d689-b353-4872-8720-28ff6769b79e&lt;/string&gt;&lt;key&gt;PayloadVersion&lt;/key&gt;&lt;integer&gt;1&lt;/integer&gt;&lt;key&gt;PayloadContent&lt;/key&gt;&lt;dict&gt;&lt;key&gt;org.videolan.vlc&lt;/key&gt;&lt;dict&gt;&lt;key&gt;Forced&lt;/key&gt;&lt;array&gt;&lt;dict&gt;&lt;key&gt;mcx_preference_settings&lt;/key&gt;&lt;dict&gt;&lt;key&gt;SUEnableAutomaticChecks&lt;/key&gt;&lt;false/&gt;&lt;key&gt;SUHasLaunchedBefore&lt;/key&gt;&lt;true/&gt;&lt;key&gt;SUSendProfileInfo&lt;/key&gt;&lt;false/&gt;&lt;/dict&gt;&lt;/dict&gt;&lt;/array&gt;&lt;/dict&gt;&lt;/dict&gt;&lt;/dict&gt;&lt;/array&gt;&lt;/dict&gt;&lt;/plist&gt;</payloads>
+  </general>
+  <scope>
+    <all_computers>false</all_computers>
+    <all_jss_users>false</all_jss_users>
+    <buildings />
+    <departments />
+    <computer_groups>
+      <computer_group>
+        <name>VLC installed</name>
+      </computer_group>
+    </computer_groups>
+    <jss_users />
+    <jss_user_groups />
+    <limitations>
+      <network_segments />
+      <ibeacons />
+    </limitations>
+    <exclusions>
+      <buildings />
+      <departments />
+      <computer_groups />
+      <network_segments />
+      <ibeacons />
+      <jss_users />
+      <jss_user_groups />
+    </exclusions>
+  </scope>
+  <self_service>
+    <self_service_display_name />
+    <install_button_text>Install</install_button_text>
+    <self_service_description />
+    <force_users_to_view_description>false</force_users_to_view_description>
+    <security>
+      <removal_disallowed>Never</removal_disallowed>
+    </security>
+    <feature_on_main_page>false</feature_on_main_page>
+    <self_service_categories>
+      <category>
+        <name>Applications</name>
+        <display_in>true</display_in>
+        <feature_in>false</feature_in>
+      </category>
+      <category>
+        <name>Untested</name>
+        <display_in>true</display_in>
+        <feature_in>false</feature_in>
+      </category>
+    </self_service_categories>
+    <notification>false</notification>
+    <notification>Self Service</notification>
+    <notification_subject />
+    <notification_message />
+  </self_service>
+</os_x_configuration_profile>

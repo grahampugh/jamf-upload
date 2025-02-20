@@ -5,6 +5,8 @@ Certain Jamf API object types can be referenced in processors where the `object_
 | API Object | `object_type` Reference |
 |-----------|--------------------------|
 | Jamf Pro Account or Group | `account` |
+| API Client | `api_client` |
+| API Role | `api_role` |
 | Category | `category` |
 | Computer Extension Attribute | `computer_extension_attribute` |
 | Computer Group (Smart or Static) | `computer_group` |

@@ -36,7 +36,7 @@ from JamfUploaderBase import (  # pylint: disable=import-error, wrong-import-pos
 )
 
 
-class JamfClassicAPIObjectUploaderBase(JamfUploaderBase):
+class JamfObjectUploaderBase(JamfUploaderBase):
     """Class for functions used to upload a generic API object to Jamf.
     Note: Individual processors in this repo for specific API endpoints should always
     be used if available"""
@@ -56,7 +56,11 @@ class JamfClassicAPIObjectUploaderBase(JamfUploaderBase):
         self.output(f"Uploading {object_type}...")
 
         # if we find an object ID we put, if not, we post
-        url = f"{jamf_url}/{self.api_endpoints(object_type)}/id/{obj_id}"
+        if "JSSResource" in self.api_endpoints(object_type):
+            # do XML stuff
+            url = f"{jamf_url}/{self.api_endpoints(object_type)}/id/{obj_id}"
+        else:
+            url = f"{jamf_url}/{self.api_endpoints(object_type)}/{obj_id}"
 
         count = 0
         while True:
@@ -102,8 +106,8 @@ class JamfClassicAPIObjectUploaderBase(JamfUploaderBase):
         object_updated = False
 
         # clear any pre-existing summary result
-        if "jamfclassicapiobjectuploader_summary_result" in self.env:
-            del self.env["jamfclassicapiobjectuploader_summary_result"]
+        if "jamfapiobjectuploader_summary_result" in self.env:
+            del self.env["jamfapiobjectuploader_summary_result"]
 
         # handle files with a relative path
         if not object_template.startswith("/"):
@@ -117,8 +121,12 @@ class JamfClassicAPIObjectUploaderBase(JamfUploaderBase):
 
         # we need to substitute the values in the object name and template now to
         # account for version strings in the name
+        if "JSSResource" in self.api_endpoints(object_type):
+            xml_escape = True
+        else:
+            xml_escape = False
         object_name, template_file = self.prepare_template(
-            object_name, object_template, xml_escape=True
+            object_name, object_template, xml_escape
         )
 
         # now start the process of uploading the object
