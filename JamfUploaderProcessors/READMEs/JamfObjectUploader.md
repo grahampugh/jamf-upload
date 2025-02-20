@@ -1,10 +1,8 @@
-# JamfClassicAPIObjectUploader
+# JamfObjectUploader
 
 ## Description
 
-A processor for AutoPkg that will upload various Classic API objects to a Jamf Cloud or on-prem server.
-
-**NOTE:** This process has been superceded by `JamfObjectUploader` and will be removed at a future date. Please update any recipes or workflows to use `JamfObjectUploader`. All key labels remain the same.
+A processor for AutoPkg that will upload various Classic API or Jamf Pro API objects to a Jamf Cloud or on-prem server. To be used when no specific processor is available for the required object type. Note that many objects may not work due to exceptions to the API object from "standard" - test first!
 
 ## Input variables
 
@@ -28,10 +26,10 @@ A processor for AutoPkg that will upload various Classic API objects to a Jamf C
   - **description**: The name of the API object
 - **object_template**:
   - **required**: True
-  - **description**: Path to the API object template file
+  - **description**: Path to the API object template file. For Classic API endpoints this must be XML, for Jamf Pro API endpoints this must be JSON.
 - **object_type**:
   - **required**: True
-  - **description**: The API object type. This is in the singular form - the name of the key in the XML template. See the [Object Reference](./Object%20Reference.md) for valid objects.
+  - **description**: The API object type. This is in the singular form - for Classic API endpoints this is the name of the key in the XML template. For JSON objects it is a construction made interally for this project. See the [Object Reference](./Object%20Reference.md) for valid objects.
 - **replace_object**:
   - **required**: False
   - **description**: overwrite an existing Computer Group if True.
@@ -48,6 +46,6 @@ A processor for AutoPkg that will upload various Classic API objects to a Jamf C
 - **object_name**:
   - **description**: The name of the API object
 - **object_type**:
-  - **description**: The API object type. This is in the singular form - the name of the key in the XML template.
+  - **description**: This is in the singular form - for Classic API endpoints this is the name of the key in the XML template. For JSON objects it is a construction made interally for this project. See the [Object Reference](./Object%20Reference.md) for valid objects.
 - **object_updated**:
   - **description**: Boolean - True if the object was changed.
