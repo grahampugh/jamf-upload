@@ -57,7 +57,7 @@ class JamfSoftwareRestrictionUploaderBase(JamfUploaderBase):
     ):
         """Update Software Restriction metadata."""
 
-        # substitute user-assignable keys
+        # # substitute user-assignable keys
         replaceable_keys = {
             "restriction_name": restriction_name,
             "process_name": process_name,
@@ -72,6 +72,11 @@ class JamfSoftwareRestrictionUploaderBase(JamfUploaderBase):
         # substitute user-assignable keys (escaping for XML)
         template_contents = self.substitute_limited_assignable_keys(
             template_contents, replaceable_keys, xml_escape=True
+        )
+
+        # substitute env keys (escaping for XML)
+        template_contents = self.substitute_assignable_keys(
+            template_contents, xml_escape=True
         )
 
         self.output("Software Restriction to be uploaded:", verbose_level=2)
