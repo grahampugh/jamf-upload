@@ -60,7 +60,10 @@ class JamfObjectUploaderBase(JamfUploaderBase):
             # do XML stuff
             url = f"{jamf_url}/{self.api_endpoints(object_type)}/id/{obj_id}"
         else:
-            url = f"{jamf_url}/{self.api_endpoints(object_type)}/{obj_id}"
+            if obj_id:
+                url = f"{jamf_url}/{self.api_endpoints(object_type)}/{obj_id}"
+            else:
+                url = f"{jamf_url}/{self.api_endpoints(object_type)}"
 
         count = 0
         while True:
