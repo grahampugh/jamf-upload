@@ -1,0 +1,16 @@
+Identifier: com.github.grahampugh.recipes.ReadAndParse
+MinimumVersion: "2.3"
+
+Input: {}
+
+Process:
+  - Processor: com.github.grahampugh.jamf-upload.processors/JamfObjectReader
+    Arguments:
+      object_name: Firefox
+      object_type: policy
+      output_path: /Users/Shared/Jamf/JamfUploaderTests
+      elements_to_remove:
+        - limit_to_users
+        - site
+        - buildings
+        - departments

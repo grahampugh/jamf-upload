@@ -86,6 +86,14 @@ class JamfObjectUploader(JamfObjectUploaderBase):
             "description": "Type of the object. This is the name of the key in the XML template",
             "default": "",
         },
+        "elements_to_remove": {
+            "required": False,
+            "description": (
+                "A list of XML or JSON elements that should be removed from the downloaded XML. "
+                "Note that id and self_service_icon are removed automatically."
+            ),
+            "default": None,
+        },
         "replace_object": {
             "required": False,
             "description": "Overwrite an existing object if True.",

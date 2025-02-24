@@ -99,6 +99,7 @@ class JamfObjectUploaderBase(JamfUploaderBase):
         object_type = self.env.get("object_type")
         object_template = self.env.get("object_template")
         replace_object = self.env.get("replace_object")
+        elements_to_remove = self.env.get("elements_to_remove")
         sleep_time = self.env.get("sleep")
         # handle setting replace in overrides
         if not replace_object or replace_object == "False":
@@ -126,7 +127,7 @@ class JamfObjectUploaderBase(JamfUploaderBase):
         else:
             xml_escape = False
         object_name, template_file = self.prepare_template(
-            object_name, object_template, xml_escape
+            object_name, object_type, object_template, xml_escape, elements_to_remove
         )
 
         # now start the process of uploading the object
