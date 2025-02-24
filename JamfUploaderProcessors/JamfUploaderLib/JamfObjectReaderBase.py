@@ -22,8 +22,6 @@ import os.path
 import sys
 import xml.etree.ElementTree as ET
 
-from xml.sax.saxutils import unescape
-
 from autopkglib import (  # pylint: disable=import-error
     ProcessorError,
 )
@@ -176,7 +174,10 @@ class JamfObjectReaderBase(JamfUploaderBase):
                         self.output(f"Wrote parsed object to {file_path}")
                         # also output the payload if appropriate
                         if payload:
-                            payload_output_filename = f"{subdomain}-{self.object_list_types(object_type)}-{n}.{payload_filetype}"
+                            payload_output_filename = (
+                                f"{subdomain}-{self.object_list_types(object_type)}-{n}"
+                                f".{payload_filetype}"
+                            )
                             payload_file_path = os.path.join(
                                 output_path, payload_output_filename
                             )

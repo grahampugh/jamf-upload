@@ -1,4 +1,4 @@
-Identifier: com.github.grahampugh.recipes.ReadAndParse
+Identifier: com.github.grahampugh.recipes.tests.ReadAndParse
 MinimumVersion: "2.3"
 
 Input: {}
@@ -10,7 +10,4 @@ Process:
       object_type: policy
       output_path: /Users/Shared/Jamf/JamfUploaderTests
       elements_to_remove:
-        - limit_to_users
         - site
-        - buildings
-        - departments

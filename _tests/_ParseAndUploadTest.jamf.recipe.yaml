@@ -1,0 +1,18 @@
+Identifier: com.github.grahampugh.recipes.tests.ParseAndUpload
+MinimumVersion: "2.3"
+
+Input: {}
+
+Process:
+  - Processor: com.github.grahampugh.jamf-upload.processors/JamfObjectUploader
+    Arguments:
+      object_name: Firefox
+      object_type: policy
+      object_template: /Users/Shared/Jamf/JamfUploaderTests/jssimporter-policies-Firefox.xml
+      elements_to_remove:
+        - scope
+        - category
+        - self_service
+        - trigger_checkin
+        - frequency
+      replace_object: True
