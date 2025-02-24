@@ -144,14 +144,19 @@ class JamfObjectUploaderBase(JamfUploaderBase):
         else:
             raise ProcessorError("ERROR: Credentials not supplied")
 
+        # declare name key
+        name_key = "name"
+        if (
+            object_type == "computer_prestage"
+            or object_type == "mobile_device_prestage"
+        ):
+            name_key = "displayName"
+
         # Check for existing item
         self.output(f"Checking for existing '{object_name}' on {jamf_url}")
 
         obj_id = self.get_api_obj_id_from_name(
-            jamf_url,
-            object_name,
-            object_type,
-            token=token,
+            jamf_url, object_name, object_type, token=token, filter_name=name_key
         )
 
         if obj_id:
