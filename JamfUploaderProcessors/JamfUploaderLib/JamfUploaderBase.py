@@ -49,6 +49,8 @@ class JamfUploaderBase(Processor):
         """Return the endpoint URL from the object type"""
         api_endpoints = {
             "account": "JSSResource/accounts",
+            "advanced_computer_search": "JSSResource/advancedcomputersearches",
+            "advanced_mobile_device_search": "JSSResource/advancedmobiledevicesearches",
             "api_client": "api/v1/api-integrations",
             "api_role": "api/v1/api-roles",
             "category": "api/v1/categories",
@@ -66,6 +68,7 @@ class JamfUploaderBase(Processor):
             "ldap_server": "JSSResource/ldapservers",
             "mac_application": "JSSResource/macapplications",
             "mobile_device_application": "JSSResource/mobiledeviceapplications",
+            "mobile_device_extension_attribute": "JSSResource/mobiledeviceextensionattributes",
             "mobile_device_group": "JSSResource/mobiledevicegroups",
             "mobile_device_prestage": "api/v1/mobile-device-prestages",
             "package": "JSSResource/packages",
@@ -87,6 +90,8 @@ class JamfUploaderBase(Processor):
     def object_types(self, object_type):
         """Return a URL object type from the object type"""
         object_types = {
+            "advanced_computer_search": "advancedcomputersearches",
+            "advanced_mobile_device_search": "advancedmobiledevicesearches",
             "package": "packages",
             "computer_group": "computergroups",
             "configuration_profile": "mobiledeviceconfigurationprofiles",
@@ -95,6 +100,7 @@ class JamfUploaderBase(Processor):
             "mobile_device_group": "mobiledevicegroups",
             "policy": "policies",
             "computer_extension_attribute": "computerextensionattributes",
+            "mobile_device_extension_attribute": "mobiledeviceextensionattributes",
             "restricted_software": "restrictedsoftware",
             "os_x_configuration_profile": "osxconfigurationprofiles",
         }
@@ -104,6 +110,8 @@ class JamfUploaderBase(Processor):
         """Return a XML dictionary type from the object type"""
         object_list_types = {
             "account": "accounts",
+            "advanced_computer_search": "advanced_computer_searches",
+            "advanced_mobile_device_search": "advanced_mobile_device_searches",
             "api_client": "api_clients",
             "api_role": "api_roles",
             "category": "categories",
@@ -116,6 +124,7 @@ class JamfUploaderBase(Processor):
             "ldap_server": "ldap_servers",
             "mac_application": "mac_applications",
             "mobile_device_application": "mobile_device_applications",
+            "mobile_device_extension_attribute": "mobile_device_extension_attributes",
             "mobile_device_group": "mobile_device_groups",
             "mobile_device_prestage": "mobile_device_prestages",
             "os_x_configuration_profile": "os_x_configuration_profiles",
