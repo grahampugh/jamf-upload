@@ -52,7 +52,6 @@ elif [[ $test_type == "scope" ]]; then
     "$DIR"/../jamf-upload.sh scope \
         --prefs "$prefs" \
         --recipe-dir /Users/gpugh/sourcecode/jamf-upload/_tests \
-        --name "d.ethz.ch" \
         --template "/Users/Shared/Jamf/JamfUploaderTests/jssimporter-policies-Firefox.xml" \
         --scope-type "target" \
         --operation "remove" \
