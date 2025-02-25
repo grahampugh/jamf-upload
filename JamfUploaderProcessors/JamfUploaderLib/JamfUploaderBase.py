@@ -1021,7 +1021,9 @@ class JamfUploaderBase(Processor):
             return parsed_xml.decode("UTF-8")
         else:
             # do json stuff
-            # remove any id-type tags
+            existing_object = json.loads(existing_object)
+
+            # remove any id-type tags            
             if "id" in existing_object:
                 existing_object.pop("id")
             if "categoryId" in existing_object:
