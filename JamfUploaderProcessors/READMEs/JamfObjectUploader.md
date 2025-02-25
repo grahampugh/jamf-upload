@@ -30,6 +30,9 @@ A processor for AutoPkg that will upload various Classic API or Jamf Pro API obj
 - **object_type**:
   - **required**: True
   - **description**: The API object type. This is in the singular form - for Classic API endpoints this is the name of the key in the XML template. For JSON objects it is a construction made interally for this project. See the [Object Reference](./Object%20Reference.md) for valid objects.
+- **elements_to_remove**:
+  - **required**: False
+  - **description**: A list of XML or JSON elements that should be removed from the downloaded XML. Note that `id` and `self_service_icon` are removed automatically.
 - **replace_object**:
   - **required**: False
   - **description**: overwrite an existing Computer Group if True.
@@ -41,7 +44,7 @@ A processor for AutoPkg that will upload various Classic API or Jamf Pro API obj
 
 ## Output variables
 
-- **jamfclassicapiobjectuploader_summary_result:**
+- **jamfobjectuploader_summary_result:**
   - **description:** Description of interesting results.
 - **object_name**:
   - **description**: The name of the API object
