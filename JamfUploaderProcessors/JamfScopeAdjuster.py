@@ -1,4 +1,5 @@
 #!/usr/local/autopkg/python
+# pylint: disable=invalid-name
 
 """
 2025 Neil Martin
@@ -27,12 +28,16 @@ import sys
 # imports require noqa comments for E402
 sys.path.insert(0, os.path.dirname(__file__))
 
-from JamfUploaderLib.JamfScopeAdjusterBase import JamfScopeAdjusterBase  # noqa: E402
+from JamfUploaderLib.JamfScopeAdjusterBase import (  # pylint: disable=import-error, wrong-import-position
+    JamfScopeAdjusterBase,
+)
 
 __all__ = ["JamfScopeAdjuster"]
 
 
 class JamfScopeAdjuster(JamfScopeAdjusterBase):
+    """Processor to adjust the scope of a Jamf object"""
+
     description = (
         "AutoPkg processor that adds or removes a scopeable object as a target, "
         "limitation or exclusion to or from a Jamf API object."
@@ -41,58 +46,75 @@ class JamfScopeAdjuster(JamfScopeAdjusterBase):
     input_variables = {
         "object_template": {
             "required": False,
-            "description": "Full path of the object file to modify."
+            "description": "Full path of the object file to modify.",
         },
         "raw_object": {
             "required": False,
-            "description": '''XML object string to modify. Used if object_template is not supplied, 
-                            e.g. if taking input from JamfObjectReader.'''
+            "description": (
+                "XML object string to modify. Used if object_template is not supplied, "
+                "e.g. if taking input from JamfObjectReader."
+            ),
         },
         "scoping_operation": {
             "required": True,
-            "description": "Specify 'add' or 'remove'."
+            "description": "Specify 'add' or 'remove'.",
         },
         "scoping_type": {
             "required": True,
-            "description": "Type of scope. Specify 'target', 'limitation' or 'exclusion'."
+            "description": "Type of scope. Specify 'target', 'limitation' or 'exclusion'.",
         },
-        "scopable_type": {
+        "scopeable_type": {
             "required": True,
-            "description": "Type of scopeable object. Specify 'user_group', 'computer_group' 'mobile_device_group'."
+            "description": (
+                "Type of scopeable object. Specify 'user_group', 'computer_group' "
+                "'mobile_device_group'."
+            ),
         },
         "scopeable_name": {
             "required": True,
-            "description": "Name of scobeable object."
+            "description": "Name of scopeable object.",
         },
         "strict_mode": {
             "required": False,
-            "description": '''Raise a ProcessrError when adding a scopable object that already exists
-                            or removing a scopable object that does not exist in the raw object.
-                            If set to False, continue without changing the raw object.
-                            Whilst this is safe and will not write unintended changes to the Jamf API,
-                            errors/oversights in specifying scopable object names may go unnoticed.''',
-            "default": "True"
+            "description": (
+                "Raise a ProcessorError when adding a scopable object that already exists "
+                "or removing a scopable object that does not exist in the raw object. "
+                "If set to False, continue without changing the raw object. "
+                "Whilst this is safe and will not write unintended changes to the Jamf API, "
+                "errors/oversights in specifying scopable object names may go unnoticed."
+            ),
+            "default": "True",
         },
         "strip_raw_xml": {
             "required": False,
-            "description": '''Strip all XML tags except for general/id and scope. Set to True if input 
-                            is from JamfObjectReader raw_object (default). Ensures only scope is written 
-                            back to the Jamf API. Set to False if input is from object_template file.''',
-            "default": "True"
+            "description": (
+                "Strip all XML tags except for general/id and scope. Set to True if input "
+                "is from JamfObjectReader raw_object (default). Ensures only scope is written "
+                "back to the Jamf API. Set to False if input is from object_template file."
+            ),
+            "default": "True",
         },
         "output_dir": {
             "required": False,
-            "description": "Directory to save the modified object file. Defaults to RECIPE_CACHE_DIR."
-        }
+            "description": (
+                "Directory to save the modified object file. Defaults to RECIPE_CACHE_DIR."
+            ),
+        },
     }
-    
+
     output_variables = {
         "object_template": {
-            "description": "Full path of the modified object file. Intended to pass to JamfObjectUploader."
+            "description": (
+                "Full path of the modified object file. Intended to pass to "
+                "JamfObjectUploader."
+            )
         },
         "raw_object": {
-            "description": "Raw processed XML object string. For chaining additional JamfScopeAdjuster processors."
-        }
+            "description": (
+                "Raw processed XML object string. For chaining additional "
+                "JamfScopeAdjuster processors."
+            )
+        },
     }
 
     def main(self):

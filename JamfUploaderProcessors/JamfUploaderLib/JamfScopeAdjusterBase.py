@@ -24,9 +24,7 @@ import sys
 from urllib.parse import urlparse
 from xml.dom.minidom import parseString
 
-from autopkglib import ( # pylint: disable=import-error
-    ProcessorError
-)
+from autopkglib import ProcessorError  # pylint: disable=import-error
 
 # to use a base module in AutoPkg we need to add this path to the sys.path.
 # this violates flake8 E402 (PEP8 imports) but is unavoidable, so the following
@@ -42,6 +40,9 @@ class JamfScopeAdjusterBase(JamfUploaderBase):
     """Class for functions used to adjust scope of a Jamf API object"""
 
     def generate_filename_from_raw_xml(self, object_type, raw_object):
+        """
+        Generates a filename from the given raw XML object.
+        """
         ext = ".xml"
         object_instance = urlparse(self.env.get("JSS_URL")).hostname.split(".")[0]
         object_name = ET.fromstring(raw_object).find("./general/name").text
@@ -49,6 +50,13 @@ class JamfScopeAdjusterBase(JamfUploaderBase):
         return f"{object_instance}_{object_type}_{object_id}_{object_name}{ext}"
 
     def clean_raw_xml(self, raw_object):
+        """
+        Cleans the provided raw XML object by removing unnecessary elements.
+
+        This function parses the given raw XML string, retains only the 'id' element
+        within the 'general' section, and keeps only the 'general' and 'scope' sections
+        in the root. All other elements are removed.
+        """
         root = ET.fromstring(raw_object)
 
         general = root.find("general")
@@ -64,14 +72,29 @@ class JamfScopeAdjusterBase(JamfUploaderBase):
 
         return ET.tostring(root, encoding="UTF-8", xml_declaration=True).decode()
 
-    def add_xml_tag(self, raw_object, object_type, scoping_type, scopable_type, scopeable_name, strict_mode):
+    def add_xml_tag(
+        self,
+        raw_object,
+        object_type,
+        scoping_type,
+        scopeable_type,
+        scopeable_name,
+        strict_mode,
+    ):
+        """
+        Add an XML tag to the given raw XML object based on the specified parameters.
+        """
         root = ET.fromstring(raw_object)
 
         scope = root.find("./scope")
         if scope is None:
             scope = ET.SubElement(root, "scope")
 
-        if scopable_type == 'user_group' and scoping_type == 'limitation' and object_type == 'policy':
+        if (
+            scopeable_type == "user_group"
+            and scoping_type == "limitation"
+            and object_type == "policy"
+        ):
             parent_xpath = "./scope/limit_to_users/user_groups"
             parent = root.find(parent_xpath)
 
@@ -85,75 +108,119 @@ class JamfScopeAdjusterBase(JamfUploaderBase):
 
                 parent = root.find(parent_xpath)
 
-            for child in parent.findall(scopable_type):
+            for child in parent.findall(scopeable_type):
                 if child.text == scopeable_name and strict_mode == "False":
-                    self.output(f"WARNING: {scoping_type}: {scopable_type} with name '{scopeable_name}' already exists, raw object unchanged.")
-                    return ET.tostring(root, encoding="UTF-8", xml_declaration=True).decode()
-                elif child.text == scopeable_name:
-                    raise ProcessorError(f"{scoping_type}: {scopable_type} with name '{scopeable_name}' already exists.")
+                    self.output(
+                        f"WARNING: {scoping_type}: {scopeable_type} with name "
+                        f"'{scopeable_name}' already exists, raw object unchanged."
+                    )
+                    return ET.tostring(
+                        root, encoding="UTF-8", xml_declaration=True
+                    ).decode()
+                if child.text == scopeable_name:
+                    raise ProcessorError(
+                        f"{scoping_type}: {scopeable_type} with name "
+                        f"'{scopeable_name}' already exists."
+                    )
 
-            new_tag = ET.Element(scopable_type)
+            new_tag = ET.Element(scopeable_type)
             new_tag.text = scopeable_name
             parent.append(new_tag)
 
         else:
-            if scoping_type == 'target':
-                parent_xpath = f"./scope/{scopable_type}s"
-                if scope.find(f"{scopable_type}s") is None:
-                    ET.SubElement(scope, f"{scopable_type}s")
+            if scoping_type == "target":
+                parent_xpath = f"./scope/{scopeable_type}s"
+                if scope.find(f"{scopeable_type}s") is None:
+                    ET.SubElement(scope, f"{scopeable_type}s")
 
-            elif scoping_type == 'limitation' or 'exclusion':
-                parent_xpath = f"./scope/{scoping_type}s/{scopable_type}s"
+            elif scoping_type == "limitation" or scoping_type == "exclusion":
+                parent_xpath = f"./scope/{scoping_type}s/{scopeable_type}s"
                 scoping_types = scope.find(f"{scoping_type}s")
                 if scoping_types is None:
                     scoping_types = ET.SubElement(scope, f"{scoping_type}s")
 
-                if scoping_types.find(f"{scopable_type}s") is None:
-                    ET.SubElement(scoping_types, f"{scopable_type}s")
+                if scoping_types.find(f"{scopeable_type}s") is None:
+                    ET.SubElement(scoping_types, f"{scopeable_type}s")
 
             else:
-                raise ProcessorError(f"Incorrect scoping_type '{scoping_type}' specified.")
+                raise ProcessorError(
+                    f"Incorrect scoping_type '{scoping_type}' specified."
+                )
 
             parent = root.find(parent_xpath)
 
-            for child in parent.findall(scopable_type):
-                name_tag = child.find('name')
-                if name_tag is not None and name_tag.text == scopeable_name and strict_mode == "False":
-                    self.output(f"WARNING: {scoping_type}: {scopable_type} with name '{scopeable_name}' already exists, raw object unchanged.")
-                    return ET.tostring(root, encoding="UTF-8", xml_declaration=True).decode()
-                elif name_tag is not None and name_tag.text == scopeable_name:
-                    raise ProcessorError(f"{scoping_type}: {scopable_type} with name '{scopeable_name}' already exists.")
+            for child in parent.findall(scopeable_type):
+                name_tag = child.find("name")
+                if (
+                    name_tag is not None
+                    and name_tag.text == scopeable_name
+                    and strict_mode == "False"
+                ):
+                    self.output(
+                        f"WARNING: {scoping_type}: {scopeable_type} with name "
+                        f"'{scopeable_name}' already exists, raw object unchanged."
+                    )
+                    return ET.tostring(
+                        root, encoding="UTF-8", xml_declaration=True
+                    ).decode()
+                if name_tag is not None and name_tag.text == scopeable_name:
+                    raise ProcessorError(
+                        f"{scoping_type}: {scopeable_type} with name "
+                        f"'{scopeable_name}' already exists."
+                    )
 
-            new_group = ET.Element(scopable_type)
-            name_tag = ET.SubElement(new_group, 'name')
+            new_group = ET.Element(scopeable_type)
+            name_tag = ET.SubElement(new_group, "name")
             name_tag.text = scopeable_name
             parent.append(new_group)
 
-        self.output(f"Added {scoping_type}: {scopable_type} with name '{scopeable_name}'.")
+        self.output(
+            f"Added {scoping_type}: {scopeable_type} with name '{scopeable_name}'."
+        )
         return ET.tostring(root, encoding="UTF-8", xml_declaration=True).decode()
-    
-    def remove_xml_tag(self, raw_object, object_type, scoping_type, scopable_type, scopeable_name, strict_mode):
+
+    def remove_xml_tag(
+        self,
+        raw_object,
+        object_type,
+        scoping_type,
+        scopeable_type,
+        scopeable_name,
+        strict_mode,
+    ):
+        """
+        Remove a specific XML tag from a given raw XML object based on the provided
+        scoping and scopeable types.
+        """
         root = ET.fromstring(raw_object)
         removed = False
 
-        if scopable_type == 'user_group' and scoping_type == 'limitation' and object_type == 'policy':
+        if (
+            scopeable_type == "user_group"
+            and scoping_type == "limitation"
+            and object_type == "policy"
+        ):
             parent_xpath = "./scope/limit_to_users/user_groups"
             parent = root.find(parent_xpath)
 
             if parent is None and strict_mode == "False":
-                self.output(f"WARNING: Parent element not found for XPath: {parent_xpath}")
+                self.output(
+                    f"WARNING: Parent element not found for XPath: {parent_xpath}"
+                )
             elif parent is None:
-                raise ProcessorError(f"Parent element not found for XPath: {parent_xpath}")
+                raise ProcessorError(
+                    f"Parent element not found for XPath: {parent_xpath}"
+                )
 
             for child in list(parent):
-                if child.tag == scopable_type and child.text == scopeable_name:
+                if child.tag == scopeable_type and child.text == scopeable_name:
                     parent.remove(child)
                     removed = True
 
-        if scoping_type == 'target':
-            parent_xpath = f"./scope/{scopable_type}s"
-        elif scoping_type == 'limitation' or 'exclusion':
-            parent_xpath = f"./scope/{scoping_type}s/{scopable_type}s"
+        if scoping_type == "target":
+            parent_xpath = f"./scope/{scopeable_type}s"
+        elif scoping_type == "limitation" or scoping_type == "exclusion":
+            parent_xpath = f"./scope/{scoping_type}s/{scopeable_type}s"
         else:
             raise ProcessorError(f"Incorrect scoping_type '{scoping_type}' specified.")
 
@@ -165,31 +232,42 @@ class JamfScopeAdjusterBase(JamfUploaderBase):
             raise ProcessorError(f"Parent element not found for XPath: {parent_xpath}")
 
         for child in list(parent):
-            if any(subchild.tag == "name" and subchild.text == scopeable_name for subchild in list(child)):
+            if any(
+                subchild.tag == "name" and subchild.text == scopeable_name
+                for subchild in list(child)
+            ):
                 parent.remove(child)
                 removed = True
 
         if removed:
-            self.output(f"Removed {scoping_type}: {scopable_type} with name '{scopeable_name}'.")
+            self.output(
+                f"Removed {scoping_type}: {scopeable_type} with name '{scopeable_name}'."
+            )
         else:
             if strict_mode == "False":
-                self.output(f"WARNING: {scoping_type}: {scopable_type} with name '{scopeable_name}' not found, raw object unchanged.")
+                self.output(
+                    f"WARNING: {scoping_type}: {scopeable_type} with name "
+                    f"'{scopeable_name}' not found, raw object unchanged."
+                )
             else:
-                raise ProcessorError(f"{scoping_type}: {scopable_type} with name '{scopeable_name}' not found.")
+                raise ProcessorError(
+                    f"{scoping_type}: {scopeable_type} with name '{scopeable_name}' not found."
+                )
 
         return ET.tostring(root, encoding="UTF-8", xml_declaration=True).decode()
-    
-    def execute(self):
+
+    def execute(self):  # pylint: disable=too-many-branches
+        """Main function for adjusting the scope of an object"""
         raw_object = self.env.get("raw_object")
         object_template = self.env.get("object_template")
         output_dir = self.env.get("output_dir") or self.env.get("RECIPE_CACHE_DIR")
         scoping_operation = self.env.get("scoping_operation")
-        scopable_type = self.env.get("scopable_type")
+        scopeable_type = self.env.get("scopeable_type")
         scoping_type = self.env.get("scoping_type")
         scopeable_name = self.env.get("scopeable_name")
         strict_mode = self.env.get("strict_mode")
         strip_raw_xml = self.env.get("strip_raw_xml")
-        
+
         if object_template:
             if not object_template.startswith("/"):
                 found_template = self.get_path_to_file(object_template)
@@ -200,10 +278,10 @@ class JamfScopeAdjusterBase(JamfUploaderBase):
             try:
                 with open(object_template, "r", encoding="UTF-8") as file:
                     raw_object = file.read().strip()
-                    self.output(f"Read raw_object from file: {object_template}")
+                    self.output(f"Read XML from template file: {object_template}")
             except Exception as e:
-                raise ProcessorError(f"Error reading object_template file: {e}")
-        
+                raise ProcessorError(f"Error reading template file: {e}") from e
+
         if strict_mode == "False":
             self.output("WARNING: Strict mode disabled!")
 
@@ -222,26 +300,29 @@ class JamfScopeAdjusterBase(JamfUploaderBase):
                     raw_object,
                     object_type,
                     scoping_type,
-                    scopable_type,
+                    scopeable_type,
                     scopeable_name,
-                    strict_mode
+                    strict_mode,
                 )
             elif scoping_operation == "remove":
                 raw_object = self.remove_xml_tag(
                     raw_object,
                     object_type,
                     scoping_type,
-                    scopable_type,
+                    scopeable_type,
                     scopeable_name,
-                    strict_mode
+                    strict_mode,
                 )
         else:
             raise ProcessorError("Unsupported data format. Use XML.")
-        
+
         raw_object = parseString(raw_object).toprettyxml(indent="  ")
-        raw_object = "\n".join([line for line in raw_object.split("\n") if line.strip()])
+        raw_object = "\n".join(
+            [line for line in raw_object.split("\n") if line.strip()]
+        )
         with open(object_template, "w", encoding="UTF-8") as file:
             file.write(raw_object)
-        
+            self.output(f"Wrote processed XML to file: {object_template}")
+
         self.env["object_template"] = object_template
         self.env["raw_object"] = raw_object

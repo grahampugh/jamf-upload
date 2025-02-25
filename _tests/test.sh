@@ -47,6 +47,22 @@ if [[ $test_type == "ldap_server" ]]; then
         "$verbosity" \
         --replace
 
+elif [[ $test_type == "scope" ]]; then
+    # adjust a scope
+    "$DIR"/../jamf-upload.sh scope \
+        --prefs "$prefs" \
+        --recipe-dir /Users/gpugh/sourcecode/jamf-upload/_tests \
+        --name "d.ethz.ch" \
+        --template "/Users/Shared/Jamf/JamfUploaderTests/jssimporter-policies-Firefox.xml" \
+        --scope-type "target" \
+        --operation "remove" \
+        --type "computer_group" \
+        --name "Testing" \
+        --output "/Users/Shared/Jamf/JamfUploaderTests" \
+        --not-strict \
+        "$verbosity"
+
+
 # example object types (Classic API)
 # computer_group
 # os_x_configuration_profile
