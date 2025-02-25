@@ -93,9 +93,9 @@ class JamfObjectReader(JamfObjectReaderBase):
             "description": "Type of the object. This is the name of the key in the XML template",
             "default": "",
         },
-        "output_path": {
+        "output_dir": {
             "required": False,
-            "description": "Path (folder) to dump the xml or json file",
+            "description": "Output directory to dump the xml or json file",
             "default": "",
         },
         "elements_to_remove": {
@@ -125,7 +125,7 @@ class JamfObjectReader(JamfObjectReaderBase):
         "parsed_object": {
             "description": "String containing parsed XML (removes IDs and computers)",
         },
-        "output_path": {
+        "output_dir": {
             "description": "Path of dumped xml",
         },
     }
