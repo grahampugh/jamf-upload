@@ -60,7 +60,10 @@ class JamfObjectUploaderBase(JamfUploaderBase):
             # do XML stuff
             url = f"{jamf_url}/{self.api_endpoints(object_type)}/id/{obj_id}"
         else:
-            url = f"{jamf_url}/{self.api_endpoints(object_type)}/{obj_id}"
+            if obj_id:
+                url = f"{jamf_url}/{self.api_endpoints(object_type)}/{obj_id}"
+            else:
+                url = f"{jamf_url}/{self.api_endpoints(object_type)}"
 
         count = 0
         while True:
@@ -99,6 +102,7 @@ class JamfObjectUploaderBase(JamfUploaderBase):
         object_type = self.env.get("object_type")
         object_template = self.env.get("object_template")
         replace_object = self.env.get("replace_object")
+        elements_to_remove = self.env.get("elements_to_remove")
         sleep_time = self.env.get("sleep")
         # handle setting replace in overrides
         if not replace_object or replace_object == "False":
@@ -126,7 +130,7 @@ class JamfObjectUploaderBase(JamfUploaderBase):
         else:
             xml_escape = False
         object_name, template_file = self.prepare_template(
-            object_name, object_template, xml_escape
+            object_name, object_type, object_template, xml_escape, elements_to_remove
         )
 
         # now start the process of uploading the object
@@ -140,14 +144,19 @@ class JamfObjectUploaderBase(JamfUploaderBase):
         else:
             raise ProcessorError("ERROR: Credentials not supplied")
 
+        # declare name key
+        name_key = "name"
+        if (
+            object_type == "computer_prestage"
+            or object_type == "mobile_device_prestage"
+        ):
+            name_key = "displayName"
+
         # Check for existing item
         self.output(f"Checking for existing '{object_name}' on {jamf_url}")
 
         obj_id = self.get_api_obj_id_from_name(
-            jamf_url,
-            object_name,
-            object_type,
-            token=token,
+            jamf_url, object_name, object_type, token=token, filter_name=name_key
         )
 
         if obj_id:

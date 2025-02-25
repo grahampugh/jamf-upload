@@ -2,7 +2,7 @@
 
 ## Description
 
-A processor for AutoPkg to read an API object and output to file (XML or JSON depending on whether the Classic or Jamf Pro API is used.)
+A processor for AutoPkg to read an API object and optionally, output to file (XML or JSON depending on whether the Classic or Jamf Pro API is used). Optionally, all objects of a single type may be downloaded in one operation. Additionally, Scripts, Extension Attributes and Mobileconfig files are extracted from the XML and saved as separate files.
 
 ## Input variables
 
@@ -33,10 +33,13 @@ A processor for AutoPkg to read an API object and output to file (XML or JSON de
 - **output_path**:
   - **required**: False
   - **description**: Path to dump the xml or json file.
+- **elements_to_remove**:
+  - **required**: False
+  - **description**: A list of XML or JSON elements that should be removed from the downloaded XML. Note that `id` and `self_service_icon` are removed automatically.
 
 ## Output variables
 
-- **jamfclassicapiobjectuploader_summary_result:**
+- **jamfobjectreader_summary_result:**
   - **description:** Description of interesting results.
 - **object_name**:
   - **description**: The name of the API object

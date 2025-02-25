@@ -39,40 +39,49 @@ __all__ = ["JamfObjectReader"]
 class JamfObjectReader(JamfObjectReaderBase):
     """Processor to read an API object"""
 
-    description = (
-        "A processor for AutoPkg that will read an API object template "
-        "on a Jamf Pro server."
-        "'Jamf Pro privileges are required by the API_USERNAME user for whatever the endpoint is."
-    )
+    description = """
+        A processor for AutoPkg that will read an API object template on a Jamf Pro server.
+        Jamf Pro privileges are required by the API_USERNAME user for whatever the endpoint is.
+    """
 
     input_variables = {
         "JSS_URL": {
             "required": True,
-            "description": "URL to a Jamf Pro server that the API user has write access "
-            "to, optionally set as a key in the com.github.autopkg "
-            "preference file.",
+            "description": (
+                "URL to a Jamf Pro server that the API user has write access "
+                "to, optionally set as a key in the com.github.autopkg "
+                "preference file."
+            ),
         },
         "API_USERNAME": {
             "required": False,
-            "description": "Username of account with appropriate access to "
-            "jss, optionally set as a key in the com.github.autopkg "
-            "preference file.",
+            "description": (
+                "Username of account with appropriate access to "
+                "jss, optionally set as a key in the com.github.autopkg "
+                "preference file."
+            ),
         },
         "API_PASSWORD": {
             "required": False,
-            "description": "Password of api user, optionally set as a key in "
-            "the com.github.autopkg preference file.",
+            "description": (
+                "Password of api user, optionally set as a key in "
+                "the com.github.autopkg preference file."
+            ),
         },
         "CLIENT_ID": {
             "required": False,
-            "description": "Client ID with access to "
-            "jss, optionally set as a key in the com.github.autopkg "
-            "preference file.",
+            "description": (
+                "Client ID with access to "
+                "jss, optionally set as a key in the com.github.autopkg "
+                "preference file."
+            ),
         },
         "CLIENT_SECRET": {
             "required": False,
-            "description": "Secret associated with the Client ID, optionally set as a key in "
-            "the com.github.autopkg preference file.",
+            "description": (
+                "Secret associated with the Client ID, optionally set as a key in "
+                "the com.github.autopkg preference file."
+            ),
         },
         "object_name": {
             "required": False,
@@ -88,6 +97,13 @@ class JamfObjectReader(JamfObjectReaderBase):
             "required": False,
             "description": "Path (folder) to dump the xml or json file",
             "default": "",
+        },
+        "elements_to_remove": {
+            "required": False,
+            "description": (
+                "A list of XML or JSON elements that should be removed from the downloaded XML. "
+                "Note that id and self_service_icon are removed automatically."
+            ),
         },
         "all_objects": {
             "required": False,

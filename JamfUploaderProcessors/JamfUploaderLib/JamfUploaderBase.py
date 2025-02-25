@@ -137,28 +137,6 @@ class JamfUploaderBase(Processor):
         }
         return object_list_types[object_type]
 
-    def prepare_template(self, object_name, object_template, xml_escape=False):
-        """prepare the object contents"""
-        # import template from file and replace any keys in the template
-        if os.path.exists(object_template):
-            with open(object_template, "r", encoding="utf-8") as file:
-                template_contents = file.read()
-        else:
-            raise ProcessorError("Template does not exist!")
-
-        # substitute user-assignable keys
-        object_name = self.substitute_assignable_keys(object_name)
-        template_contents = self.substitute_assignable_keys(
-            template_contents, xml_escape
-        )
-
-        self.output("object data:", verbose_level=2)
-        self.output(template_contents, verbose_level=2)
-
-        # write the template to temp file
-        template_file = self.write_temp_file(template_contents)
-        return object_name, template_file
-
     def write_json_file(self, data):
         """dump some json to a temporary file"""
         tf = self.init_temp_file(suffix=".json")
@@ -1022,7 +1000,9 @@ class JamfUploaderBase(Processor):
                 # parent.remove(elem)
                 elem.text = replacement_value
 
-    def parse_downloaded_api_object(self, existing_object, object_type):
+    def parse_downloaded_api_object(
+        self, existing_object, object_type, elements_to_remove=None
+    ):
         """Removes or replaces instance-specific items such as ID and computer objects"""
         # first determine if this object is using Classic API or Jamf Pro
         if "JSSResource" in self.api_endpoints(object_type):
@@ -1034,16 +1014,13 @@ class JamfUploaderBase(Processor):
 
                 # remove any id tags
                 self.remove_elements_from_xml(object_xml, "id")
-                # remove any computer objects
-                self.remove_elements_from_xml(object_xml, "computers")
-                # remove any mobile device objects
-                self.remove_elements_from_xml(object_xml, "mobile_devices")
-                # remove any user-based objects
-                self.remove_elements_from_xml(object_xml, "users")
-                self.remove_elements_from_xml(object_xml, "user_groups")
-                self.remove_elements_from_xml(object_xml, "limit_to_users")
                 # remove any self service icons
                 self.remove_elements_from_xml(object_xml, "self_service_icon")
+                # optional array of other elements to remove
+                for elem in elements_to_remove:
+                    self.output(f"Deleting element {elem}...", verbose_level=2)
+                    self.remove_elements_from_xml(object_xml, elem)
+
                 # for profiles ensure that they are redeployed to all
                 self.substitute_elements_in_xml(object_xml, "redeploy_on_update", "All")
 
@@ -1053,7 +1030,9 @@ class JamfUploaderBase(Processor):
             return parsed_xml.decode("UTF-8")
         else:
             # do json stuff
-            # remove any id-type tags
+            existing_object = json.loads(existing_object)
+
+            # remove any id-type tags            
             if "id" in existing_object:
                 existing_object.pop("id")
             if "categoryId" in existing_object:
@@ -1067,6 +1046,40 @@ class JamfUploaderBase(Processor):
                     if "id" in elem:
                         elem.pop("id")
             return json.dumps(existing_object, indent=4)
+
+    def prepare_template(
+        self,
+        object_name,
+        object_type,
+        object_template,
+        xml_escape=False,
+        elements_to_remove=None,
+    ):
+        """prepare the object contents"""
+        # import template from file and replace any keys in the template
+        if os.path.exists(object_template):
+            with open(object_template, "r", encoding="utf-8") as file:
+                template_contents = file.read()
+        else:
+            raise ProcessorError("Template does not exist!")
+
+        # parse the template
+        template_contents = self.parse_downloaded_api_object(
+            template_contents, object_type, elements_to_remove
+        )
+
+        # substitute user-assignable keys
+        object_name = self.substitute_assignable_keys(object_name)
+        template_contents = self.substitute_assignable_keys(
+            template_contents, xml_escape
+        )
+
+        self.output("object data:", verbose_level=2)
+        self.output(template_contents, verbose_level=2)
+
+        # write the template to temp file
+        template_file = self.write_temp_file(template_contents)
+        return object_name, template_file
 
     class ParseHTMLForError(HTMLParser):  # pylint: disable=abstract-method
         """Parses HTML output for the appropriate error"""

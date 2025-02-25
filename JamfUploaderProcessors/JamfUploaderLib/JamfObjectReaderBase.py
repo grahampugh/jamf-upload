@@ -22,8 +22,6 @@ import os.path
 import sys
 import xml.etree.ElementTree as ET
 
-from xml.sax.saxutils import unescape
-
 from autopkglib import (  # pylint: disable=import-error
     ProcessorError,
 )
@@ -52,6 +50,9 @@ class JamfObjectReaderBase(JamfUploaderBase):
         all_objects = self.env.get("all_objects")
         object_type = self.env.get("object_type")
         output_path = self.env.get("output_path")
+        elements_to_remove = self.env.get("elements_to_remove")
+        if isinstance(elements_to_remove, str):
+            elements_to_remove = [elements_to_remove]
 
         # handle setting true/false variables in overrides
         if not all_objects or all_objects == "False":
@@ -122,7 +123,9 @@ class JamfObjectReaderBase(JamfUploaderBase):
             )
 
             # parse the object
-            parsed_object = self.parse_downloaded_api_object(raw_object, object_type)
+            parsed_object = self.parse_downloaded_api_object(
+                raw_object, object_type, elements_to_remove
+            )
 
             # for certain types we also want to extract the payload
             payload = ""
@@ -171,7 +174,10 @@ class JamfObjectReaderBase(JamfUploaderBase):
                         self.output(f"Wrote parsed object to {file_path}")
                         # also output the payload if appropriate
                         if payload:
-                            payload_output_filename = f"{subdomain}-{self.object_list_types(object_type)}-{n}.{payload_filetype}"
+                            payload_output_filename = (
+                                f"{subdomain}-{self.object_list_types(object_type)}-{n}"
+                                f".{payload_filetype}"
+                            )
                             payload_file_path = os.path.join(
                                 output_path, payload_output_filename
                             )
