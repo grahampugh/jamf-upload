@@ -1017,6 +1017,9 @@ class JamfUploaderBase(Processor):
                 # remove any self service icons
                 self.remove_elements_from_xml(object_xml, "self_service_icon")
                 # optional array of other elements to remove
+                if elements_to_remove is None:
+                    elements_to_remove = []
+
                 for elem in elements_to_remove:
                     self.output(f"Deleting element {elem}...", verbose_level=2)
                     self.remove_elements_from_xml(object_xml, elem)
@@ -1030,7 +1033,8 @@ class JamfUploaderBase(Processor):
             return parsed_xml.decode("UTF-8")
         else:
             # do json stuff
-            existing_object = json.loads(existing_object)
+            if not isinstance(existing_object, dict):
+                existing_object = json.loads(existing_object)
 
             # remove any id-type tags            
             if "id" in existing_object:
