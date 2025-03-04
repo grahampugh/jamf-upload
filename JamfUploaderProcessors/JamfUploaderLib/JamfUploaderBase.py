@@ -1017,12 +1017,10 @@ class JamfUploaderBase(Processor):
                 # remove any self service icons
                 self.remove_elements_from_xml(object_xml, "self_service_icon")
                 # optional array of other elements to remove
-                if elements_to_remove is None:
-                    elements_to_remove = []
-
-                for elem in elements_to_remove:
-                    self.output(f"Deleting element {elem}...", verbose_level=2)
-                    self.remove_elements_from_xml(object_xml, elem)
+                if elements_to_remove is not None:
+                    for elem in elements_to_remove:
+                        self.output(f"Deleting element {elem}...", verbose_level=2)
+                        self.remove_elements_from_xml(object_xml, elem)
 
                 # for profiles ensure that they are redeployed to all
                 self.substitute_elements_in_xml(object_xml, "redeploy_on_update", "All")
@@ -1031,25 +1029,25 @@ class JamfUploaderBase(Processor):
             except ET.ParseError as xml_error:
                 raise ProcessorError from xml_error
             return parsed_xml.decode("UTF-8")
-        else:
-            # do json stuff
-            if not isinstance(existing_object, dict):
-                existing_object = json.loads(existing_object)
 
-            # remove any id-type tags            
-            if "id" in existing_object:
-                existing_object.pop("id")
-            if "categoryId" in existing_object:
-                existing_object.pop("categoryId")
-            if "deviceEnrollmentProgramInstanceId" in existing_object:
-                existing_object.pop("deviceEnrollmentProgramInstanceId")
-            # now go one deep and look for more id keys. Hopefully we don't have to go deeper!
-            for elem in existing_object.values():
-                elem_check = elem
-                if isinstance(elem_check, abc.Mapping):
-                    if "id" in elem:
-                        elem.pop("id")
-            return json.dumps(existing_object, indent=4)
+        # do json stuff
+        if not isinstance(existing_object, dict):
+            existing_object = json.loads(existing_object)
+
+        # remove any id-type tags
+        if "id" in existing_object:
+            existing_object.pop("id")
+        if "categoryId" in existing_object:
+            existing_object.pop("categoryId")
+        if "deviceEnrollmentProgramInstanceId" in existing_object:
+            existing_object.pop("deviceEnrollmentProgramInstanceId")
+        # now go one deep and look for more id keys. Hopefully we don't have to go deeper!
+        for elem in existing_object.values():
+            elem_check = elem
+            if isinstance(elem_check, abc.Mapping):
+                if "id" in elem:
+                    elem.pop("id")
+        return json.dumps(existing_object, indent=4)
 
     def prepare_template(
         self,
