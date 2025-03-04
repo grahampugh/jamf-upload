@@ -1029,8 +1029,10 @@ class JamfUploaderBase(Processor):
             except ET.ParseError as xml_error:
                 raise ProcessorError from xml_error
             return parsed_xml.decode("UTF-8")
+
         # do json stuff
-        existing_object = json.loads(existing_object)
+        if not isinstance(existing_object, dict):
+            existing_object = json.loads(existing_object)
 
         # remove any id-type tags
         if "id" in existing_object:
