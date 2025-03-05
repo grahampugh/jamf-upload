@@ -53,26 +53,18 @@ class JamfScopeAdjusterBase(JamfUploaderBase):
         """
         Cleans the provided raw XML object by removing unnecessary elements.
 
-        This function parses the given raw XML string, retains only the 'id' element
-        within the 'general' section, and keeps only the 'general' and 'scope' sections
-        in the root. All other elements are removed.
+        This function parses the given raw XML string, retains only the
+        'scope' section in the root. All other elements are removed.
         """
         root = ET.fromstring(raw_object)
 
-        general = root.find("general")
-
-        if general is not None:
-            for child in list(general):
-                if child.tag != "id":
-                    general.remove(child)
-
         for child in list(root):
-            if child.tag not in ["general", "scope"]:
+            if child.tag not in "scope":
                 root.remove(child)
 
         return ET.tostring(root, encoding="UTF-8", xml_declaration=True).decode()
 
-    def add_xml_tag(
+    def add_scope_element(
         self,
         raw_object,
         object_type,
@@ -179,7 +171,7 @@ class JamfScopeAdjusterBase(JamfUploaderBase):
         )
         return ET.tostring(root, encoding="UTF-8", xml_declaration=True).decode()
 
-    def remove_xml_tag(
+    def remove_scope_element(
         self,
         raw_object,
         object_type,
@@ -296,7 +288,7 @@ class JamfScopeAdjusterBase(JamfUploaderBase):
             if strip_raw_xml == "True":
                 raw_object = self.clean_raw_xml(raw_object)
             if scoping_operation == "add":
-                raw_object = self.add_xml_tag(
+                raw_object = self.add_scope_element(
                     raw_object,
                     object_type,
                     scoping_type,
@@ -305,7 +297,7 @@ class JamfScopeAdjusterBase(JamfUploaderBase):
                     strict_mode,
                 )
             elif scoping_operation == "remove":
-                raw_object = self.remove_xml_tag(
+                raw_object = self.remove_scope_element(
                     raw_object,
                     object_type,
                     scoping_type,
