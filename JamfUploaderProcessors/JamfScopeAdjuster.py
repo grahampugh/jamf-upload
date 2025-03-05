@@ -88,8 +88,8 @@ class JamfScopeAdjuster(JamfScopeAdjusterBase):
         "strip_raw_xml": {
             "required": False,
             "description": (
-                "Strip all XML tags except for general/id and scope. Set to True if input "
-                "is from JamfObjectReader raw_object (default). Ensures only scope is written "
+                "Strip all XML tags except for scope. Set to True if input is from "
+                "JamfObjectReader raw_object (default). Ensures only scope is written "
                 "back to the Jamf API. Set to False if input is from object_template file."
             ),
             "default": "True",

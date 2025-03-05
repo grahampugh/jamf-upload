@@ -30,7 +30,7 @@ A processor for AutoPkg that adds or removes a scopeable object (target, limitat
   - **default:** True
 - **strip_raw_xml:**  
   - **required:** False  
-  - **description:** Strip all XML tags except for `general/id` and `scope`. Set to `True` if input is from a `JamfObjectReader` raw object, ensuring only the scope is written back to the Jamf API. Set to `False` if input is from an `object_template` file.  
+  - **description:** Strip all XML tags except for `scope`. Set to `True` if input is from a `JamfObjectReader` raw object, ensuring only the scope is written back to the Jamf API. Set to `False` if input is from an `object_template` file.  
   - **default:** True
 - **output_dir:**  
   - **required:** False  
