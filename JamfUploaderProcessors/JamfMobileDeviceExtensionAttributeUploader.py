@@ -1,7 +1,8 @@
 #!/usr/local/autopkg/python
+# pylint: disable=invalid-name
 
 """
-Copyright 2023 Graham Pugh
+Copyright 2025 Graham Pugh
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -16,7 +17,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 
 NOTES:
-All functions are in JamfUploaderLib/JamfExtensionAttributeUploaderBase.py
+All functions are in JamfUploaderLib/JamfMobileDeviceExtensionAttributeUploaderBase.py
 """
 
 import os
@@ -27,14 +28,16 @@ import sys
 # imports require noqa comments for E402
 sys.path.insert(0, os.path.dirname(__file__))
 
-from JamfUploaderLib.JamfExtensionAttributeUploaderBase import (  # noqa: E402
-    JamfExtensionAttributeUploaderBase,
+from JamfUploaderLib.JamfMobileDeviceExtensionAttributeUploaderBase import (  # pylint: disable=import-error, wrong-import-position
+    JamfMobileDeviceExtensionAttributeUploaderBase,
 )
 
-__all__ = ["JamfExtensionAttributeUploader"]
+__all__ = ["JamfMobileDeviceExtensionAttributeUploader"]
 
 
-class JamfExtensionAttributeUploader(JamfExtensionAttributeUploaderBase):
+class JamfMobileDeviceExtensionAttributeUploader(
+    JamfMobileDeviceExtensionAttributeUploaderBase
+):
     description = (
         "A processor for AutoPkg that will upload an Extension Attribute item to a "
         "Jamf Cloud or on-prem server."
@@ -76,12 +79,8 @@ class JamfExtensionAttributeUploader(JamfExtensionAttributeUploaderBase):
         },
         "ea_input_type": {
             "required": False,
-            "description": ("Type of EA. One of script, popup, text, or ldap."),
-            "default": "script",
-        },
-        "ea_script_path": {
-            "required": False,
-            "description": "Full path to the script to be uploaded",
+            "description": ("Type of EA. One of popup, text, or ldap."),
+            "default": "text",
         },
         "ea_popup_choices": {
             "required": False,
@@ -111,16 +110,6 @@ class JamfExtensionAttributeUploader(JamfExtensionAttributeUploaderBase):
                 "Currently this must be manaully set."
             ),
         },
-        "ea_enabled": {
-            "required": False,
-            "description": "String-based EAs can be disabled.",
-            "default": True,
-        },
-        "skip_script_key_substitution": {
-            "required": False,
-            "description": "Skip key substitution in processing the script",
-            "default": False,
-        },
         "replace_ea": {
             "required": False,
             "description": "Overwrite an existing category if True.",
@@ -134,7 +123,7 @@ class JamfExtensionAttributeUploader(JamfExtensionAttributeUploaderBase):
     }
 
     output_variables = {
-        "jamfextensionattributeuploader_summary_result": {
+        "jamfmobiledeviceextensionattributeuploader_summary_result": {
             "description": "Description of interesting results.",
         },
     }
@@ -146,5 +135,5 @@ class JamfExtensionAttributeUploader(JamfExtensionAttributeUploaderBase):
 
 
 if __name__ == "__main__":
-    PROCESSOR = JamfExtensionAttributeUploader()
+    PROCESSOR = JamfMobileDeviceExtensionAttributeUploader()
     PROCESSOR.execute_shell()

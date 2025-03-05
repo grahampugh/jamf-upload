@@ -1,4 +1,5 @@
 #!/usr/local/autopkg/python
+# pylint: disable=invalid-name
 
 """
 2025 Neil Martin
@@ -27,39 +28,39 @@ import sys
 # imports require noqa comments for E402
 sys.path.insert(0, os.path.dirname(__file__))
 
-from JamfUploaderLib.JamfExtensionAttributePopupChoiceAdjusterBase import (  # noqa: E402
+from JamfUploaderLib.JamfExtensionAttributePopupChoiceAdjusterBase import (  # pylint: disable=import-error, wrong-import-position
     JamfExtensionAttributePopupChoiceAdjusterBase,
 )
 
 __all__ = ["JamfExtensionAttributePopupChoiceAdjuster"]
 
 
-class JamfExtensionAttributePopupChoiceAdjuster(JamfExtensionAttributePopupChoiceAdjusterBase):
+class JamfExtensionAttributePopupChoiceAdjuster(
+    JamfExtensionAttributePopupChoiceAdjusterBase
+):
     """AutoPkg processor that adds or removes pop-up choices from a Jamf Extension Attribute."""
 
-    description = (
-        "AutoPkg processor that adds or removes pop-up choices from a Jamf Extension Attribute."
-    )
+    description = "AutoPkg processor that adds or removes pop-up choices from a Jamf Extension Attribute."
 
     input_variables = {
         "object_template": {
             "required": False,
-            "description": "Full path of the object file to modify."
+            "description": "Full path of the object file to modify.",
         },
         "parsed_object": {
             "required": False,
             "description": (
                 "XML or JSON parsed object string to modify. Used if object_template "
                 "is not supplied, e.g. if taking input from JamfObjectReader."
-            )
+            ),
         },
         "choice_operation": {
             "required": True,
-            "description": "Specify 'add' to add a choice or 'remove' to remove a choice."
+            "description": "Specify 'add' to add a choice or 'remove' to remove a choice.",
         },
         "choice_value": {
             "required": True,
-            "description": "Pop-up choice value to add or remove."
+            "description": "Pop-up choice value to add or remove.",
         },
         "strict_mode": {
             "required": False,
@@ -70,14 +71,14 @@ class JamfExtensionAttributePopupChoiceAdjuster(JamfExtensionAttributePopupChoic
                 "unintended changes to the Jamf API, errors/oversights in specifying choice names "
                 "may go unnoticed."
             ),
-            "default": "True"
+            "default": "True",
         },
         "output_dir": {
             "required": False,
             "description": (
                 "Directory to save the modified XML or JSON file. Defaults to RECIPE_CACHE_DIR."
-            )
-        }
+            ),
+        },
     }
 
     output_variables = {
@@ -91,7 +92,7 @@ class JamfExtensionAttributePopupChoiceAdjuster(JamfExtensionAttributePopupChoic
                 "Parsed processed object string. For chaining additional "
                 "JamfExtensionAttributePopupChoiceAdjuster processors."
             )
-        }
+        },
     }
 
     def main(self):

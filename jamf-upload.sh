@@ -145,6 +145,22 @@ Mobile Device App Upload arguments:
     --key X=Y               Substitutable values in the template and AppConfig. Multiple values can be supplied
     --replace               Replace existing item
 
+Mobile Device Extension Attribute Upload arguments:
+    --name <string>         The name
+    --type <string>         The input type, either 'text', 'popup', 
+                            or 'ldap' (default is 'script')
+    --data-type <string>    The data type, either 'string', 'integer', or 'date'. 
+                            Only used for 'text' and 'popup' input types. Default is 'string'.
+    --description <string>  The description
+    --ldap-mapping <string> The Directory Service Attribute Mapping. Musst be a valid mapping.
+    --choices               Comma-separated list of values for 'popup' input type. 
+                            Must be a comma-separated list.
+    --inventory-display <string>
+                            The inventory display type. One of GENERAL, HARDWARE, OPERATING_SYSTEM, 
+                            USER_AND_LOCATION, PURCHASING, EXTENSION_ATTRIBUTES.
+    --key X=Y               Substitutable values in the template. Multiple values can be supplied
+    --replace               Replace existing item
+
 Mobile Device Group Upload arguments:
     --name <string>         The name
     --template <path>       XML template
@@ -402,6 +418,8 @@ elif [[ $object == "macapp" ]]; then
     processor="JamfMacAppUploader"
 elif [[ $object == "mobiledeviceapp" ]]; then
     processor="JamfMobileDeviceAppUploader"
+elif [[ $object == "mobiledeviceea" || $object == "mobiledeviceextensionattribute" ]]; then
+    processor="JamfMobileDeviceExtensionAttributeUploader"
 elif [[ $object == "mobiledevicegroup" ]]; then
     processor="JamfMobileDeviceGroupUploader"
 elif [[ $object == "mobiledeviceprofile" ]]; then
@@ -510,7 +528,7 @@ while test $# -gt 0 ; do
                 if plutil -replace dock_item_type -string "$1" "$temp_processor_plist"; then
                     echo "   [jamf-upload] Wrote dock_item_type='$1' into $temp_processor_plist"
                 fi
-            elif [[ $processor == "JamfExtensionAttributeUploader" ]]; then
+            elif [[ $processor == "JamfExtensionAttributeUploader" || $processor == "JamfMobileDeviceExtensionAttributeUploader" ]]; then
                 if plutil -replace ea_input_type -string "$1" "$temp_processor_plist"; then
                     echo "   [jamf-upload] Wrote ea_input_type='$1' into $temp_processor_plist"
                 fi
@@ -572,7 +590,7 @@ while test $# -gt 0 ; do
                 if plutil -replace replace_dock_item -string "True" "$temp_processor_plist"; then
                     echo "   [jamf-upload] Wrote replace_dock_item='True' into $temp_processor_plist"
                 fi
-            elif [[ $processor == "JamfExtensionAttributeUploader" ]]; then
+            elif [[ $processor == "JamfExtensionAttributeUploader" || $processor == "JamfMobileDeviceExtensionAttributeUploader" ]]; then
                 if plutil -replace replace_ea -string "True" "$temp_processor_plist"; then
                     echo "   [jamf-upload] Wrote replace_ea='True' into $temp_processor_plist"
                 fi
@@ -632,7 +650,7 @@ while test $# -gt 0 ; do
                 if plutil -replace dock_item_name -string "$1" "$temp_processor_plist"; then
                     echo "   [jamf-upload] Wrote dock_item_name='$1' into $temp_processor_plist"
                 fi
-            elif [[ $processor == "JamfExtensionAttributeUploader" ]]; then
+            elif [[ $processor == "JamfExtensionAttributeUploader" || $processor == "JamfMobileDeviceExtensionAttributeUploader" ]]; then
                 if plutil -replace ea_name -string "$1" "$temp_processor_plist"; then
                     echo "   [jamf-upload] Wrote ea_name='$1' into $temp_processor_plist"
                 fi
@@ -827,7 +845,7 @@ while test $# -gt 0 ; do
                 if plutil -replace profile_description -string "$1" "$temp_processor_plist"; then
                     echo "   [jamf-upload] Wrote profile_description='$1' into $temp_processor_plist"
                 fi
-            elif [[ $processor == "JamfExtensionAttributeUploader" ]]; then
+            elif [[ $processor == "JamfExtensionAttributeUploader" || $processor == "JamfMobileDeviceExtensionAttributeUploader" ]]; then
                 if plutil -replace ea_description -string "$1" "$temp_processor_plist"; then
                     echo "   [jamf-upload] Wrote ea_description='$1' into $temp_processor_plist"
                 fi
@@ -908,7 +926,7 @@ while test $# -gt 0 ; do
             ;;
         --data-type)
             shift
-            if [[ $processor == "JamfExtensionAttributeUploader" ]]; then
+            if [[ $processor == "JamfExtensionAttributeUploader" || $processor == "JamfMobileDeviceExtensionAttributeUploader" ]]; then
                 if plutil -replace ea_data_type -string "$1" "$temp_processor_plist"; then
                     echo "   [jamf-upload] Wrote ea_data_type='$1' into $temp_processor_plist"
                 fi
@@ -916,7 +934,7 @@ while test $# -gt 0 ; do
             ;;
         --inventory-display)
             shift
-            if [[ $processor == "JamfExtensionAttributeUploader" ]]; then
+            if [[ $processor == "JamfExtensionAttributeUploader" || $processor == "JamfMobileDeviceExtensionAttributeUploader" ]]; then
                 if plutil -replace ea_inventory_display -string "$1" "$temp_processor_plist"; then
                     echo "   [jamf-upload] Wrote ea_inventory_display='$1' into $temp_processor_plist"
                 fi
@@ -924,7 +942,7 @@ while test $# -gt 0 ; do
             ;;
         --ldap-mapping)
             shift
-            if [[ $processor == "JamfExtensionAttributeUploader" ]]; then
+            if [[ $processor == "JamfExtensionAttributeUploader" || $processor == "JamfMobileDeviceExtensionAttributeUploader" ]]; then
                 if plutil -replace ea_directory_service_attribute_mapping -string "$1" "$temp_processor_plist"; then
                     echo "   [jamf-upload] Wrote ea_directory_service_attribute_mapping='$1' into $temp_processor_plist"
                 fi
@@ -932,7 +950,7 @@ while test $# -gt 0 ; do
             ;;
         --choices)
             shift
-            if [[ $processor == "JamfExtensionAttributeUploader" ]]; then
+            if [[ $processor == "JamfExtensionAttributeUploader" || $processor == "JamfMobileDeviceExtensionAttributeUploader" ]]; then
                 if plutil -replace ea_popup_choices -string "$1" "$temp_processor_plist"; then
                     echo "   [jamf-upload] Wrote ea_popup_choices='$1' into $temp_processor_plist"
                 fi
