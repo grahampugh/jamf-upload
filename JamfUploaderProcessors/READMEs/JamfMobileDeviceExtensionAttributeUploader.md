@@ -1,8 +1,8 @@
-# JamfExtensionAttributeUploader
+# JamfMobileDeviceExtensionAttributeUploader
 
 ## Description
 
-A processor for AutoPkg that will upload an Extension Attribute item to a Jamf Cloud or on-prem server.
+A processor for AutoPkg that will upload a Mobile Device Extension Attribute item to a Jamf Cloud or on-prem server.
 
 ## Input variables
 
@@ -23,42 +23,32 @@ A processor for AutoPkg that will upload an Extension Attribute item to a Jamf C
   - **description:** Secret associated with the Client ID, optionally set as a key in the com.github.autopkg preference file.
 - **ea_name**:
   - **required**: False
-  - **description**: Extension Attribute name
-- **ea_script_path**:
-  - **required**: False
-  - **description**: Full path to the script to be uploaded
+  - **description**: Mobile Device Extension Attribute name
 - **replace_ea**:
   - **required**: False
-  - **description**: Overwrite an existing Extension Attribute if True.
+  - **description**: Overwrite an existing Mobile Device Extension Attribute if True.
   - **default**: False
 - **ea_inventory_display:**
   - **required:** False
-  - **description:** Inventory Display value for the EA.
+  - **description:** Inventory Display value for the Mobile Device Extension Attribute.
   - **default:** "Extension Attributes"
 - **ea_data_type:**
   - **required:** False
-  - **description:** Data type for the EA. One of String, Integer or Date.
+  - **description:** Data type for the Mobile Device Extension Attribute. One of String, Integer or Date.
   - **default:** "String"
 - **ea_popup_choices:**
   - **required:** False
-  - **description:** Comma-separated list of popup choices for the EA.
+  - **description:** Comma-separated list of popup choices for the Mobile Device Extension Attribute.
 - **ea_input_type:**
   - **required:** False
-  - **description:** Type of EA. One of script, popup, text, or ldap.
+  - **description:** Type of Mobile Device Extension Attribute. One of popup, text, or ldap.
+  - **default:** "text"
 - **ea_description:**
   - **required:** False
-  - **description:** Description for the EA.
+  - **description:** Description for the Mobile Device Extension Attribute.
 - **ea_directory_service_attribute_mapping:**
   - **required:** False
   - **description:** Directory Service (LDAP) attribute mapping. Currently this must be manually set.
-- **ea_enabled:**
-  - **required:** False
-  - **description:** String-based EAs can be disabled.
-  - **default:** True
-- **skip_script_key_substitution**:
-  - **required**: False
-  - **description**: Skip substitution of keys marked between `%` signs in the script.
-  - **default**: False
 - **sleep:**
   - **required:** False
   - **description:** Pause after running this processor for specified seconds.
@@ -66,5 +56,5 @@ A processor for AutoPkg that will upload an Extension Attribute item to a Jamf C
 
 ## Output variables
 
-- **jamfextensionattributeuploader_summary_result:**
+- **jamfmobiledeviceextensionattributeuploader_summary_result:**
   - **description:** Description of interesting results.
