@@ -53,21 +53,13 @@ class JamfScopeAdjusterBase(JamfUploaderBase):
         """
         Cleans the provided raw XML object by removing unnecessary elements.
 
-        This function parses the given raw XML string, retains only the 'id' element
-        within the 'general' section, and keeps only the 'general' and 'scope' sections
-        in the root. All other elements are removed.
+        This function parses the given raw XML string, retains only the
+        'scope' section in the root. All other elements are removed.
         """
         root = ET.fromstring(raw_object)
 
-        general = root.find("general")
-
-        if general is not None:
-            for child in list(general):
-                if child.tag != "id":
-                    general.remove(child)
-
         for child in list(root):
-            if child.tag not in ["general", "scope"]:
+            if child.tag not in "scope":
                 root.remove(child)
 
         return ET.tostring(root, encoding="UTF-8", xml_declaration=True).decode()
