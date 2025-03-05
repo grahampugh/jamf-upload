@@ -132,9 +132,10 @@ class JamfObjectReaderBase(JamfUploaderBase):
             payload_filetype = "sh"
             if object_type == "computer_extension_attribute":
                 payload = json.loads(parsed_object)["scriptContents"]
-                # determine the script type
-                if "python" in payload.partition("\n")[0]:
-                    payload_filetype = "py"
+                if payload is not None:
+                    # determine the script type
+                    if "python" in payload.partition("\n")[0]:
+                        payload_filetype = "py"
             elif object_type == "script":
                 payload = json.loads(parsed_object)["scriptContents"]
             elif (
@@ -151,7 +152,7 @@ class JamfObjectReaderBase(JamfUploaderBase):
                 )
                 payload_filetype = "mobileconfig"
 
-            # dump the object to file is output_dir is specified
+            # dump the object to file if output_dir is specified
             if output_dir:
                 # construct the filename
                 if "JSSResource" in self.api_endpoints(object_type):

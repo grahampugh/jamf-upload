@@ -61,6 +61,30 @@ elif [[ $test_type == "scope" ]]; then
         --not-strict \
         "$verbosity"
 
+elif [[ $test_type == "ea-popup-remove" ]]; then
+    # adjust a scope
+    "$DIR"/../jamf-upload.sh eapopup \
+        --prefs "$prefs" \
+        --recipe-dir /Users/gpugh/sourcecode/jamf-upload/_tests \
+        --template "/Users/Shared/Jamf/JamfUploaderTests/jssimporter-computer_extension_attributes-Test Popup.json" \
+        --operation "remove" \
+        --value "1.3" \
+        --output "/Users/Shared/Jamf/JamfUploaderTests" \
+        --not-strict \
+        "$verbosity"
+
+elif [[ $test_type == "ea-popup-add" ]]; then
+    # adjust a scope
+    "$DIR"/../jamf-upload.sh eapopup \
+        --prefs "$prefs" \
+        --recipe-dir /Users/gpugh/sourcecode/jamf-upload/_tests \
+        --template "/Users/Shared/Jamf/JamfUploaderTests/jssimporter-computer_extension_attributes-Test Popup.json" \
+        --operation "add" \
+        --value "1.3" \
+        --output "/Users/Shared/Jamf/JamfUploaderTests" \
+        --not-strict \
+        "$verbosity"
+
 
 # example object types (Classic API)
 # computer_group
@@ -164,6 +188,17 @@ elif [[ $test_type == "read-ea" ]]; then
         --name "AdobeFlashVersion" \
         --output "/Users/Shared/Jamf/JamfUploaderTests" \
         "$verbosity"
+
+elif [[ $test_type == "read-ea-popup" ]]; then
+    # read a generic Classic API object
+    "$DIR"/../jamf-upload.sh read \
+        --prefs "$prefs" \
+        --recipe-dir /Users/gpugh/sourcecode/jamf-upload/_tests \
+        --type "computer_extension_attribute" \
+        --name "Test Popup" \
+        --output "/Users/Shared/Jamf/JamfUploaderTests" \
+        "$verbosity"
+
 
 elif [[ $test_type == "read-eas" ]]; then
     # read a generic Classic API object
@@ -358,6 +393,32 @@ elif [[ $test_type == "ea" ]]; then
         --recipe-dir /Users/gpugh/sourcecode/jamf-upload/_tests \
         --name "Microsoft AutoUpdate Version" \
         --script "templates/MicrosoftAutoUpdate-EA.sh" \
+        "$verbosity" \
+        --replace
+
+elif [[ $test_type == "ea-popup" ]]; then
+    # upload an extension attribute
+    "$DIR"/../jamf-upload.sh ea \
+        --prefs "$prefs" \
+        --recipe-dir /Users/gpugh/sourcecode/jamf-upload/_tests \
+        --name "Test Popup" \
+        --type "popup" \
+        --choices "1.0,1.1,1.2,1.3" \
+        --description "Choose a version" \
+        --inventory-display "General" \
+        "$verbosity" \
+        --replace
+
+elif [[ $test_type == "mea-popup" ]]; then
+    # upload an extension attribute
+    "$DIR"/../jamf-upload.sh mobiledeviceea \
+        --prefs "$prefs" \
+        --recipe-dir /Users/gpugh/sourcecode/jamf-upload/_tests \
+        --name "Test Popup" \
+        --type "popup" \
+        --choices "1.0,1.1,1.2,1.3" \
+        --description "Choose a version" \
+        --inventory-display "General" \
         "$verbosity" \
         --replace
 

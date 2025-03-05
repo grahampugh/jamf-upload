@@ -2,7 +2,7 @@
 # pylint: disable=invalid-name
 
 """
-Copyright 2023 Graham Pugh
+Copyright 2025 Graham Pugh
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -36,8 +36,8 @@ from JamfUploaderBase import (  # pylint: disable=import-error, wrong-import-pos
 )
 
 
-class JamfExtensionAttributeUploaderBase(JamfUploaderBase):
-    """Class for functions used to upload an extension attribute to Jamf"""
+class JamfMobileDeviceExtensionAttributeUploaderBase(JamfUploaderBase):
+    """Class for functions used to upload a mobile device extension attribute to Jamf"""
 
     def upload_ea(
         self,
@@ -48,54 +48,50 @@ class JamfExtensionAttributeUploaderBase(JamfUploaderBase):
         ea_input_type,
         ea_popup_choices,
         ea_directory_service_attribute_mapping,
-        ea_enabled,
         ea_inventory_display,
-        script_path,
-        skip_script_key_substitution,
         sleep_time,
         token,
         obj_id=None,
     ):
         """Update extension attribute metadata."""
-        # import script from file and replace any keys in the script
-        if ea_input_type == "script":
-            if script_path:
-                if os.path.exists(script_path):
-                    with open(script_path, "r", encoding="utf-8") as file:
-                        script_contents = file.read()
-                        if not skip_script_key_substitution:
-                            # substitute user-assignable keys
-                            script_contents = self.substitute_assignable_keys(
-                                script_contents
-                            )
-                else:
-                    raise ProcessorError("Script does not exist!")
-            else:
-                raise ProcessorError("Script path not supplied!")
 
-        # format inventoryDisplayType & dataType correctly
-        ea_inventory_display = ea_inventory_display.replace(" ", "_").upper()
-        ea_data_type = ea_data_type.upper()
-
-        # self.output("Data type: " + str(type(ea_inventory_display)), verbose_level=3)
+        if ea_input_type == "popup":
+            ea_xml_type = "Pop-up Menu"
+        elif ea_input_type == "text":
+            ea_xml_type = "Text Field"
+        elif ea_input_type == "ldap":
+            ea_xml_type = "Directory Service Attribute Mapping"
+        else:
+            raise ProcessorError(f"ERROR: EA input type {ea_input_type} not supported")
 
         # build the object
-        ea_data = {
-            "name": ea_name,
-            "description": ea_description,
-            "dataType": ea_data_type,
-            "inventoryDisplayType": ea_inventory_display,
-            "inputType": ea_input_type,
-        }
-
-        if ea_input_type == "script":
-            ea_data["enabled"] = ea_enabled
-            if script_contents:
-                ea_data["scriptContents"] = script_contents
-        elif ea_input_type == "popup":
-            ea_data["popupMenuChoices"] = ea_popup_choices
+        ea_data = (
+            "<mobile_device_extension_attribute>"
+            + f"<name>{ea_name}</name>"
+            + "<enabled>true</enabled>"
+            + f"<description>{ea_description}</description>"
+            + f"<data_type>{ea_data_type}</data_type>"
+            + f"<inventory_display>{ea_inventory_display}</inventory_display>"
+            + "<recon_display>Extension Attributes</recon_display>"
+            + "<input_type>"
+            + f"<type>{ea_xml_type}</type>"
+        )
+        if ea_input_type == "popup":
+            ea_data += "<popup_choices>"
+            for choice in ea_popup_choices:
+                ea_data += f"<choice>{choice}</choice>"
+            ea_data += "</popup_choices>"
         elif ea_input_type == "ldap":
-            ea_data["ldapAttributeMapping"] = ea_directory_service_attribute_mapping
+            ea_data += f"<attribute_mapping>{ea_directory_service_attribute_mapping}</attribute_mapping>"
+        ea_data += "</input_type>" + "</mobile_device_extension_attribute>"
+
+        self.output("Uploading Extension Attribute...")
+        # write the template to temp file
+        template_xml = self.write_temp_file(ea_data)
+
+        # if we find an object ID we put, if not, we post
+        object_type = "mobile_device_extension_attribute"
+        url = f"{jamf_url}/{self.api_endpoints(object_type)}/id/{obj_id}"
 
         self.output(
             "Extension Attribute data:",
@@ -106,16 +102,6 @@ class JamfExtensionAttributeUploaderBase(JamfUploaderBase):
             verbose_level=2,
         )
 
-        self.output("Uploading Extension Attribute...")
-        ea_json = self.write_json_file(ea_data)
-
-        # if we find an object ID we put, if not, we post
-        object_type = "computer_extension_attribute"
-        if obj_id:
-            url = f"{jamf_url}/{self.api_endpoints(object_type)}/{obj_id}"
-        else:
-            url = f"{jamf_url}/{self.api_endpoints(object_type)}"
-
         count = 0
         while True:
             count += 1
@@ -124,7 +110,7 @@ class JamfExtensionAttributeUploaderBase(JamfUploaderBase):
                 verbose_level=2,
             )
             request = "PUT" if obj_id else "POST"
-            r = self.curl(request=request, url=url, token=token, data=ea_json)
+            r = self.curl(request=request, url=url, token=token, data=template_xml)
             # check HTTP response
             if self.status_check(r, "Extension Attribute", ea_name, request) == "break":
                 break
@@ -146,10 +132,8 @@ class JamfExtensionAttributeUploaderBase(JamfUploaderBase):
         jamf_password = self.env.get("API_PASSWORD")
         client_id = self.env.get("CLIENT_ID")
         client_secret = self.env.get("CLIENT_SECRET")
-        ea_script_path = self.env.get("ea_script_path")
         ea_name = self.env.get("ea_name")
         ea_description = self.env.get("ea_description")
-        skip_script_key_substitution = self.env.get("skip_script_key_substitution")
         ea_input_type = self.env.get("ea_input_type")
         ea_data_type = self.env.get("ea_data_type")
         ea_inventory_display = self.env.get("ea_inventory_display")
@@ -157,36 +141,23 @@ class JamfExtensionAttributeUploaderBase(JamfUploaderBase):
         ea_directory_service_attribute_mapping = self.env.get(
             "ea_directory_service_attribute_mapping"
         )
-        ea_enabled = self.env.get("ea_enabled")
         replace_ea = self.env.get("replace_ea")
         sleep_time = self.env.get("sleep")
         # handle setting replace in overrides
-        if not ea_enabled or ea_enabled == "True":
-            ea_enabled = True
         if not replace_ea or replace_ea == "False":
             replace_ea = False
-        if not skip_script_key_substitution or skip_script_key_substitution == "False":
-            skip_script_key_substitution = False
 
         # convert popup choices to list
         if ea_popup_choices:
             ea_popup_choices = ea_popup_choices.split(",")
 
         # clear any pre-existing summary result
-        if "jamfextensionattributeuploader_summary_result" in self.env:
-            del self.env["jamfextensionattributeuploader_summary_result"]
+        if "jamfmobiledeviceextensionattributeuploader_summary_result" in self.env:
+            del self.env["jamfmobiledeviceextensionattributeuploader_summary_result"]
         ea_uploaded = False
 
         # determine input type
-        if ea_input_type == "script":
-            # handle files with a relative path
-            if not ea_script_path.startswith("/"):
-                found_template = self.get_path_to_file(ea_script_path)
-                if found_template:
-                    ea_script_path = found_template
-                else:
-                    raise ProcessorError(f"ERROR: EA file {ea_script_path} not found")
-        elif ea_input_type != "popup" and ea_input_type != "ldap":
+        if ea_input_type != "popup" and ea_input_type != "ldap":
             raise ProcessorError(f"ERROR: EA input type {ea_input_type} not supported")
 
         # now start the process of uploading the object
@@ -201,7 +172,7 @@ class JamfExtensionAttributeUploaderBase(JamfUploaderBase):
             raise ProcessorError("ERROR: Credentials not supplied")
 
         # check for existing - requires obj_name
-        obj_type = "computer_extension_attribute"
+        obj_type = "mobile_device_extension_attribute"
         obj_name = ea_name
         obj_id = self.get_api_obj_id_from_name(
             jamf_url,
@@ -236,10 +207,7 @@ class JamfExtensionAttributeUploaderBase(JamfUploaderBase):
             ea_input_type,
             ea_popup_choices,
             ea_directory_service_attribute_mapping,
-            ea_enabled,
             ea_inventory_display,
-            ea_script_path,
-            skip_script_key_substitution,
             sleep_time,
             token=token,
             obj_id=obj_id,
@@ -250,17 +218,14 @@ class JamfExtensionAttributeUploaderBase(JamfUploaderBase):
         self.env["extension_attribute"] = ea_name
         self.env["ea_uploaded"] = ea_uploaded
         if ea_uploaded:
-            if not ea_script_path:
-                ea_script_path = ""
             self.env["jamfextensionattributeuploader_summary_result"] = {
                 "summary_text": (
                     "The following extension attributes were created or "
                     "updated in Jamf Pro:"
                 ),
-                "report_fields": ["name", "input_type", "script_path"],
+                "report_fields": ["name", "input_type"],
                 "data": {
                     "name": ea_name,
                     "input_type": ea_input_type,
-                    "script_path": ea_script_path,
                 },
             }
