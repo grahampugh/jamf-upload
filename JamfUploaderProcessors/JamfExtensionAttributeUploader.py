@@ -74,19 +74,22 @@ class JamfExtensionAttributeUploader(JamfExtensionAttributeUploaderBase):
             "description": "Extension Attribute name",
             "default": "",
         },
+        "ea_input_type": {
+            "required": False,
+            "description": ("Type of EA. One of script, popup, text, or ldap."),
+            "default": "script",
+        },
         "ea_script_path": {
             "required": False,
             "description": "Full path to the script to be uploaded",
         },
-        "replace_ea": {
-            "required": False,
-            "description": "Overwrite an existing category if True.",
-            "default": False,
-        },
         "ea_inventory_display": {
             "required": False,
-            "description": "Inventory Display value for the EA.",
-            "default": "Extension Attributes",
+            "description": (
+                "Inventory Display value for the EA. One of GENERAL, HARDWARE, "
+                "OPERATING_SYSTEM, USER_AND_LOCATION, PURCHASING, EXTENSION_ATTRIBUTES."
+            ),
+            "default": "EXTENSION_ATTRIBUTES",
         },
         "ea_data_type": {
             "required": False,
@@ -96,11 +99,24 @@ class JamfExtensionAttributeUploader(JamfExtensionAttributeUploaderBase):
         "ea_description": {
             "required": False,
             "description": "Description for the EA.",
-            "default": "String",
+        },
+        "ea_directory_service_attribute_mapping": {
+            "required": False,
+            "description": "Directory Service (LDAP) attribute mapping. Currently this must be manaully set.",
+        },
+        "ea_enabled": {
+            "required": False,
+            "description": "String-based EAs can be disabled.",
+            "default": True,
         },
         "skip_script_key_substitution": {
             "required": False,
             "description": "Skip key substitution in processing the script",
+            "default": False,
+        },
+        "replace_ea": {
+            "required": False,
+            "description": "Overwrite an existing category if True.",
             "default": False,
         },
         "sleep": {

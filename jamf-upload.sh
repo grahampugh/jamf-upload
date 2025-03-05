@@ -23,7 +23,7 @@ Valid object types:
     mobiledevicegroup
     profile | computerprofile
     mobiledeviceprofile
-    ea | extensionattribute
+    ea | extensionattribute | computerextensionattribute
     icon
     ldap_server
     logflush
@@ -93,9 +93,21 @@ Dock Item Upload arguments:
     --path <string>         Path of Dock Item - e.g. 'file:///Applications/Safari.app/'
     --replace               Replace existing item
 
-Extension Attribute Upload arguments:
+Computer Extension Attribute Upload arguments:
     --name <string>         The name
+    --type <string>         The input type, either 'script', 'text', 'popup', 
+                            or 'ldap' (default is 'script')
+    --data-type <string>    The data type, either 'string', 'integer', or 'date'. 
+                            Only used for 'text' and 'popup' input types. Default is 'string'.
+    --description <string>  The description
+    --disabled              Disable the EA
     --script <path>         Full path of the script to be uploaded
+    --ldap-mapping <string> The Directory Service Attribute Mapping. Musst be a valid mapping.
+    --choices               Comma-separated list of values for 'popup' input type. 
+                            Must be a comma-separated list.
+    --inventory-display <string>
+                            The inventory display type. One of GENERAL, HARDWARE, OPERATING_SYSTEM, 
+                            USER_AND_LOCATION, PURCHASING, EXTENSION_ATTRIBUTES.
     --key X=Y               Substitutable values in the template. Multiple values can be supplied
     --replace               Replace existing item
 
@@ -258,6 +270,14 @@ Policy Delete arguments:
 
 MISCELLANEOUS ACTIONS OPTIONS
 
+Extension Attribute Popup Choice Adjuster arguments:
+    --template <path>       XML template
+    --operation <string>    The operation to perform, either 'add' or 'remove'
+    --value <string>        The value to add or remove
+    --not-strict            Don't fail if adding a choice value that already exists 
+                            or removing a choice value that does not exist in the raw object
+    --output <dir>          Optional directory to output the parsed XML to. Directory must exist.
+
 Package Clean arguments:
     --name <string>         The name to match
     --smb-url <url>         URL of the fileshare distribution point (on premises Jamf Pro only)
@@ -369,8 +389,10 @@ elif [[ $object == "profile" || $object == "computerprofile" ]]; then
     processor="JamfComputerProfileUploader"
 elif [[ $object == "dock" || $object == "dockitem" ]]; then
     processor="JamfDockItemUploader"
-elif [[ $object == "ea" || $object == "extensionattribute" ]]; then
+elif [[ $object == "ea" || $object == "extensionattribute" || $object == "computerextensionattribute" ]]; then
     processor="JamfExtensionAttributeUploader"
+elif [[ $object == "eapopup" || $object == "eapopupadjuster" ]]; then
+    processor="JamfExtensionAttributePopupChoiceAdjuster"
 elif [[ $object == "icon" ]]; then
     processor="JamfIconUploader"
 elif [[ $object == "ldap_server" ]]; then
@@ -486,6 +508,10 @@ while test $# -gt 0 ; do
             elif [[ $processor == "JamfDockItemUploader" ]]; then
                 if plutil -replace dock_item_type -string "$1" "$temp_processor_plist"; then
                     echo "   [jamf-upload] Wrote dock_item_type='$1' into $temp_processor_plist"
+                fi
+            elif [[ $processor == "JamfExtensionAttributeUploader" ]]; then
+                if plutil -replace ea_input_type -string "$1" "$temp_processor_plist"; then
+                    echo "   [jamf-upload] Wrote ea_input_type='$1' into $temp_processor_plist"
                 fi
             elif [[ $processor == "JamfObjectReader" || $processor == "JamfObjectDeleter" || $processor == "JamfObjectUploader" ]]; then
                 # override for generic items, as this key is written later, normally providing the value of $object
@@ -677,6 +703,10 @@ while test $# -gt 0 ; do
                 if plutil -replace profile_template -string "$1" "$temp_processor_plist"; then
                     echo "   [jamf-upload] Wrote profile_template='$1' into $temp_processor_plist"
                 fi
+            elif [[ $processor == "JamfExtensionAttributePopupChoiceAdjuster" ]]; then
+                if plutil -replace object_template -string "$1" "$temp_processor_plist"; then
+                    echo "   [jamf-upload] Wrote object_template='$1' into $temp_processor_plist"
+                fi
             elif [[ $processor == "JamfMacAppUploader" ]]; then
                 if plutil -replace macapp_template -string "$1" "$temp_processor_plist"; then
                     echo "   [jamf-upload] Wrote macapp_template='$1' into $temp_processor_plist"
@@ -796,6 +826,10 @@ while test $# -gt 0 ; do
                 if plutil -replace profile_description -string "$1" "$temp_processor_plist"; then
                     echo "   [jamf-upload] Wrote profile_description='$1' into $temp_processor_plist"
                 fi
+            elif [[ $processor == "JamfExtensionAttributeUploader" ]]; then
+                if plutil -replace ea_description -string "$1" "$temp_processor_plist"; then
+                    echo "   [jamf-upload] Wrote ea_description='$1' into $temp_processor_plist"
+                fi
             fi
             ;;
         --computergroup)
@@ -823,9 +857,87 @@ while test $# -gt 0 ; do
                 if plutil -replace dock_item_path -string "$1" "$temp_processor_plist"; then
                     echo "   [jamf-upload] Wrote dock_item_path='$1' into $temp_processor_plist"
                 fi
+            elif [[ $processor == "JamfExtensionAttributeUploader" ]]; then
+                if plutil -replace ea_script_path -string "$1" "$temp_processor_plist"; then
+                    echo "   [jamf-upload] Wrote ea_script_path='$1' into $temp_processor_plist"
+                fi
             fi
             ;;
-        --script|--script_path)
+        --not-strict) 
+            if [[ $processor == "JamfExtensionAttributePopupChoiceAdjuster" || $processor == "JamfScopeAdjuster" ]]; then
+                if plutil -replace strict_mode -string "False" "$temp_processor_plist"; then
+                    echo "   [jamf-upload] Wrote strict_mode='False' into $temp_processor_plist"
+                fi
+            fi
+            ;;
+        --operation)
+            shift
+            if [[ $processor == "JamfExtensionAttributePopupChoiceAdjuster" ]]; then
+                if plutil -replace choice_operation -string "$1" "$temp_processor_plist"; then
+                    echo "   [jamf-upload] Wrote choice_operation='$1' into $temp_processor_plist"
+                fi
+            elif [[ $processor == "JamfScopeAdjuster" ]]; then
+                if plutil -replace scoping_operation -string "$1" "$temp_processor_plist"; then
+                    echo "   [jamf-upload] Wrote scoping_operation='$1' into $temp_processor_plist"
+                fi
+            fi
+            ;;
+        --output)
+            shift
+            if [[ $processor == "JamfExtensionAttributePopupChoiceAdjuster" || $processor == "JamfObjectReader" || $processor == "JamfScopeAdjuster" ]]; then
+                if plutil -replace output_dir -string "$1" "$temp_processor_plist"; then
+                    echo "   [jamf-upload] Wrote output_dir='$1' into $temp_processor_plist"
+                fi
+            fi
+            ;;
+        --value)
+            shift
+            if [[ $processor == "JamfExtensionAttributePopupChoiceAdjuster" ]]; then
+                if plutil -replace choice_value -string "$1" "$temp_processor_plist"; then
+                    echo "   [jamf-upload] Wrote choice_value='$1' into $temp_processor_plist"
+                fi
+            fi
+            ;;
+        --disabled)
+            if [[ $processor == "JamfExtensionAttributeUploader" ]]; then
+                if plutil -replace ea_enabled -string "False" "$temp_processor_plist"; then
+                    echo "   [jamf-upload] Wrote ea_enabled='False' into $temp_processor_plist"
+                fi
+            fi
+            ;;
+        --data-type)
+            shift
+            if [[ $processor == "JamfExtensionAttributeUploader" ]]; then
+                if plutil -replace ea_data_type -string "$1" "$temp_processor_plist"; then
+                    echo "   [jamf-upload] Wrote ea_data_type='$1' into $temp_processor_plist"
+                fi
+            fi
+            ;;
+        --inventory-display)
+            shift
+            if [[ $processor == "JamfExtensionAttributeUploader" ]]; then
+                if plutil -replace ea_inventory_display -string "$1" "$temp_processor_plist"; then
+                    echo "   [jamf-upload] Wrote ea_inventory_display='$1' into $temp_processor_plist"
+                fi
+            fi
+            ;;
+        --ldap-mapping)
+            shift
+            if [[ $processor == "JamfExtensionAttributeUploader" ]]; then
+                if plutil -replace ea_directory_service_attribute_mapping -string "$1" "$temp_processor_plist"; then
+                    echo "   [jamf-upload] Wrote ea_directory_service_attribute_mapping='$1' into $temp_processor_plist"
+                fi
+            fi
+            ;;
+        --choices)
+            shift
+            if [[ $processor == "JamfExtensionAttributeUploader" ]]; then
+                if plutil -replace ea_popup_choices -string "$1" "$temp_processor_plist"; then
+                    echo "   [jamf-upload] Wrote ea_popup_choices='$1' into $temp_processor_plist"
+                fi
+            fi
+            ;;
+        --script|--script-path)
             shift
             if [[ $processor == "JamfExtensionAttributeUploader" ]]; then
                 if plutil -replace ea_script_path -string "$1" "$temp_processor_plist"; then
@@ -893,18 +1005,6 @@ while test $# -gt 0 ; do
             if [[ $processor == "JamfObjectReader" ]]; then
                 if plutil -replace all_objects -string "True" "$temp_processor_plist"; then
                     echo "   [jamf-upload] Wrote all_objects='True' into $temp_processor_plist"
-                fi
-            fi
-            ;;
-        --output)
-            shift
-            if [[ $processor == "JamfObjectReader" ]]; then
-                if plutil -replace output_dir -string "$1" "$temp_processor_plist"; then
-                    echo "   [jamf-upload] Wrote output_dir='$1' into $temp_processor_plist"
-                fi
-            elif [[ $processor == "JamfScopeAdjuster" ]]; then
-                if plutil -replace output_dir -string "$1" "$temp_processor_plist"; then
-                    echo "   [jamf-upload] Wrote output_dir='$1' into $temp_processor_plist"
                 fi
             fi
             ;;
@@ -1124,25 +1224,10 @@ while test $# -gt 0 ; do
                 fi
             fi
             ;;
-        --not-strict) 
-            if [[ $processor == "JamfScopeAdjuster" ]]; then
-                if plutil -replace strict_mode -string "False" "$temp_processor_plist"; then
-                    echo "   [jamf-upload] Wrote strict_mode='False' into $temp_processor_plist"
-                fi
-            fi
-            ;;
         --not-stripped) 
             if [[ $processor == "JamfScopeAdjuster" ]]; then
                 if plutil -replace strip_raw_xml -string "False" "$temp_processor_plist"; then
                     echo "   [jamf-upload] Wrote strip_raw_xml='False' into $temp_processor_plist"
-                fi
-            fi
-            ;;
-        --operation)
-            shift
-            if [[ $processor == "JamfScopeAdjuster" ]]; then
-                if plutil -replace scoping_operation -string "$1" "$temp_processor_plist"; then
-                    echo "   [jamf-upload] Wrote scoping_operation='$1' into $temp_processor_plist"
                 fi
             fi
             ;;

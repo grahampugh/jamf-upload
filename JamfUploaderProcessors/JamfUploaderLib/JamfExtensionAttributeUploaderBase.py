@@ -45,6 +45,10 @@ class JamfExtensionAttributeUploaderBase(JamfUploaderBase):
         ea_name,
         ea_description,
         ea_data_type,
+        ea_input_type,
+        ea_popup_choices,
+        ea_directory_service_attribute_mapping,
+        ea_enabled,
         ea_inventory_display,
         script_path,
         skip_script_key_substitution,
@@ -54,15 +58,26 @@ class JamfExtensionAttributeUploaderBase(JamfUploaderBase):
     ):
         """Update extension attribute metadata."""
         # import script from file and replace any keys in the script
-        if os.path.exists(script_path):
-            with open(script_path, "r", encoding="utf-8") as file:
-                script_contents = file.read()
-        else:
-            raise ProcessorError("Script does not exist!")
+        if ea_input_type == "script":
+            if script_path:
+                if os.path.exists(script_path):
+                    with open(script_path, "r", encoding="utf-8") as file:
+                        script_contents = file.read()
+                        if not skip_script_key_substitution:
+                            # substitute user-assignable keys
+                            script_contents = self.substitute_assignable_keys(
+                                script_contents
+                            )
+                else:
+                    raise ProcessorError("Script does not exist!")
+            else:
+                raise ProcessorError("Script path not supplied!")
 
-        if not skip_script_key_substitution:
-            # substitute user-assignable keys
-            script_contents = self.substitute_assignable_keys(script_contents)
+        # optional array of popup choices
+        # if ea_popup_choices is not None:
+        #     for elem in ea_popup_choices:
+        #         self.output(f"Deleting element {elem}...", verbose_level=2)
+        #         self.remove_elements_from_xml(object_xml, elem)
 
         # format inventoryDisplayType & dataType correctly
         ea_inventory_display = ea_inventory_display.replace(" ", "_").upper()
@@ -73,13 +88,20 @@ class JamfExtensionAttributeUploaderBase(JamfUploaderBase):
         # build the object
         ea_data = {
             "name": ea_name,
-            "enabled": True,
             "description": ea_description,
             "dataType": ea_data_type,
             "inventoryDisplayType": ea_inventory_display,
-            "inputType": "script",
-            "scriptContents": script_contents,
+            "inputType": ea_input_type,
         }
+
+        if ea_input_type == "script":
+            ea_data["enabled"] = ea_enabled
+            if script_contents:
+                ea_data["scriptContents"] = script_contents
+        elif ea_input_type == "popup":
+            ea_data["popupMenuChoices"] = ea_popup_choices
+        elif ea_input_type == "ldap":
+            ea_data["ldapAttributeMapping"] = ea_directory_service_attribute_mapping
 
         self.output(
             "Extension Attribute data:",
@@ -134,28 +156,44 @@ class JamfExtensionAttributeUploaderBase(JamfUploaderBase):
         ea_name = self.env.get("ea_name")
         ea_description = self.env.get("ea_description")
         skip_script_key_substitution = self.env.get("skip_script_key_substitution")
-        replace_ea = self.env.get("replace_ea")
+        ea_input_type = self.env.get("ea_input_type")
         ea_data_type = self.env.get("ea_data_type")
         ea_inventory_display = self.env.get("ea_inventory_display")
+        ea_popup_choices = self.env.get("ea_popup_choices")
+        ea_directory_service_attribute_mapping = self.env.get(
+            "ea_directory_service_attribute_mapping"
+        )
+        ea_enabled = self.env.get("ea_enabled")
+        replace_ea = self.env.get("replace_ea")
         sleep_time = self.env.get("sleep")
         # handle setting replace in overrides
+        if not ea_enabled or ea_enabled == "True":
+            ea_enabled = True
         if not replace_ea or replace_ea == "False":
             replace_ea = False
         if not skip_script_key_substitution or skip_script_key_substitution == "False":
             skip_script_key_substitution = False
+
+        # convert popup choices to list
+        if ea_popup_choices:
+            ea_popup_choices = ea_popup_choices.split(",")
 
         # clear any pre-existing summary result
         if "jamfextensionattributeuploader_summary_result" in self.env:
             del self.env["jamfextensionattributeuploader_summary_result"]
         ea_uploaded = False
 
-        # handle files with a relative path
-        if not ea_script_path.startswith("/"):
-            found_template = self.get_path_to_file(ea_script_path)
-            if found_template:
-                ea_script_path = found_template
-            else:
-                raise ProcessorError(f"ERROR: EA file {ea_script_path} not found")
+        # determine input type
+        if ea_input_type == "script":
+            # handle files with a relative path
+            if not ea_script_path.startswith("/"):
+                found_template = self.get_path_to_file(ea_script_path)
+                if found_template:
+                    ea_script_path = found_template
+                else:
+                    raise ProcessorError(f"ERROR: EA file {ea_script_path} not found")
+        elif ea_input_type != "popup" and ea_input_type != "ldap":
+            raise ProcessorError(f"ERROR: EA input type {ea_input_type} not supported")
 
         # now start the process of uploading the object
         self.output(f"Checking for existing '{ea_name}' on {jamf_url}")
@@ -201,6 +239,10 @@ class JamfExtensionAttributeUploaderBase(JamfUploaderBase):
             ea_name,
             ea_description,
             ea_data_type,
+            ea_input_type,
+            ea_popup_choices,
+            ea_directory_service_attribute_mapping,
+            ea_enabled,
             ea_inventory_display,
             ea_script_path,
             skip_script_key_substitution,
@@ -214,11 +256,17 @@ class JamfExtensionAttributeUploaderBase(JamfUploaderBase):
         self.env["extension_attribute"] = ea_name
         self.env["ea_uploaded"] = ea_uploaded
         if ea_uploaded:
+            if not ea_script_path:
+                ea_script_path = ""
             self.env["jamfextensionattributeuploader_summary_result"] = {
                 "summary_text": (
                     "The following extension attributes were created or "
                     "updated in Jamf Pro:"
                 ),
-                "report_fields": ["name", "path"],
-                "data": {"name": ea_name, "path": ea_script_path},
+                "report_fields": ["name", "input_type", "script_path"],
+                "data": {
+                    "name": ea_name,
+                    "input_type": ea_input_type,
+                    "script_path": ea_script_path,
+                },
             }

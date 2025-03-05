@@ -361,6 +361,20 @@ elif [[ $test_type == "ea" ]]; then
         "$verbosity" \
         --replace
 
+elif [[ $test_type == "ea-popup" ]]; then
+    # upload an extension attribute
+    "$DIR"/../jamf-upload.sh ea \
+        --prefs "$prefs" \
+        --recipe-dir /Users/gpugh/sourcecode/jamf-upload/_tests \
+        --name "Test Popup" \
+        --type "popup" \
+        --choices "1.0,1.1,1.2,1.3" \
+        --description "Choose a version" \
+        --inventory-display "General" \
+        --disabled \
+        "$verbosity" \
+        --replace
+
 elif [[ $test_type == "macapp" ]]; then
     # upload a mac app
     "$DIR"/../jamf-upload.sh macapp \
