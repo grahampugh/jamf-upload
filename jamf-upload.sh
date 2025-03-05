@@ -24,6 +24,7 @@ Valid object types:
     profile | computerprofile
     mobiledeviceprofile
     ea | extensionattribute | computerextensionattribute
+    eapopup | eapopupadjuster
     icon
     ldap_server
     logflush

@@ -76,15 +76,21 @@ class JamfExtensionAttributePopupChoiceAdjusterBase(JamfUploaderBase):
         if is_json:
             data = json.loads(parsed_object)
 
-            if data.get('inputType') != 'POPUP':
-                raise ProcessorError("Invalid Extension Attribute inputType, must be POPUP.")
+            if data.get("inputType") != "POPUP":
+                raise ProcessorError(
+                    "Invalid Extension Attribute inputType, must be POPUP."
+                )
         else:
             root = ET.fromstring(parsed_object)
 
             if root.find(".//input_type/type").text != "Pop-up Menu":
-                raise ProcessorError("Invalid Extension Attribute input_type, must be Pop-up Menu.")
+                raise ProcessorError(
+                    "Invalid Extension Attribute input_type, must be Pop-up Menu."
+                )
 
-    def add_xml_tag(self, parsed_object, parent_xpath, element, choice_value, strict_mode):
+    def add_xml_tag(
+        self, parsed_object, parent_xpath, element, choice_value, strict_mode
+    ):  # pylint: disable=too-many-arguments
         """
         Add an XML tag to the parsed object.
 
@@ -113,8 +119,10 @@ class JamfExtensionAttributePopupChoiceAdjusterBase(JamfUploaderBase):
                     f"WARNING: Element <{element}> with choice_value '{choice_value}' already exists "
                     f"in {parent_xpath}, parsed object unchanged."
                 )
-                return ET.tostring(root, encoding="UTF-8", xml_declaration=True).decode()
-            elif child.text == choice_value:
+                return ET.tostring(
+                    root, encoding="UTF-8", xml_declaration=True
+                ).decode()
+            if child.text == choice_value:
                 raise ProcessorError(
                     f"Element <{element}> with choice_value '{choice_value}' already exists in "
                     f"{parent_xpath}"
@@ -124,7 +132,9 @@ class JamfExtensionAttributePopupChoiceAdjusterBase(JamfUploaderBase):
         new_tag.text = choice_value
         parent.append(new_tag)
 
-        self.output(f"Added element <{element}> and choice_value '{choice_value}' to {parent_xpath}")
+        self.output(
+            f"Added element <{element}> and choice_value '{choice_value}' to {parent_xpath}"
+        )
         return ET.tostring(root, encoding="UTF-8", xml_declaration=True).decode()
 
     def remove_xml_tag(self, parsed_object, element, choice_value, strict_mode):
@@ -153,11 +163,13 @@ class JamfExtensionAttributePopupChoiceAdjusterBase(JamfUploaderBase):
                     removed = True
 
         if removed:
-            self.output(f"Removed all instances of <{element}> containing '{choice_value}' from XML.")
+            self.output(
+                f"Removed all instances of <{element}> containing '{choice_value}' from XML."
+            )
         elif strict_mode == "False":
             self.output(
-                f"WARNING: Element <{element}> with choice_value '{choice_value}' not found, parsed "
-                f"object unchanged."
+                f"WARNING: Element <{element}> with choice_value '{choice_value}' not found, "
+                "parsed object unchanged."
             )
         else:
             raise ProcessorError(
@@ -192,7 +204,7 @@ class JamfExtensionAttributePopupChoiceAdjusterBase(JamfUploaderBase):
                         f"parsed object unchanged."
                     )
                     return json.dumps(data, indent=4)
-                elif choice_value in data[element]:
+                if choice_value in data[element]:
                     raise ProcessorError(
                         f"choice_value '{choice_value}' already exists in array '{element}'."
                     )
@@ -278,7 +290,9 @@ class JamfExtensionAttributePopupChoiceAdjusterBase(JamfUploaderBase):
         if strict_mode == "False":
             self.output("WARNING: Strict mode disabled!")
 
-        is_json = parsed_object.strip().startswith("{") or parsed_object.strip().startswith("[")
+        is_json = parsed_object.strip().startswith(
+            "{"
+        ) or parsed_object.strip().startswith("[")
         self.validate_ea_type(is_json, parsed_object)
 
         if object_template:
@@ -293,34 +307,21 @@ class JamfExtensionAttributePopupChoiceAdjusterBase(JamfUploaderBase):
             parent_xpath = "./input_type/popup_choices"
             if choice_operation == "add":
                 parsed_object = self.add_xml_tag(
-                    parsed_object,
-                    parent_xpath,
-                    element,
-                    choice_value,
-                    strict_mode
+                    parsed_object, parent_xpath, element, choice_value, strict_mode
                 )
             elif choice_operation == "remove":
                 parsed_object = self.remove_xml_tag(
-                    parsed_object,
-                    element,
-                    choice_value,
-                    strict_mode
+                    parsed_object, element, choice_value, strict_mode
                 )
         elif is_json:
             element = "popupMenuChoices"
             if choice_operation == "add":
                 parsed_object = self.add_json_key(
-                    parsed_object,
-                    element,
-                    choice_value,
-                    strict_mode
+                    parsed_object, element, choice_value, strict_mode
                 )
             elif choice_operation == "remove":
                 parsed_object = self.remove_json_key(
-                    parsed_object,
-                    element,
-                    choice_value,
-                    strict_mode
+                    parsed_object, element, choice_value, strict_mode
                 )
         else:
             raise ProcessorError("Unsupported data format. Use XML or JSON.")
