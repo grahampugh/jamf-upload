@@ -16,7 +16,6 @@ Usage:
 Valid object types:
     account
     category
-    classicobj
     read
     group | computergroup
     groupdelete | computergroupdelete
@@ -30,6 +29,7 @@ Valid object types:
     logflush
     macapp
     mobiledeviceapp
+    obj | object | classicobj
     patch
     pkg | package
     pkgdata
