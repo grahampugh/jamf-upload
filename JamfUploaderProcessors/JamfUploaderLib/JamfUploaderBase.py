@@ -1001,7 +1001,7 @@ class JamfUploaderBase(Processor):
                 elem.text = replacement_value
 
     def parse_downloaded_api_object(
-        self, existing_object, object_type, elements_to_remove=None
+        self, existing_object, object_type, elements_to_remove
     ):
         """Removes or replaces instance-specific items such as ID and computer objects"""
         # first determine if this object is using Classic API or Jamf Pro
@@ -1017,7 +1017,7 @@ class JamfUploaderBase(Processor):
                 # remove any self service icons
                 self.remove_elements_from_xml(object_xml, "self_service_icon")
                 # optional array of other elements to remove
-                if elements_to_remove is not None:
+                if elements_to_remove:
                     for elem in elements_to_remove:
                         self.output(f"Deleting element {elem}...", verbose_level=2)
                         self.remove_elements_from_xml(object_xml, elem)
