@@ -92,7 +92,6 @@ class JamfObjectUploader(JamfObjectUploaderBase):
                 "A list of XML or JSON elements that should be removed from the downloaded XML. "
                 "Note that id and self_service_icon are removed automatically."
             ),
-            "default": None,
         },
         "replace_object": {
             "required": False,
