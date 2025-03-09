@@ -120,17 +120,27 @@ class JamfScopeAdjusterBase(JamfUploaderBase):
             parent.append(new_tag)
 
         else:
-            if scoping_type == "target" and scopeable_type == (
-                "computer_group" or "mobile_device_group"
-                or "building" or "department"
+            if scoping_type == "target" and scopeable_type in (
+                "computer_group", "mobile_device_group",
+                "building", "department"
                 ):
                 parent_xpath = f"./scope/{scopeable_type}s"
                 if scope.find(f"{scopeable_type}s") is None:
                     ET.SubElement(scope, f"{scopeable_type}s")
 
             elif (
-                object_type != "restricted_software" and scoping_type == "limitation"
-                ) or scoping_type == "exclusion":
+                object_type != "restricted_software" and scoping_type ==
+                "limitation" and scopeable_type in
+                ("network_segment", "user_group", "computer_group")
+                ) or (
+                object_type == "restricted_software" and scoping_type == "exclusion"
+                and scopeable_type in ("computer_group", "building", "department")
+                ) or (
+                object_type != "restricted_software" and scoping_type == "exclusion"
+                and scopeable_type in
+                ("computer_group", "mobile_device_group", "user_group",
+                "network_segment", "building", "department")
+                ):
                 parent_xpath = f"./scope/{scoping_type}s/{scopeable_type}s"
                 scoping_types = scope.find(f"{scoping_type}s")
                 if scoping_types is None:
