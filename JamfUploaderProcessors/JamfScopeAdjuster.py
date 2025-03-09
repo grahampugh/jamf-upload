@@ -67,7 +67,7 @@ class JamfScopeAdjuster(JamfScopeAdjusterBase):
             "required": True,
             "description": (
                 "Type of scopeable object. Specify 'user_group', 'computer_group' "
-                "'mobile_device_group'."
+                "'mobile_device_group', 'network_segment', 'building', 'department'."
             ),
         },
         "scopeable_name": {
