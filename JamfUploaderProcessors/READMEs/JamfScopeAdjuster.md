@@ -20,7 +20,7 @@ A processor for AutoPkg that adds or removes a scopeable object (target, limitat
   - **description:** Type of scope. Specify `target`, `limitation`, or `exclusion`.
 - **scopeable_type:**  
   - **required:** True  
-  - **description:** Type of scopeable object. Specify `user_group`, `computer_group`, or `mobile_device_group`.
+  - **description:** Type of scopeable object. Specify `user_group`, `computer_group`, `mobile_device_group`, `network_segment`, `building`, or `department`.
 - **scopeable_name:**  
   - **required:** True  
   - **description:** Name of the scopable object.
