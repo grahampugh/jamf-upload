@@ -857,8 +857,8 @@ class JamfUploaderBase(Processor):
                     obj_content = obj_xml.find(obj_path)
                 else:
                     ET.indent(obj_xml)
-                    obj_content = ET.tostring(obj_xml, encoding="UTF-8")
-                return obj_content.decode("UTF-8")
+                    obj_content = str(ET.tostring(obj_xml, encoding="UTF-8"))
+                return obj_content
         else:
             # do JSON stuff
             url = f"{jamf_url}/{self.api_endpoints(object_type)}/{obj_id}"
