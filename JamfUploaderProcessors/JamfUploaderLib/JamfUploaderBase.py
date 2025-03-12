@@ -88,6 +88,7 @@ class JamfUploaderBase(Processor):
             "restricted_software": "JSSResource/restrictedsoftware",
             "self_service_settings": "api/v1/self-service/settings",
             "script": "api/v1/scripts",
+            "smtp_server_settings": "api/v2/smtp-server",
             "token": "api/v1/auth/token",
             "volume_purchasing_location": "api/v1/volume-purchasing-locations",
         }
