@@ -638,6 +638,10 @@ while test $# -gt 0 ; do
                 if plutil -replace api_client_name -string "$1" "$temp_processor_plist"; then
                     echo "   [jamf-upload] Wrote api_client_name='$1' into $temp_processor_plist"
                 fi
+            elif [[ $processor == "JamfCategoryUploader" ]]; then
+                if plutil -replace category_name -string "$1" "$temp_processor_plist"; then
+                    echo "   [jamf-upload] Wrote category_name='$1' into $temp_processor_plist"
+                fi
             elif [[ $processor == "JamfComputerGroupUploader" || $processor == "JamfComputerGroupDeleter" ]]; then
                 if plutil -replace computergroup_name -string "$1" "$temp_processor_plist"; then
                     echo "   [jamf-upload] Wrote computergroup_name='$1' into $temp_processor_plist"
