@@ -44,11 +44,11 @@ class JamfObjectUploaderBase(JamfUploaderBase):
     def upload_object(
         self,
         jamf_url,
-        object_name,
         object_type,
         template_file,
         sleep_time,
         token,
+        object_name=None,
         obj_id=0,
     ):
         """Upload object"""
@@ -56,6 +56,7 @@ class JamfObjectUploaderBase(JamfUploaderBase):
         self.output(f"Uploading {object_type}...")
 
         # if we find an object ID we put, if not, we post
+
         if "JSSResource" in self.api_endpoints(object_type):
             # do XML stuff
             url = f"{jamf_url}/{self.api_endpoints(object_type)}/id/{obj_id}"
@@ -69,7 +70,12 @@ class JamfObjectUploaderBase(JamfUploaderBase):
         while True:
             count += 1
             self.output(f"{object_type} upload attempt {count}", verbose_level=2)
-            request = "PUT" if obj_id else "POST"
+            if object_type == "computer_inventory_collection_settings":
+                request = "PATCH"
+            elif obj_id or "_settings" in object_type:
+                request = "PUT"
+            else:
+                request = "POST"
             r = self.curl(
                 request=request,
                 url=url,
@@ -129,13 +135,25 @@ class JamfObjectUploaderBase(JamfUploaderBase):
             xml_escape = True
         else:
             xml_escape = False
-        object_name, template_file = self.prepare_template(
-            object_name, object_type, object_template, xml_escape, elements_to_remove
-        )
+        if "_settigns" in object_type:
+            _, template_file = self.prepare_template(
+                object_type,
+                object_template,
+                object_name=None,
+                xml_escape=xml_escape,
+                elements_to_remove=elements_to_remove,
+            )
+        else:
+            object_name, template_file = self.prepare_template(
+                object_type,
+                object_template,
+                object_name,
+                xml_escape=xml_escape,
+                elements_to_remove=elements_to_remove,
+            )
 
         # now start the process of uploading the object
-        self.output(f"Checking for existing '{object_name}' on {jamf_url}")
-
+        self.output(f"Obtaining API token for {jamf_url}")
         # get token using oauth or basic auth depending on the credentials given
         if jamf_url and client_id and client_secret:
             token = self.handle_oauth(jamf_url, client_id, client_secret)
@@ -144,44 +162,50 @@ class JamfObjectUploaderBase(JamfUploaderBase):
         else:
             raise ProcessorError("ERROR: Credentials not supplied")
 
-        # declare name key
-        name_key = "name"
-        if (
-            object_type == "computer_prestage"
-            or object_type == "mobile_device_prestage"
-        ):
-            name_key = "displayName"
+        # check for an existing object except for settings-related endpoints
+        if "_settings" not in object_type:
+            self.output(f"Checking for existing '{object_name}' on {jamf_url}")
 
-        # Check for existing item
-        self.output(f"Checking for existing '{object_name}' on {jamf_url}")
+            # declare name key
+            name_key = "name"
+            if (
+                object_type == "computer_prestage"
+                or object_type == "mobile_device_prestage"
+            ):
+                name_key = "displayName"
 
-        obj_id = self.get_api_obj_id_from_name(
-            jamf_url, object_name, object_type, token=token, filter_name=name_key
-        )
+            obj_id = self.get_api_obj_id_from_name(
+                jamf_url, object_name, object_type, token=token, filter_name=name_key
+            )
 
-        if obj_id:
-            self.output(f"{object_type} '{object_name}' already exists: ID {obj_id}")
-            if replace_object:
+            if obj_id:
                 self.output(
-                    f"Replacing existing {object_type} as replace_object is "
-                    f"set to '{replace_object}'",
-                    verbose_level=1,
+                    f"{object_type} '{object_name}' already exists: ID {obj_id}"
                 )
-            else:
-                self.output(
-                    f"Not replacing existing {object_type}. Use "
-                    f"replace_object='True' to enforce."
-                )
-                return
+                if replace_object:
+                    self.output(
+                        f"Replacing existing {object_type} as replace_object is "
+                        f"set to '{replace_object}'",
+                        verbose_level=1,
+                    )
+                else:
+                    self.output(
+                        f"Not replacing existing {object_type}. Use "
+                        f"replace_object='True' to enforce."
+                    )
+                    return
+        else:
+            object_name = ""
+            obj_id = 0
 
         # upload the object
         self.upload_object(
             jamf_url,
-            object_name,
             object_type,
             template_file,
             sleep_time,
             token=token,
+            object_name=object_name,
             obj_id=obj_id,
         )
         object_updated = True

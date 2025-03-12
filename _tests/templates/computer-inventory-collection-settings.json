@@ -1,0 +1,25 @@
+{
+    "computerInventoryCollectionPreferences": {
+      "monitorApplicationUsage": true,
+      "includeFonts": true,
+      "includePlugins": true,
+      "includePackages": true,
+      "includeSoftwareUpdates": true,
+      "includeSoftwareId": true,
+      "includeAccounts": true,
+      "calculateSizes": false,
+      "includeHiddenAccounts": true,
+      "includePrinters": true,
+      "includeServices": true,
+      "collectSyncedMobileDeviceInfo": false,
+      "updateLdapInfoOnComputerInventorySubmissions": false,
+      "monitorBeacons": true,
+      "allowChangingUserAndLocation": true,
+      "useUnixUserPaths": true,
+      "collectUnmanagedCertificates": true
+    },
+    "applicationPaths": [],
+    "fontPaths": [],
+    "pluginPaths": []
+  }
+  

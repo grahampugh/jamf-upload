@@ -43,7 +43,7 @@ class JamfUploaderBase(Processor):
     """Common functions used by at least two JamfUploader processors."""
 
     # Global version
-    __version__ = "2025.3.5.0"
+    __version__ = "2025.3.12.0"
 
     def api_endpoints(self, object_type):
         """Return the endpoint URL from the object type"""
@@ -54,16 +54,21 @@ class JamfUploaderBase(Processor):
             "api_client": "api/v1/api-integrations",
             "api_role": "api/v1/api-roles",
             "category": "api/v1/categories",
+            "check_in_settings": "api/v3/check-in",
             "computer_extension_attribute": "api/v1/computer-extension-attributes",
             "computer_group": "JSSResource/computergroups",
+            "computer_inventory_collection_settings": "api/v1/computer-inventory-collection-settings",
             "computer_prestage": "api/v3/computer-prestages",
             "configuration_profile": "JSSResource/mobiledeviceconfigurationprofiles",
             "distribution_point": "JSSResource/distributionpoints",
             "dock_item": "JSSResource/dockitems",
+            "enrollment_settings": "api/v2/enrollment",
+            "enrollment_customization": "api/v2/enrollment-customizations",
             "failover": "api/v1/sso/failover",
             "icon": "api/v1/icon",
             "jamf_pro_version": "api/v1/jamf-pro-version",
             "jcds": "api/v1/jcds",
+            "laps_settings": "api/v2/local-admin-password/settings",
             "logflush": "JSSResource/logflush",
             "ldap_server": "JSSResource/ldapservers",
             "mac_application": "JSSResource/macapplications",
@@ -81,6 +86,7 @@ class JamfUploaderBase(Processor):
             "policy": "JSSResource/policies",
             "policy_icon": "JSSResource/fileuploads/policies",
             "restricted_software": "JSSResource/restrictedsoftware",
+            "self_service_settings": "api/v1/self-service/settings",
             "script": "api/v1/scripts",
             "token": "api/v1/auth/token",
             "volume_purchasing_location": "api/v1/volume-purchasing-locations",
@@ -134,6 +140,7 @@ class JamfUploaderBase(Processor):
             "policy": "policies",
             "restricted_software": "restricted_software",
             "script": "scripts",
+            "self_service_settings": "self_service_settings",
         }
         return object_list_types[object_type]
 
@@ -474,7 +481,7 @@ class JamfUploaderBase(Processor):
             curl_cmd.extend(["--form", f"file=@{data};type=image/png"])
 
         # Content-Type for POST/PUT
-        elif request == "POST" or request == "PUT":
+        elif request == "POST" or request == "PUT" or request == "PATCH":
             if endpoint_type == "slack" or endpoint_type == "teams":
                 # slack and teams require a data argument
                 curl_cmd.extend(["--data", data])
@@ -564,7 +571,7 @@ class JamfUploaderBase(Processor):
         """Return a message dependent on the HTTP response"""
         if request == "DELETE":
             action = "deletion"
-        elif request == "PUT":
+        elif request == "PUT" or request == "PATCH":
             action = "update"
         elif request == "POST":
             action = "upload"
@@ -577,8 +584,10 @@ class JamfUploaderBase(Processor):
         if r.status_code < 400:
             if endpoint_type == "jcds":
                 self.output("JCDS2 credentials successfully received", verbose_level=2)
-            else:
+            elif obj_name:
                 self.output(f"{endpoint_type} '{obj_name}' {action} successful")
+            else:
+                self.output(f"{endpoint_type} {action} successful")
             return "break"
         else:
             self.output("API response:", verbose_level=2)
@@ -1051,9 +1060,9 @@ class JamfUploaderBase(Processor):
 
     def prepare_template(
         self,
-        object_name,
         object_type,
         object_template,
+        object_name=None,
         xml_escape=False,
         elements_to_remove=None,
     ):

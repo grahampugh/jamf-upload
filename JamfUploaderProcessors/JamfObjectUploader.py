@@ -73,8 +73,8 @@ class JamfObjectUploader(JamfObjectUploaderBase):
             "the com.github.autopkg preference file.",
         },
         "object_name": {
-            "required": True,
-            "description": "Name of the object",
+            "required": False,
+            "description": "Name of the object. Required except for settings-related objects.",
             "default": "",
         },
         "object_template": {

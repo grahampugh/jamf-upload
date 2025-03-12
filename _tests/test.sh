@@ -96,6 +96,42 @@ elif [[ $test_type == "ea-popup-add" ]]; then
 # example object types (Jamf Pro API)
 # script
 
+elif [[ $test_type == "obj-enrollment" ]]; then
+    # upload a generic Jamf Pro API object
+    "$DIR"/../jamf-upload.sh obj \
+        --prefs "$prefs_alt" \
+        --recipe-dir /Users/gpugh/sourcecode/jamf-upload/_tests \
+        --type "enrollment_settings" \
+        --template "templates/enrollment.json" \
+        "$verbosity"
+
+elif [[ $test_type == "obj-inv" ]]; then
+    # upload a generic Jamf Pro API object
+    "$DIR"/../jamf-upload.sh obj \
+        --prefs "$prefs_alt" \
+        --recipe-dir /Users/gpugh/sourcecode/jamf-upload/_tests \
+        --type "computer_inventory_collection_settings" \
+        --template "templates/computer-inventory-collection-settings.json" \
+        "$verbosity"
+
+elif [[ $test_type == "obj-laps" ]]; then
+    # upload a generic Jamf Pro API object
+    "$DIR"/../jamf-upload.sh obj \
+        --prefs "$prefs_alt" \
+        --recipe-dir /Users/gpugh/sourcecode/jamf-upload/_tests \
+        --type "laps_settings" \
+        --template "templates/local-admin-password-settings.json" \
+        "$verbosity"
+
+elif [[ $test_type == "obj-self" ]]; then
+    # upload a generic Jamf Pro API object
+    "$DIR"/../jamf-upload.sh obj \
+        --prefs "$prefs_alt" \
+        --recipe-dir /Users/gpugh/sourcecode/jamf-upload/_tests \
+        --type "self_service_settings" \
+        --template "templates/self-service-settings.json" \
+        "$verbosity"
+
 elif [[ $test_type == "obj-category" ]]; then
     # upload a generic Jamf Pro API object
     "$DIR"/../jamf-upload.sh obj \
