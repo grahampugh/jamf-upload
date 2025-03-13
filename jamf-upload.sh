@@ -25,7 +25,6 @@ Valid object types:
     ea | extensionattribute | computerextensionattribute
     eapopup | eapopupadjuster
     icon
-    ldap_server
     logflush
     macapp
     mobiledeviceapp
@@ -270,6 +269,7 @@ READ OPTIONS
 API Object Read arguments:
     --name <string>         The object name, if --all is not specified
     --all                   Read all objects
+    --list                  Output a list all objects and nothing else
     --type <string>         The object type (e.g. policy)
     --output <string>       Optional path to output the parsed XML to. Directories to path must exist.
 
@@ -412,8 +412,6 @@ elif [[ $object == "eapopup" || $object == "eapopupadjuster" ]]; then
     processor="JamfExtensionAttributePopupChoiceAdjuster"
 elif [[ $object == "icon" ]]; then
     processor="JamfIconUploader"
-elif [[ $object == "ldap_server" ]]; then
-    processor="JamfObjectUploader"
 elif [[ $object == "macapp" ]]; then
     processor="JamfMacAppUploader"
 elif [[ $object == "mobiledeviceapp" ]]; then
@@ -1028,6 +1026,13 @@ while test $# -gt 0 ; do
             if [[ $processor == "JamfObjectReader" ]]; then
                 if plutil -replace all_objects -string "True" "$temp_processor_plist"; then
                     echo "   [jamf-upload] Wrote all_objects='True' into $temp_processor_plist"
+                fi
+            fi
+            ;;
+        --list) 
+            if [[ $processor == "JamfObjectReader" ]]; then
+                if plutil -replace list_only -string "True" "$temp_processor_plist"; then
+                    echo "   [jamf-upload] Wrote list_only='True' into $temp_processor_plist"
                 fi
             fi
             ;;

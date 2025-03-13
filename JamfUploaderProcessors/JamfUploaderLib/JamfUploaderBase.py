@@ -867,7 +867,7 @@ class JamfUploaderBase(Processor):
                     obj_content = obj_xml.find(obj_path)
                 else:
                     ET.indent(obj_xml)
-                    obj_content = str(ET.tostring(obj_xml, encoding="UTF-8"))
+                    obj_content = ET.tostring(obj_xml, encoding="UTF-8").decode("UTF-8")
                 return obj_content
         else:
             # do JSON stuff
@@ -1019,8 +1019,8 @@ class JamfUploaderBase(Processor):
             # do XML stuff
             # Parse response as xml
             parsed_xml = ""
+            object_xml = ET.fromstring(existing_object)
             try:
-                object_xml = ET.fromstring(existing_object)
 
                 # remove any id tags
                 self.remove_elements_from_xml(object_xml, "id")
@@ -1037,7 +1037,7 @@ class JamfUploaderBase(Processor):
 
                 parsed_xml = ET.tostring(object_xml, encoding="UTF-8")
             except ET.ParseError as xml_error:
-                raise ProcessorError from xml_error
+                raise ProcessorError("Could not extract XML") from xml_error
             return parsed_xml.decode("UTF-8")
 
         # do json stuff
