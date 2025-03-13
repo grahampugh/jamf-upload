@@ -27,11 +27,22 @@ import xml.etree.ElementTree as ET
 from base64 import b64encode
 from collections import abc, namedtuple
 from datetime import datetime, timedelta, timezone
-from html.parser import HTMLParser
 from pathlib import Path
 from shutil import rmtree
 from urllib.parse import quote, urlparse
 from xml.sax.saxutils import escape
+from Foundation import NSMutableDictionary  # pylint: disable=import-error
+from Security import (  # pylint: disable=import-error
+    SecItemCopyMatching,
+    kSecAttrAccount,
+    kSecAttrService,
+    kSecClass,
+    kSecClassGenericPassword,
+    kSecMatchLimit,
+    kSecMatchLimitOne,
+    kSecReturnAttributes,
+    kSecReturnData,
+)
 
 from autopkglib import (  # pylint: disable=import-error
     Processor,
@@ -309,32 +320,41 @@ class JamfUploaderBase(Processor):
 
     def get_api_token_from_basic_auth(self, jamf_url="", jamf_user="", password=""):
         """get a token for the Jamf Pro API or Classic API using basic auth"""
-        if jamf_user:
-            enc_creds = self.get_enc_creds(jamf_user, password)
-            url = jamf_url + "/" + self.api_endpoints("token")
-            r = self.curl(
-                request="POST",
-                url=url,
-                enc_creds=enc_creds,
-            )
-            output = r.output
-            if r.status_code == 200:
-                try:
-                    token = str(output["token"])
-                    expires = str(output["expires"])
+        # first try to get the account and password from the Keychain
+        user_from_kc, pass_from_kc = self.keychain_get_creds(jamf_url)
+        self.output(f"Acct: {user_from_kc}", verbose_level=2)
+        self.output(f"Pass: {pass_from_kc}", verbose_level=2)
+        if user_from_kc and pass_from_kc:
+            jamf_user = user_from_kc
+            password = pass_from_kc
 
-                    # write the data to a file
-                    self.write_token_to_json_file(jamf_url, jamf_user, output)
-                    self.output("Session token received")
-                    self.output(f"Token: {token}", verbose_level=2)
-                    self.output(f"Expires: {expires}", verbose_level=2)
-                    return token
-                except KeyError:
-                    self.output("ERROR: No token received")
-            else:
+        elif not jamf_user:
+            raise ProcessorError("No credentials given, cannot continue")
+
+        # fall back to supplied password if possible
+        enc_creds = self.get_enc_creds(jamf_user, password)
+        url = jamf_url + "/" + self.api_endpoints("token")
+        r = self.curl(
+            request="POST",
+            url=url,
+            enc_creds=enc_creds,
+        )
+        output = r.output
+        if r.status_code == 200:
+            try:
+                token = str(output["token"])
+                expires = str(output["expires"])
+
+                # write the data to a file
+                self.write_token_to_json_file(jamf_url, jamf_user, output)
+                self.output("Session token received")
+                self.output(f"Token: {token}", verbose_level=2)
+                self.output(f"Expires: {expires}", verbose_level=2)
+                return token
+            except KeyError:
                 self.output("ERROR: No token received")
         else:
-            raise ProcessorError("No credentials given, cannot continue")
+            self.output("ERROR: No token received")
 
     def handle_api_auth(self, jamf_url, jamf_user, password):
         """obtain token using basic auth"""
@@ -1044,20 +1064,20 @@ class JamfUploaderBase(Processor):
         if not isinstance(existing_object, dict):
             existing_object = json.loads(existing_object)
 
-        # remove any id-type tags
-        if "id" in existing_object:
-            existing_object.pop("id")
-        if "categoryId" in existing_object:
-            existing_object.pop("categoryId")
-        if "deviceEnrollmentProgramInstanceId" in existing_object:
-            existing_object.pop("deviceEnrollmentProgramInstanceId")
-        # now go one deep and look for more id keys. Hopefully we don't have to go deeper!
-        for elem in existing_object.values():
-            elem_check = elem
-            if isinstance(elem_check, abc.Mapping):
-                if "id" in elem:
-                    elem.pop("id")
-        return json.dumps(existing_object, indent=4)
+          # remove any id-type tags
+            if "id" in existing_object:
+                existing_object.pop("id")
+            if "categoryId" in existing_object:
+                existing_object.pop("categoryId")
+            if "deviceEnrollmentProgramInstanceId" in existing_object:
+                existing_object.pop("deviceEnrollmentProgramInstanceId")
+            # now go one deep and look for more id keys. Hopefully we don't have to go deeper!
+            for elem in existing_object.values():
+                elem_check = elem
+                if isinstance(elem_check, abc.Mapping):
+                    if "id" in elem:
+                        elem.pop("id")
+            return json.dumps(existing_object, indent=4)
 
     def prepare_template(
         self,
@@ -1093,18 +1113,61 @@ class JamfUploaderBase(Processor):
         template_file = self.write_temp_file(template_contents)
         return object_name, template_file
 
-    class ParseHTMLForError(HTMLParser):  # pylint: disable=abstract-method
-        """Parses HTML output for the appropriate error"""
+    def keychain_get_creds(self, service):
+        """Get an account name in the keychain.
 
-        def __init__(self):
-            HTMLParser.__init__(self)
-            self.error = None
-            self.data = []
+        Args:
+            service: The service name.
 
-        def handle_data(self, data):
-            self.data.append(data)
-            if "Error:" in data:
-                self.error = data
+        Returns:
+            The account name, or `None` if not found.
+
+        Raises:
+            KeychainError: If an internal error occurred.
+        """
+        account = None
+        passw = None
+        try:
+            result = subprocess.run(
+                ["/usr/bin/security", "find-internet-password", "-s", service, "-g"],
+                capture_output=True,
+                text=True,
+                check=True,
+            )
+            self.output(result.stdout, verbose_level=2)
+            for line in result.stdout.splitlines():
+                if "acct" in line:
+                    account = line.split('"')[3]
+        except subprocess.CalledProcessError:
+            pass
+        if account:
+            try:
+                result = subprocess.run(
+                    [
+                        "/usr/bin/security",
+                        "find-internet-password",
+                        "-s",
+                        service,
+                        "-a",
+                        account,
+                        "-w",
+                        "-g",
+                    ],
+                    text=True,
+                    check=True,
+                    stdout=subprocess.PIPE,
+                    stderr=subprocess.STDOUT,
+                )
+                self.output(result.stdout, verbose_level=2)
+                passw = result.stdout
+            except subprocess.CalledProcessError:
+                pass
+
+        return account, passw
+
+
+class KeychainError(Exception):
+    """An error occurred while accessing the keychain."""
 
 
 if __name__ == "__main__":
