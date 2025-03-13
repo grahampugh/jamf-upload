@@ -22,6 +22,7 @@ import os
 import re
 import subprocess
 import tempfile
+import unicodedata
 import xml.etree.ElementTree as ET
 
 from base64 import b64encode
@@ -31,18 +32,6 @@ from pathlib import Path
 from shutil import rmtree
 from urllib.parse import quote, urlparse
 from xml.sax.saxutils import escape
-from Foundation import NSMutableDictionary  # pylint: disable=import-error
-from Security import (  # pylint: disable=import-error
-    SecItemCopyMatching,
-    kSecAttrAccount,
-    kSecAttrService,
-    kSecClass,
-    kSecClassGenericPassword,
-    kSecMatchLimit,
-    kSecMatchLimitOne,
-    kSecReturnAttributes,
-    kSecReturnData,
-)
 
 from autopkglib import (  # pylint: disable=import-error
     Processor,
@@ -54,7 +43,7 @@ class JamfUploaderBase(Processor):
     """Common functions used by at least two JamfUploader processors."""
 
     # Global version
-    __version__ = "2025.3.12.0"
+    __version__ = "2025.3.13.0"
 
     def api_endpoints(self, object_type):
         """Return the endpoint URL from the object type"""
@@ -211,8 +200,7 @@ class JamfUploaderBase(Processor):
     def get_enc_creds(self, user, password):
         """encode the username and password into a b64-encoded string"""
         credentials = f"{user}:{password}"
-        enc_creds_bytes = b64encode(credentials.encode("utf-8"))
-        enc_creds = str(enc_creds_bytes, "utf-8")
+        enc_creds = str(b64encode(credentials.encode("utf-8")), "utf-8")
         return enc_creds
 
     def check_api_token(self, jamf_url, jamf_user):
@@ -320,18 +308,6 @@ class JamfUploaderBase(Processor):
 
     def get_api_token_from_basic_auth(self, jamf_url="", jamf_user="", password=""):
         """get a token for the Jamf Pro API or Classic API using basic auth"""
-        # first try to get the account and password from the Keychain
-        user_from_kc, pass_from_kc = self.keychain_get_creds(jamf_url)
-        self.output(f"Acct: {user_from_kc}", verbose_level=2)
-        self.output(f"Pass: {pass_from_kc}", verbose_level=2)
-        if user_from_kc and pass_from_kc:
-            jamf_user = user_from_kc
-            password = pass_from_kc
-
-        elif not jamf_user:
-            raise ProcessorError("No credentials given, cannot continue")
-
-        # fall back to supplied password if possible
         enc_creds = self.get_enc_creds(jamf_user, password)
         url = jamf_url + "/" + self.api_endpoints("token")
         r = self.curl(
@@ -354,9 +330,9 @@ class JamfUploaderBase(Processor):
             except KeyError:
                 self.output("ERROR: No token received")
         else:
-            self.output("ERROR: No token received")
+            self.output(f"ERROR: No token received (HTTP response {r.status_code})")
 
-    def handle_api_auth(self, jamf_url, jamf_user, password):
+    def handle_api_auth(self, jamf_url, jamf_user="", password=""):
         """obtain token using basic auth"""
         # check for existing token
         self.output("Checking for existing authentication token", verbose_level=2)
@@ -367,6 +343,21 @@ class JamfUploaderBase(Processor):
             self.output(
                 "Getting an authentication token using Basic Auth", verbose_level=2
             )
+            # first try to get the account and password from the Keychain
+            user_from_kc, pass_from_kc = self.keychain_get_creds(jamf_url)
+            if user_from_kc and pass_from_kc:
+                jamf_user = user_from_kc
+                password = pass_from_kc
+                self.output("Using credentials found in keychain", verbose_level=2)
+            else:
+                self.output("Credentials not found in keychain", verbose_level=2)
+                if not jamf_user or not password:
+                    raise ProcessorError(
+                        "Insufficient credentials provided, cannot continue"
+                    )
+
+            # fall back to supplied password if possible
+            # self.output(f"{jamf_user} - {password}")  # TEMP
             token = self.get_api_token_from_basic_auth(jamf_url, jamf_user, password)
 
         if not token:
@@ -1064,7 +1055,7 @@ class JamfUploaderBase(Processor):
         if not isinstance(existing_object, dict):
             existing_object = json.loads(existing_object)
 
-          # remove any id-type tags
+            # remove any id-type tags
             if "id" in existing_object:
                 existing_object.pop("id")
             if "categoryId" in existing_object:
@@ -1113,6 +1104,13 @@ class JamfUploaderBase(Processor):
         template_file = self.write_temp_file(template_contents)
         return object_name, template_file
 
+    def remove_non_printable(self, str):
+        """Remove non-printable characters.
+        This is required when obtaining a password from the keychain
+        """
+        pattern = r"[\x00-\x1F\x7F-\x9F]"
+        return re.sub(pattern, "", str)
+
     def keychain_get_creds(self, service):
         """Get an account name in the keychain.
 
@@ -1134,7 +1132,7 @@ class JamfUploaderBase(Processor):
                 text=True,
                 check=True,
             )
-            self.output(result.stdout, verbose_level=2)
+            self.output(result.stdout, verbose_level=3)
             for line in result.stdout.splitlines():
                 if "acct" in line:
                     account = line.split('"')[3]
@@ -1158,8 +1156,8 @@ class JamfUploaderBase(Processor):
                     stdout=subprocess.PIPE,
                     stderr=subprocess.STDOUT,
                 )
-                self.output(result.stdout, verbose_level=2)
-                passw = result.stdout
+                # self.output(result.stdout, verbose_level=2)
+                passw = self.remove_non_printable(result.stdout)
             except subprocess.CalledProcessError:
                 pass
 

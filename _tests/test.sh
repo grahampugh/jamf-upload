@@ -51,7 +51,7 @@ fi
 case "$test_type" in
     list-policies)
         "$DIR"/../jamf-upload.sh read \
-            --prefs "$prefs" \
+            --prefs "$prefs_alt" \
             --recipe-dir /Users/gpugh/sourcecode/jamf-upload/_tests \
             --type "policy" \
             --list \
@@ -204,7 +204,7 @@ case "$test_type" in
         ;;
     read-profiles)
         "$DIR"/../jamf-upload.sh read \
-            --prefs "$prefs" \
+            --prefs "$prefs_alt" \
             --recipe-dir /Users/gpugh/sourcecode/jamf-upload/_tests \
             --type "os_x_configuration_profile" \
             --all \
