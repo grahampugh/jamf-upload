@@ -62,7 +62,7 @@ class JamfUploaderBase(Processor):
             "configuration_profile": "JSSResource/mobiledeviceconfigurationprofiles",
             "distribution_point": "JSSResource/distributionpoints",
             "dock_item": "JSSResource/dockitems",
-            "enrollment_settings": "api/v2/enrollment",
+            "enrollment_settings": "api/v4/enrollment",
             "enrollment_customization": "api/v2/enrollment-customizations",
             "failover": "api/v1/sso/failover",
             "icon": "api/v1/icon",
