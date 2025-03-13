@@ -73,8 +73,8 @@ class JamfObjectUploader(JamfObjectUploaderBase):
             "the com.github.autopkg preference file.",
         },
         "object_name": {
-            "required": True,
-            "description": "Name of the object",
+            "required": False,
+            "description": "Name of the object. Required except for settings-related objects.",
             "default": "",
         },
         "object_template": {
@@ -92,7 +92,6 @@ class JamfObjectUploader(JamfObjectUploaderBase):
                 "A list of XML or JSON elements that should be removed from the downloaded XML. "
                 "Note that id and self_service_icon are removed automatically."
             ),
-            "default": None,
         },
         "replace_object": {
             "required": False,

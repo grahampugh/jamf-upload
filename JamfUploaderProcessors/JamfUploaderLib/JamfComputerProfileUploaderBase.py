@@ -239,9 +239,7 @@ class JamfComputerProfileUploaderBase(JamfUploaderBase):
                 jamf_url, object_type, obj_id, token
             )
             # substitute pre-existing scope
-            template_contents = self.replace_profile_scope(
-                template_contents, existing_scope
-            )
+            template_contents = self.replace_scope(template_contents, existing_scope)
 
         self.output("Uploading Configuration Profile...")
         # write the template to temp file

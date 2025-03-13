@@ -54,7 +54,7 @@ class JamfUploaderBase(Processor):
     """Common functions used by at least two JamfUploader processors."""
 
     # Global version
-    __version__ = "2025.2.17.0"
+    __version__ = "2025.3.12.0"
 
     def api_endpoints(self, object_type):
         """Return the endpoint URL from the object type"""
@@ -65,16 +65,21 @@ class JamfUploaderBase(Processor):
             "api_client": "api/v1/api-integrations",
             "api_role": "api/v1/api-roles",
             "category": "api/v1/categories",
+            "check_in_settings": "api/v3/check-in",
             "computer_extension_attribute": "api/v1/computer-extension-attributes",
             "computer_group": "JSSResource/computergroups",
+            "computer_inventory_collection_settings": "api/v1/computer-inventory-collection-settings",
             "computer_prestage": "api/v3/computer-prestages",
             "configuration_profile": "JSSResource/mobiledeviceconfigurationprofiles",
             "distribution_point": "JSSResource/distributionpoints",
             "dock_item": "JSSResource/dockitems",
+            "enrollment_settings": "api/v4/enrollment",
+            "enrollment_customization": "api/v2/enrollment-customizations",
             "failover": "api/v1/sso/failover",
             "icon": "api/v1/icon",
             "jamf_pro_version": "api/v1/jamf-pro-version",
             "jcds": "api/v1/jcds",
+            "laps_settings": "api/v2/local-admin-password/settings",
             "logflush": "JSSResource/logflush",
             "ldap_server": "JSSResource/ldapservers",
             "mac_application": "JSSResource/macapplications",
@@ -92,7 +97,9 @@ class JamfUploaderBase(Processor):
             "policy": "JSSResource/policies",
             "policy_icon": "JSSResource/fileuploads/policies",
             "restricted_software": "JSSResource/restrictedsoftware",
+            "self_service_settings": "api/v1/self-service/settings",
             "script": "api/v1/scripts",
+            "smtp_server_settings": "api/v2/smtp-server",
             "token": "api/v1/auth/token",
             "volume_purchasing_location": "api/v1/volume-purchasing-locations",
         }
@@ -145,6 +152,7 @@ class JamfUploaderBase(Processor):
             "policy": "policies",
             "restricted_software": "restricted_software",
             "script": "scripts",
+            "self_service_settings": "self_service_settings",
         }
         return object_list_types[object_type]
 
@@ -494,7 +502,7 @@ class JamfUploaderBase(Processor):
             curl_cmd.extend(["--form", f"file=@{data};type=image/png"])
 
         # Content-Type for POST/PUT
-        elif request == "POST" or request == "PUT":
+        elif request == "POST" or request == "PUT" or request == "PATCH":
             if endpoint_type == "slack" or endpoint_type == "teams":
                 # slack and teams require a data argument
                 curl_cmd.extend(["--data", data])
@@ -584,7 +592,7 @@ class JamfUploaderBase(Processor):
         """Return a message dependent on the HTTP response"""
         if request == "DELETE":
             action = "deletion"
-        elif request == "PUT":
+        elif request == "PUT" or request == "PATCH":
             action = "update"
         elif request == "POST":
             action = "upload"
@@ -597,8 +605,10 @@ class JamfUploaderBase(Processor):
         if r.status_code < 400:
             if endpoint_type == "jcds":
                 self.output("JCDS2 credentials successfully received", verbose_level=2)
-            else:
+            elif obj_name:
                 self.output(f"{endpoint_type} '{obj_name}' {action} successful")
+            else:
+                self.output(f"{endpoint_type} {action} successful")
             return "break"
         else:
             self.output("API response:", verbose_level=2)
@@ -877,8 +887,8 @@ class JamfUploaderBase(Processor):
                     obj_content = obj_xml.find(obj_path)
                 else:
                     ET.indent(obj_xml)
-                    obj_content = ET.tostring(obj_xml, encoding="UTF-8")
-                return obj_content.decode("UTF-8")
+                    obj_content = ET.tostring(obj_xml, encoding="UTF-8").decode("UTF-8")
+                return obj_content
         else:
             # do JSON stuff
             url = f"{jamf_url}/{self.api_endpoints(object_type)}/{obj_id}"
@@ -1021,7 +1031,7 @@ class JamfUploaderBase(Processor):
                 elem.text = replacement_value
 
     def parse_downloaded_api_object(
-        self, existing_object, object_type, elements_to_remove=None
+        self, existing_object, object_type, elements_to_remove
     ):
         """Removes or replaces instance-specific items such as ID and computer objects"""
         # first determine if this object is using Classic API or Jamf Pro
@@ -1029,30 +1039,32 @@ class JamfUploaderBase(Processor):
             # do XML stuff
             # Parse response as xml
             parsed_xml = ""
+            object_xml = ET.fromstring(existing_object)
             try:
-                object_xml = ET.fromstring(existing_object)
 
                 # remove any id tags
                 self.remove_elements_from_xml(object_xml, "id")
                 # remove any self service icons
                 self.remove_elements_from_xml(object_xml, "self_service_icon")
                 # optional array of other elements to remove
-                for elem in elements_to_remove:
-                    self.output(f"Deleting element {elem}...", verbose_level=2)
-                    self.remove_elements_from_xml(object_xml, elem)
+                if elements_to_remove:
+                    for elem in elements_to_remove:
+                        self.output(f"Deleting element {elem}...", verbose_level=2)
+                        self.remove_elements_from_xml(object_xml, elem)
 
                 # for profiles ensure that they are redeployed to all
                 self.substitute_elements_in_xml(object_xml, "redeploy_on_update", "All")
 
                 parsed_xml = ET.tostring(object_xml, encoding="UTF-8")
             except ET.ParseError as xml_error:
-                raise ProcessorError from xml_error
+                raise ProcessorError("Could not extract XML") from xml_error
             return parsed_xml.decode("UTF-8")
-        else:
-            # do json stuff
+
+        # do json stuff
+        if not isinstance(existing_object, dict):
             existing_object = json.loads(existing_object)
 
-            # remove any id-type tags
+          # remove any id-type tags
             if "id" in existing_object:
                 existing_object.pop("id")
             if "categoryId" in existing_object:
@@ -1069,9 +1081,9 @@ class JamfUploaderBase(Processor):
 
     def prepare_template(
         self,
-        object_name,
         object_type,
         object_template,
+        object_name=None,
         xml_escape=False,
         elements_to_remove=None,
     ):

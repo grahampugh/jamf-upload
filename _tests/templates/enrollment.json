@@ -1,0 +1,28 @@
+{
+    "installSingleProfile": false,
+    "signingMdmProfileEnabled": false,
+    "mdmSigningCertificate": {
+      "filename": "null"
+    },
+    "restrictReenrollment": false,
+    "flushLocationInformation": true,
+    "flushLocationHistoryInformation": true,
+    "flushPolicyHistory": true,
+    "flushExtensionAttributes": true,
+    "flushMdmCommandsOnReenroll": "DELETE_EVERYTHING",
+    "macOsEnterpriseEnrollmentEnabled": false,
+    "createManagementAccount": true,
+    "hideManagementAccount": false,
+    "allowSshOnlyManagementAccount": false,
+    "ensureSshRunning": true,
+    "launchSelfService": false,
+    "signQuickAdd": false,
+    "developerCertificateIdentity": {
+      "filename": "null"
+    },
+    "iosEnterpriseEnrollmentEnabled": true,
+    "iosPersonalEnrollmentEnabled": false,
+    "personalDeviceEnrollmentType": "PERSONALDEVICEPROFILES",
+    "accountDrivenUserEnrollmentEnabled": false
+  }
+  

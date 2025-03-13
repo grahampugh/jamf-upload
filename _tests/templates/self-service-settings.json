@@ -1,0 +1,18 @@
+{
+  "installSettings": {
+    "installAutomatically": true,
+    "installLocation": "/Applications"
+  },
+  "loginSettings": {
+    "userLoginLevel": "NotRequired",
+    "allowRememberMe": true,
+    "useFido2": true,
+    "authType": "Saml"
+  },
+  "configurationSettings": {
+    "notificationsEnabled": false,
+    "alertUserApprovedMdm": true,
+    "defaultLandingPage": "HOME",
+    "defaultHomeCategoryId": -1
+  }
+}

@@ -48,8 +48,9 @@ class JamfObjectReaderBase(JamfUploaderBase):
         client_secret = self.env.get("CLIENT_SECRET")
         object_name = self.env.get("object_name")
         all_objects = self.env.get("all_objects")
+        list_only = self.env.get("list_only")
         object_type = self.env.get("object_type")
-        output_path = self.env.get("output_path")
+        output_dir = self.env.get("output_dir")
         elements_to_remove = self.env.get("elements_to_remove")
         if isinstance(elements_to_remove, str):
             elements_to_remove = [elements_to_remove]
@@ -57,6 +58,8 @@ class JamfObjectReaderBase(JamfUploaderBase):
         # handle setting true/false variables in overrides
         if not all_objects or all_objects == "False":
             all_objects = False
+        if not list_only or list_only == "False":
+            list_only = False
 
         # clear any pre-existing summary result
         if "jamfclassicapiobjectreader_summary_result" in self.env:
@@ -72,6 +75,10 @@ class JamfObjectReaderBase(JamfUploaderBase):
         else:
             raise ProcessorError("ERROR: Credentials not supplied")
 
+        # get instance name from URL
+        host = jamf_url.partition("://")[2]
+        subdomain = host.partition(".")[0]
+
         # declare object list
         object_list = []
 
@@ -84,7 +91,30 @@ class JamfObjectReaderBase(JamfUploaderBase):
             name_key = "displayName"
 
         # if requesting all objects we need to generate a list of all to iterate through
-        if object_name:
+        if all_objects or list_only:
+            self.output(f"Getting all {object_type} objects from {jamf_url}")
+            object_list = self.get_all_api_objects(jamf_url, object_type, token)
+            if list_only:
+                self.env["object_list"] = object_list
+                if output_dir:
+                    # write the list to a file
+                    output_filename = (
+                        f"{subdomain}-{self.object_list_types(object_type)}.json"
+                    )
+                    file_path = os.path.join(output_dir, output_filename)
+                    try:
+                        with open(file_path, "w", encoding="utf-8") as fp:
+                            json.dump(object_list, fp, indent=4)
+                        self.output(f"Wrote object list to {file_path}")
+                    except IOError as e:
+                        raise ProcessorError(
+                            f"Could not write output to {file_path} - {str(e)}"
+                        ) from e
+                return
+            # we really need an output path for all_objects, so exit if not provided
+            if not output_dir:
+                raise ProcessorError("ERROR: no output path provided")
+        elif object_name:
             # Check for existing item
             self.output(f"Checking for existing '{object_name}' on {jamf_url}")
 
@@ -104,12 +134,6 @@ class JamfObjectReaderBase(JamfUploaderBase):
                 object_list = [{"id": obj_id, name_key: object_name}]
             else:
                 self.output(f"{object_type} '{object_name}' not found on {jamf_url}")
-                return
-        elif all_objects:
-            object_list = self.get_all_api_objects(jamf_url, object_type, token)
-            # we really need an output path for all_objects, so exit if not provided
-            if not output_path:
-                self.output("ERROR: no output path provided")
                 return
 
         # now iterate through all the objects
@@ -132,9 +156,10 @@ class JamfObjectReaderBase(JamfUploaderBase):
             payload_filetype = "sh"
             if object_type == "computer_extension_attribute":
                 payload = json.loads(parsed_object)["scriptContents"]
-                # determine the script type
-                if "python" in payload.partition("\n")[0]:
-                    payload_filetype = "py"
+                if payload is not None:
+                    # determine the script type
+                    if "python" in payload.partition("\n")[0]:
+                        payload_filetype = "py"
             elif object_type == "script":
                 payload = json.loads(parsed_object)["scriptContents"]
             elif (
@@ -151,23 +176,20 @@ class JamfObjectReaderBase(JamfUploaderBase):
                 )
                 payload_filetype = "mobileconfig"
 
-            # dump the object to file is output_path is specified
-            if output_path:
+            # dump the object to file if output_dir is specified
+            if output_dir:
                 # construct the filename
                 if "JSSResource" in self.api_endpoints(object_type):
                     filetype = "xml"
                 else:
                     filetype = "json"
-                # get instance name from URL
-                host = jamf_url.partition("://")[2]
-                subdomain = host.partition(".")[0]
 
                 output_filename = (
                     f"{subdomain}-{self.object_list_types(object_type)}-{n}.{filetype}"
                 )
-                file_path = os.path.join(output_path, output_filename)
+                file_path = os.path.join(output_dir, output_filename)
                 # check that parent folder exists
-                if os.path.isdir(output_path):
+                if os.path.isdir(output_dir):
                     try:
                         with open(file_path, "w", encoding="utf-8") as fp:
                             fp.write(parsed_object)
@@ -179,7 +201,7 @@ class JamfObjectReaderBase(JamfUploaderBase):
                                 f".{payload_filetype}"
                             )
                             payload_file_path = os.path.join(
-                                output_path, payload_output_filename
+                                output_dir, payload_output_filename
                             )
                             with open(payload_file_path, "w", encoding="utf-8") as fp:
                                 fp.write(payload)
@@ -193,12 +215,12 @@ class JamfObjectReaderBase(JamfUploaderBase):
                         ) from e
                 else:
                     self.output(
-                        f"Cannot write to {output_path} as the folder doesn't exist"
+                        f"Cannot write to {output_dir} as the folder doesn't exist"
                     )
 
         # output the summary
         self.env["object_type"] = object_type
-        self.env["output_path"] = output_path
+        self.env["output_dir"] = output_dir
         if not all_objects:
             self.env["object_name"] = object_name
             self.env["object_id"] = obj_id

@@ -118,7 +118,7 @@ class JamfAPIRoleUploaderBase(JamfUploaderBase):
         # we need to substitute the values in the object name and template now to
         # account for version strings in the name
         object_name, template_file = self.prepare_template(
-            object_name, object_type, object_template
+            object_template, object_name.object_type
         )
 
         # now start the process of uploading the object
