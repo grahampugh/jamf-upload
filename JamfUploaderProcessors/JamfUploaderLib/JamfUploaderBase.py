@@ -149,6 +149,7 @@ class JamfUploaderBase(Processor):
         """Return the name key that identifies the object"""
         name_key = "name"
         if object_type in (
+            "api_client",
             "computer_prestage",
             "mobile_device_prestage",
             "enrollment_customization",
