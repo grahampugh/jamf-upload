@@ -37,6 +37,10 @@ __all__ = ["JamfObjectUploader"]
 
 
 class JamfObjectUploader(JamfObjectUploaderBase):
+    """Processor to upload an API object not covered by the other specific
+    JamfUploader processors
+    """
+
     description = (
         "A processor for AutoPkg that will create or update an API object template "
         "on a Jamf Pro server."

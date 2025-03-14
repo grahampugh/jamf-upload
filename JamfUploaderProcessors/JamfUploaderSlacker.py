@@ -42,6 +42,11 @@ __all__ = ["JamfUploaderSlacker"]
 
 
 class JamfUploaderSlacker(JamfUploaderBase):
+    """A class for sending details about a recipe run
+    to a Slack webhook based on the output of a JamfPolicyUploader
+    process.
+    """
+
     description = (
         "A postprocessor for AutoPkg that will send details about a recipe run "
         "to a Slack webhook based on the output of a JamfPolicyUploader "

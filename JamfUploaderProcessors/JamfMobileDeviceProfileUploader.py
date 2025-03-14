@@ -37,6 +37,8 @@ __all__ = ["JamfMobileDeviceProfileUploader"]
 
 
 class JamfMobileDeviceProfileUploader(JamfMobileDeviceProfileUploaderBase):
+    """Class to upload a mobile device profile to Jamf Pro"""
+
     description = (
         "A processor for AutoPkg that will upload a device configuration "
         "profile to a Jamf Cloud or on-prem server."
