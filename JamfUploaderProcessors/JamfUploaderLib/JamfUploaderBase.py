@@ -22,7 +22,6 @@ import os
 import re
 import subprocess
 import tempfile
-import unicodedata
 import xml.etree.ElementTree as ET
 
 from base64 import b64encode
@@ -1121,12 +1120,12 @@ class JamfUploaderBase(Processor):
         template_file = self.write_temp_file(template_contents)
         return object_name, template_file
 
-    def remove_non_printable(self, str):
+    def remove_non_printable(self, text):
         """Remove non-printable characters.
         This is required when obtaining a password from the keychain
         """
         pattern = r"[\x00-\x1F\x7F-\x9F]"
-        return re.sub(pattern, "", str)
+        return re.sub(pattern, "", text)
 
     def keychain_get_creds(self, service):
         """Get an account name in the keychain.
