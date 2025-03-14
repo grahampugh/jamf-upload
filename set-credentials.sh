@@ -20,7 +20,7 @@ verify_credentials() {
     jss_api_user=$(/usr/bin/security find-internet-password -s "$jss_url" -g 2>/dev/null | /usr/bin/grep "acct" | /usr/bin/cut -d \" -f 4 )
 
     if [[ ! $jss_api_user ]]; then
-        echo "No keychain entry for $jss_url found. Please run the set_credentials.sh script to add the user to your keychain"
+        echo "No keychain entry for $jss_url found. Please run the set-credentials.sh script to add the user to your keychain"
         exit 1
     fi
 
@@ -29,7 +29,7 @@ verify_credentials() {
     jss_api_password=$(/usr/bin/security find-internet-password -s "$jss_url" -a "$jss_api_user" -w -g 2>&1 )
 
     if [[ ! $jss_api_password ]]; then
-        echo "No password/Client Secret for $jss_api_user found. Please run the set_credentials.sh script to add the password/Client Secret to your keychain"
+        echo "No password/Client Secret for $jss_api_user found. Please run the set-credentials.sh script to add the password/Client Secret to your keychain"
         exit 1
     fi
 
