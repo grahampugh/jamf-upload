@@ -177,7 +177,9 @@ class JamfObjectUploaderBase(JamfUploaderBase):
             raise ProcessorError("ERROR: Jamf Pro URL not supplied")
         # check for an existing object except for settings-related endpoints
         if "_settings" not in object_type:
-            self.output(f"Checking for existing '{object_name}' on {jamf_url}")
+            self.output(
+                f"Checking for existing {object_type} '{object_name}' on {jamf_url}"
+            )
 
             # declare name key
             name_key = "name"
