@@ -1,4 +1,5 @@
 #!/usr/local/autopkg/python
+# pylint: disable=invalid-name
 
 """
 Copyright 2020 Graham Pugh
@@ -32,7 +33,9 @@ from autopkglib import ProcessorError  # pylint: disable=import-error
 # imports require noqa comments for E402
 sys.path.insert(0, os.path.dirname(__file__))
 
-from JamfUploaderLib.JamfUploaderBase import JamfUploaderBase  # noqa: E402
+from JamfUploaderLib.JamfUploaderBase import (  # pylint: disable=import-error, wrong-import-position
+    JamfUploaderBase,
+)
 
 
 __all__ = ["JamfUploaderSlacker"]
@@ -118,6 +121,8 @@ class JamfUploaderSlacker(JamfUploaderBase):
         name = self.env.get("NAME")
         version = self.env.get("version")
         pkg_name = self.env.get("pkg_name")
+        macapp_name = self.env.get("macapp_name")
+        mobiledeviceapp_name = self.env.get("mobiledeviceapp_name")
         profile_name = self.env.get("PROFILE_NAME")
         profile_category = self.env.get("PROFILE_CATEGORY")
         object_name = self.env.get("object_name")
@@ -125,11 +130,23 @@ class JamfUploaderSlacker(JamfUploaderBase):
         jamfpackageuploader_summary_result = self.env.get(
             "jamfpackageuploader_summary_result"
         )
+        jamfpkgmetadatauploader_summary_result = self.env.get(
+            "jamfpkgmetadatauploader_summary_result"
+        )
         jamfpolicyuploader_summary_result = self.env.get(
             "jamfpolicyuploader_summary_result"
         )
         jamfcomputerprofileuploader_summary_result = self.env.get(
             "jamfcomputerprofileuploader_summary_result"
+        )
+        jamfmobiledeviceprofilepploader_summary_result = self.env.get(
+            "jamfmobiledeviceprofilepploader_summary_result"
+        )
+        jamfmacappuploader_summary_result = self.env.get(
+            "jamfmacappuploader_summary_result"
+        )
+        jamfmobiledeviceappuploader_summary_result = self.env.get(
+            "jamfmobiledeviceappuploader_summary_result"
         )
         jamfobjectuploader_summary_result = self.env.get(
             "jamfobjectuploader_summary_result"
@@ -156,6 +173,10 @@ class JamfUploaderSlacker(JamfUploaderBase):
             self.output(f"Package: {pkg_name}", verbose_level=2)
         if profile_name:
             self.output(f"Profile: {profile_name}", verbose_level=2)
+        if macapp_name:
+            self.output(f"Mac App: {macapp_name}", verbose_level=2)
+        if mobiledeviceapp_name:
+            self.output(f"Mobile Device App: {pkg_name}", verbose_level=2)
         if category:
             self.output(f"Package Category: {category}", verbose_level=2)
         if policy_category:
@@ -186,7 +207,9 @@ class JamfUploaderSlacker(JamfUploaderBase):
                 + f"Policy Name: *{policy_name}*\n"
                 + "No new package uploaded"
             )
-        elif jamfpackageuploader_summary_result:
+        elif (
+            jamfpackageuploader_summary_result or jamfpkgmetadatauploader_summary_result
+        ):
             slack_text = (
                 "*New Package uploaded to Jamf Pro:*\n"
                 + f"URL: {jss_url}\n"
@@ -201,9 +224,35 @@ class JamfUploaderSlacker(JamfUploaderBase):
                 + f"Category: *{profile_category}*\n"
                 + f"Profile: *{profile_name}*"
             )
+        elif jamfmobiledeviceprofilepploader_summary_result:
+            slack_text = (
+                "*New Mobile Device Profile uploaded to Jamf Pro:*\n"
+                + f"URL: {jss_url}\n"
+                + f"Category: *{profile_category}*\n"
+                + f"Profile: *{profile_name}*"
+            )
+        elif jamfmobiledeviceappuploader_summary_result:
+            slack_text = (
+                "*New Mobile Device Profile uploaded to Jamf Pro:*\n"
+                + f"URL: {jss_url}\n"
+                + f"Category: *{profile_category}*\n"
+                + f"Profile: *{profile_name}*"
+            )
+        elif jamfmacappuploader_summary_result:
+            slack_text = (
+                "*Mac App configuration uploaded to Jamf Pro:*\n"
+                + f"URL: {jss_url}\n"
+                + f"App: *{macapp_name}*"
+            )
+        elif jamfmobiledeviceappuploader_summary_result:
+            slack_text = (
+                "*Mobile Device App configuration uploaded to Jamf Pro:*\n"
+                + f"URL: {jss_url}\n"
+                + f"App: *{mobiledeviceapp_name}*"
+            )
         elif jamfobjectuploader_summary_result:
             slack_text = (
-                f"*New {object_type} uploaded to Jamf Pro:*\n"
+                f"*{object_type} uploaded to Jamf Pro:*\n"
                 + f"URL: {jss_url}\n"
                 + f"Name: *{object_name}*"
             )
@@ -228,7 +277,7 @@ class JamfUploaderSlacker(JamfUploaderBase):
         while True:
             count += 1
             self.output(
-                "Slack webhook post attempt {}".format(count),
+                f"Slack webhook post attempt {count}",
                 verbose_level=2,
             )
             r = self.curl(
@@ -242,7 +291,7 @@ class JamfUploaderSlacker(JamfUploaderBase):
                 break
             if count > 5:
                 self.output("Slack webhook send did not succeed after 5 attempts")
-                self.output("\nHTTP POST Response Code: {}".format(r.status_code))
+                self.output(f"\nHTTP POST Response Code: {r.status_code}")
                 raise ProcessorError("ERROR: Slack webhook failed to send")
             sleep(10)
 

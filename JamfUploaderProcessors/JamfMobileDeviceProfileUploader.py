@@ -1,4 +1,5 @@
 #!/usr/local/autopkg/python
+# pylint: disable=invalid-name
 
 """
 Copyright 2023 Graham Pugh
@@ -27,7 +28,7 @@ import sys
 # imports require noqa comments for E402
 sys.path.insert(0, os.path.dirname(__file__))
 
-from JamfUploaderLib.JamfMobileDeviceProfileUploaderBase import (  # noqa: E402
+from JamfUploaderLib.JamfMobileDeviceProfileUploaderBase import (  # pylint: disable=import-error, wrong-import-position
     JamfMobileDeviceProfileUploaderBase,
 )
 
@@ -111,7 +112,7 @@ class JamfMobileDeviceProfileUploader(JamfMobileDeviceProfileUploaderBase):
     }
 
     output_variables = {
-        "JamfMobileDeviceProfileUploader_summary_result": {
+        "jamfmobiledeviceprofilepploader_summary_result": {
             "description": "Description of interesting results.",
         },
     }
