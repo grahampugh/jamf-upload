@@ -55,8 +55,8 @@ class JamfObjectUploaderBase(JamfUploaderBase):
 
         self.output(f"Uploading {object_type}...")
 
-        # if we find an object ID we put, if not, we post
-
+        # if we find an object ID or it's an endpoint without IDs, we PUT or PATCH
+        # if we're creating a new object, we POST
         if "JSSResource" in self.api_endpoints(object_type):
             # do XML stuff
             url = f"{jamf_url}/{self.api_endpoints(object_type)}/id/{obj_id}"
@@ -66,21 +66,35 @@ class JamfObjectUploaderBase(JamfUploaderBase):
             else:
                 url = f"{jamf_url}/{self.api_endpoints(object_type)}"
 
+        additional_curl_options = []
+        # PATCH endpoints require special options
+        if object_type == "volume_purchasing_location":
+            request = "PATCH"
+            additional_curl_options = [
+                "--header",
+                "Content-type: application/merge-patch+json",
+            ]
+        elif object_type == "computer_inventory_collection_settings":
+            request = "PATCH"
+            additional_curl_options = [
+                "--header",
+                "Content-type: application/json",
+            ]
+        elif obj_id or "_settings" in object_type:
+            request = "PUT"
+        else:
+            request = "POST"
+
         count = 0
         while True:
             count += 1
             self.output(f"{object_type} upload attempt {count}", verbose_level=2)
-            if object_type == "computer_inventory_collection_settings":
-                request = "PATCH"
-            elif obj_id or "_settings" in object_type:
-                request = "PUT"
-            else:
-                request = "POST"
             r = self.curl(
                 request=request,
                 url=url,
                 token=token,
                 data=template_file,
+                additional_curl_opts=additional_curl_options,
             )
             # check HTTP response
             if self.status_check(r, object_type, object_name, request) == "break":
@@ -163,16 +177,14 @@ class JamfObjectUploaderBase(JamfUploaderBase):
             raise ProcessorError("ERROR: Jamf Pro URL not supplied")
         # check for an existing object except for settings-related endpoints
         if "_settings" not in object_type:
-            self.output(f"Checking for existing '{object_name}' on {jamf_url}")
+            self.output(
+                f"Checking for existing {object_type} '{object_name}' on {jamf_url}"
+            )
 
             # declare name key
-            name_key = "name"
-            if (
-                object_type == "computer_prestage"
-                or object_type == "mobile_device_prestage"
-            ):
-                name_key = "displayName"
+            name_key = self.get_name_key(object_type)
 
+            # get the ID from the object bearing the supplied name
             obj_id = self.get_api_obj_id_from_name(
                 jamf_url, object_name, object_type, token=token, filter_name=name_key
             )

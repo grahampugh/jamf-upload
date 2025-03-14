@@ -83,12 +83,7 @@ class JamfObjectReaderBase(JamfUploaderBase):
         object_list = []
 
         # declare name key
-        name_key = "name"
-        if (
-            object_type == "computer_prestage"
-            or object_type == "mobile_device_prestage"
-        ):
-            name_key = "displayName"
+        name_key = self.get_name_key(object_type)
 
         # if requesting all objects we need to generate a list of all to iterate through
         if all_objects or list_only:

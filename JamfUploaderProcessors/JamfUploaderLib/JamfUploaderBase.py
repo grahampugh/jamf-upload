@@ -43,7 +43,7 @@ class JamfUploaderBase(Processor):
     """Common functions used by at least two JamfUploader processors."""
 
     # Global version
-    __version__ = "2025.3.13.0"
+    __version__ = "2025.3.14.0"
 
     def api_endpoints(self, object_type):
         """Return the endpoint URL from the object type"""
@@ -144,6 +144,18 @@ class JamfUploaderBase(Processor):
             "self_service_settings": "self_service_settings",
         }
         return object_list_types[object_type]
+
+    def get_name_key(self, object_type):
+        """Return the name key that identifies the object"""
+        name_key = "name"
+        if object_type in (
+            "api_client",
+            "computer_prestage",
+            "mobile_device_prestage",
+            "enrollment_customization",
+        ):
+            name_key = "displayName"
+        return name_key
 
     def write_json_file(self, data):
         """dump some json to a temporary file"""
@@ -492,8 +504,13 @@ class JamfUploaderBase(Processor):
             curl_cmd.extend(["--header", "Content-type: multipart/form-data"])
             curl_cmd.extend(["--form", f"file=@{data};type=image/png"])
 
+        elif request == "PATCH":
+            if data:
+                # jamf data upload requires upload-file argument
+                curl_cmd.extend(["--upload-file", data])
+
         # Content-Type for POST/PUT
-        elif request == "POST" or request == "PUT" or request == "PATCH":
+        elif request == "POST" or request == "PUT":
             if endpoint_type == "slack" or endpoint_type == "teams":
                 # slack and teams require a data argument
                 curl_cmd.extend(["--data", data])
@@ -514,7 +531,7 @@ class JamfUploaderBase(Processor):
             # note: other endpoints should supply their headers via 'additional_curl_opts'
 
         # fail other request types
-        elif request != "GET" and request != "DELETE":
+        elif request != "GET" and request != "DELETE" and request != "PATCH":
             self.output(f"WARNING: HTTP method {request} not supported")
 
         # direct output to a file

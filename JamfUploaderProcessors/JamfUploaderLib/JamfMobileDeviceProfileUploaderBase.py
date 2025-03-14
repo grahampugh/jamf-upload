@@ -222,8 +222,8 @@ class JamfMobileDeviceProfileUploaderBase(JamfUploaderBase):
             replace_profile = False
 
         # clear any pre-existing summary result
-        if "JamfMobileDeviceProfileUploader_summary_result" in self.env:
-            del self.env["JamfMobileDeviceProfileUploader_summary_result"]
+        if "jamfmobiledeviceprofilepploader_summary_result" in self.env:
+            del self.env["jamfmobiledeviceprofilepploader_summary_result"]
 
         profile_updated = False
 
@@ -386,7 +386,7 @@ class JamfMobileDeviceProfileUploaderBase(JamfUploaderBase):
         self.env["profile_name"] = profile_name
         self.env["profile_updated"] = profile_updated
         if profile_updated:
-            self.env["JamfMobileDeviceProfileUploader_summary_result"] = {
+            self.env["jamfmobiledeviceprofilepploader_summary_result"] = {
                 "summary_text": (
                     "The following configuration profiles were uploaded to "
                     "or updated in Jamf Pro:"

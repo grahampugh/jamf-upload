@@ -16,7 +16,7 @@ Usage:
 Valid object types:
     account
     category
-    read
+    delete | objdelete | objectdelete
     group | computergroup
     groupdelete | computergroupdelete
     mobiledevicegroup
@@ -37,6 +37,7 @@ Valid object types:
     policy
     policydelete
     policyflush
+    read
     restriction | softwarerestriction
     scope
     script
@@ -396,7 +397,7 @@ elif [[ $object == "obj"* || $object == "classicobj"* ]]; then
     processor="JamfObjectUploader"
 elif [[ $object == "read" ]]; then
     processor="JamfObjectReader"
-elif [[ $object == "delete" ]]; then
+elif [[ $object == "delete" || $object == "objdelete" || $object == "objectdelete" ]]; then
     processor="JamfObjectDeleter"
 elif [[ $object == "group" || $object == "computergroup" ]]; then
     processor="JamfComputerGroupUploader"

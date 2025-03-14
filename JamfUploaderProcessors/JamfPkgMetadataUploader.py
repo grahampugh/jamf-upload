@@ -1,4 +1,5 @@
 #!/usr/local/autopkg/python
+# pylint: disable=invalid-name
 
 """
 Copyright 2023 Graham Pugh
@@ -26,7 +27,7 @@ import sys
 # imports require noqa comments for E402
 sys.path.insert(0, os.path.dirname(__file__))
 
-from JamfUploaderLib.JamfPkgMetadataUploaderBase import (  # noqa: E402
+from JamfUploaderLib.JamfPkgMetadataUploaderBase import (  # pylint: disable=import-error, wrong-import-position
     JamfPkgMetadataUploaderBase,
 )
 
@@ -161,7 +162,7 @@ class JamfPkgMetadataUploader(JamfPkgMetadataUploaderBase):
 
     output_variables = {
         "pkg_name": {"description": "The name of the uploaded package."},
-        "jamfpackageuploader_summary_result": {
+        "jamfpkgmetadatauploader_summary_result": {
             "description": "Description of interesting results.",
         },
     }
