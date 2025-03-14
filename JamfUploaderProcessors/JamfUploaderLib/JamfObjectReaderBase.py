@@ -62,18 +62,18 @@ class JamfObjectReaderBase(JamfUploaderBase):
             list_only = False
 
         # clear any pre-existing summary result
-        if "jamfclassicapiobjectreader_summary_result" in self.env:
-            del self.env["jamfclassicapiobjectreader_summary_result"]
+        if "jamfobjectreader_summary_result" in self.env:
+            del self.env["jamfobjectreader_summary_result"]
 
         # now start the process of reading the object
 
         # get token using oauth or basic auth depending on the credentials given
         if jamf_url and client_id and client_secret:
             token = self.handle_oauth(jamf_url, client_id, client_secret)
-        elif jamf_url and jamf_user and jamf_password:
+        elif jamf_url:
             token = self.handle_api_auth(jamf_url, jamf_user, jamf_password)
         else:
-            raise ProcessorError("ERROR: Credentials not supplied")
+            raise ProcessorError("ERROR: Jamf Pro URL not supplied")
 
         # get instance name from URL
         host = jamf_url.partition("://")[2]

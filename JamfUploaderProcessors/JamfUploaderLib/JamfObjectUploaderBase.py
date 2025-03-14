@@ -157,11 +157,10 @@ class JamfObjectUploaderBase(JamfUploaderBase):
         # get token using oauth or basic auth depending on the credentials given
         if jamf_url and client_id and client_secret:
             token = self.handle_oauth(jamf_url, client_id, client_secret)
-        elif jamf_url and jamf_user and jamf_password:
+        elif jamf_url:
             token = self.handle_api_auth(jamf_url, jamf_user, jamf_password)
         else:
-            raise ProcessorError("ERROR: Credentials not supplied")
-
+            raise ProcessorError("ERROR: Jamf Pro URL not supplied")
         # check for an existing object except for settings-related endpoints
         if "_settings" not in object_type:
             self.output(f"Checking for existing '{object_name}' on {jamf_url}")
@@ -215,7 +214,7 @@ class JamfObjectUploaderBase(JamfUploaderBase):
         self.env["object_type"] = object_type
         self.env["object_updated"] = object_updated
         if object_updated:
-            self.env["jamfclassicapiobjectuploader_summary_result"] = {
+            self.env["jamfobjectuploader_summary_result"] = {
                 "summary_text": "The following objects were updated in Jamf Pro:",
                 "report_fields": ["object_name", "object_type", "template"],
                 "data": {

@@ -123,10 +123,10 @@ class JamfIconUploaderBase(JamfUploaderBase):
         # get token using oauth or basic auth depending on the credentials given
         if jamf_url and client_id and client_secret:
             token = self.handle_oauth(jamf_url, client_id, client_secret)
-        elif jamf_url and jamf_user and jamf_password:
+        elif jamf_url:
             token = self.handle_api_auth(jamf_url, jamf_user, jamf_password)
         else:
-            raise ProcessorError("ERROR: Credentials not supplied")
+            raise ProcessorError("ERROR: Jamf Pro URL not supplied")
 
         # obtain the icon from the URI if no file path provided
         if "https://ics.services.jamfcloud.com/icon" in icon_uri and not icon_file:
