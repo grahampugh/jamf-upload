@@ -53,6 +53,12 @@ class JamfObjectUploaderBase(JamfUploaderBase):
     ):
         """Upload object"""
 
+        # Some endpoints use PATCH instead of POST. These are defined here.
+        uploads_that_require_patch_request = (
+            "computer_inventory_collection_settings",
+            "volume_purchasing_locations",
+        )
+
         self.output(f"Uploading {object_type}...")
 
         # if we find an object ID we put, if not, we post
@@ -70,7 +76,7 @@ class JamfObjectUploaderBase(JamfUploaderBase):
         while True:
             count += 1
             self.output(f"{object_type} upload attempt {count}", verbose_level=2)
-            if object_type == "computer_inventory_collection_settings":
+            if object_type in uploads_that_require_patch_request:
                 request = "PATCH"
             elif obj_id or "_settings" in object_type:
                 request = "PUT"
