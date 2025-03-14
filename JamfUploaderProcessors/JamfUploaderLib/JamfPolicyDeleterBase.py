@@ -81,10 +81,14 @@ class JamfPolicyDeleterBase(JamfUploaderBase):
         self.output(f"Checking for existing '{policy_name}' on {jamf_url}")
 
         # get token using oauth or basic auth depending on the credentials given
-        if jamf_url and client_id and client_secret:
-            token = self.handle_oauth(jamf_url, client_id, client_secret)
-        elif jamf_url:
-            token = self.handle_api_auth(jamf_url, jamf_user, jamf_password)
+        if jamf_url:
+            token = self.handle_api_auth(
+                jamf_url,
+                jamf_user=jamf_user,
+                password=jamf_password,
+                client_id=client_id,
+                client_secret=client_secret,
+            )
         else:
             raise ProcessorError("ERROR: Jamf Pro URL not supplied")
 

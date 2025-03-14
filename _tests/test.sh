@@ -51,7 +51,7 @@ fi
 case "$test_type" in
     list-policies)
         "$DIR"/../jamf-upload.sh read \
-            --prefs "$prefs_alt" \
+            --prefs "$prefs" \
             --recipe-dir /Users/gpugh/sourcecode/jamf-upload/_tests \
             --type "policy" \
             --list \
