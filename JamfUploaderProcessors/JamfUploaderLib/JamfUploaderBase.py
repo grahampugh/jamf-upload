@@ -145,6 +145,17 @@ class JamfUploaderBase(Processor):
         }
         return object_list_types[object_type]
 
+    def get_name_key(self, object_type):
+        """Return the name key that identifies the object"""
+        name_key = "name"
+        if object_type in (
+            "computer_prestage",
+            "mobile_device_prestage",
+            "enrollment_customization",
+        ):
+            name_key = "displayName"
+        return name_key
+
     def write_json_file(self, data):
         """dump some json to a temporary file"""
         tf = self.init_temp_file(suffix=".json")

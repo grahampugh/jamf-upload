@@ -100,14 +100,9 @@ class JamfObjectDeleterBase(JamfUploaderBase):
         )
 
         # declare name key
-        name_key = "name"
-        if (
-            object_type == "computer_prestage"
-            or object_type == "mobile_device_prestage"
-            or object_type == "enrollment_customization"
-        ):
-            name_key = "displayName"
+        name_key = self.get_name_key(object_type)
 
+        # get the ID from the object bearing the supplied name
         obj_id = self.get_api_obj_id_from_name(
             jamf_url, object_name, object_type, token=token, filter_name=name_key
         )
