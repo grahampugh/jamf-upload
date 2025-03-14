@@ -13,9 +13,7 @@ DOC
 # functions
 verify_credentials() {
     local jss_url="$1"
-    if [[ $verbose -gt 0 ]]; then
-        echo "Verifying credentials for $jss_url"
-    fi
+    echo "Verifying credentials for $jss_url"
 
     # check for username entry in login keychain
     # jss_api_user=$("${this_script_dir}/keychain.sh" -t internet -u -s "$jss_url")
@@ -31,7 +29,7 @@ verify_credentials() {
     jss_api_password=$(/usr/bin/security find-internet-password -s "$jss_url" -a "$jss_api_user" -w -g 2>&1 )
 
     if [[ ! $jss_api_password ]]; then
-        echo "No password for $jss_api_user found. Please run the set_credentials.sh script to add the password to your keychain"
+        echo "No password/Client Secret for $jss_api_user found. Please run the set_credentials.sh script to add the password/Client Secret to your keychain"
         exit 1
     fi
 
