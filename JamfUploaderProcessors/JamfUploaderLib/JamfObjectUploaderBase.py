@@ -66,19 +66,19 @@ class JamfObjectUploaderBase(JamfUploaderBase):
             else:
                 url = f"{jamf_url}/{self.api_endpoints(object_type)}"
 
+        additional_curl_options = []
         # PATCH endpoints require special options
-        additional_curl_options = ()
         if object_type == "volume_purchasing_location":
             request = "PATCH"
-            additional_curl_options += [
+            additional_curl_options = [
                 "--header",
                 "Content-type: application/merge-patch+json",
             ]
         elif object_type == "computer_inventory_collection_settings":
             request = "PATCH"
-            additional_curl_options += [
+            additional_curl_options = [
                 "--header",
-                "Content-type: application/merge-patch+json",
+                "Content-type: application/json",
             ]
         elif obj_id or "_settings" in object_type:
             request = "PUT"
@@ -94,6 +94,7 @@ class JamfObjectUploaderBase(JamfUploaderBase):
                 url=url,
                 token=token,
                 data=template_file,
+                additional_curl_opts=additional_curl_options,
             )
             # check HTTP response
             if self.status_check(r, object_type, object_name, request) == "break":
