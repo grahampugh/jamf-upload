@@ -120,6 +120,8 @@ class JamfUploaderSlacker(JamfUploaderBase):
         pkg_name = self.env.get("pkg_name")
         profile_name = self.env.get("PROFILE_NAME")
         profile_category = self.env.get("PROFILE_CATEGORY")
+        object_name = self.env.get("object_name")
+        object_type = self.env.get("object_type")
         jamfpackageuploader_summary_result = self.env.get(
             "jamfpackageuploader_summary_result"
         )
@@ -129,6 +131,9 @@ class JamfUploaderSlacker(JamfUploaderBase):
         jamfcomputerprofileuploader_summary_result = self.env.get(
             "jamfcomputerprofileuploader_summary_result"
         )
+        jamfobjectuploader_summary_result = self.env.get(
+            "jamfobjectuploader_summary_result"
+        )
 
         slack_username = self.env.get("slack_username")
         slack_icon_url = self.env.get("slack_icon_url") or ""
@@ -136,19 +141,31 @@ class JamfUploaderSlacker(JamfUploaderBase):
         slack_channel = self.env.get("slack_channel") or ""
         slack_icon_emoji = self.env.get("slack_icon_emoji") or ""
 
-        if (not category and jamfpackageuploader_summary_result):
+        if not category and jamfpackageuploader_summary_result:
             category = jamfpackageuploader_summary_result["data"]["category"]
 
         selfservice_policy_name = name
         self.output(f"JSS address: {jss_url}")
-        self.output(f"Title: {selfservice_policy_name}")
-        self.output(f"Policy: {policy_name}")
-        self.output(f"Version: {version}")
-        self.output(f"Package: {pkg_name}")
-        self.output(f"Profile: {profile_name}")
-        self.output(f"Package Category: {category}")
-        self.output(f"Policy Category: {policy_category}")
-        self.output(f"Profile Category: {profile_category}")
+        if selfservice_policy_name:
+            self.output(f"Title: {selfservice_policy_name}", verbose_level=2)
+        if policy_name:
+            self.output(f"Policy: {policy_name}", verbose_level=2)
+        if version:
+            self.output(f"Version: {version}", verbose_level=2)
+        if pkg_name:
+            self.output(f"Package: {pkg_name}", verbose_level=2)
+        if profile_name:
+            self.output(f"Profile: {profile_name}", verbose_level=2)
+        if category:
+            self.output(f"Package Category: {category}", verbose_level=2)
+        if policy_category:
+            self.output(f"Policy Category: {policy_category}", verbose_level=2)
+        if profile_category:
+            self.output(f"Profile Category: {profile_category}", verbose_level=2)
+        if object_name:
+            self.output(f"Object Type: {object_name}", verbose_level=2)
+        if object_type:
+            self.output(f"Object Type: {object_type}", verbose_level=2)
 
         if jamfpackageuploader_summary_result and jamfpolicyuploader_summary_result:
             slack_text = (
@@ -183,6 +200,12 @@ class JamfUploaderSlacker(JamfUploaderBase):
                 + f"URL: {jss_url}\n"
                 + f"Category: *{profile_category}*\n"
                 + f"Profile: *{profile_name}*"
+            )
+        elif jamfobjectuploader_summary_result:
+            slack_text = (
+                f"*New {object_type} uploaded to Jamf Pro:*\n"
+                + f"URL: {jss_url}\n"
+                + f"Name: *{object_name}*"
             )
         else:
             self.output("Nothing to report to Slack")
