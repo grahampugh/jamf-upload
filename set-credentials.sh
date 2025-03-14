@@ -129,8 +129,8 @@ fi
 # 2. Ask for the username (show any existing value of first instance in list as default)
 # ------------------------------------------------------------------------------------
 
-echo "Enter username for ${inputted_url}"
-read -r -p "User : " inputted_username
+echo "Enter username or Client ID for ${inputted_url}"
+read -r -p "User/Client ID : " inputted_username
 if [[ ! $inputted_username ]]; then
     echo "No username supplied"
     exit 1
@@ -151,14 +151,14 @@ echo
 instance_pass=$(security find-internet-password -s "${inputted_url}" -l "$instance_base ($inputted_username)" -a "$inputted_username" -w -g 2>&1)
 
 if [[ $instance_pass ]]; then
-    echo "Password for $inputted_username found on $instance_base"
+    echo "Password / Client Secret for $inputted_username found on $instance_base"
 else
-    echo "Password for $inputted_username not found on $instance_base"
+    echo "Password / Client Secret for $inputted_username not found on $instance_base"
 fi
 
-echo "Enter password for $inputted_username on $instance_base"
-[[ $instance_pass ]] && echo "(or press ENTER to use existing password from keychain for $inputted_username)"
-read -r -s -p "Pass : " inputted_password
+echo "Enter password or Client Secret for $inputted_username on $instance_base"
+[[ $instance_pass ]] && echo "(or press ENTER to use existing password / Client Secret from keychain for $inputted_username)"
+read -r -s -p "Password/Secret : " inputted_password
 if [[ "$inputted_password" ]]; then
     instance_pass="$inputted_password"
 elif [[ ! $instance_pass ]]; then
@@ -172,14 +172,14 @@ fi
 echo
 echo
 security add-internet-password -U -s "$inputted_url" -l "$instance_base ($inputted_username)" -a "$inputted_username" -w "$instance_pass"
-echo "Credentials for $instance_base (user $inputted_username) added to keychain"
+echo "Credentials for $instance_base ($inputted_username) added to keychain"
 
 # ------------------------------------------------------------------------------------
 # 4. Verify the credentials
 # ------------------------------------------------------------------------------------
 
 echo
-echo "Verifying credentials for $instance_base (user $inputted_username)"
+echo "Verifying credentials for $instance_base ($inputted_username)"
 verify_credentials "$inputted_url"
 # print out version
 version=$(plutil -extract version raw "$output_file_record")
