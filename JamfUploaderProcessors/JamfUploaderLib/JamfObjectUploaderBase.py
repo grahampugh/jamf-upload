@@ -53,16 +53,10 @@ class JamfObjectUploaderBase(JamfUploaderBase):
     ):
         """Upload object"""
 
-        # Some endpoints use PATCH instead of POST. These are defined here.
-        uploads_that_require_patch_request = (
-            "computer_inventory_collection_settings",
-            "volume_purchasing_location",
-        )
-
         self.output(f"Uploading {object_type}...")
 
-        # if we find an object ID we put, if not, we post
-
+        # if we find an object ID or it's an endpoint without IDs, we PUT or PATCH
+        # if we're creating a new object, we POST
         if "JSSResource" in self.api_endpoints(object_type):
             # do XML stuff
             url = f"{jamf_url}/{self.api_endpoints(object_type)}/id/{obj_id}"
@@ -72,16 +66,29 @@ class JamfObjectUploaderBase(JamfUploaderBase):
             else:
                 url = f"{jamf_url}/{self.api_endpoints(object_type)}"
 
+        # PATCH endpoints require special options
+        additional_curl_options = ()
+        if object_type == "volume_purchasing_location":
+            request = "PATCH"
+            additional_curl_options += [
+                "--header",
+                "Content-type: application/merge-patch+json",
+            ]
+        elif object_type == "computer_inventory_collection_settings":
+            request = "PATCH"
+            additional_curl_options += [
+                "--header",
+                "Content-type: application/merge-patch+json",
+            ]
+        elif obj_id or "_settings" in object_type:
+            request = "PUT"
+        else:
+            request = "POST"
+
         count = 0
         while True:
             count += 1
             self.output(f"{object_type} upload attempt {count}", verbose_level=2)
-            if object_type in uploads_that_require_patch_request:
-                request = "PATCH"
-            elif obj_id or "_settings" in object_type:
-                request = "PUT"
-            else:
-                request = "POST"
             r = self.curl(
                 request=request,
                 url=url,

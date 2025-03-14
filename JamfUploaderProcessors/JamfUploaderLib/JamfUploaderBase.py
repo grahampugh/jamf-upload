@@ -493,7 +493,7 @@ class JamfUploaderBase(Processor):
             curl_cmd.extend(["--form", f"file=@{data};type=image/png"])
 
         # Content-Type for POST/PUT
-        elif request == "POST" or request == "PUT" or request == "PATCH":
+        elif request == "POST" or request == "PUT":
             if endpoint_type == "slack" or endpoint_type == "teams":
                 # slack and teams require a data argument
                 curl_cmd.extend(["--data", data])
@@ -514,7 +514,7 @@ class JamfUploaderBase(Processor):
             # note: other endpoints should supply their headers via 'additional_curl_opts'
 
         # fail other request types
-        elif request != "GET" and request != "DELETE":
+        elif request != "GET" and request != "DELETE" and request != "PATCH":
             self.output(f"WARNING: HTTP method {request} not supported")
 
         # direct output to a file
