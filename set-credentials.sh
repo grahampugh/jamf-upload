@@ -3,7 +3,7 @@
 : <<DOC
 Script to add the required credentials into your login keychain to allow repeated use.
 
-1. Ask for the instance list, show list, ask to apply to one, multiple or all
+1. Ask for the instance URL
 2. Ask for the username (show any existing value of first instance in list as default)
 3. Ask for the password (show the associated user if already existing)
 4. Loop through each selected instance, check for an existing keychain entry, create or overwrite
@@ -43,18 +43,46 @@ verify_credentials() {
     output_file_token="$output_location/output_token.txt"
     output_file_record="$output_location/output_record.txt"
 
-    http_response=$(
-        curl --request POST \
-        --silent \
-        --user "$jss_api_user:$jss_api_password" \
-        --url "$jss_url/api/v1/auth/token" \
-        --write-out "%{http_code}" \
-        --header 'Accept: application/json' \
-        --output "$output_file_token"
-    )
-    echo "Token request HTTP response: $http_response"
+    # check if the user is a UUID (therefore implying a Client ID)
+    if [[ $jss_api_user =~ ^\{?[A-F0-9a-f]{8}-[A-F0-9a-f]{4}-[A-F0-9a-f]{4}-[A-F0-9a-f]{4}-[A-F0-9a-f]{12}\}?$ ]]; then
+        http_response=$(
+            curl --request POST \
+            --silent \
+            --url "$jss_url/api/oauth/token" \
+            --header 'Content-Type: application/x-www-form-urlencoded' \
+            --data-urlencode "client_id=$jss_api_user" \
+            --data-urlencode "grant_type=client_credentials" \
+            --data-urlencode "client_secret=$jss_api_password" \
+            --write-out "%{http_code}" \
+            --header 'Accept: application/json' \
+            --output "$output_file_token"
+        )
+        echo "Token request HTTP response: $http_response"
+        if [[ $http_response -lt 400 ]]; then
+            token=$(plutil -extract access_token raw "$output_file_token")
+        else
+            echo "Token download failed"
+            exit 1
+        fi
+    else
+        http_response=$(
+            curl --request POST \
+            --silent \
+            --url "$jss_url/api/v1/auth/token" \
+            --user "$jss_api_user:$jss_api_password" \
+            --write-out "%{http_code}" \
+            --header 'Accept: application/json' \
+            --output "$output_file_token"
+        )
+        echo "Token request HTTP response: $http_response"
+        if [[ $http_response -lt 400 ]]; then
+            token=$(plutil -extract token raw "$output_file_token")
+        else
+            echo "Token download failed"
+            exit 1
+        fi
+    fi
 
-    token=$(plutil -extract token raw "$output_file_token")
 
     # check Jamf Pro version
     http_response=$(
@@ -75,11 +103,23 @@ echo
 # 1. Ask for the instance
 # ------------------------------------------------------------------------------------
 
+echo "Welcome to the Credentials To The Keychain tool!"
+echo
+echo "(Please submit better names for this script as a GitHub Issue...)"
+echo
+echo "Please note that if you have multiple entries in your Keychain for the same URL"
+echo "with different usernames, this tool might get confused. If in doubt, go check"
+echo "your Keychain for multiple login passwords for the same URL and clear them out."
+echo
+
 echo "Enter Jamf Pro URL"
 read -r -p "URL : " inputted_url
 if [[ ! $inputted_url ]]; then
     echo "No username supplied"
     exit 1
+fi
+if [[ "$inputted_url" != *"."* ]]; then
+    inputted_url="$inputted_url.jamfcloud.com"
 fi
 if [[ "$inputted_url" != "https://"* ]]; then
     inputted_url="https://$inputted_url"

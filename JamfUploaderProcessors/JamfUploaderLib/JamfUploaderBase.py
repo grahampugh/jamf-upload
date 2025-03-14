@@ -31,6 +31,7 @@ from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from shutil import rmtree
 from urllib.parse import quote, urlparse
+from uuid import UUID
 from xml.sax.saxutils import escape
 
 from autopkglib import (  # pylint: disable=import-error
@@ -43,7 +44,7 @@ class JamfUploaderBase(Processor):
     """Common functions used by at least two JamfUploader processors."""
 
     # Global version
-    __version__ = "2025.3.14.0"
+    __version__ = "2025.3.14.1"
 
     def api_endpoints(self, object_type):
         """Return the endpoint URL from the object type"""
@@ -344,56 +345,76 @@ class JamfUploaderBase(Processor):
         else:
             self.output(f"ERROR: No token received (HTTP response {r.status_code})")
 
-    def handle_api_auth(self, jamf_url, jamf_user="", password=""):
+    def handle_api_auth(
+        self, jamf_url, jamf_user="", password="", client_id="", client_secret=""
+    ):
         """obtain token using basic auth"""
-        # check for existing token
-        self.output("Checking for existing authentication token", verbose_level=2)
-        token = self.check_api_token(jamf_url, jamf_user)
 
-        # if no valid token, get one
-        if not token:
-            self.output(
-                "Getting an authentication token using Basic Auth", verbose_level=2
-            )
-            # first try to get the account and password from the Keychain
-            user_from_kc, pass_from_kc = self.keychain_get_creds(jamf_url)
-            if user_from_kc and pass_from_kc:
+        # first try to get the account and password from the Keychain
+        user_from_kc, pass_from_kc = self.keychain_get_creds(jamf_url)
+        if user_from_kc and pass_from_kc:
+            if self.is_valid_uuid(user_from_kc):
+                client_id = user_from_kc
+                client_secret = pass_from_kc
+                self.output(
+                    "Using API client credentials found in keychain", verbose_level=2
+                )
+            else:
                 jamf_user = user_from_kc
                 password = pass_from_kc
-                self.output("Using credentials found in keychain", verbose_level=2)
-            else:
-                self.output("Credentials not found in keychain", verbose_level=2)
-                if not jamf_user or not password:
-                    raise ProcessorError(
-                        "Insufficient credentials provided, cannot continue"
-                    )
+                self.output(
+                    "Using API account credentials found in keychain", verbose_level=2
+                )
+        else:
+            self.output("Credentials not found in keychain", verbose_level=2)
 
-            # fall back to supplied password if possible
-            # self.output(f"{jamf_user} - {password}")  # TEMP
-            token = self.get_api_token_from_basic_auth(jamf_url, jamf_user, password)
-
-        if not token:
-            raise ProcessorError("No token found, cannot continue")
-
-        # return token and classic creds
-        return token
-
-    def handle_oauth(self, jamf_url, client_id, client_secret):
-        """obtain token"""
-        # check for existing token using OAuth
+        # check for existing token
         self.output("Checking for existing authentication token", verbose_level=2)
-        token = self.check_api_token(jamf_url, client_id)
-
-        # if no valid token, get one
-        if not token:
-            self.output("Getting an authentication token using OAuth", verbose_level=2)
-            token = self.get_api_token_from_oauth(jamf_url, client_id, client_secret)
-
-        if not token:
-            raise ProcessorError("No token found, cannot continue")
-
+        if client_id and client_secret:
+            token = self.check_api_token(jamf_url, client_id)
+            # if no valid token, get one
+            if not token:
+                self.output(
+                    "Getting an authentication token using OAuth", verbose_level=2
+                )
+                token = self.get_api_token_from_oauth(
+                    jamf_url, client_id, client_secret
+                )
+            if not token:
+                raise ProcessorError("No token found, cannot continue")
+        elif jamf_user and password:
+            token = self.check_api_token(jamf_url, jamf_user)
+            # if no valid token, get one
+            if not token:
+                self.output(
+                    "Getting an authentication token using Basic Auth", verbose_level=2
+                )
+                token = self.get_api_token_from_basic_auth(
+                    jamf_url, jamf_user, password
+                )
+            if not token:
+                raise ProcessorError("No token found, cannot continue")
+        else:
+            raise ProcessorError("Insufficient credentials provided, cannot continue")
         # return token and classic creds
         return token
+
+    # def handle_oauth(self, jamf_url, client_id, client_secret):
+    #     """obtain token"""
+    #     # check for existing token using OAuth
+    #     self.output("Checking for existing authentication token", verbose_level=2)
+    #     token = self.check_api_token(jamf_url, client_id)
+
+    #     # if no valid token, get one
+    #     if not token:
+    #         self.output("Getting an authentication token using OAuth", verbose_level=2)
+    #         token = self.get_api_token_from_oauth(jamf_url, client_id, client_secret)
+
+    #     if not token:
+    #         raise ProcessorError("No token found, cannot continue")
+
+    #     # return token and classic creds
+    #     return token
 
     def clear_tmp_dir(self, tmp_dir="/tmp/jamf_upload"):
         """remove the tmp directory"""
@@ -1128,6 +1149,16 @@ class JamfUploaderBase(Processor):
         pattern = r"[\x00-\x1F\x7F-\x9F]"
         return re.sub(pattern, "", str)
 
+    def is_valid_uuid(self, uuid_to_test):
+        """Check if a string is a version 4 UUID"""
+        try:
+            UUID(str(uuid_to_test))
+            self.output(f"{uuid_to_test} is a Client ID", verbose_level=3)
+            return True
+        except ValueError:
+            self.output(f"{uuid_to_test} is an account name", verbose_level=3)
+            return False
+
     def keychain_get_creds(self, service):
         """Get an account name in the keychain.
 
@@ -1135,10 +1166,8 @@ class JamfUploaderBase(Processor):
             service: The service name.
 
         Returns:
-            The account name, or `None` if not found.
+            The account name and password, or `None` for both if not found.
 
-        Raises:
-            KeychainError: If an internal error occurred.
         """
         account = None
         passw = None
@@ -1179,10 +1208,6 @@ class JamfUploaderBase(Processor):
                 pass
 
         return account, passw
-
-
-class KeychainError(Exception):
-    """An error occurred while accessing the keychain."""
 
 
 if __name__ == "__main__":
