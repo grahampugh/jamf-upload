@@ -56,7 +56,7 @@ class JamfObjectUploaderBase(JamfUploaderBase):
         # Some endpoints use PATCH instead of POST. These are defined here.
         uploads_that_require_patch_request = (
             "computer_inventory_collection_settings",
-            "volume_purchasing_locations",
+            "volume_purchasing_location",
         )
 
         self.output(f"Uploading {object_type}...")
