@@ -184,6 +184,7 @@ class JamfObjectUploaderBase(JamfUploaderBase):
             if (
                 object_type == "computer_prestage"
                 or object_type == "mobile_device_prestage"
+                or object_type == "enrollment_customization"
             ):
                 name_key = "displayName"
 
