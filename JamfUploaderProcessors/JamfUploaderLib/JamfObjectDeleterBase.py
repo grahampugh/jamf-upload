@@ -107,14 +107,6 @@ class JamfObjectDeleterBase(JamfUploaderBase):
             jamf_url, object_name, object_type, token=token, filter_name=name_key
         )
 
-        # check for existing - requires obj_name
-        obj_id = self.get_api_obj_id_from_name(
-            jamf_url,
-            object_name,
-            object_type,
-            token,
-        )
-
         if obj_id:
             self.output(f"{object_type} '{object_name}' exists: ID {obj_id}")
             self.output(
