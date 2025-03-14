@@ -492,6 +492,11 @@ class JamfUploaderBase(Processor):
             curl_cmd.extend(["--header", "Content-type: multipart/form-data"])
             curl_cmd.extend(["--form", f"file=@{data};type=image/png"])
 
+        elif request == "PATCH":
+            if data:
+                # jamf data upload requires upload-file argument
+                curl_cmd.extend(["--upload-file", data])
+
         # Content-Type for POST/PUT
         elif request == "POST" or request == "PUT":
             if endpoint_type == "slack" or endpoint_type == "teams":
