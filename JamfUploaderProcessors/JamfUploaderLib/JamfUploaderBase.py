@@ -398,23 +398,6 @@ class JamfUploaderBase(Processor):
         # return token and classic creds
         return token
 
-    # def handle_oauth(self, jamf_url, client_id, client_secret):
-    #     """obtain token"""
-    #     # check for existing token using OAuth
-    #     self.output("Checking for existing authentication token", verbose_level=2)
-    #     token = self.check_api_token(jamf_url, client_id)
-
-    #     # if no valid token, get one
-    #     if not token:
-    #         self.output("Getting an authentication token using OAuth", verbose_level=2)
-    #         token = self.get_api_token_from_oauth(jamf_url, client_id, client_secret)
-
-    #     if not token:
-    #         raise ProcessorError("No token found, cannot continue")
-
-    #     # return token and classic creds
-    #     return token
-
     def clear_tmp_dir(self, tmp_dir="/tmp/jamf_upload"):
         """remove the tmp directory"""
         if os.path.exists(tmp_dir):
