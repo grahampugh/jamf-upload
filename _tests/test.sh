@@ -11,8 +11,7 @@ verbosity="$2"
 url="$3"
 
 # path to test items
-# pkg_path="/Users/Shared/plistyamlplist-0.6.4.pkg"
-pkg_path="/Users/gpugh/Downloads/vanta-universal.pkg"
+pkg_path="/Users/gpugh/Downloads/gen-pkg-sharp-mx-c55-2307a.pkg"
 pkg_name="$(basename "$pkg_path")"
 
 # other variables (ensure some of the temporary variables are not in the prefs)
@@ -706,6 +705,7 @@ case "$test_type" in
             --category JamfUploadTest \
             --info "Uploaded directly by JamfPackageUploader using v1/packages" \
             --notes "$(date)" \
+            --replace \ 
             "$verbosity"
         ;;
     pkg-noreplace)
@@ -760,6 +760,19 @@ case "$test_type" in
             --prefs "$prefs" \
             --recipe-dir /Users/gpugh/sourcecode/jamf-upload/_tests \
             "$verbosity"
+        ;;
+    pkgdata)
+        "$DIR"/../jamf-upload.sh pkgdata \
+            --prefs "$prefs" \
+            --recipe-dir /Users/gpugh/sourcecode/jamf-upload/_tests \
+            --pkg-name "$(basename "$pkg_path")" \
+            --name "$(basename "$pkg_path")" \
+            --category JamfUploadTest \
+            --info "Updated by JamfPkgMetadataUploader" \
+            --notes "$(date)" \
+            "$verbosity" \
+            "$url" \
+            --replace
         ;;
     slack)
         "$DIR"/../jamf-upload.sh slack \

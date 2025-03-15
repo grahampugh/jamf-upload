@@ -258,12 +258,17 @@ class JamfPackageCleanerBase(JamfUploaderBase):
 
         for package in packages_to_delete:
             # package deletion could take time, so we check the token before each deletion
-            if jamf_url and client_id and client_secret:
-                token = self.handle_oauth(jamf_url, client_id, client_secret)
-            elif jamf_url and jamf_user and jamf_password:
-                token = self.handle_api_auth(jamf_url, jamf_user, jamf_password)
+            # get token using oauth or basic auth depending on the credentials given
+            if jamf_url:
+                token = self.handle_api_auth(
+                    jamf_url,
+                    jamf_user=jamf_user,
+                    password=jamf_password,
+                    client_id=client_id,
+                    client_secret=client_secret,
+                )
             else:
-                raise ProcessorError("ERROR: Credentials not supplied")
+                raise ProcessorError("ERROR: Jamf Pro URL not supplied")
             self.delete_package(jamf_url=jamf_url, obj_id=package["id"], token=token)
             self.output(f"Deleting {package['name']}", verbose_level=2)
 

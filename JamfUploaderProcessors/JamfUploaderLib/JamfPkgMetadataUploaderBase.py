@@ -264,15 +264,16 @@ class JamfPkgMetadataUploaderBase(JamfUploaderBase):
             )
 
         # get token using oauth or basic auth depending on the credentials given
-        if jamf_url and client_id and client_secret:
-            token = self.handle_oauth(jamf_url, client_id, client_secret)
-        elif jamf_url and jamf_user and jamf_password:
-            token = self.handle_api_auth(jamf_url, jamf_user, jamf_password)
-        else:
-            raise ProcessorError(
-                "ERROR: Valid credentials not supplied (note that API Clients can "
-                "only be used with jcds2_mode or pkg_api_mode)"
+        if jamf_url:
+            token = self.handle_api_auth(
+                jamf_url,
+                jamf_user=jamf_user,
+                password=jamf_password,
+                client_id=client_id,
+                client_secret=client_secret,
             )
+        else:
+            raise ProcessorError("ERROR: Jamf Pro URL not supplied")
 
         # check for existing pkg
         obj_id = self.check_pkg(pkg_name, jamf_url, token=token)
