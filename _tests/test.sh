@@ -705,8 +705,9 @@ case "$test_type" in
             --category JamfUploadTest \
             --info "Uploaded directly by JamfPackageUploader using v1/packages" \
             --notes "$(date)" \
-            --replace \ 
-            "$verbosity"
+            "$verbosity" \
+            "$url" \
+            --replace
         ;;
     pkg-noreplace)
         "$DIR"/../jamf-upload.sh pkg \
