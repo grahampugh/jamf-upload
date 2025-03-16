@@ -57,6 +57,16 @@ case "$test_type" in
             --output "/Users/Shared/Jamf/JamfUploaderTests" \
             "$verbosity"
         ;;
+    list-policies-user)
+        "$DIR"/../jamf-upload.sh read \
+            --prefs "$prefs" \
+            --recipe-dir /Users/gpugh/sourcecode/jamf-upload/_tests \
+            --type "policy" \
+            --list \
+            --output "/Users/Shared/Jamf/JamfUploaderTests" \
+            --key CLIENT_ID=c611d89d-471b-40d2-855d-08647131fc1d \
+            "$verbosity"
+        ;;
     scope)
         echo "Running scope test"
         "$DIR"/../jamf-upload.sh scope \
@@ -633,7 +643,6 @@ case "$test_type" in
             --policy-name "Install Latest Firefox" \
             --key PATCH_ENABLED="true" \
             "$verbosity" \
-            "$url" \
             --replace
         ;;
     dock)
@@ -643,22 +652,19 @@ case "$test_type" in
             --type "App" \
             --path "/Applications/ETH Self Service.app/" \
             "$verbosity" \
-            "$url" \
             --replace
         ;;
     icon)
         "$DIR"/../jamf-upload.sh icon \
             --prefs "$prefs" \
             --icon-uri "https://ics.services.jamfcloud.com/icon/hash_13139b4d9732a8b2fa3bbe25e6c6373e8ef6b85a7c7ba2bd15615195d63bc648" \
-            "$verbosity" \
-            "$url"
+            "$verbosity"
         ;;
     icon2)
         "$DIR"/../jamf-upload.sh icon \
             --prefs "$prefs" \
             --icon "/tmp/Apple Configurator.png" \
-            "$verbosity" \
-            "$url"
+            "$verbosity"
         ;;
     apirole)
         "$DIR"/../jamf-upload.sh apirole \
@@ -706,7 +712,6 @@ case "$test_type" in
             --info "Uploaded directly by JamfPackageUploader using v1/packages" \
             --notes "$(date)" \
             "$verbosity" \
-            "$url" \
             --replace
         ;;
     pkg-noreplace)
@@ -772,7 +777,6 @@ case "$test_type" in
             --info "Updated by JamfPkgMetadataUploader" \
             --notes "$(date)" \
             "$verbosity" \
-            "$url" \
             --replace
         ;;
     slack)
@@ -789,7 +793,6 @@ case "$test_type" in
             --slack-user "JamfUploader Test User" \
             --icon "https://resources.jamf.com/images/logos/Jamf-Icon-color.png" \
             "$verbosity" \
-            "$url" \
             --replace
         ;;
     teams)
@@ -808,7 +811,6 @@ case "$test_type" in
             --patch-uploaded \
             --patch_name "Test Patch Policy" \
             "$verbosity" \
-            "$url" \
             --replace
         ;;
     *)

@@ -350,7 +350,9 @@ class JamfUploaderBase(Processor):
         """obtain token using basic auth"""
 
         # first try to get the account and password from the Keychain
-        user_from_kc, pass_from_kc = self.keychain_get_creds(jamf_url)
+        user_from_kc, pass_from_kc = self.keychain_get_creds(
+            jamf_url, jamf_user, client_id
+        )
         if user_from_kc and pass_from_kc:
             if self.is_valid_uuid(user_from_kc):
                 client_id = user_from_kc
@@ -1141,32 +1143,29 @@ class JamfUploaderBase(Processor):
             self.output(f"{uuid_to_test} is an account name", verbose_level=3)
             return False
 
-    def keychain_get_creds(self, service):
-        """Get an account name in the keychain.
+    def keychain_get_creds(self, service, jamf_user, client_id):
+        """Get an account name and password from the keychain.
 
         Args:
-            service: The service name.
+            service: The service name (the Jamf Pro URL in this case)
+            jamf_user: optional user if needed to specify between multiple
+                keychain entries of the same server
+            client_id: optional API Client ID if needed to specify between multiple
+                keychain entries of the same server
 
         Returns:
             The account name and password, or `None` for both if not found.
 
         """
-        account = None
+        if client_id:
+            acct = client_id
+        elif jamf_user:
+            acct = jamf_user
+            self.output(f"Account supplied: {acct}", verbose_level=2)  # TEMP
+        else:
+            acct = None
         passw = None
-        try:
-            result = subprocess.run(
-                ["/usr/bin/security", "find-internet-password", "-s", service, "-g"],
-                capture_output=True,
-                text=True,
-                check=True,
-            )
-            self.output(result.stdout, verbose_level=3)
-            for line in result.stdout.splitlines():
-                if "acct" in line:
-                    account = line.split('"')[3]
-        except subprocess.CalledProcessError:
-            pass
-        if account:
+        if acct:
             try:
                 result = subprocess.run(
                     [
@@ -1175,7 +1174,7 @@ class JamfUploaderBase(Processor):
                         "-s",
                         service,
                         "-a",
-                        account,
+                        acct,
                         "-w",
                         "-g",
                     ],
@@ -1188,8 +1187,50 @@ class JamfUploaderBase(Processor):
                 passw = self.remove_non_printable(result.stdout)
             except subprocess.CalledProcessError:
                 pass
+        else:
+            try:
+                result = subprocess.run(
+                    [
+                        "/usr/bin/security",
+                        "find-internet-password",
+                        "-s",
+                        service,
+                        "-g",
+                    ],
+                    capture_output=True,
+                    text=True,
+                    check=True,
+                )
+                self.output(result.stdout, verbose_level=3)
+                for line in result.stdout.splitlines():
+                    if "acct" in line:
+                        acct = line.split('"')[3]
+            except subprocess.CalledProcessError:
+                pass
+            if acct:
+                try:
+                    result = subprocess.run(
+                        [
+                            "/usr/bin/security",
+                            "find-internet-password",
+                            "-s",
+                            service,
+                            "-a",
+                            acct,
+                            "-w",
+                            "-g",
+                        ],
+                        text=True,
+                        check=True,
+                        stdout=subprocess.PIPE,
+                        stderr=subprocess.STDOUT,
+                    )
+                    # self.output(result.stdout, verbose_level=2)
+                    passw = self.remove_non_printable(result.stdout)
+                except subprocess.CalledProcessError:
+                    pass
 
-        return account, passw
+        return acct, passw
 
 
 if __name__ == "__main__":

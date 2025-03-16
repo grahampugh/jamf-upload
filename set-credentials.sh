@@ -139,16 +139,16 @@ instance_base="${inputted_url/*:\/\//}"
 kc_check=$(security find-internet-password -s "${inputted_url}" -l "$instance_base ($inputted_username)" -a "$inputted_username" -g 2>/dev/null)
 
 if [[ $kc_check ]]; then
-    echo "Keychain entry for $inputted_username found on $instance_base"
+    echo "Keychain entry for $inputted_username on $instance_base found"
 else
-    echo "Keychain entry for $inputted_username not found on $instance_base"
+    echo "No keychain entry for $inputted_username on $instance_base found"
 fi
 
 echo
 # check for existing password entry in login keychain
 instance_pass=$(security find-internet-password -s "${inputted_url}" -l "$instance_base ($inputted_username)" -a "$inputted_username" -w -g 2>&1)
 
-if [[ $instance_pass ]]; then
+if [[ ${#instance_pass} -gt 0 && $instance_pass != "security: "* ]]; then
     echo "Password / Client Secret for $inputted_username found on $instance_base"
 else
     echo "Password / Client Secret for $inputted_username not found on $instance_base"
