@@ -1,0 +1,23 @@
+Identifier: com.github.grahampugh.recipes.tests.ChangePolicyName
+Comment: |
+  Designed to work in a wrapper script, using an edited JSON file based on a list_only output from JamfObjectReader.
+  Requires:
+  - OBJECT_ID
+  - NEW_NAME
+MinimumVersion: "2.3"
+Input: {}
+
+Process:
+  - Processor: com.github.grahampugh.jamf-upload.processors/JamfObjectReader
+    Arguments:
+      object_id: "%OBJECT_ID%"
+      object_type: policy
+      output_dir: /Users/Shared/Jamf/JamfUploaderTests
+
+  - Processor: com.github.grahampugh.jamf-upload.processors/JamfObjectUploader
+    Arguments:
+      object_id: "%OBJECT_ID%"
+      object_name: "%NEW_NAME%"
+      object_type: policy
+      object_template: "%output_path%"
+      replace_object: True
