@@ -1040,9 +1040,9 @@ while test $# -gt 0 ; do
             ;;
         --id)
             shift
-            if [[ $processor == "JamfObjectUploader" ]]; then
-                if plutil -replace id -string "$1" "$temp_processor_plist"; then
-                    echo "   [jamf-upload] Wrote id='$1' into $temp_processor_plist"
+            if [[ $processor == "JamfObjectReader" || $processor == "JamfObjectUploader" ]]; then
+                if plutil -replace object_id -string "$1" "$temp_processor_plist"; then
+                    echo "   [jamf-upload] Wrote object_id='$1' into $temp_processor_plist"
                 fi
             fi
             ;;

@@ -46,6 +46,7 @@ class JamfObjectReaderBase(JamfUploaderBase):
         jamf_password = self.env.get("API_PASSWORD")
         client_id = self.env.get("CLIENT_ID")
         client_secret = self.env.get("CLIENT_SECRET")
+        obj_id = self.env.get("object_id")
         object_name = self.env.get("object_name")
         all_objects = self.env.get("all_objects")
         list_only = self.env.get("list_only")
@@ -88,6 +89,8 @@ class JamfObjectReaderBase(JamfUploaderBase):
 
         # declare name key
         namekey = self.get_namekey(object_type)
+        namekey_path = self.get_namekey_path(object_type, namekey)
+        self.output(f"namekey_path: {namekey_path}")  # TEMP
 
         # if requesting all objects we need to generate a list of all to iterate through
         if all_objects or list_only:
@@ -113,6 +116,14 @@ class JamfObjectReaderBase(JamfUploaderBase):
             # we really need an output path for all_objects, so exit if not provided
             if not output_dir:
                 raise ProcessorError("ERROR: no output path provided")
+
+        elif obj_id:
+            object_name = self.get_api_obj_value_from_id(
+                jamf_url, object_type, obj_id, obj_path=namekey_path, token=token
+            )
+            object_list = [{"id": obj_id, namekey: object_name}]
+            self.output(f"Name: {object_name}")  # TEMP
+
         elif object_name:
             # Check for existing item
             self.output(f"Checking for existing '{object_name}' on {jamf_url}")
@@ -222,8 +233,13 @@ class JamfObjectReaderBase(JamfUploaderBase):
         # output the summary
         self.env["object_type"] = object_type
         self.env["output_dir"] = output_dir
-        if not all_objects:
+        if not all_objects and not list_only:
+            self.env["output_filename"] = output_filename
+            self.env["output_path"] = file_path
             self.env["object_name"] = object_name
             self.env["object_id"] = obj_id
             self.env["raw_object"] = str(raw_object) or None
             self.env["parsed_object"] = str(parsed_object) or None
+            if payload:
+                self.env["payload_output_filename"] = payload_output_filename
+                self.env["payload_file_path"] = payload_file_path

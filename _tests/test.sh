@@ -278,6 +278,15 @@ case "$test_type" in
             --output "/Users/Shared/Jamf/JamfUploaderTests" \
             "$verbosity"
         ;;
+    read-script-id)
+        "$DIR"/../jamf-upload.sh read \
+            --prefs "$prefs" \
+            --recipe-dir /Users/gpugh/sourcecode/jamf-upload/_tests \
+            --type "script" \
+            --id "22" \
+            --output "/Users/Shared/Jamf/JamfUploaderTests" \
+            "$verbosity"
+        ;;
     read-category)
         "$DIR"/../jamf-upload.sh read \
             --prefs "$prefs" \

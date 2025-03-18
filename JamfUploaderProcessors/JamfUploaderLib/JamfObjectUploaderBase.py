@@ -118,7 +118,7 @@ class JamfObjectUploaderBase(JamfUploaderBase):
         jamf_password = self.env.get("API_PASSWORD")
         client_id = self.env.get("CLIENT_ID")
         client_secret = self.env.get("CLIENT_SECRET")
-        obj_id = self.env.get("id")
+        obj_id = self.env.get("object_id")
         object_name = self.env.get("object_name")
         object_type = self.env.get("object_type")
         object_template = self.env.get("object_template")
@@ -166,19 +166,7 @@ class JamfObjectUploaderBase(JamfUploaderBase):
             if obj_id:
                 # declare name key
                 namekey = self.get_namekey(object_type)
-                # define xpath for name based on object type
-                if object_type in (
-                    "policy",
-                    "os_x_configuration_profile",
-                    "configuration_profile",
-                    "mac_application",
-                    "mobile_device_application",
-                    "patch_policy",
-                    "restricted_software",
-                ):
-                    namekey_path = f"general/{namekey}"
-                else:
-                    namekey_path = "name"
+                namekey_path = self.get_namekey_path(object_type, namekey)
 
                 # if an ID has been passed into the recipe, look for object based on ID rather than name
                 self.output(

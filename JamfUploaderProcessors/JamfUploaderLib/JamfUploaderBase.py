@@ -160,6 +160,23 @@ class JamfUploaderBase(Processor):
             namekey = "displayName"
         return namekey
 
+    def get_namekey_path(self, object_type, namekey):
+        """Return the namekey path in Xpath format"""
+        # define xpath for name based on object type
+        if object_type in (
+            "policy",
+            "os_x_configuration_profile",
+            "configuration_profile",
+            "mac_application",
+            "mobile_device_application",
+            "patch_policy",
+            "restricted_software",
+        ):
+            namekey_path = f"general/{namekey}"
+        else:
+            namekey_path = namekey
+        return namekey_path
+
     def write_json_file(self, data):
         """dump some json to a temporary file"""
         tf = self.init_temp_file(suffix=".json")
@@ -457,7 +474,7 @@ class JamfUploaderBase(Processor):
         else:
             raise ProcessorError("No URL supplied")
 
-        self.output(f"url: {url}", verbose_level=3)
+        self.output(f"URL: {url}", verbose_level=3)
 
         # set User-Agent
         user_agent = f"JamfUploader/{self.__version__}"
@@ -926,29 +943,54 @@ class JamfUploaderBase(Processor):
         """get the value of an item in a Classic or Jamf Pro API object"""
         # define the relationship between the object types and their URL
         # we could make this shorter with some regex but I think this way is clearer
-        url = f"{jamf_url}/{self.api_endpoints(object_type)}/id/{obj_id}"
-        request = "GET"
-        r = self.curl(request=request, url=url, token=token)
-        if r.status_code == 200:
-            obj_content = json.loads(r.output)
-            self.output(obj_content, verbose_level=4)
 
-            # convert an xpath to json
-            xpath_list = obj_path.split("/")
-            value = obj_content[object_type]
+        # if we find an object ID or it's an endpoint without IDs, we PUT or PATCH
+        # if we're creating a new object, we POST
+        if "JSSResource" in self.api_endpoints(object_type):
+            # do XML stuff
+            url = f"{jamf_url}/{self.api_endpoints(object_type)}/id/{obj_id}"
+            request = "GET"
+            r = self.curl(request=request, url=url, token=token)
+            if r.status_code == 200:
+                obj_content = json.loads(r.output)
+                self.output(obj_content, verbose_level=4)
 
-            for _, xpath in enumerate(xpath_list):
-                if xpath:
-                    try:
-                        value = value[xpath]
-                        self.output(value, verbose_level=3)
-                    except KeyError:
-                        value = ""
-                        break
+                # convert an xpath to json
+                xpath_list = obj_path.split("/")
+                value = obj_content[object_type]
 
-            if value:
-                self.output(f"Value of '{obj_path}': {value}", verbose_level=2)
-            return value
+                for _, xpath in enumerate(xpath_list):
+                    if xpath:
+                        try:
+                            value = value[xpath]
+                            self.output(value, verbose_level=3)
+                        except KeyError:
+                            value = ""
+                            break
+        else:
+            url = f"{jamf_url}/{self.api_endpoints(object_type)}/{obj_id}"
+            request = "GET"
+            r = self.curl(request=request, url=url, token=token)
+            if r.status_code == 200:
+                obj_content = r.output
+                self.output(obj_content, verbose_level=4)
+
+                # convert an xpath to json
+                xpath_list = obj_path.split("/")
+                value = obj_content
+
+                for _, xpath in enumerate(xpath_list):
+                    if xpath:
+                        try:
+                            value = value[xpath]
+                            self.output(value, verbose_level=3)
+                        except KeyError:
+                            value = ""
+                            break
+
+        if value:
+            self.output(f"Value of '{obj_path}': {value}", verbose_level=2)
+        return value
 
     def pretty_print_xml(self, xml):
         """prettifies XML"""
