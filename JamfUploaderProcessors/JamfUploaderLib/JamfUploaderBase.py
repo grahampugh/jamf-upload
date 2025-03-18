@@ -1095,7 +1095,7 @@ class JamfUploaderBase(Processor):
                 parent = root
 
                 # Traverse the XML tree to find the parent of the target element
-                for key in keys[:-1]:
+                for key in keys:
                     found = parent.find(key)
                     if found is not None:
                         parent = found
