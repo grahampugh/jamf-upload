@@ -165,7 +165,7 @@ class JamfObjectUploaderBase(JamfUploaderBase):
         if "_settings" not in object_type:
             if obj_id:
                 # declare name key
-                name_key = self.get_name_key(object_type)
+                namekey = self.get_namekey(object_type)
                 # define xpath for name based on object type
                 if object_type in (
                     "policy",
@@ -176,9 +176,9 @@ class JamfObjectUploaderBase(JamfUploaderBase):
                     "patch_policy",
                     "restricted_software",
                 ):
-                    obj_path = "general/name"
+                    namekey_path = f"general/{namekey}"
                 else:
-                    obj_path = "name"
+                    namekey_path = "name"
 
                 # if an ID has been passed into the recipe, look for object based on ID rather than name
                 self.output(
@@ -186,7 +186,7 @@ class JamfObjectUploaderBase(JamfUploaderBase):
                 )
 
                 existing_object_name = self.get_api_obj_value_from_id(
-                    jamf_url, object_type, obj_id, obj_path=obj_path, token=token
+                    jamf_url, object_type, obj_id, obj_path=namekey_path, token=token
                 )
                 if existing_object_name:
                     self.output(
@@ -210,16 +210,13 @@ class JamfObjectUploaderBase(JamfUploaderBase):
                     f"Checking for existing {object_type} '{object_name}' on {jamf_url}"
                 )
 
-                # declare name key
-                name_key = self.get_name_key(object_type)
-
                 # get the ID from the object bearing the supplied name
                 obj_id = self.get_api_obj_id_from_name(
                     jamf_url,
                     object_name,
                     object_type,
                     token=token,
-                    filter_name=name_key,
+                    filter_name=namekey,
                 )
 
                 if obj_id:
@@ -241,6 +238,7 @@ class JamfObjectUploaderBase(JamfUploaderBase):
         else:
             object_name = ""
             obj_id = 0
+            namekey_path = ""
 
         # we need to substitute the values in the object name and template now to
         # account for version strings in the name
@@ -263,6 +261,7 @@ class JamfObjectUploaderBase(JamfUploaderBase):
                 object_name,
                 xml_escape=xml_escape,
                 elements_to_remove=elements_to_remove,
+                namekey_path=namekey_path,
             )
 
         # upload the object

@@ -148,17 +148,17 @@ class JamfUploaderBase(Processor):
         }
         return object_list_types[object_type]
 
-    def get_name_key(self, object_type):
+    def get_namekey(self, object_type):
         """Return the name key that identifies the object"""
-        name_key = "name"
+        namekey = "name"
         if object_type in (
             "api_client",
             "computer_prestage",
             "mobile_device_prestage",
             "enrollment_customization",
         ):
-            name_key = "displayName"
-        return name_key
+            namekey = "displayName"
+        return namekey
 
     def write_json_file(self, data):
         """dump some json to a temporary file"""
@@ -1134,6 +1134,7 @@ class JamfUploaderBase(Processor):
         object_name=None,
         xml_escape=False,
         elements_to_remove=None,
+        namekey_path=None,
     ):
         """prepare the object contents"""
         # import template from file and replace any keys in the template
@@ -1154,9 +1155,10 @@ class JamfUploaderBase(Processor):
             object_name = self.substitute_assignable_keys(object_name)
 
             # also update the name key to match the given name
-            template_contents = self.replace_xml_element(
-                template_contents, "general/name", object_name
-            )
+            if namekey_path:
+                template_contents = self.replace_xml_element(
+                    template_contents, namekey_path, object_name
+                )
         template_contents = self.substitute_assignable_keys(
             template_contents, xml_escape
         )

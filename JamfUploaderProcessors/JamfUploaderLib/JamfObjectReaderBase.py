@@ -87,7 +87,7 @@ class JamfObjectReaderBase(JamfUploaderBase):
         object_list = []
 
         # declare name key
-        name_key = self.get_name_key(object_type)
+        namekey = self.get_namekey(object_type)
 
         # if requesting all objects we need to generate a list of all to iterate through
         if all_objects or list_only:
@@ -122,7 +122,7 @@ class JamfObjectReaderBase(JamfUploaderBase):
                 object_name,
                 object_type,
                 token=token,
-                filter_name=name_key,
+                filter_name=namekey,
             )
 
             if obj_id:
@@ -130,7 +130,7 @@ class JamfObjectReaderBase(JamfUploaderBase):
                     f"{object_type} '{object_name}' exists: ID {obj_id}",
                     verbose_level=2,
                 )
-                object_list = [{"id": obj_id, name_key: object_name}]
+                object_list = [{"id": obj_id, namekey: object_name}]
             else:
                 self.output(f"{object_type} '{object_name}' not found on {jamf_url}")
                 return
@@ -138,7 +138,7 @@ class JamfObjectReaderBase(JamfUploaderBase):
         # now iterate through all the objects
         for obj in object_list:
             i = obj["id"]
-            n = obj[name_key]
+            n = obj[namekey]
 
             # get the object
             raw_object = self.get_api_obj_contents_from_id(
