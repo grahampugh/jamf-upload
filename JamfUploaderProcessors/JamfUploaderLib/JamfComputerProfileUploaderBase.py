@@ -45,7 +45,7 @@ class JamfComputerProfileUploaderBase(JamfUploaderBase):
         """return the existing UUID to ensure we don't change it"""
         # first grab the payload from the xml object
         obj_type = "os_x_configuration_profile"
-        existing_plist = self.get_classic_api_obj_value_from_id(
+        existing_plist = self.get_api_obj_value_from_id(
             jamf_url,
             obj_type,
             obj_id,

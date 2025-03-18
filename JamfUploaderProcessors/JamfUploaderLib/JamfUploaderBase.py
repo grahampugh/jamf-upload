@@ -457,6 +457,8 @@ class JamfUploaderBase(Processor):
         else:
             raise ProcessorError("No URL supplied")
 
+        self.output(f"url: {url}", verbose_level=3)
+
         # set User-Agent
         user_agent = f"JamfUploader/{self.__version__}"
         curl_cmd.extend(["--header", f"User-Agent: {user_agent}"])
@@ -544,7 +546,7 @@ class JamfUploaderBase(Processor):
 
         # direct output to a file
         curl_cmd.extend(["--output", output_file])
-        self.output(f"Output file is:  {output_file}", verbose_level=3)
+        self.output(f"Output file is: {output_file}", verbose_level=3)
 
         # write session for jamf API requests
         if (
@@ -920,10 +922,8 @@ class JamfUploaderBase(Processor):
                 )
                 return obj_content
 
-    def get_classic_api_obj_value_from_id(
-        self, jamf_url, object_type, obj_id, obj_path, token
-    ):
-        """get the value of an item in a Classic API object"""
+    def get_api_obj_value_from_id(self, jamf_url, object_type, obj_id, obj_path, token):
+        """get the value of an item in a Classic or Jamf Pro API object"""
         # define the relationship between the object types and their URL
         # we could make this shorter with some regex but I think this way is clearer
         url = f"{jamf_url}/{self.api_endpoints(object_type)}/id/{obj_id}"
@@ -1039,6 +1039,38 @@ class JamfUploaderBase(Processor):
             for elem in parent.findall(element):
                 parent.remove(elem)
 
+    def replace_xml_element(self, existing_object, element_path, new_value):
+        """Replaces a specific element from XML using a path such as 'general/id'."""
+        try:
+            # load object
+            parsed_xml = ""
+            object_xml = ET.fromstring(existing_object)
+            root = ET.ElementTree(object_xml).getroot()
+            parent = root
+
+            # Split the path into parts
+            keys = element_path.split("/")
+
+            # Traverse the XML tree to find the parent of the target element
+            for key in keys:
+                found = parent.find(key)
+                if found is not None:
+                    parent = found
+                else:
+                    raise KeyError(f"Path '{element_path}' not found.")
+
+            # Find and replace the target element
+            parent.text = new_value
+
+            self.output(
+                f"Successfully replaced '{element_path}' with '{new_value}'.",
+                verbose_level=2,
+            )
+            parsed_xml = ET.tostring(object_xml, encoding="UTF-8")
+        except ET.ParseError as xml_error:
+            raise ProcessorError("Could not extract XML") from xml_error
+        return parsed_xml.decode("UTF-8")
+
     def substitute_elements_in_xml(self, object_xml, element, replacement_value):
         """substitutes all instances of an object from XML with a provided replaceement value"""
         for parent in object_xml.findall(f".//{element}/.."):
@@ -1117,7 +1149,14 @@ class JamfUploaderBase(Processor):
         )
 
         # substitute user-assignable keys
-        object_name = self.substitute_assignable_keys(object_name)
+        if object_name:
+            self.output(f"Object Name: {object_name}", verbose_level=2)  # TEMP
+            object_name = self.substitute_assignable_keys(object_name)
+
+            # also update the name key to match the given name
+            template_contents = self.replace_xml_element(
+                template_contents, "general/name", object_name
+            )
         template_contents = self.substitute_assignable_keys(
             template_contents, xml_escape
         )

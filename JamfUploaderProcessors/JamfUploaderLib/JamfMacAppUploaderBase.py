@@ -183,7 +183,7 @@ class JamfMacAppUploaderBase(JamfUploaderBase):
                 )
 
                 # obtain the MAS app bundleid
-                bundleid = self.get_classic_api_obj_value_from_id(
+                bundleid = self.get_api_obj_value_from_id(
                     jamf_url,
                     "mac_application",
                     obj_id,
@@ -193,7 +193,7 @@ class JamfMacAppUploaderBase(JamfUploaderBase):
                 if bundleid:
                     self.output(f"Existing bundle ID is '{bundleid}'", verbose_level=1)
                 # obtain the MAS app version
-                macapp_version = self.get_classic_api_obj_value_from_id(
+                macapp_version = self.get_api_obj_value_from_id(
                     jamf_url,
                     "mac_application",
                     obj_id,
@@ -206,7 +206,7 @@ class JamfMacAppUploaderBase(JamfUploaderBase):
                         verbose_level=1,
                     )
                 # obtain the MAS app free status
-                macapp_is_free = self.get_classic_api_obj_value_from_id(
+                macapp_is_free = self.get_api_obj_value_from_id(
                     jamf_url,
                     "mac_application",
                     obj_id,
@@ -219,7 +219,7 @@ class JamfMacAppUploaderBase(JamfUploaderBase):
                         verbose_level=1,
                     )
                 # obtain the MAS app URL
-                appstore_url = self.get_classic_api_obj_value_from_id(
+                appstore_url = self.get_api_obj_value_from_id(
                     jamf_url,
                     "mac_application",
                     obj_id,
@@ -232,7 +232,7 @@ class JamfMacAppUploaderBase(JamfUploaderBase):
                     )
                 # obtain the MAS app icon
                 if not selfservice_icon_uri:
-                    selfservice_icon_uri = self.get_classic_api_obj_value_from_id(
+                    selfservice_icon_uri = self.get_api_obj_value_from_id(
                         jamf_url,
                         "mac_application",
                         obj_id,
@@ -311,7 +311,7 @@ class JamfMacAppUploaderBase(JamfUploaderBase):
                 self.output(f"MAS app '{clone_from}' already exists: ID {obj_id}")
 
                 # obtain the MAS app bundleid
-                bundleid = self.get_classic_api_obj_value_from_id(
+                bundleid = self.get_api_obj_value_from_id(
                     jamf_url,
                     "mac_application",
                     obj_id,
@@ -321,7 +321,7 @@ class JamfMacAppUploaderBase(JamfUploaderBase):
                 if bundleid:
                     self.output(f"Existing bundle ID is '{bundleid}'", verbose_level=1)
                 # obtain the MAS app version
-                macapp_version = self.get_classic_api_obj_value_from_id(
+                macapp_version = self.get_api_obj_value_from_id(
                     jamf_url,
                     "mac_application",
                     obj_id,
@@ -334,7 +334,7 @@ class JamfMacAppUploaderBase(JamfUploaderBase):
                         verbose_level=1,
                     )
                 # obtain the MAS app free status
-                macapp_is_free = self.get_classic_api_obj_value_from_id(
+                macapp_is_free = self.get_api_obj_value_from_id(
                     jamf_url,
                     "mac_application",
                     obj_id,
@@ -347,7 +347,7 @@ class JamfMacAppUploaderBase(JamfUploaderBase):
                         verbose_level=1,
                     )
                 # obtain the MAS app URL
-                appstore_url = self.get_classic_api_obj_value_from_id(
+                appstore_url = self.get_api_obj_value_from_id(
                     jamf_url,
                     "mac_application",
                     obj_id,
@@ -360,7 +360,7 @@ class JamfMacAppUploaderBase(JamfUploaderBase):
                     )
                 # obtain the MAS app icon
                 if not selfservice_icon_uri:
-                    selfservice_icon_uri = self.get_classic_api_obj_value_from_id(
+                    selfservice_icon_uri = self.get_api_obj_value_from_id(
                         jamf_url,
                         "mac_application",
                         obj_id,

@@ -118,6 +118,7 @@ class JamfObjectUploaderBase(JamfUploaderBase):
         jamf_password = self.env.get("API_PASSWORD")
         client_id = self.env.get("CLIENT_ID")
         client_secret = self.env.get("CLIENT_SECRET")
+        obj_id = self.env.get("id")
         object_name = self.env.get("object_name")
         object_type = self.env.get("object_type")
         object_template = self.env.get("object_template")
@@ -127,6 +128,8 @@ class JamfObjectUploaderBase(JamfUploaderBase):
         # handle setting replace in overrides
         if not replace_object or replace_object == "False":
             replace_object = False
+        if not elements_to_remove:
+            elements_to_remove = []
         object_updated = False
 
         # clear any pre-existing summary result
@@ -142,29 +145,6 @@ class JamfObjectUploaderBase(JamfUploaderBase):
                 raise ProcessorError(
                     f"ERROR: {object_type} file {object_template} not found"
                 )
-
-        # we need to substitute the values in the object name and template now to
-        # account for version strings in the name
-        if "JSSResource" in self.api_endpoints(object_type):
-            xml_escape = True
-        else:
-            xml_escape = False
-        if "_settigns" in object_type:
-            _, template_file = self.prepare_template(
-                object_type,
-                object_template,
-                object_name=None,
-                xml_escape=xml_escape,
-                elements_to_remove=elements_to_remove,
-            )
-        else:
-            object_name, template_file = self.prepare_template(
-                object_type,
-                object_template,
-                object_name,
-                xml_escape=xml_escape,
-                elements_to_remove=elements_to_remove,
-            )
 
         # now start the process of uploading the object
         self.output(f"Obtaining API token for {jamf_url}")
@@ -183,37 +163,107 @@ class JamfObjectUploaderBase(JamfUploaderBase):
 
         # check for an existing object except for settings-related endpoints
         if "_settings" not in object_type:
-            self.output(
-                f"Checking for existing {object_type} '{object_name}' on {jamf_url}"
-            )
-
-            # declare name key
-            name_key = self.get_name_key(object_type)
-
-            # get the ID from the object bearing the supplied name
-            obj_id = self.get_api_obj_id_from_name(
-                jamf_url, object_name, object_type, token=token, filter_name=name_key
-            )
-
             if obj_id:
-                self.output(
-                    f"{object_type} '{object_name}' already exists: ID {obj_id}"
-                )
-                if replace_object:
-                    self.output(
-                        f"Replacing existing {object_type} as replace_object is "
-                        f"set to '{replace_object}'",
-                        verbose_level=1,
-                    )
+                # declare name key
+                name_key = self.get_name_key(object_type)
+                # define xpath for name based on object type
+                if object_type in (
+                    "policy",
+                    "os_x_configuration_profile",
+                    "configuration_profile",
+                    "mac_application",
+                    "mobile_device_application",
+                    "patch_policy",
+                    "restricted_software",
+                ):
+                    obj_path = "general/name"
                 else:
+                    obj_path = "name"
+
+                # if an ID has been passed into the recipe, look for object based on ID rather than name
+                self.output(
+                    f"Checking for existing {object_type} with ID '{obj_id}' on {jamf_url}"
+                )
+
+                existing_object_name = self.get_api_obj_value_from_id(
+                    jamf_url, object_type, obj_id, obj_path=obj_path, token=token
+                )
+                if existing_object_name:
                     self.output(
-                        f"Not replacing existing {object_type}. Use "
-                        f"replace_object='True' to enforce."
+                        f"{object_type} '{obj_id}' already exists ('{existing_object_name}')"
                     )
-                    return
+                    if replace_object:
+                        self.output(
+                            f"Replacing existing {object_type} as replace_object is "
+                            f"set to '{replace_object}'",
+                            verbose_level=1,
+                        )
+                    else:
+                        self.output(
+                            f"Not replacing existing {object_type}. Use "
+                            "replace_object='True' to enforce."
+                        )
+                        return
+            else:
+                # normal operation - look for object of the same name
+                self.output(
+                    f"Checking for existing {object_type} '{object_name}' on {jamf_url}"
+                )
+
+                # declare name key
+                name_key = self.get_name_key(object_type)
+
+                # get the ID from the object bearing the supplied name
+                obj_id = self.get_api_obj_id_from_name(
+                    jamf_url,
+                    object_name,
+                    object_type,
+                    token=token,
+                    filter_name=name_key,
+                )
+
+                if obj_id:
+                    self.output(
+                        f"{object_type} '{object_name}' already exists: ID {obj_id}"
+                    )
+                    if replace_object:
+                        self.output(
+                            f"Replacing existing {object_type} as replace_object is "
+                            f"set to '{replace_object}'",
+                            verbose_level=1,
+                        )
+                    else:
+                        self.output(
+                            f"Not replacing existing {object_type}. Use "
+                            f"replace_object='True' to enforce."
+                        )
+                        return
         else:
             object_name = ""
             obj_id = 0
+
+        # we need to substitute the values in the object name and template now to
+        # account for version strings in the name
+        if "JSSResource" in self.api_endpoints(object_type):
+            xml_escape = True
+        else:
+            xml_escape = False
+        if "_settings" in object_type:
+            _, template_file = self.prepare_template(
+                object_type,
+                object_template,
+                object_name=None,
+                xml_escape=xml_escape,
+                elements_to_remove=elements_to_remove,
+            )
+        else:
+            object_name, template_file = self.prepare_template(
+                object_type,
+                object_template,
+                object_name,
+                xml_escape=xml_escape,
+                elements_to_remove=elements_to_remove,
+            )
 
         # upload the object
         self.upload_object(

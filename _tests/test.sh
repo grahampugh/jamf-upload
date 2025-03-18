@@ -166,6 +166,17 @@ case "$test_type" in
             "$verbosity" \
             --replace
         ;;
+    obj-policy-id)
+        "$DIR"/../jamf-upload.sh obj \
+            --prefs "$prefs" \
+            --recipe-dir /Users/gpugh/sourcecode/jamf-upload/_tests \
+            --type "policy" \
+            --id "15" \
+            --name "Firefox" \
+            --template "/Users/Shared/Jamf/JamfUploaderTests/jssimporter-policies-Firefox.xml" \
+            "$verbosity" \
+            --replace
+        ;;
     read-distributionpoint)
         "$DIR"/../jamf-upload.sh read \
             --prefs "$prefs" \
