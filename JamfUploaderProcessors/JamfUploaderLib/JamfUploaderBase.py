@@ -1039,37 +1039,62 @@ class JamfUploaderBase(Processor):
             for elem in parent.findall(element):
                 parent.remove(elem)
 
-    def replace_xml_element(self, existing_object, element_path, new_value):
+    def replace_element(self, object_type, existing_object, element_path, new_value):
         """Replaces a specific element from XML using a path such as 'general/id'."""
-        try:
-            # load object
-            parsed_xml = ""
-            object_xml = ET.fromstring(existing_object)
-            root = ET.ElementTree(object_xml).getroot()
-            parent = root
+        # Split the path into parts
+        keys = element_path.split("/")
+        if "JSSResource" in self.api_endpoints(object_type):
+            # do XML stuff
+            try:
+                # load object
+                parsed_xml = ""
+                object_xml = ET.fromstring(existing_object)
+                root = ET.ElementTree(object_xml).getroot()
+                parent = root
 
-            # Split the path into parts
-            keys = element_path.split("/")
+                # Traverse the XML tree to find the parent of the target element
+                for key in keys[:-1]:
+                    found = parent.find(key)
+                    if found is not None:
+                        parent = found
+                    else:
+                        raise KeyError(f"Path '{element_path}' not found.")
 
-            # Traverse the XML tree to find the parent of the target element
-            for key in keys:
-                found = parent.find(key)
-                if found is not None:
-                    parent = found
+                # Find and replace the target element
+                parent.text = new_value
+
+                self.output(
+                    f"Successfully replaced '{element_path}' with '{new_value}'.",
+                    verbose_level=2,
+                )
+                parsed_xml = ET.tostring(object_xml, encoding="UTF-8")
+            except ET.ParseError as xml_error:
+                raise ProcessorError("Could not extract XML") from xml_error
+            return parsed_xml.decode("UTF-8")
+
+        # do json stuff
+        if not isinstance(existing_object, dict):
+            existing_object = json.loads(existing_object)
+            parent = existing_object
+
+            # Traverse the JSON structure to find the target element
+            for key in keys[:-1]:
+                if key in parent and isinstance(parent[key], dict):
+                    parent = parent[key]
                 else:
                     raise KeyError(f"Path '{element_path}' not found.")
 
-            # Find and replace the target element
-            parent.text = new_value
-
+            # Replace the element's value with the new value
+            last_key = keys[-1]
+            if last_key in parent:
+                parent[last_key] = new_value
+            else:
+                raise KeyError(f"Key '{last_key}' not found in path '{element_path}'.")
             self.output(
                 f"Successfully replaced '{element_path}' with '{new_value}'.",
                 verbose_level=2,
             )
-            parsed_xml = ET.tostring(object_xml, encoding="UTF-8")
-        except ET.ParseError as xml_error:
-            raise ProcessorError("Could not extract XML") from xml_error
-        return parsed_xml.decode("UTF-8")
+            return json.dumps(existing_object, indent=4)
 
     def substitute_elements_in_xml(self, object_xml, element, replacement_value):
         """substitutes all instances of an object from XML with a provided replaceement value"""
@@ -1089,7 +1114,6 @@ class JamfUploaderBase(Processor):
             parsed_xml = ""
             object_xml = ET.fromstring(existing_object)
             try:
-
                 # remove any id tags
                 self.remove_elements_from_xml(object_xml, "id")
                 # remove any self service icons
@@ -1112,20 +1136,20 @@ class JamfUploaderBase(Processor):
         if not isinstance(existing_object, dict):
             existing_object = json.loads(existing_object)
 
-            # remove any id-type tags
-            if "id" in existing_object:
-                existing_object.pop("id")
-            if "categoryId" in existing_object:
-                existing_object.pop("categoryId")
-            if "deviceEnrollmentProgramInstanceId" in existing_object:
-                existing_object.pop("deviceEnrollmentProgramInstanceId")
-            # now go one deep and look for more id keys. Hopefully we don't have to go deeper!
-            for elem in existing_object.values():
-                elem_check = elem
-                if isinstance(elem_check, abc.Mapping):
-                    if "id" in elem:
-                        elem.pop("id")
-            return json.dumps(existing_object, indent=4)
+        # remove any id-type tags
+        if "id" in existing_object:
+            existing_object.pop("id")
+        if "categoryId" in existing_object:
+            existing_object.pop("categoryId")
+        if "deviceEnrollmentProgramInstanceId" in existing_object:
+            existing_object.pop("deviceEnrollmentProgramInstanceId")
+        # now go one deep and look for more id keys. Hopefully we don't have to go deeper!
+        for elem in existing_object.values():
+            elem_check = elem
+            if isinstance(elem_check, abc.Mapping):
+                if "id" in elem:
+                    elem.pop("id")
+        return json.dumps(existing_object, indent=4)
 
     def prepare_template(
         self,
@@ -1151,13 +1175,12 @@ class JamfUploaderBase(Processor):
 
         # substitute user-assignable keys
         if object_name:
-            self.output(f"Object Name: {object_name}", verbose_level=2)  # TEMP
             object_name = self.substitute_assignable_keys(object_name)
 
             # also update the name key to match the given name
             if namekey_path:
-                template_contents = self.replace_xml_element(
-                    template_contents, namekey_path, object_name
+                template_contents = self.replace_element(
+                    object_type, template_contents, namekey_path, object_name
                 )
         template_contents = self.substitute_assignable_keys(
             template_contents, xml_escape
@@ -1205,7 +1228,6 @@ class JamfUploaderBase(Processor):
             acct = client_id
         elif jamf_user:
             acct = jamf_user
-            self.output(f"Account supplied: {acct}", verbose_level=2)  # TEMP
         else:
             acct = None
         passw = None

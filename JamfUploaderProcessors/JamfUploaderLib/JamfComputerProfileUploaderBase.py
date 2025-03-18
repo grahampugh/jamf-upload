@@ -88,8 +88,6 @@ class JamfComputerProfileUploaderBase(JamfUploaderBase):
         mobileconfig_contents["PayloadDisplayName"] = mobileconfig_name
         mobileconfig_contents["PayloadIdentifier"] = existing_identifier
         mobileconfig_contents["PayloadUUID"] = existing_uuid
-        # with open(mobileconfig, "wb") as file:
-        #     plistlib.dump(mobileconfig_contents, file)
         return mobileconfig_contents
 
     def make_mobileconfig_from_payload(
@@ -157,30 +155,6 @@ class JamfComputerProfileUploaderBase(JamfUploaderBase):
         self.output(mobileconfig_plist.decode("UTF-8"), verbose_level=2)
 
         return mobileconfig_plist
-
-        # def unsign_signed_mobileconfig(self, mobileconfig_plist):
-        #     """checks if profile is signed. This is necessary because Jamf cannot
-        #     upload a signed profile, so we either need to unsign it, or bail"""
-        #     output_path = os.path.join("/tmp", str(uuid.uuid4()))
-        #     cmd = [
-        #         "/usr/bin/security",
-        #         "cms",
-        #         "-D",
-        #         "-i",
-        #         mobileconfig_plist,
-        #         "-o",
-        #         output_path,
-        #     ]
-        #     self.output(cmd, verbose_level=1)
-
-        # proc = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-        # _, err = proc.communicate()
-        # if os.path.exists(output_path) and os.stat(output_path).st_size > 0:
-        #     self.output(f"Profile is signed. Unsigned profile at {output_path}")
-        #     return output_path
-        # elif err:
-        #     self.output("Profile is not signed.")
-        #     self.output(err, verbose_level=2)
 
     def upload_mobileconfig(
         self,

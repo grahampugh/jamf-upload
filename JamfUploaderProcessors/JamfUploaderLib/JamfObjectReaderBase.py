@@ -150,6 +150,8 @@ class JamfObjectReaderBase(JamfUploaderBase):
                 raw_object, object_type, elements_to_remove
             )
 
+            self.output(parsed_object)
+
             # for certain types we also want to extract the payload
             payload = ""
             payload_filetype = "sh"
@@ -197,7 +199,7 @@ class JamfObjectReaderBase(JamfUploaderBase):
                         if payload:
                             payload_output_filename = (
                                 f"{subdomain}-{self.object_list_types(object_type)}-{n}"
-                                f".{payload_filetype}"
+                                f".{payload_filetype}".replace(".sh.sh", ".sh")
                             )
                             payload_file_path = os.path.join(
                                 output_dir, payload_output_filename

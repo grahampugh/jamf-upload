@@ -177,6 +177,17 @@ case "$test_type" in
             "$verbosity" \
             --replace
         ;;
+    obj-script-id)
+        "$DIR"/../jamf-upload.sh obj \
+            --prefs "$prefs" \
+            --recipe-dir /Users/gpugh/sourcecode/jamf-upload/_tests \
+            --type "script" \
+            --id "22" \
+            --name "Spotify-postinstall.sh" \
+            --template "/Users/Shared/Jamf/JamfUploaderTests/jssimporter-scripts-SpotifyPostinstall.sh.json" \
+            "$verbosity" \
+            --replace
+        ;;
     read-distributionpoint)
         "$DIR"/../jamf-upload.sh read \
             --prefs "$prefs" \
