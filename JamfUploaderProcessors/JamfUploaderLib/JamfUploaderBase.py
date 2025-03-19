@@ -1093,6 +1093,7 @@ class JamfUploaderBase(Processor):
                 object_xml = ET.fromstring(existing_object)
                 root = ET.ElementTree(object_xml).getroot()
                 parent = root
+                found = None
 
                 # Traverse the XML tree to find the parent of the target element
                 for key in keys:
@@ -1100,15 +1101,19 @@ class JamfUploaderBase(Processor):
                     if found is not None:
                         parent = found
                     else:
-                        raise KeyError(f"Path '{element_path}' not found.")
+                        self.output(
+                            f"Path '{element_path}' not found in template.",
+                            verbose_level=3,
+                        )
 
                 # Find and replace the target element
-                parent.text = new_value
+                if found is not None:
+                    parent.text = new_value
 
-                self.output(
-                    f"Successfully replaced '{element_path}' with '{new_value}'.",
-                    verbose_level=2,
-                )
+                    self.output(
+                        f"Successfully replaced '{element_path}' with '{new_value}'.",
+                        verbose_level=2,
+                    )
                 parsed_xml = ET.tostring(object_xml, encoding="UTF-8")
             except ET.ParseError as xml_error:
                 raise ProcessorError("Could not extract XML") from xml_error
