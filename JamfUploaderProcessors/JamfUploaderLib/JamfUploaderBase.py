@@ -94,7 +94,6 @@ class JamfUploaderBase(Processor):
             "script": "api/v1/scripts",
             "smtp_server_settings": "api/v2/smtp-server",
             "sso_settings": "api/v3/sso",
-            "sso_certificate": "api/v2/sso/cert",
             "token": "api/v1/auth/token",
             "volume_purchasing_location": "api/v1/volume-purchasing-locations",
         }
