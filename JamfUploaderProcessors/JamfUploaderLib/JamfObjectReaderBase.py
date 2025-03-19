@@ -94,7 +94,6 @@ class JamfObjectReaderBase(JamfUploaderBase):
         # declare name key
         namekey = self.get_namekey(object_type)
         namekey_path = self.get_namekey_path(object_type, namekey)
-        self.output(f"namekey_path: {namekey_path}")  # TEMP
 
         # if requesting all objects we need to generate a list of all to iterate through
         if all_objects or list_only:
@@ -111,7 +110,9 @@ class JamfObjectReaderBase(JamfUploaderBase):
                     try:
                         with open(file_path, "w", encoding="utf-8") as fp:
                             json.dump(object_list, fp, indent=4)
-                        self.output(f"Wrote object list to {file_path}")
+                        self.output(
+                            f"Wrote object list to file {file_path}", verbose_level=1
+                        )
                     except IOError as e:
                         raise ProcessorError(
                             f"Could not write output to {file_path} - {str(e)}"
@@ -126,7 +127,7 @@ class JamfObjectReaderBase(JamfUploaderBase):
                 jamf_url, object_type, obj_id, obj_path=namekey_path, token=token
             )
             object_list = [{"id": obj_id, namekey: object_name}]
-            self.output(f"Name: {object_name}")  # TEMP
+            self.output(f"Name: {object_name}", verbose_level=3)
 
         elif object_name:
             # Check for existing item
@@ -165,7 +166,7 @@ class JamfObjectReaderBase(JamfUploaderBase):
                 raw_object, object_type, elements_to_remove
             )
 
-            self.output(parsed_object)
+            self.output(parsed_object, verbose_level=2)
 
             # for certain types we also want to extract the payload
             payload = ""
