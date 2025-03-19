@@ -87,6 +87,10 @@ class JamfObjectReaderBase(JamfUploaderBase):
         # declare object list
         object_list = []
 
+        # declare some empty variables
+        output_filename = ""
+        file_path = ""
+
         # declare name key
         namekey = self.get_namekey(object_type)
         namekey_path = self.get_namekey_path(object_type, namekey)
@@ -234,8 +238,8 @@ class JamfObjectReaderBase(JamfUploaderBase):
         self.env["object_type"] = object_type
         self.env["output_dir"] = output_dir
         if not all_objects and not list_only:
-            self.env["output_filename"] = output_filename or None
-            self.env["output_path"] = file_path or None
+            self.env["output_filename"] = output_filename
+            self.env["output_path"] = file_path
             self.env["object_name"] = object_name
             self.env["object_id"] = obj_id
             self.env["raw_object"] = str(raw_object) or None
