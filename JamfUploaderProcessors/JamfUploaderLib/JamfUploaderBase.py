@@ -55,6 +55,7 @@ class JamfUploaderBase(Processor):
             "api_role": "api/v1/api-roles",
             "category": "api/v1/categories",
             "check_in_settings": "api/v3/check-in",
+            "cloud_ldap": "api/v2/cloud-ldaps",
             "computer_extension_attribute": "api/v1/computer-extension-attributes",
             "computer_group": "JSSResource/computergroups",
             "computer_inventory_collection_settings": "api/v1/computer-inventory-collection-settings",
@@ -92,6 +93,7 @@ class JamfUploaderBase(Processor):
             "self_service_settings": "api/v1/self-service/settings",
             "script": "api/v1/scripts",
             "smtp_server_settings": "api/v2/smtp-server",
+            "sso_settings": "api/v3/sso",
             "token": "api/v1/auth/token",
             "volume_purchasing_location": "api/v1/volume-purchasing-locations",
         }
