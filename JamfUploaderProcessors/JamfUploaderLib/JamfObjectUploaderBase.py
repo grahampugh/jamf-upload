@@ -133,8 +133,8 @@ class JamfObjectUploaderBase(JamfUploaderBase):
         object_updated = False
 
         # clear any pre-existing summary result
-        if "jamfapiobjectuploader_summary_result" in self.env:
-            del self.env["jamfapiobjectuploader_summary_result"]
+        if "jamfobjectuploader_summary_result" in self.env:
+            del self.env["jamfobjectuploader_summary_result"]
 
         # now start the process of uploading the object
         self.output(f"Obtaining API token for {jamf_url}")
@@ -214,6 +214,7 @@ class JamfObjectUploaderBase(JamfUploaderBase):
                         )
                         return
 
+        if "_command" not in object_type:
             # handle files with a relative path
             if not object_template.startswith("/"):
                 found_template = self.get_path_to_file(object_template)

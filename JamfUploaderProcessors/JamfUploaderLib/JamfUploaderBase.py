@@ -1168,6 +1168,22 @@ class JamfUploaderBase(Processor):
                 # parent.remove(elem)
                 elem.text = replacement_value
 
+    def inject_version_lock(self, existing_object):
+        """PreStages need to add the version lock in order to replace them"""
+        if existing_object:
+            if not isinstance(existing_object, dict):
+                existing_object = json.loads(existing_object)
+                current_version_lock = existing_object["versionLock"]
+                existing_object["versionLock"] = current_version_lock + 1
+                for value in existing_object.values():
+                    value_check = value
+                    if isinstance(value_check, abc.Mapping):
+                        if "versionLock" in value:
+                            current_version_lock = value["versionLock"]
+                            value["versionLock"] = current_version_lock
+            return json.dumps(existing_object, indent=4)
+        return ""
+
     def parse_downloaded_api_object(
         self, existing_object, object_type, elements_to_remove
     ):
@@ -1179,10 +1195,10 @@ class JamfUploaderBase(Processor):
             parsed_xml = ""
             object_xml = ET.fromstring(existing_object)
             try:
-                # remove any id tags
-                self.remove_elements_from_xml(object_xml, "id")
-                # remove any self service icons
-                self.remove_elements_from_xml(object_xml, "self_service_icon")
+                # # remove any id tags
+                # self.remove_elements_from_xml(object_xml, "id")
+                # # remove any self service icons
+                # self.remove_elements_from_xml(object_xml, "self_service_icon")
                 # optional array of other elements to remove
                 if elements_to_remove:
                     for elem in elements_to_remove:
@@ -1203,21 +1219,22 @@ class JamfUploaderBase(Processor):
                 existing_object = json.loads(existing_object)
 
             # remove any id-type tags
-            if "id" in existing_object:
-                existing_object.pop("id")
-            if "categoryId" in existing_object:
-                existing_object.pop("categoryId")
-            if "deviceEnrollmentProgramInstanceId" in existing_object:
-                existing_object.pop("deviceEnrollmentProgramInstanceId")
+            # if "id" in existing_object:
+            #     existing_object.pop("id")
+            # if "categoryId" in existing_object:
+            #     existing_object.pop("categoryId")
+            # if "deviceEnrollmentProgramInstanceId" in existing_object:
+            #     existing_object.pop("deviceEnrollmentProgramInstanceId")
             # now go one deep and look for more id keys. Hopefully we don't have to go deeper!
-            for elem in existing_object.values():
-                elem_check = elem
-                if isinstance(elem_check, abc.Mapping):
-                    if "id" in elem:
-                        elem.pop("id")
+            if elements_to_remove:
+                for elem in elements_to_remove:
+                    for value in existing_object.values():
+                        value_check = value
+                        if isinstance(value_check, abc.Mapping):
+                            if elem in value:
+                                value.pop(elem)
             return json.dumps(existing_object, indent=4)
-        else:
-            return ""
+        return ""
 
     def prepare_template(
         self,
@@ -1253,6 +1270,9 @@ class JamfUploaderBase(Processor):
         template_contents = self.substitute_assignable_keys(
             template_contents, xml_escape
         )
+        # PreStages need to iterate the versionLock value in order to replace them
+        if object_type == "computer_prestage":
+            template_contents = self.inject_version_lock(template_contents)
 
         self.output("object data:", verbose_level=2)
         self.output(template_contents, verbose_level=2)
