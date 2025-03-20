@@ -53,12 +53,18 @@ class JamfUploaderBase(Processor):
             "advanced_mobile_device_search": "JSSResource/advancedmobiledevicesearches",
             "api_client": "api/v1/api-integrations",
             "api_role": "api/v1/api-roles",
+            "app_installer": "api/v1/app-installers/deployments",
+            "app_installers_accept_t_and_c_command": (
+                "api/v1/app-installers/terms-and-conditions/accept"
+            ),
             "category": "api/v1/categories",
             "check_in_settings": "api/v3/check-in",
             "cloud_ldap": "api/v2/cloud-ldaps",
             "computer_extension_attribute": "api/v1/computer-extension-attributes",
             "computer_group": "JSSResource/computergroups",
-            "computer_inventory_collection_settings": "api/v1/computer-inventory-collection-settings",
+            "computer_inventory_collection_settings": (
+                "api/v1/computer-inventory-collection-settings"
+            ),
             "computer_prestage": "api/v3/computer-prestages",
             "configuration_profile": "JSSResource/mobiledeviceconfigurationprofiles",
             "distribution_point": "JSSResource/distributionpoints",
@@ -105,6 +111,7 @@ class JamfUploaderBase(Processor):
         object_types = {
             "advanced_computer_search": "advancedcomputersearches",
             "advanced_mobile_device_search": "advancedmobiledevicesearches",
+            "app_installer": "appinstallers",
             "package": "packages",
             "computer_group": "computergroups",
             "configuration_profile": "mobiledeviceconfigurationprofiles",
@@ -128,6 +135,7 @@ class JamfUploaderBase(Processor):
             "advanced_mobile_device_search": "advanced_mobile_device_searches",
             "api_client": "api_clients",
             "api_role": "api_roles",
+            "app_installer": "app_installers",
             "category": "categories",
             "computer_group": "computer_groups",
             "computer_prestage": "computer_prestages",
@@ -951,6 +959,7 @@ class JamfUploaderBase(Processor):
 
         # if we find an object ID or it's an endpoint without IDs, we PUT or PATCH
         # if we're creating a new object, we POST
+        value = ""
         if "JSSResource" in self.api_endpoints(object_type):
             # do XML stuff
             url = f"{jamf_url}/{self.api_endpoints(object_type)}/id/{obj_id}"
@@ -972,6 +981,8 @@ class JamfUploaderBase(Processor):
                         except KeyError:
                             value = ""
                             break
+            else:
+                raise ProcessorError(f"ERROR: {object_type} of ID {obj_id} not found.")
         else:
             url = f"{jamf_url}/{self.api_endpoints(object_type)}/{obj_id}"
             request = "GET"
@@ -993,6 +1004,8 @@ class JamfUploaderBase(Processor):
                             value = ""
                             break
 
+            else:
+                raise ProcessorError(f"ERROR: {object_type} of ID {obj_id} not found.")
         if value:
             self.output(f"Value of '{obj_path}': {value}", verbose_level=2)
         return value
@@ -1185,23 +1198,26 @@ class JamfUploaderBase(Processor):
             return parsed_xml.decode("UTF-8")
 
         # do json stuff
-        if not isinstance(existing_object, dict):
-            existing_object = json.loads(existing_object)
+        if existing_object:
+            if not isinstance(existing_object, dict):
+                existing_object = json.loads(existing_object)
 
-        # remove any id-type tags
-        if "id" in existing_object:
-            existing_object.pop("id")
-        if "categoryId" in existing_object:
-            existing_object.pop("categoryId")
-        if "deviceEnrollmentProgramInstanceId" in existing_object:
-            existing_object.pop("deviceEnrollmentProgramInstanceId")
-        # now go one deep and look for more id keys. Hopefully we don't have to go deeper!
-        for elem in existing_object.values():
-            elem_check = elem
-            if isinstance(elem_check, abc.Mapping):
-                if "id" in elem:
-                    elem.pop("id")
-        return json.dumps(existing_object, indent=4)
+            # remove any id-type tags
+            if "id" in existing_object:
+                existing_object.pop("id")
+            if "categoryId" in existing_object:
+                existing_object.pop("categoryId")
+            if "deviceEnrollmentProgramInstanceId" in existing_object:
+                existing_object.pop("deviceEnrollmentProgramInstanceId")
+            # now go one deep and look for more id keys. Hopefully we don't have to go deeper!
+            for elem in existing_object.values():
+                elem_check = elem
+                if isinstance(elem_check, abc.Mapping):
+                    if "id" in elem:
+                        elem.pop("id")
+            return json.dumps(existing_object, indent=4)
+        else:
+            return ""
 
     def prepare_template(
         self,
