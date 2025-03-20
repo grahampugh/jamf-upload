@@ -79,6 +79,10 @@ class JamfObjectUploader(JamfObjectUploaderBase):
         "object_name": {
             "required": False,
             "description": "Name of the object. Required except for settings-related objects.",
+        },
+        "object_id": {
+            "required": False,
+            "description": "ID of an object. May be used instead of supplying an object name.",
             "default": "",
         },
         "object_template": {

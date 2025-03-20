@@ -1,0 +1,10 @@
+Identifier: com.github.grahampugh.recipes.tests.DownloadPolicyList
+MinimumVersion: "2.3"
+Input: {}
+
+Process:
+  - Processor: com.github.grahampugh.jamf-upload.processors/JamfObjectReader
+    Arguments:
+      list_only: True
+      object_type: policy
+      output_dir: /Users/Shared/Jamf/JamfUploaderTests

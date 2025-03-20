@@ -166,6 +166,28 @@ case "$test_type" in
             "$verbosity" \
             --replace
         ;;
+    obj-policy-id)
+        "$DIR"/../jamf-upload.sh obj \
+            --prefs "$prefs" \
+            --recipe-dir /Users/gpugh/sourcecode/jamf-upload/_tests \
+            --type "policy" \
+            --id "15" \
+            --name "Firefox - Ongoing" \
+            --template "/Users/Shared/Jamf/JamfUploaderTests/jssimporter-policies-Firefox.xml" \
+            "$verbosity" \
+            --replace
+        ;;
+    obj-script-id)
+        "$DIR"/../jamf-upload.sh obj \
+            --prefs "$prefs" \
+            --recipe-dir /Users/gpugh/sourcecode/jamf-upload/_tests \
+            --type "script" \
+            --id "22" \
+            --name "Spotify-postinstall.sh" \
+            --template "/Users/Shared/Jamf/JamfUploaderTests/jssimporter-scripts-SpotifyPostinstall.sh.json" \
+            "$verbosity" \
+            --replace
+        ;;
     read-distributionpoint)
         "$DIR"/../jamf-upload.sh read \
             --prefs "$prefs" \
@@ -253,6 +275,15 @@ case "$test_type" in
             --recipe-dir /Users/gpugh/sourcecode/jamf-upload/_tests \
             --type "script" \
             --name "SpotifyPostinstall.sh" \
+            --output "/Users/Shared/Jamf/JamfUploaderTests" \
+            "$verbosity"
+        ;;
+    read-script-id)
+        "$DIR"/../jamf-upload.sh read \
+            --prefs "$prefs" \
+            --recipe-dir /Users/gpugh/sourcecode/jamf-upload/_tests \
+            --type "script" \
+            --id "22" \
             --output "/Users/Shared/Jamf/JamfUploaderTests" \
             "$verbosity"
         ;;

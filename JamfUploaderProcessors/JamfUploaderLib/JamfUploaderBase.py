@@ -150,17 +150,34 @@ class JamfUploaderBase(Processor):
         }
         return object_list_types[object_type]
 
-    def get_name_key(self, object_type):
+    def get_namekey(self, object_type):
         """Return the name key that identifies the object"""
-        name_key = "name"
+        namekey = "name"
         if object_type in (
             "api_client",
             "computer_prestage",
             "mobile_device_prestage",
             "enrollment_customization",
         ):
-            name_key = "displayName"
-        return name_key
+            namekey = "displayName"
+        return namekey
+
+    def get_namekey_path(self, object_type, namekey):
+        """Return the namekey path in Xpath format"""
+        # define xpath for name based on object type
+        if object_type in (
+            "policy",
+            "os_x_configuration_profile",
+            "configuration_profile",
+            "mac_application",
+            "mobile_device_application",
+            "patch_policy",
+            "restricted_software",
+        ):
+            namekey_path = f"general/{namekey}"
+        else:
+            namekey_path = namekey
+        return namekey_path
 
     def write_json_file(self, data):
         """dump some json to a temporary file"""
@@ -459,6 +476,8 @@ class JamfUploaderBase(Processor):
         else:
             raise ProcessorError("No URL supplied")
 
+        self.output(f"URL: {url}", verbose_level=3)
+
         # set User-Agent
         user_agent = f"JamfUploader/{self.__version__}"
         curl_cmd.extend(["--header", f"User-Agent: {user_agent}"])
@@ -546,7 +565,7 @@ class JamfUploaderBase(Processor):
 
         # direct output to a file
         curl_cmd.extend(["--output", output_file])
-        self.output(f"Output file is:  {output_file}", verbose_level=3)
+        self.output(f"Output file is: {output_file}", verbose_level=3)
 
         # write session for jamf API requests
         if (
@@ -922,35 +941,58 @@ class JamfUploaderBase(Processor):
                 )
                 return obj_content
 
-    def get_classic_api_obj_value_from_id(
-        self, jamf_url, object_type, obj_id, obj_path, token
-    ):
-        """get the value of an item in a Classic API object"""
+    def get_api_obj_value_from_id(self, jamf_url, object_type, obj_id, obj_path, token):
+        """get the value of an item in a Classic or Jamf Pro API object"""
         # define the relationship between the object types and their URL
         # we could make this shorter with some regex but I think this way is clearer
-        url = f"{jamf_url}/{self.api_endpoints(object_type)}/id/{obj_id}"
-        request = "GET"
-        r = self.curl(request=request, url=url, token=token)
-        if r.status_code == 200:
-            obj_content = json.loads(r.output)
-            self.output(obj_content, verbose_level=4)
 
-            # convert an xpath to json
-            xpath_list = obj_path.split("/")
-            value = obj_content[object_type]
+        # if we find an object ID or it's an endpoint without IDs, we PUT or PATCH
+        # if we're creating a new object, we POST
+        if "JSSResource" in self.api_endpoints(object_type):
+            # do XML stuff
+            url = f"{jamf_url}/{self.api_endpoints(object_type)}/id/{obj_id}"
+            request = "GET"
+            r = self.curl(request=request, url=url, token=token)
+            if r.status_code == 200:
+                obj_content = json.loads(r.output)
+                self.output(obj_content, verbose_level=4)
 
-            for _, xpath in enumerate(xpath_list):
-                if xpath:
-                    try:
-                        value = value[xpath]
-                        self.output(value, verbose_level=3)
-                    except KeyError:
-                        value = ""
-                        break
+                # convert an xpath to json
+                xpath_list = obj_path.split("/")
+                value = obj_content[object_type]
 
-            if value:
-                self.output(f"Value of '{obj_path}': {value}", verbose_level=2)
-            return value
+                for _, xpath in enumerate(xpath_list):
+                    if xpath:
+                        try:
+                            value = value[xpath]
+                            self.output(value, verbose_level=3)
+                        except KeyError:
+                            value = ""
+                            break
+        else:
+            url = f"{jamf_url}/{self.api_endpoints(object_type)}/{obj_id}"
+            request = "GET"
+            r = self.curl(request=request, url=url, token=token)
+            if r.status_code == 200:
+                obj_content = r.output
+                self.output(obj_content, verbose_level=4)
+
+                # convert an xpath to json
+                xpath_list = obj_path.split("/")
+                value = obj_content
+
+                for _, xpath in enumerate(xpath_list):
+                    if xpath:
+                        try:
+                            value = value[xpath]
+                            self.output(value, verbose_level=3)
+                        except KeyError:
+                            value = ""
+                            break
+
+        if value:
+            self.output(f"Value of '{obj_path}': {value}", verbose_level=2)
+        return value
 
     def pretty_print_xml(self, xml):
         """prettifies XML"""
@@ -1041,6 +1083,68 @@ class JamfUploaderBase(Processor):
             for elem in parent.findall(element):
                 parent.remove(elem)
 
+    def replace_element(self, object_type, existing_object, element_path, new_value):
+        """Replaces a specific element from XML using a path such as 'general/id'."""
+        # Split the path into parts
+        keys = element_path.split("/")
+        if "JSSResource" in self.api_endpoints(object_type):
+            # do XML stuff
+            try:
+                # load object
+                parsed_xml = ""
+                object_xml = ET.fromstring(existing_object)
+                root = ET.ElementTree(object_xml).getroot()
+                parent = root
+                found = None
+
+                # Traverse the XML tree to find the parent of the target element
+                for key in keys:
+                    found = parent.find(key)
+                    if found is not None:
+                        parent = found
+                    else:
+                        self.output(
+                            f"Path '{element_path}' not found in template.",
+                            verbose_level=3,
+                        )
+
+                # Find and replace the target element
+                if found is not None:
+                    parent.text = new_value
+
+                    self.output(
+                        f"Successfully replaced '{element_path}' with '{new_value}'.",
+                        verbose_level=2,
+                    )
+                parsed_xml = ET.tostring(object_xml, encoding="UTF-8")
+            except ET.ParseError as xml_error:
+                raise ProcessorError("Could not extract XML") from xml_error
+            return parsed_xml.decode("UTF-8")
+
+        # do json stuff
+        if not isinstance(existing_object, dict):
+            existing_object = json.loads(existing_object)
+            parent = existing_object
+
+            # Traverse the JSON structure to find the target element
+            for key in keys[:-1]:
+                if key in parent and isinstance(parent[key], dict):
+                    parent = parent[key]
+                else:
+                    raise KeyError(f"Path '{element_path}' not found.")
+
+            # Replace the element's value with the new value
+            last_key = keys[-1]
+            if last_key in parent:
+                parent[last_key] = new_value
+            else:
+                raise KeyError(f"Key '{last_key}' not found in path '{element_path}'.")
+            self.output(
+                f"Successfully replaced '{element_path}' with '{new_value}'.",
+                verbose_level=2,
+            )
+            return json.dumps(existing_object, indent=4)
+
     def substitute_elements_in_xml(self, object_xml, element, replacement_value):
         """substitutes all instances of an object from XML with a provided replaceement value"""
         for parent in object_xml.findall(f".//{element}/.."):
@@ -1059,7 +1163,6 @@ class JamfUploaderBase(Processor):
             parsed_xml = ""
             object_xml = ET.fromstring(existing_object)
             try:
-
                 # remove any id tags
                 self.remove_elements_from_xml(object_xml, "id")
                 # remove any self service icons
@@ -1082,20 +1185,20 @@ class JamfUploaderBase(Processor):
         if not isinstance(existing_object, dict):
             existing_object = json.loads(existing_object)
 
-            # remove any id-type tags
-            if "id" in existing_object:
-                existing_object.pop("id")
-            if "categoryId" in existing_object:
-                existing_object.pop("categoryId")
-            if "deviceEnrollmentProgramInstanceId" in existing_object:
-                existing_object.pop("deviceEnrollmentProgramInstanceId")
-            # now go one deep and look for more id keys. Hopefully we don't have to go deeper!
-            for elem in existing_object.values():
-                elem_check = elem
-                if isinstance(elem_check, abc.Mapping):
-                    if "id" in elem:
-                        elem.pop("id")
-            return json.dumps(existing_object, indent=4)
+        # remove any id-type tags
+        if "id" in existing_object:
+            existing_object.pop("id")
+        if "categoryId" in existing_object:
+            existing_object.pop("categoryId")
+        if "deviceEnrollmentProgramInstanceId" in existing_object:
+            existing_object.pop("deviceEnrollmentProgramInstanceId")
+        # now go one deep and look for more id keys. Hopefully we don't have to go deeper!
+        for elem in existing_object.values():
+            elem_check = elem
+            if isinstance(elem_check, abc.Mapping):
+                if "id" in elem:
+                    elem.pop("id")
+        return json.dumps(existing_object, indent=4)
 
     def prepare_template(
         self,
@@ -1104,6 +1207,7 @@ class JamfUploaderBase(Processor):
         object_name=None,
         xml_escape=False,
         elements_to_remove=None,
+        namekey_path=None,
     ):
         """prepare the object contents"""
         # import template from file and replace any keys in the template
@@ -1119,7 +1223,14 @@ class JamfUploaderBase(Processor):
         )
 
         # substitute user-assignable keys
-        object_name = self.substitute_assignable_keys(object_name)
+        if object_name:
+            object_name = self.substitute_assignable_keys(object_name)
+
+            # also update the name key to match the given name
+            if namekey_path:
+                template_contents = self.replace_element(
+                    object_type, template_contents, namekey_path, object_name
+                )
         template_contents = self.substitute_assignable_keys(
             template_contents, xml_escape
         )
@@ -1166,7 +1277,6 @@ class JamfUploaderBase(Processor):
             acct = client_id
         elif jamf_user:
             acct = jamf_user
-            self.output(f"Account supplied: {acct}", verbose_level=2)  # TEMP
         else:
             acct = None
         passw = None

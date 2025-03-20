@@ -46,6 +46,7 @@ class JamfObjectReaderBase(JamfUploaderBase):
         jamf_password = self.env.get("API_PASSWORD")
         client_id = self.env.get("CLIENT_ID")
         client_secret = self.env.get("CLIENT_SECRET")
+        obj_id = self.env.get("object_id")
         object_name = self.env.get("object_name")
         all_objects = self.env.get("all_objects")
         list_only = self.env.get("list_only")
@@ -86,8 +87,13 @@ class JamfObjectReaderBase(JamfUploaderBase):
         # declare object list
         object_list = []
 
+        # declare some empty variables
+        output_filename = ""
+        file_path = ""
+
         # declare name key
-        name_key = self.get_name_key(object_type)
+        namekey = self.get_namekey(object_type)
+        namekey_path = self.get_namekey_path(object_type, namekey)
 
         # if requesting all objects we need to generate a list of all to iterate through
         if all_objects or list_only:
@@ -104,7 +110,9 @@ class JamfObjectReaderBase(JamfUploaderBase):
                     try:
                         with open(file_path, "w", encoding="utf-8") as fp:
                             json.dump(object_list, fp, indent=4)
-                        self.output(f"Wrote object list to {file_path}")
+                        self.output(
+                            f"Wrote object list to file {file_path}", verbose_level=1
+                        )
                     except IOError as e:
                         raise ProcessorError(
                             f"Could not write output to {file_path} - {str(e)}"
@@ -113,6 +121,14 @@ class JamfObjectReaderBase(JamfUploaderBase):
             # we really need an output path for all_objects, so exit if not provided
             if not output_dir:
                 raise ProcessorError("ERROR: no output path provided")
+
+        elif obj_id:
+            object_name = self.get_api_obj_value_from_id(
+                jamf_url, object_type, obj_id, obj_path=namekey_path, token=token
+            )
+            object_list = [{"id": obj_id, namekey: object_name}]
+            self.output(f"Name: {object_name}", verbose_level=3)
+
         elif object_name:
             # Check for existing item
             self.output(f"Checking for existing '{object_name}' on {jamf_url}")
@@ -122,7 +138,7 @@ class JamfObjectReaderBase(JamfUploaderBase):
                 object_name,
                 object_type,
                 token=token,
-                filter_name=name_key,
+                filter_name=namekey,
             )
 
             if obj_id:
@@ -130,7 +146,7 @@ class JamfObjectReaderBase(JamfUploaderBase):
                     f"{object_type} '{object_name}' exists: ID {obj_id}",
                     verbose_level=2,
                 )
-                object_list = [{"id": obj_id, name_key: object_name}]
+                object_list = [{"id": obj_id, namekey: object_name}]
             else:
                 self.output(f"{object_type} '{object_name}' not found on {jamf_url}")
                 return
@@ -138,7 +154,7 @@ class JamfObjectReaderBase(JamfUploaderBase):
         # now iterate through all the objects
         for obj in object_list:
             i = obj["id"]
-            n = obj[name_key]
+            n = obj[namekey]
 
             # get the object
             raw_object = self.get_api_obj_contents_from_id(
@@ -149,6 +165,8 @@ class JamfObjectReaderBase(JamfUploaderBase):
             parsed_object = self.parse_downloaded_api_object(
                 raw_object, object_type, elements_to_remove
             )
+
+            self.output(parsed_object, verbose_level=2)
 
             # for certain types we also want to extract the payload
             payload = ""
@@ -197,7 +215,7 @@ class JamfObjectReaderBase(JamfUploaderBase):
                         if payload:
                             payload_output_filename = (
                                 f"{subdomain}-{self.object_list_types(object_type)}-{n}"
-                                f".{payload_filetype}"
+                                f".{payload_filetype}".replace(".sh.sh", ".sh")
                             )
                             payload_file_path = os.path.join(
                                 output_dir, payload_output_filename
@@ -220,8 +238,13 @@ class JamfObjectReaderBase(JamfUploaderBase):
         # output the summary
         self.env["object_type"] = object_type
         self.env["output_dir"] = output_dir
-        if not all_objects:
+        if not all_objects and not list_only:
+            self.env["output_filename"] = output_filename
+            self.env["output_path"] = file_path
             self.env["object_name"] = object_name
             self.env["object_id"] = obj_id
             self.env["raw_object"] = str(raw_object) or None
             self.env["parsed_object"] = str(parsed_object) or None
+            if payload:
+                self.env["payload_output_filename"] = payload_output_filename
+                self.env["payload_file_path"] = payload_file_path

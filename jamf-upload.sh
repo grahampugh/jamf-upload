@@ -114,6 +114,7 @@ Computer Extension Attribute Upload arguments:
 
 Generic Object Upload arguments:
     --name <string>         The name
+    --id <string>           The ID, can be used instead of --name to specify an ID
     --type <string>         The API object type. This is the name of the key in the XML template.
     --template <path>       XML template
     --output <dir>          Optional directory to output the parsed XML to. Directory must exist.
@@ -1034,6 +1035,14 @@ while test $# -gt 0 ; do
             if [[ $processor == "JamfObjectReader" ]]; then
                 if plutil -replace list_only -string "True" "$temp_processor_plist"; then
                     echo "   [jamf-upload] Wrote list_only='True' into $temp_processor_plist"
+                fi
+            fi
+            ;;
+        --id)
+            shift
+            if [[ $processor == "JamfObjectReader" || $processor == "JamfObjectUploader" ]]; then
+                if plutil -replace object_id -string "$1" "$temp_processor_plist"; then
+                    echo "   [jamf-upload] Wrote object_id='$1' into $temp_processor_plist"
                 fi
             fi
             ;;

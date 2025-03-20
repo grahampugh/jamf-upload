@@ -218,7 +218,7 @@ class JamfMobileDeviceAppUploaderBase(JamfUploaderBase):
                 )
 
                 # obtain the Mobile device app bundleid
-                bundleid = self.get_classic_api_obj_value_from_id(
+                bundleid = self.get_api_obj_value_from_id(
                     jamf_url,
                     "mobile_device_application",
                     obj_id,
@@ -228,7 +228,7 @@ class JamfMobileDeviceAppUploaderBase(JamfUploaderBase):
                 if bundleid:
                     self.output(f"Existing bundle ID is '{bundleid}'", verbose_level=1)
                 # obtain the Mobile device app version
-                mobiledeviceapp_version = self.get_classic_api_obj_value_from_id(
+                mobiledeviceapp_version = self.get_api_obj_value_from_id(
                     jamf_url,
                     "mobile_device_application",
                     obj_id,
@@ -241,7 +241,7 @@ class JamfMobileDeviceAppUploaderBase(JamfUploaderBase):
                         verbose_level=1,
                     )
                 # obtain the Mobile device app free status
-                mobiledeviceapp_free = self.get_classic_api_obj_value_from_id(
+                mobiledeviceapp_free = self.get_api_obj_value_from_id(
                     jamf_url,
                     "mobile_device_application",
                     obj_id,
@@ -254,7 +254,7 @@ class JamfMobileDeviceAppUploaderBase(JamfUploaderBase):
                         verbose_level=1,
                     )
                 # obtain the Mobile device app URL
-                itunes_store_url = self.get_classic_api_obj_value_from_id(
+                itunes_store_url = self.get_api_obj_value_from_id(
                     jamf_url,
                     "mobile_device_application",
                     obj_id,
@@ -268,7 +268,7 @@ class JamfMobileDeviceAppUploaderBase(JamfUploaderBase):
                     )
                 # obtain the Mobile device app icon
                 if not selfservice_icon_uri:
-                    selfservice_icon_uri = self.get_classic_api_obj_value_from_id(
+                    selfservice_icon_uri = self.get_api_obj_value_from_id(
                         jamf_url,
                         "mobile_device_application",
                         obj_id,
@@ -297,7 +297,7 @@ class JamfMobileDeviceAppUploaderBase(JamfUploaderBase):
                         appconfig_template
                     )
                 else:
-                    appconfig = self.get_classic_api_obj_value_from_id(
+                    appconfig = self.get_api_obj_value_from_id(
                         jamf_url,
                         "mobile_device_application",
                         obj_id,
@@ -370,7 +370,7 @@ class JamfMobileDeviceAppUploaderBase(JamfUploaderBase):
                 )
 
                 # obtain the Mobile device app bundleid
-                bundleid = self.get_classic_api_obj_value_from_id(
+                bundleid = self.get_api_obj_value_from_id(
                     jamf_url,
                     "mobile_device_application",
                     obj_id,
@@ -380,7 +380,7 @@ class JamfMobileDeviceAppUploaderBase(JamfUploaderBase):
                 if bundleid:
                     self.output(f"Existing bundle ID is '{bundleid}'", verbose_level=1)
                 # obtain the Mobile device app version
-                mobiledeviceapp_version = self.get_classic_api_obj_value_from_id(
+                mobiledeviceapp_version = self.get_api_obj_value_from_id(
                     jamf_url,
                     "mobile_device_application",
                     obj_id,
@@ -393,7 +393,7 @@ class JamfMobileDeviceAppUploaderBase(JamfUploaderBase):
                         verbose_level=1,
                     )
                 # obtain the Mobile device app free status
-                mobiledeviceapp_free = self.get_classic_api_obj_value_from_id(
+                mobiledeviceapp_free = self.get_api_obj_value_from_id(
                     jamf_url,
                     "mobile_device_application",
                     obj_id,
@@ -406,7 +406,7 @@ class JamfMobileDeviceAppUploaderBase(JamfUploaderBase):
                         verbose_level=1,
                     )
                 # obtain the Mobile device app URL
-                itunes_store_url = self.get_classic_api_obj_value_from_id(
+                itunes_store_url = self.get_api_obj_value_from_id(
                     jamf_url,
                     "mobile_device_application",
                     obj_id,
@@ -420,7 +420,7 @@ class JamfMobileDeviceAppUploaderBase(JamfUploaderBase):
                     )
                 # obtain the Mobile device app icon
                 if not selfservice_icon_uri:
-                    selfservice_icon_uri = self.get_classic_api_obj_value_from_id(
+                    selfservice_icon_uri = self.get_api_obj_value_from_id(
                         jamf_url,
                         "mobile_device_application",
                         obj_id,
@@ -445,7 +445,7 @@ class JamfMobileDeviceAppUploaderBase(JamfUploaderBase):
                     self.output("Didn't retrieve a VPP ID", verbose_level=2)
                 # obtain appconfig
                 if not appconfig_template:
-                    appconfig = self.get_classic_api_obj_value_from_id(
+                    appconfig = self.get_api_obj_value_from_id(
                         jamf_url,
                         "mobile_device_application",
                         obj_id,

@@ -83,6 +83,11 @@ class JamfObjectReader(JamfObjectReaderBase):
                 "the com.github.autopkg preference file."
             ),
         },
+        "object_id": {
+            "required": False,
+            "description": "ID of an object. May be used instead of supplying an object name.",
+            "default": "",
+        },
         "object_name": {
             "required": False,
             "description": "Name of the object. Required unless using 'all_objects'",
