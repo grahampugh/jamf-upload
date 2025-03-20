@@ -1,0 +1,36 @@
+{
+    "name": "Sublime Text 4",
+    "enabled": true,
+    "appTitleId": "355",
+    "deploymentType": "SELF_SERVICE",
+    "updateBehavior": "AUTOMATIC",
+    "smartGroupId": "7",
+    "installPredefinedConfigProfiles": true,
+    "titleAvailableInAis": true,
+    "triggerAdminNotifications": false,
+    "notificationSettings": {
+        "notificationMessage": "Please update as soon as possible",
+        "notificationInterval": 24,
+        "deadlineMessage": "Closing app to allow update",
+        "deadline": 168,
+        "quitDelay": 5,
+        "completeMessage": "Update is complete",
+        "relaunch": true,
+        "suppress": null
+    },
+    "selfServiceSettings": {
+        "includeInFeaturedCategory": false,
+        "includeInComplianceCategory": false,
+        "forceViewDescription": false,
+        "description": null,
+        "categories": [
+            {
+                "id": "12",
+                "featured": false
+            }
+        ]
+    },
+    "selectedVersion": "",
+    "latestAvailableVersion": "Build 4192",
+    "versionRemoved": false
+}

@@ -197,6 +197,23 @@ case "$test_type" in
             --output "/Users/Shared/Jamf/JamfUploaderTests" \
             "$verbosity"
         ;;
+    appinstallers-tandc)
+        "$DIR"/../jamf-upload.sh obj \
+            --prefs "$prefs_alt" \
+            --recipe-dir /Users/gpugh/sourcecode/jamf-upload/_tests \
+            --type "app_installers_accept_t_and_c_command" \
+            --output "/Users/Shared/Jamf/JamfUploaderTests" \
+            "$verbosity"
+        ;;
+    read-appinstaller-id)
+        "$DIR"/../jamf-upload.sh read \
+            --prefs "$prefs_alt" \
+            --recipe-dir /Users/gpugh/sourcecode/jamf-upload/_tests \
+            --type "app_installer" \
+            --id "1" \
+            --output "/Users/Shared/Jamf/JamfUploaderTests" \
+            "$verbosity"
+        ;;
     read-policy)
         "$DIR"/../jamf-upload.sh read \
             --prefs "$prefs" \

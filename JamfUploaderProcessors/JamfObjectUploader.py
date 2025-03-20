@@ -1,4 +1,5 @@
 #!/usr/local/autopkg/python
+# pylint: disable=invalid-name
 
 """
 Copyright 2023 Graham Pugh
@@ -86,7 +87,7 @@ class JamfObjectUploader(JamfObjectUploaderBase):
             "default": "",
         },
         "object_template": {
-            "required": True,
+            "required": False,
             "description": "Full path to the XML template",
         },
         "object_type": {

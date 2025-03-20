@@ -136,16 +136,6 @@ class JamfObjectUploaderBase(JamfUploaderBase):
         if "jamfapiobjectuploader_summary_result" in self.env:
             del self.env["jamfapiobjectuploader_summary_result"]
 
-        # handle files with a relative path
-        if not object_template.startswith("/"):
-            found_template = self.get_path_to_file(object_template)
-            if found_template:
-                object_template = found_template
-            else:
-                raise ProcessorError(
-                    f"ERROR: {object_type} file {object_template} not found"
-                )
-
         # now start the process of uploading the object
         self.output(f"Obtaining API token for {jamf_url}")
 
@@ -162,7 +152,7 @@ class JamfObjectUploaderBase(JamfUploaderBase):
             raise ProcessorError("ERROR: Jamf Pro URL not supplied")
 
         # check for an existing object except for settings-related endpoints
-        if "_settings" not in object_type:
+        if "_settings" not in object_type and "_command" not in object_type:
             if obj_id:
                 # declare name key
                 namekey = self.get_namekey(object_type)
@@ -223,6 +213,17 @@ class JamfObjectUploaderBase(JamfUploaderBase):
                             f"replace_object='True' to enforce."
                         )
                         return
+
+            # handle files with a relative path
+            if not object_template.startswith("/"):
+                found_template = self.get_path_to_file(object_template)
+                if found_template:
+                    object_template = found_template
+                else:
+                    raise ProcessorError(
+                        f"ERROR: {object_type} file {object_template} not found"
+                    )
+
         else:
             object_name = ""
             obj_id = 0
@@ -242,6 +243,8 @@ class JamfObjectUploaderBase(JamfUploaderBase):
                 xml_escape=xml_escape,
                 elements_to_remove=elements_to_remove,
             )
+        elif "_command" in object_type:
+            template_file = ""
         else:
             object_name, template_file = self.prepare_template(
                 object_type,
