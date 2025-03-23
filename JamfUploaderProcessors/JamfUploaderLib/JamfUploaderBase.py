@@ -96,6 +96,7 @@ class JamfUploaderBase(Processor):
             "os_x_configuration_profile": "JSSResource/osxconfigurationprofiles",
             "policy": "JSSResource/policies",
             "policy_icon": "JSSResource/fileuploads/policies",
+            "policy_properties_settings": "api/v1/policy-properties",
             "restricted_software": "JSSResource/restrictedsoftware",
             "self_service_settings": "api/v1/self-service/settings",
             "script": "api/v1/scripts",
