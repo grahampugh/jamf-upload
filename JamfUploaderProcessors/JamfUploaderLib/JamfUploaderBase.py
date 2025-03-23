@@ -1106,7 +1106,7 @@ class JamfUploaderBase(Processor):
                 elem.text = replacement_value
 
     def replace_element(self, object_type, existing_object, element_path, new_value):
-        """Replaces a specific element from XML using a path such as 'general/id'."""
+        """Replaces a specific element from XML or JSON using a path such as 'general/id'."""
         # Split the path into parts
         keys = element_path.split("/")
         if "JSSResource" in self.api_endpoints(object_type):

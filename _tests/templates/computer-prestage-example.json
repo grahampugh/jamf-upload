@@ -49,11 +49,11 @@
         "position": "",
         "departmentId": "-1",
         "buildingId": "-1",
-        "id": "-1",
+        "id": "10",
         "versionLock": 0
     },
     "purchasingInformation": {
-        "id": "-1",
+        "id": "2",
         "leased": false,
         "purchased": true,
         "appleCareId": "",
@@ -85,7 +85,7 @@
     "prestageMinimumOsTargetVersionType": "NO_ENFORCEMENT",
     "minimumOsSpecificVersion": "",
     "accountSettings": {
-        "id": "-1",
+        "id": "2",
         "payloadConfigured": true,
         "localAdminAccountEnabled": false,
         "adminUsername": "",

@@ -191,11 +191,31 @@ class JamfComputerPreStageUploaderBase(JamfUploaderBase):
             namekey_path=namekey_path,
         )
 
-        # PreStages need to iterate the versionLock value in order to replace them
         if obj_id:
+            # PreStages need to match any existing versionLock values
             self.substitute_existing_version_locks(
                 jamf_url, object_type, obj_id, template_file, token
             )
+        else:
+            # new prestages need an id of -1
+            if os.path.exists(template_file):
+                with open(template_file, "r", encoding="utf-8") as file:
+                    template_contents = file.read()
+            else:
+                raise ProcessorError("Template does not exist!")
+
+            template_contents = self.replace_element(
+                object_type, template_contents, "locationInformation/id", "-1"
+            )
+            template_contents = self.replace_element(
+                object_type, template_contents, "purchasingInformation/id", "-1"
+            )
+            template_contents = self.replace_element(
+                object_type, template_contents, "accountSettings/id", "-1"
+            )
+
+            with open(template_file, "w", encoding="utf-8") as file:
+                file.write(template_contents)
 
         # upload the object
         self.upload_prestage(

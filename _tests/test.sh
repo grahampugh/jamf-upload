@@ -611,7 +611,7 @@ case "$test_type" in
         "$DIR"/../jamf-upload.sh computerprestage \
             --prefs "$prefs" \
             --recipe-dir /Users/gpugh/sourcecode/jamf-upload/_tests \
-            --name "Test PreStage 2" \
+            --name "Test PreStage 3" \
             --template "templates/computer-prestage-example.json" \
             "$verbosity" \
             --replace
