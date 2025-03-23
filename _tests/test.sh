@@ -324,10 +324,10 @@ case "$test_type" in
         ;;
     read-prestage)
         "$DIR"/../jamf-upload.sh read \
-            --prefs "$prefs_alt" \
+            --prefs "$prefs" \
             --recipe-dir /Users/gpugh/sourcecode/jamf-upload/_tests \
             --type "computer_prestage" \
-            --name "Test" \
+            --name "Test PreStage" \
             --output "/Users/Shared/Jamf/JamfUploaderTests" \
             "$verbosity"
         ;;
@@ -611,9 +611,10 @@ case "$test_type" in
         "$DIR"/../jamf-upload.sh computerprestage \
             --prefs "$prefs" \
             --recipe-dir /Users/gpugh/sourcecode/jamf-upload/_tests \
-            --name "Test PreStage" \
+            --name "Test PreStage 2" \
             --template "templates/computer-prestage-example.json" \
-            "$verbosity"
+            "$verbosity" \
+            --replace
         ;;
     prestage2)
         "$DIR"/../jamf-upload.sh computerprestage \

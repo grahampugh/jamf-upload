@@ -17,6 +17,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 """
 
+import json
 import os.path
 import sys
 
@@ -176,14 +177,25 @@ class JamfComputerPreStageUploaderBase(JamfUploaderBase):
 
         # we need to substitute the values in the object name and template now to
         # account for version strings in the name
+        elements_to_remove = []
+        if obj_id:
+            elements_to_remove = ["id"]
+
         xml_escape = False
         prestage_name, template_file = self.prepare_template(
             object_type,
             prestage_template,
             prestage_name,
             xml_escape=xml_escape,
+            elements_to_remove=elements_to_remove,
             namekey_path=namekey_path,
         )
+
+        # PreStages need to iterate the versionLock value in order to replace them
+        if obj_id:
+            self.substitute_existing_version_locks(
+                jamf_url, object_type, obj_id, template_file, token
+            )
 
         # upload the object
         self.upload_prestage(
