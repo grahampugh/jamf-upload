@@ -151,14 +151,16 @@ class JamfObjectUploaderBase(JamfUploaderBase):
         else:
             raise ProcessorError("ERROR: Jamf Pro URL not supplied")
 
+        # declare name key
+        namekey = self.get_namekey(object_type)
+        namekey_path = self.get_namekey_path(object_type, namekey)
+
         # check for an existing object except for settings-related endpoints
         if "_settings" not in object_type and "_command" not in object_type:
             if obj_id:
-                # declare name key
-                namekey = self.get_namekey(object_type)
-                namekey_path = self.get_namekey_path(object_type, namekey)
 
-                # if an ID has been passed into the recipe, look for object based on ID rather than name
+                # if an ID has been passed into the recipe, look for object based on ID
+                # rather than name
                 self.output(
                     f"Checking for existing {object_type} with ID '{obj_id}' on {jamf_url}"
                 )
