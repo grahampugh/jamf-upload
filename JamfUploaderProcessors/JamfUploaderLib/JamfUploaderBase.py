@@ -43,7 +43,7 @@ class JamfUploaderBase(Processor):
     """Common functions used by at least two JamfUploader processors."""
 
     # Global version
-    __version__ = "2025.3.14.1"
+    __version__ = "2025.3.21.0"
 
     def api_endpoints(self, object_type):
         """Return the endpoint URL from the object type"""
@@ -74,7 +74,7 @@ class JamfUploaderBase(Processor):
             "failover": "api/v1/sso/failover",
             "icon": "api/v1/icon",
             "jamf_pro_version": "api/v1/jamf-pro-version",
-            "jamf_protect_plans_sync": "api/v1/jamf-protect/plans/sync",
+            "jamf_protect_plans_sync_command": "api/v1/jamf-protect/plans/sync",
             "jamf_protect_register": "api/v1/jamf-protect/register",
             "jamf_protect_settings": "api/v1/jamf-protect",
             "jcds": "api/v1/jcds",
@@ -96,10 +96,12 @@ class JamfUploaderBase(Processor):
             "os_x_configuration_profile": "JSSResource/osxconfigurationprofiles",
             "policy": "JSSResource/policies",
             "policy_icon": "JSSResource/fileuploads/policies",
+            "policy_properties_settings": "api/v1/policy-properties",
             "restricted_software": "JSSResource/restrictedsoftware",
             "self_service_settings": "api/v1/self-service/settings",
             "script": "api/v1/scripts",
             "smtp_server_settings": "api/v2/smtp-server",
+            "sso_cert_command": "api/v2/sso/cert",
             "sso_settings": "api/v3/sso",
             "token": "api/v1/auth/token",
             "volume_purchasing_location": "api/v1/volume-purchasing-locations",
@@ -197,15 +199,13 @@ class JamfUploaderBase(Processor):
             json.dump(data, fp)
         return tf
 
-    def write_token_to_json_file(self, url, jamf_user, data):
-        """dump the token, expiry, url and user as json to a temporary token file"""
-        data["url"] = url
+    def write_token_to_json_file(self, jamf_url, jamf_user, data):
+        """dump the token, expiry, url and user as json to an instance-specific token file"""
+        url_specific_dir = self.make_url_specific_dir(jamf_url)
+        token_file = os.path.join(url_specific_dir, "token_from_jamf_upload.txt")
+        data["url"] = jamf_url
         data["user"] = jamf_user
-        if not self.env.get("jamfupload_token_file"):
-            self.env["jamfupload_token_file"] = self.init_temp_file(
-                prefix="jamf_upload_token_"
-            )
-        with open(self.env["jamfupload_token_file"], "w", encoding="utf-8") as fp:
+        with open(token_file, "w", encoding="utf-8") as fp:
             json.dump(data, fp)
 
     def write_xml_file(self, data):
@@ -231,6 +231,22 @@ class JamfUploaderBase(Processor):
             )
         return self.env["jamfupload_tmp_dir"]
 
+    def get_netloc(self, jamf_url):
+        """get the FQDN from any URL and replace dots with underscores"""
+        # Parse the URL and extract the netloc (domain)
+        netloc = urlparse(jamf_url).netloc
+        # Replace non-alphanumeric characters with underscores
+        instance_id = re.sub(r"\W+", "_", netloc).strip("_")
+        return instance_id
+
+    def make_url_specific_dir(self, jamf_url, tmp_dir="/tmp/jamf_upload_"):
+        """make the URL-specific directory for storing token and cookies"""
+        cust_id = self.get_netloc(jamf_url)
+        url_specific_dir = f"{tmp_dir}{cust_id}"
+        if not os.path.exists(url_specific_dir):
+            os.mkdir(url_specific_dir)
+        return url_specific_dir
+
     def init_temp_file(
         self, prefix="jamf_upload_", suffix=None, dir_name=None, text=True
     ):
@@ -250,10 +266,10 @@ class JamfUploaderBase(Processor):
 
     def check_api_token(self, jamf_url, jamf_user):
         """Check validity of an existing token"""
-        if self.env.get("jamfupload_token_file"):
-            token_file = self.env["jamfupload_token_file"]
-        else:
-            token_file = ""
+        url_specific_dir = self.make_url_specific_dir(jamf_url)
+        token_file = os.path.join(url_specific_dir, "token_from_jamf_upload.txt")
+        token = ""
+
         if os.path.exists(token_file):
             with open(token_file, "rb") as file:
                 data = json.load(file)
@@ -273,22 +289,21 @@ class JamfUploaderBase(Processor):
                                 # this may not always work due to inconsistent
                                 # ISO 8601 time format in the expiry token,
                                 # so we look for a ValueError
-                                # expires = datetime.strptime(
-                                #     data["expires"], "%Y-%m-%dT%H:%M:%S.%fZ"
-                                # )
-                                # if expires > datetime.now(timezone.utc):
-                                #     self.output("Existing token is valid")
-                                #     return data["token"]
 
-                                expires_timestamp = datetime.strptime(
+                                # Convert the strings to datetime objects with UTC timezone
+                                expires_datetime = datetime.strptime(
                                     data["expires"], "%Y-%m-%dT%H:%M:%S.%fZ"
-                                ).timestamp()
-                                if (
-                                    expires_timestamp
-                                    > datetime.now(timezone.utc).timestamp()
-                                ):
+                                ).replace(tzinfo=timezone.utc)
+
+                                now_datetime = datetime.now(timezone.utc)
+
+                                if expires_datetime > now_datetime:
                                     self.output("Existing token is valid")
-                                    return data["token"]
+                                    token = data["token"]
+                                else:
+                                    self.output(
+                                        f"Existing token expired - {data['expires']} vs {datetime.now(timezone.utc)}"
+                                    )
 
                             except ValueError:
                                 self.output(
@@ -301,9 +316,14 @@ class JamfUploaderBase(Processor):
                             "URL or user do not match current token request",
                             verbose_level=2,
                         )
-                except KeyError:
-                    pass
-        self.output("No existing valid token found", verbose_level=2)
+                except KeyError as e:
+                    self.output(
+                        f"Some other error: {e}",
+                        verbose_level=2,
+                    )
+        else:
+            self.output("No existing valid token found", verbose_level=2)
+        return token
 
     def get_api_token_from_oauth(self, jamf_url="", client_id="", client_secret=""):
         """get a token for the Jamf Pro API or Classic API using OAuth"""
@@ -471,9 +491,12 @@ class JamfUploaderBase(Processor):
         Authentication for the webhooks is achieved with a preconfigured token.
         """
         tmp_dir = self.make_tmp_dir()
-        headers_file = os.path.join(tmp_dir, "curl_headers_from_jamf_upload.txt")
+        url_specific_dir = self.make_url_specific_dir(url)
+        headers_file = os.path.join(
+            url_specific_dir, "curl_headers_from_jamf_upload.txt"
+        )
         output_file = self.init_temp_file(prefix="jamf_upload_", suffix=".txt")
-        cookie_jar = os.path.join(tmp_dir, "curl_cookies_from_jamf_upload.txt")
+        cookie_jar = os.path.join(url_specific_dir, "curl_cookies_from_jamf_upload.txt")
 
         # build the curl command based on supplied endpoint_types
         if url:
@@ -590,6 +613,7 @@ class JamfUploaderBase(Processor):
 
             # look for existing session
             if os.path.exists(cookie_jar):
+                self.output("Existing cookie found", verbose_level=2)
                 curl_cmd.extend(["--cookie", cookie_jar])
             else:
                 self.output(
