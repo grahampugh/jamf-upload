@@ -176,7 +176,7 @@ class JamfAPIRoleUploaderBase(JamfUploaderBase):
         if object_updated:
             self.env["jamfapiroleuploader_summary_result"] = {
                 "summary_text": "The following objects were updated in Jamf Pro:",
-                "report_fields": [object_type, "template"],
+                "report_fields": ["api_role_name", "template"],
                 "data": {
                     "api_role_name": object_name,
                     "template": object_template,
