@@ -169,6 +169,8 @@ class JamfObjectReaderBase(JamfUploaderBase):
             self.output(parsed_object, verbose_level=2)
 
             # for certain types we also want to extract the payload
+            payload_output_filename = ""
+            payload_file_path = ""
             payload = ""
             payload_filetype = "sh"
             if object_type == "computer_extension_attribute":
