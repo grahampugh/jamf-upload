@@ -80,6 +80,12 @@ class JamfObjectUploaderBase(JamfUploaderBase):
                 "--header",
                 "Content-type: application/json",
             ]
+        elif object_type == "jamf_protect_register_settings":
+            request = "POST"
+            additional_curl_options = [
+                "--header",
+                "Content-type: application/json",
+            ]
         elif obj_id or "_settings" in object_type:
             request = "PUT"
         else:
@@ -156,9 +162,8 @@ class JamfObjectUploaderBase(JamfUploaderBase):
         namekey_path = self.get_namekey_path(object_type, namekey)
 
         # check for an existing object except for settings-related endpoints
-        if not any(suffix in object_type for suffix in ("_settings", "_register", "_command")):
+        if not any(suffix in object_type for suffix in ("_settings", "_command")):
             if obj_id:
-
                 # if an ID has been passed into the recipe, look for object based on ID
                 # rather than name
                 self.output(

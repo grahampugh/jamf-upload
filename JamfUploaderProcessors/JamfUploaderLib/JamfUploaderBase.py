@@ -75,7 +75,7 @@ class JamfUploaderBase(Processor):
             "icon": "api/v1/icon",
             "jamf_pro_version": "api/v1/jamf-pro-version",
             "jamf_protect_plans_sync_command": "api/v1/jamf-protect/plans/sync",
-            "jamf_protect_register": "api/v1/jamf-protect/register",
+            "jamf_protect_register_settings": "api/v1/jamf-protect/register",
             "jamf_protect_settings": "api/v1/jamf-protect",
             "jcds": "api/v1/jcds",
             "laps_settings": "api/v2/local-admin-password/settings",
