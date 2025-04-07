@@ -1,0 +1,5 @@
+{
+    "protectUrl": "https://%JAMF_PROTECT_CUSTID%.protect.jamfcloud.com/graphql",
+    "clientId": "%JAMF_PROTECT_CLIENT_ID%",
+    "password": "%JAMF_PROTECT_CLIENT_SECRET%"
+}
