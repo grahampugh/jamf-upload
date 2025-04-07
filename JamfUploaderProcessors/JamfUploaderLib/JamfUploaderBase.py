@@ -43,7 +43,7 @@ class JamfUploaderBase(Processor):
     """Common functions used by at least two JamfUploader processors."""
 
     # Global version
-    __version__ = "2025.3.21.0"
+    __version__ = "2025.4.4.0"
 
     def api_endpoints(self, object_type):
         """Return the endpoint URL from the object type"""
@@ -59,6 +59,7 @@ class JamfUploaderBase(Processor):
             ),
             "category": "api/v1/categories",
             "check_in_settings": "api/v3/check-in",
+            "cloud_distribution_point_settings": "api/v1/cloud-distribution-point",
             "cloud_ldap": "api/v2/cloud-ldaps",
             "computer_extension_attribute": "api/v1/computer-extension-attributes",
             "computer_group": "JSSResource/computergroups",

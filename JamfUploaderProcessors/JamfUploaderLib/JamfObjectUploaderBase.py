@@ -80,6 +80,12 @@ class JamfObjectUploaderBase(JamfUploaderBase):
                 "--header",
                 "Content-type: application/json",
             ]
+        elif object_type == "cloud_distribution_point_settings":
+            request = "POST"
+            additional_curl_options = [
+                "--header",
+                "Accept: application/json",
+            ]
         elif obj_id or "_settings" in object_type:
             request = "PUT"
         else:

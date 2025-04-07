@@ -1,0 +1,5 @@
+{
+    "cdnType": "JAMF_CLOUD",
+    "master": true,
+    "message": "Cannot contact JCDS"
+}
