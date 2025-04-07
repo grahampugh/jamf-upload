@@ -156,7 +156,7 @@ class JamfObjectUploaderBase(JamfUploaderBase):
         namekey_path = self.get_namekey_path(object_type, namekey)
 
         # check for an existing object except for settings-related endpoints
-        if "_settings" not in object_type and "_command" not in object_type:
+        if not any(suffix in object_type for suffix in ("_settings", "_register", "_command")):
             if obj_id:
 
                 # if an ID has been passed into the recipe, look for object based on ID
