@@ -146,6 +146,14 @@ case "$test_type" in
             --template "templates/self-service-settings.json" \
             "$verbosity"
         ;;
+    obj-jcds)
+        "$DIR"/../jamf-upload.sh obj \
+            --prefs "$prefs" \
+            --recipe-dir /Users/gpugh/sourcecode/jamf-upload/_tests \
+            --type "cloud_distribution_point_settings" \
+            --template "templates/jcds.json" \
+            "$verbosity"
+        ;;
     obj-category)
         "$DIR"/../jamf-upload.sh obj \
             --prefs "$prefs" \
@@ -657,7 +665,7 @@ case "$test_type" in
         ;;
     script)
         "$DIR"/../jamf-upload.sh script \
-            --prefs "$prefs" \
+            --prefs "$prefs_alt" \
             --recipe-dir /Users/gpugh/sourcecode/jamf-upload/_tests \
             --name "Microsoft Office License Type.sh" \
             --script "templates/Microsoft Office License Type.sh" \
