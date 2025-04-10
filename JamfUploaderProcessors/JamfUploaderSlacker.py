@@ -120,6 +120,7 @@ class JamfUploaderSlacker(JamfUploaderBase):
     def main(self):
         """Do the main thing"""
         jss_url = self.env.get("JSS_URL")
+        failover_url = self.env.get("failover_url")
         policy_category = self.env.get("POLICY_CATEGORY")
         category = self.env.get("PKG_CATEGORY")
         policy_name = self.env.get("policy_name")
@@ -257,10 +258,13 @@ class JamfUploaderSlacker(JamfUploaderBase):
             )
         elif jamfobjectuploader_summary_result:
             slack_text = (
-                f"*{object_type} uploaded to Jamf Pro:*\n"
-                + f"URL: {jss_url}\n"
-                + f"Name: *{object_name}*"
+                f"*{object_type} uploaded to Jamf Pro:*"
+                + f"\nURL: {jss_url}"
             )
+            if object_name:
+                slack_text += f"\nName: *{object_name}*"
+            if failover_url:
+                slack_text += f"\nFailover URL: {failover_url}"
         else:
             self.output("Nothing to report to Slack")
             return
