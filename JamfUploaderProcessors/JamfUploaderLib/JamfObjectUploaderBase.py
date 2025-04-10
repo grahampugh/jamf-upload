@@ -98,6 +98,11 @@ class JamfObjectUploaderBase(JamfUploaderBase):
             )
             # check HTTP response
             if self.status_check(r, object_type, object_name, request) == "break":
+                if object_type == "failover_generate_command":
+                    output = r.output
+                    failover_url = output.get("failoverUrl", "")
+                    self.output(f"Failover URL: {failover_url}", verbose_level=1)
+                    self.env["failover_url"] = failover_url
                 break
             if count > 5:
                 self.output(
