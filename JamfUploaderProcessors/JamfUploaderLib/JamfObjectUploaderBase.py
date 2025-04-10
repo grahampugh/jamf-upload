@@ -102,6 +102,7 @@ class JamfObjectUploaderBase(JamfUploaderBase):
                     output = r.output
                     failover_url = output.get("failoverUrl", "")
                     self.output(f"Failover URL: {failover_url}", verbose_level=1)
+                    self.env["failover_url"] = failover_url
                 break
             if count > 5:
                 self.output(
