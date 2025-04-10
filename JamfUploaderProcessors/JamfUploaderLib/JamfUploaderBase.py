@@ -72,6 +72,7 @@ class JamfUploaderBase(Processor):
             "enrollment_settings": "api/v4/enrollment",
             "enrollment_customization": "api/v2/enrollment-customizations",
             "failover": "api/v1/sso/failover",
+            "failover_generate_command": "api/v1/sso/failover/generate",
             "icon": "api/v1/icon",
             "jamf_pro_version": "api/v1/jamf-pro-version",
             "jamf_protect_plans_sync_command": "api/v1/jamf-protect/plans/sync",
