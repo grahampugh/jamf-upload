@@ -122,6 +122,9 @@ class JamfObjectUploader(JamfObjectUploaderBase):
             "description": "Jamf object name of the newly created or modified object.",
         },
         "object_updated": {"description": "Boolean - True if the object was changed."},
+        "failover_url": {
+            "description": "Failover URL, if uploading failover_generate_command object.",
+        },
     }
 
     def main(self):
