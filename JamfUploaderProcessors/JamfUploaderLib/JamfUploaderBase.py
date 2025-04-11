@@ -29,6 +29,7 @@ from collections import abc, namedtuple
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from shutil import rmtree
+from time import sleep
 from urllib.parse import quote, urlparse
 from uuid import UUID
 from xml.sax.saxutils import escape
@@ -302,7 +303,8 @@ class JamfUploaderBase(Processor):
                                     token = data["token"]
                                 else:
                                     self.output(
-                                        f"Existing token expired - {data['expires']} vs {datetime.now(timezone.utc)}"
+                                        f"Existing token expired - {data['expires']} "
+                                        "vs {datetime.now(timezone.utc)}"
                                     )
 
                             except ValueError:
@@ -1033,6 +1035,36 @@ class JamfUploaderBase(Processor):
         if value:
             self.output(f"Value of '{obj_path}': {value}", verbose_level=2)
         return value
+
+    def delete_object(self, jamf_url, object_type, obj_id, token):
+        """Delete API object"""
+
+        self.output(f"Deleting {object_type}...")
+
+        if "JSSResource" in self.api_endpoints(object_type):
+            # do XML stuff
+            url = f"{jamf_url}/{self.api_endpoints(object_type)}/id/{obj_id}"
+        else:
+            url = f"{jamf_url}/{self.api_endpoints(object_type)}/{obj_id}"
+
+        count = 0
+        while True:
+            count += 1
+            self.output(f"{object_type} delete attempt {count}", verbose_level=2)
+            request = "DELETE"
+            r = self.curl(request=request, url=url, token=token)
+
+            # check HTTP response
+            if self.status_check(r, object_type, obj_id, request) == "break":
+                break
+            if count > 5:
+                self.output(
+                    f"WARNING: {object_type} deletion did not succeed after 5 attempts"
+                )
+                self.output(f"\nHTTP POST Response Code: {r.status_code}")
+                raise ProcessorError(f"ERROR: {object_type} deletion failed ")
+            sleep(30)
+        return r.status_code
 
     def pretty_print_xml(self, xml):
         """prettifies XML"""
