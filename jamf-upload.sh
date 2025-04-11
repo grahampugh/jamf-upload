@@ -43,6 +43,7 @@ Valid object types:
     script
     slack
     teams
+    unusedpkgclean
 
 Arguments:
     --prefs <path>          Inherit AutoPkg prefs file provided by the full path to the file
@@ -304,6 +305,17 @@ Package Clean arguments:
                             Username with share access
     --smb_pass <SMB_PASSWORD>
                             Password of the user
+    --dry-run               Dry run mode. No files will be deleted.
+
+Unused Package Clean arguments:
+    --smb-url <url>         URL of the fileshare distribution point (on premises Jamf Pro only)
+    --smb-user <SMB_USERNAME>
+                            Username with share access
+    --smb_pass <SMB_PASSWORD>
+                            Password of the user
+    --output <dir>          Optional directory to output the list to a CSV. Directory must exist.
+    --dry-run               Dry run mode. No files will be deleted.
+    --slack-url <url>       The slack_webhook_url
 
 Package Recalculate arguments: None
 
@@ -428,6 +440,8 @@ elif [[ $object == "pkg" || $object == "package" ]]; then
     processor="JamfPackageUploader"
 elif [[ $object == "pkgclean" ]]; then
     processor="JamfPackageCleaner"
+elif [[ $object == "unusedpkgclean" ]]; then
+    processor="JamfUnusedPackageCleaner"
 elif [[ $object == "pkgdata" ]]; then
     processor="JamfPkgMetadataUploader"
 elif [[ $object == "pkgcalc" || $object == "packagerecalculate" ]]; then
@@ -907,7 +921,7 @@ while test $# -gt 0 ; do
             ;;
         --output)
             shift
-            if [[ $processor == "JamfExtensionAttributePopupChoiceAdjuster" || $processor == "JamfObjectReader" || $processor == "JamfScopeAdjuster" ]]; then
+            if [[ $processor == "JamfExtensionAttributePopupChoiceAdjuster" || $processor == "JamfObjectReader" || $processor == "JamfUnusedPackageCleaner" || $processor == "JamfScopeAdjuster" ]]; then
                 if plutil -replace output_dir -string "$1" "$temp_processor_plist"; then
                     echo "   [jamf-upload] Wrote output_dir='$1' into $temp_processor_plist"
                 fi
@@ -1046,9 +1060,24 @@ while test $# -gt 0 ; do
                 fi
             fi
             ;;
+        --dry-run) 
+            if [[ $processor == "JamfPackageCleaner" || $processor == "JamfUnusedPackageCleaner" ]]; then
+                if plutil -replace dry_run -string "True" "$temp_processor_plist"; then
+                    echo "   [jamf-upload] Wrote dry_run='True' into $temp_processor_plist"
+                fi
+            fi
+            ;;
+        --keep) 
+            shift
+            if [[ $processor == "JamfPackageCleaner" ]]; then
+                if plutil -replace versions_to_keep -string "$1" "$temp_processor_plist"; then
+                    echo "   [jamf-upload] Wrote versions_to_keep='$1' into $temp_processor_plist"
+                fi
+            fi
+            ;;
         --smb_url|--smb-url)
             shift
-            if [[ $processor == "JamfPackageUploader" ]]; then
+            if [[ $processor == "JamfPackageCleaner" || $processor == "JamfUnusedPackageCleaner" || $processor == "JamfPackageUploader" ]]; then
                 if plutil -replace SMB_URL -string "$1" "$temp_processor_plist"; then
                     echo "   [jamf-upload] Wrote SMB_URL='$1' into $temp_processor_plist"
                 fi
@@ -1057,7 +1086,7 @@ while test $# -gt 0 ; do
         --smb_user*|--smb-user*)  
             ## allows --smb_user, --smb_username, --smb-user, --smb-username
             shift
-            if [[ $processor == "JamfPackageUploader" ]]; then
+            if [[ $processor == "JamfPackageCleaner" || $processor == "JamfUnusedPackageCleaner" || $processor == "JamfPackageUploader" ]]; then
                 if plutil -replace SMB_USERNAME -string "$1" "$temp_processor_plist"; then
                     echo "   [jamf-upload] Wrote SMB_USERNAME='$1' into $temp_processor_plist"
                 fi
@@ -1066,7 +1095,7 @@ while test $# -gt 0 ; do
         --smb_pass*|--smb-pass*)  
             ## allows --smb_pass, --smb_password, --smb-pass, --smb-password
             shift
-            if [[ $processor == "JamfPackageUploader" ]]; then
+            if [[ $processor == "JamfPackageCleaner" || $processor == "JamfUnusedPackageCleaner" || $processor == "JamfPackageUploader" ]]; then
                 if plutil -replace SMB_PASSWORD -string "$1" "$temp_processor_plist"; then
                     echo "   [jamf-upload] Wrote SMB_PASSWORD='[redacted]' into $temp_processor_plist"
                 fi
@@ -1211,14 +1240,6 @@ while test $# -gt 0 ; do
                 fi
             fi
             ;;
-        --keep) 
-            shift
-            if [[ $processor == "JamfPackageCleaner" ]]; then
-                if plutil -replace versions_to_keep -string "$1" "$temp_processor_plist"; then
-                    echo "   [jamf-upload] Wrote versions_to_keep='$1' into $temp_processor_plist"
-                fi
-            fi
-            ;;
         --title)
             shift
             if [[ $processor == "JamfPatchUploader" ]]; then
@@ -1326,6 +1347,14 @@ while test $# -gt 0 ; do
                 fi
             fi
             ;;
+        --slack-url) 
+            shift
+            if [[ $processor == "JamfUnusedPackageCleaner" || $processor == "JamfUploaderSlacker" ]]; then
+                if plutil -replace slack_webhook_url -string "$1" "$temp_processor_plist"; then
+                    echo "   [jamf-upload] Wrote slack_webhook_url='$1' into $temp_processor_plist"
+                fi
+            fi
+            ;;
         --pkg-category)
             shift
             if [[ $processor == "JamfUploaderSlacker" || $processor == "JamfUploaderTeamsNotifier" ]]; then
@@ -1360,14 +1389,6 @@ while test $# -gt 0 ; do
             if [[ $processor == "JamfUploaderSlacker" || $processor == "JamfUploaderTeamsNotifier" ]]; then
                 if plutil -replace jamfpolicyuploader_summary_result -string "true" "$temp_processor_plist"; then
                     echo "   [jamf-upload] Wrote jamfpolicyuploader_summary_result='true' into $temp_processor_plist"
-                fi
-            fi
-            ;;
-        --slack-url) 
-            shift
-            if [[ $processor == "JamfUploaderSlacker" ]]; then
-                if plutil -replace slack_webhook_url -string "$1" "$temp_processor_plist"; then
-                    echo "   [jamf-upload] Wrote slack_webhook_url='$1' into $temp_processor_plist"
                 fi
             fi
             ;;
