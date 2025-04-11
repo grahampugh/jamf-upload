@@ -263,6 +263,15 @@ class JamfUnusedPackageCleanerBase(JamfUploaderBase):
                 raise ProcessorError("ERROR: Slack webhook failed to send")
             sleep(10)
 
+    def slack_status_check(self, r):
+        """Return a message dependent on the HTTP response"""
+        if r.status_code == 200 or r.status_code == 201:
+            self.output("Slack webhook sent successfully")
+            return "break"
+        else:
+            self.output("WARNING: Slack webhook failed to send")
+            self.output(r.output, verbose_level=2)
+
     def execute(self):
         """Clean up old packages in Jamf Pro"""
 
