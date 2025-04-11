@@ -229,6 +229,7 @@ class JamfUnusedPackageCleanerBase(JamfUploaderBase):
 
         slack_text = (
             f"*API {api_xml_object} {api_obj_action} action*\n"
+            f"URL: {jamf_url}\n"
             f"Object Name: *{chosen_api_obj_name}*\n"
             f"HTTP Response: {status_code}"
         )
