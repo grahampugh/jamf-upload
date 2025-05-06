@@ -9,6 +9,8 @@ DIR=$(dirname "$0")
 test_type="$1"
 verbosity="$2"
 url="$3"
+jira_user="$4"
+jira_pass="$5"
 
 # path to test items
 pkg_path="/Users/gpugh/Downloads/Workbrew-1.1.7.pkg"
@@ -839,6 +841,27 @@ case "$test_type" in
             "$verbosity" \
             --replace
         ;;
+    jira)
+        "$DIR"/../jamf-upload.sh jira \
+            --prefs "$prefs" \
+            --name "JamfUploaderJiraNotifier Test - please ignore" \
+            --policy-name "JamfUploaderJiraNotifier Test" \
+            --policy-category "Applications" \
+            --pkg-category "Packages" \
+            --pkg-name "Test-Package.pkg" \
+            --patch-name "Test Patch Policy" \
+            --version "1.2.3" \
+            --patch-uploaded \
+            --pkg-uploaded \
+            --policy-uploaded \
+            --jira-user "$jira_user" \
+            --jira-project "25833" \
+            --jira-priority "5" \
+            --jira-issue "10001" \
+            --jira-pass "$jira_pass" \
+            --jira-url "$url" \
+            "$verbosity"
+        ;;
     slack)
         "$DIR"/../jamf-upload.sh slack \
             --prefs "$prefs" \
@@ -852,8 +875,7 @@ case "$test_type" in
             --policy-uploaded \
             --slack-user "JamfUploader Test User" \
             --icon "https://resources.jamf.com/images/logos/Jamf-Icon-color.png" \
-            "$verbosity" \
-            --replace
+            "$verbosity"
         ;;
     teams)
         "$DIR"/../jamf-upload.sh teams \
@@ -869,9 +891,8 @@ case "$test_type" in
             --teams-user "JamfUploader Test User" \
             --icon "https://resources.jamf.com/images/logos/Jamf-Icon-color.png" \
             --patch-uploaded \
-            --patch_name "Test Patch Policy" \
-            "$verbosity" \
-            --replace
+            --patch-name "Test Patch Policy" \
+            "$verbosity"
         ;;
     *)
         echo "Unknown test type: $test_type"

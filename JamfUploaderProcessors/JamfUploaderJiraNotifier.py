@@ -220,6 +220,11 @@ class JamfUploaderJiraNotifier(JamfUploaderBase):
 
         enc_creds = self.get_enc_creds(jira_username, jira_password)
 
+        additional_curl_opts = [
+            "--header",
+            "X-Atlassian-Token: no-check",
+        ]
+
         count = 0
         while True:
             count += 1
@@ -232,6 +237,7 @@ class JamfUploaderJiraNotifier(JamfUploaderBase):
                 url=jira_url,
                 enc_creds=enc_creds,
                 data=jira_json,
+                additional_curl_opts=additional_curl_opts,
                 endpoint_type="jira",
             )
             # check HTTP response
