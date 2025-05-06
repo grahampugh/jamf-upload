@@ -44,7 +44,7 @@ class JamfUploaderBase(Processor):
     """Common functions used by at least two JamfUploader processors."""
 
     # Global version
-    __version__ = "2025.3.21.0"
+    __version__ = "2025.5.6.0"
 
     def api_endpoints(self, object_type):
         """Return the endpoint URL from the object type"""
@@ -483,6 +483,7 @@ class JamfUploaderBase(Processor):
         4. The Jamf Pro legacy/packages endpoint, for uploading packages (v3).
         5. Slack webhooks.
         6. Microsoft Teams webhooks.
+        7. Jira Cloud issue requests (REST API)
 
         For the Jamf Pro API and Classic API, basic authentication is used to obtain a
         bearer token, which we write to a file along with its expiry datetime.
@@ -577,7 +578,11 @@ class JamfUploaderBase(Processor):
 
         # Content-Type for POST/PUT
         elif request == "POST" or request == "PUT":
-            if endpoint_type == "slack" or endpoint_type == "teams":
+            if (
+                endpoint_type == "slack"
+                or endpoint_type == "teams"
+                or endpoint_type == "jira"
+            ):
                 # slack and teams require a data argument
                 curl_cmd.extend(["--data", data])
                 curl_cmd.extend(["--header", "Content-type: application/json"])
