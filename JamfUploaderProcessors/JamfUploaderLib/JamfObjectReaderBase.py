@@ -152,9 +152,15 @@ class JamfObjectReaderBase(JamfUploaderBase):
                 return
 
         # now iterate through all the objects
+        raw_object = ""
+        parsed_object = ""
+        payload = ""
         for obj in object_list:
             i = obj["id"]
             n = obj[namekey]
+            raw_object = ""
+            parsed_object = ""
+            payload = ""
 
             # get the object
             raw_object = self.get_api_obj_contents_from_id(
@@ -169,7 +175,6 @@ class JamfObjectReaderBase(JamfUploaderBase):
             self.output(parsed_object, verbose_level=2)
 
             # for certain types we also want to extract the payload
-            payload = ""
             payload_filetype = "sh"
             if object_type == "computer_extension_attribute":
                 payload = json.loads(parsed_object)["scriptContents"]
