@@ -571,6 +571,7 @@ class JamfUploaderBase(Processor):
             curl_cmd.extend(["--form", f"file=@{data};type=image/png"])
 
         elif request == "PATCH":
+            curl_cmd.extend(["--header", "Content-type: application/merge-patch+json"])
             if data:
                 # jamf data upload requires upload-file argument
                 curl_cmd.extend(["--upload-file", data])

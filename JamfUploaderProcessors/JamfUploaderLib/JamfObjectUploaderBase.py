@@ -68,18 +68,11 @@ class JamfObjectUploaderBase(JamfUploaderBase):
 
         additional_curl_options = []
         # PATCH endpoints require special options
-        if object_type == "volume_purchasing_location":
+        if (
+            object_type == "volume_purchasing_location"
+            or object_type == "computer_inventory_collection_settings"
+        ):
             request = "PATCH"
-            additional_curl_options = [
-                "--header",
-                "Content-type: application/merge-patch+json",
-            ]
-        elif object_type == "computer_inventory_collection_settings":
-            request = "PATCH"
-            additional_curl_options = [
-                "--header",
-                "Content-type: application/json",
-            ]
         elif object_type == "jamf_protect_register_settings":
             request = "POST"
             additional_curl_options = [
@@ -281,7 +274,7 @@ class JamfObjectUploaderBase(JamfUploaderBase):
         object_updated = True
 
         # output the summary
-        self.env["object_name"] = object_name
+        self.env["object_name"] = str(object_name)
         self.env["object_type"] = object_type
         self.env["object_updated"] = object_updated
         if object_updated:
@@ -290,7 +283,7 @@ class JamfObjectUploaderBase(JamfUploaderBase):
                 "report_fields": ["object_name", "object_type", "template"],
                 "data": {
                     "object_type": object_type,
-                    "object_name": object_name,
+                    "object_name": str(object_name),
                     "template": object_template,
                 },
             }
