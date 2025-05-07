@@ -44,7 +44,7 @@ class JamfUploaderBase(Processor):
     """Common functions used by at least two JamfUploader processors."""
 
     # Global version
-    __version__ = "2025.3.21.0"
+    __version__ = "2025.5.7.0"
 
     def api_endpoints(self, object_type):
         """Return the endpoint URL from the object type"""
@@ -571,6 +571,7 @@ class JamfUploaderBase(Processor):
             curl_cmd.extend(["--form", f"file=@{data};type=image/png"])
 
         elif request == "PATCH":
+            curl_cmd.extend(["--header", "Content-type: application/merge-patch+json"])
             if data:
                 # jamf data upload requires upload-file argument
                 curl_cmd.extend(["--upload-file", data])
