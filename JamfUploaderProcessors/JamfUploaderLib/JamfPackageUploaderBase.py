@@ -442,7 +442,7 @@ class JamfPackageUploaderBase(JamfUploaderBase):
             else:
                 sleep(30)
 
-            return credentials
+        return credentials
 
     def upload_to_jcds2_s3_bucket(
         self,
