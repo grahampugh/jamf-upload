@@ -62,6 +62,15 @@ class JamfObjectReaderBase(JamfUploaderBase):
         if not list_only or list_only == "False":
             list_only = False
 
+        # check for required variables
+        if not all_objects and not list_only:
+            if not object_name and not obj_id:
+                raise ProcessorError(
+                    "ERROR: no object name or ID provided, and all_objects is False"
+                )
+        if not object_type:
+            raise ProcessorError("ERROR: no object type provided")
+
         # clear any pre-existing summary result
         if "jamfobjectreader_summary_result" in self.env:
             del self.env["jamfobjectreader_summary_result"]
@@ -152,9 +161,15 @@ class JamfObjectReaderBase(JamfUploaderBase):
                 return
 
         # now iterate through all the objects
+        raw_object = ""
+        parsed_object = ""
+        payload = ""
         for obj in object_list:
             i = obj["id"]
             n = obj[namekey]
+            raw_object = ""
+            parsed_object = ""
+            payload = ""
 
             # get the object
             raw_object = self.get_api_obj_contents_from_id(
@@ -169,7 +184,6 @@ class JamfObjectReaderBase(JamfUploaderBase):
             self.output(parsed_object, verbose_level=2)
 
             # for certain types we also want to extract the payload
-            payload = ""
             payload_filetype = "sh"
             if object_type == "computer_extension_attribute":
                 payload = json.loads(parsed_object)["scriptContents"]
@@ -243,8 +257,8 @@ class JamfObjectReaderBase(JamfUploaderBase):
             self.env["output_path"] = file_path
             self.env["object_name"] = object_name
             self.env["object_id"] = obj_id
-            self.env["raw_object"] = str(raw_object) or None
-            self.env["parsed_object"] = str(parsed_object) or None
+            self.env["raw_object"] = str(raw_object)
+            self.env["parsed_object"] = str(parsed_object)
             if payload:
                 self.env["payload_output_filename"] = payload_output_filename
                 self.env["payload_file_path"] = payload_file_path

@@ -68,14 +68,13 @@ class JamfObjectUploaderBase(JamfUploaderBase):
 
         additional_curl_options = []
         # PATCH endpoints require special options
-        if object_type == "volume_purchasing_location":
+        if (
+            object_type == "volume_purchasing_location"
+            or object_type == "computer_inventory_collection_settings"
+        ):
             request = "PATCH"
-            additional_curl_options = [
-                "--header",
-                "Content-type: application/merge-patch+json",
-            ]
-        elif object_type == "computer_inventory_collection_settings":
-            request = "PATCH"
+        elif object_type == "jamf_protect_register_settings":
+            request = "POST"
             additional_curl_options = [
                 "--header",
                 "Content-type: application/json",
@@ -161,9 +160,8 @@ class JamfObjectUploaderBase(JamfUploaderBase):
         namekey_path = self.get_namekey_path(object_type, namekey)
 
         # check for an existing object except for settings-related endpoints
-        if "_settings" not in object_type and "_command" not in object_type:
+        if not any(suffix in object_type for suffix in ("_settings", "_command")):
             if obj_id:
-
                 # if an ID has been passed into the recipe, look for object based on ID
                 # rather than name
                 self.output(
@@ -276,7 +274,7 @@ class JamfObjectUploaderBase(JamfUploaderBase):
         object_updated = True
 
         # output the summary
-        self.env["object_name"] = object_name
+        self.env["object_name"] = str(object_name)
         self.env["object_type"] = object_type
         self.env["object_updated"] = object_updated
         if object_updated:
@@ -285,7 +283,7 @@ class JamfObjectUploaderBase(JamfUploaderBase):
                 "report_fields": ["object_name", "object_type", "template"],
                 "data": {
                     "object_type": object_type,
-                    "object_name": object_name,
+                    "object_name": str(object_name),
                     "template": object_template,
                 },
             }

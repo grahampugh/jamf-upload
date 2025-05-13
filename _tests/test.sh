@@ -11,7 +11,7 @@ verbosity="$2"
 url="$3"
 
 # path to test items
-pkg_path="/Users/gpugh/Downloads/gen-pkg-sharp-mx-c55-2307a.pkg"
+pkg_path="/Users/gpugh/Downloads/Workbrew-1.1.7.pkg"
 pkg_name="$(basename "$pkg_path")"
 
 # other variables (ensure some of the temporary variables are not in the prefs)
@@ -27,6 +27,9 @@ defaults write "$prefs" jcds_mode -bool False
 defaults write "$prefs" jcds2_mode -bool False
 defaults write "$prefs" aws_cdp_mode -bool False
 defaults write "$prefs" pkg_api_mode -bool False
+
+# slack webhook url
+slack_webhook_url=$(cat /Users/gpugh/sourcecode/multitenant-jamf-tools/slack-webhooks/tst.txt)
 
 if [[ ! $verbosity ]]; then
     verbosity="-v"
@@ -751,7 +754,7 @@ case "$test_type" in
         ;;
     pkg)
         "$DIR"/../jamf-upload.sh pkg \
-            --prefs "$prefs" \
+            --prefs "$prefs_alt" \
             --recipe-dir /Users/gpugh/sourcecode/jamf-upload/_tests \
             --pkg "$pkg_path" \
             --pkg-name "$(basename "$pkg_path")" \
@@ -809,6 +812,15 @@ case "$test_type" in
             --key "NAME=plistyamlplist" \
             "$verbosity"
         ;;
+    unusedpkg)
+        "$DIR"/../jamf-upload.sh unusedpkgclean \
+            --prefs "$prefs_alt" \
+            --recipe-dir /Users/gpugh/sourcecode/jamf-upload/_tests \
+            --output "/Users/Shared/Jamf/JamfUploaderTests" \
+            --slack-url "$slack_webhook_url" \
+            "$verbosity"
+        ;;
+            # --dry-run \
     pkgcalc)
         "$DIR"/../jamf-upload.sh pkgcalc \
             --prefs "$prefs" \
