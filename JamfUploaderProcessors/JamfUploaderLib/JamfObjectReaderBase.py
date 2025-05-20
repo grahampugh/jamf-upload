@@ -164,6 +164,8 @@ class JamfObjectReaderBase(JamfUploaderBase):
         raw_object = ""
         parsed_object = ""
         payload = ""
+        payload_output_filename = ""
+        payload_file_path = ""
         for obj in object_list:
             i = obj["id"]
             n = obj[namekey]
