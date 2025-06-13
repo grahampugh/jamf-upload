@@ -79,11 +79,7 @@ class JamfObjectUploaderBase(JamfUploaderBase):
                 "--header",
                 "Content-type: application/json",
             ]
-        elif (
-            obj_id
-            or "_settings" in object_type
-            or object_type == "managed_software_updates_feature_toggle_command"
-        ):
+        elif obj_id or "_settings" in object_type:
             request = "PUT"
         else:
             request = "POST"
