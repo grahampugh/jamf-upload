@@ -99,6 +99,11 @@ class JamfObjectReader(JamfObjectReaderBase):
             "description": "Type of the object. This is the name of the key in the XML template",
             "default": "",
         },
+        "settings_key": {
+            "required": False,
+            "description": "For settings-style endpoints, specify a key to get the value of",
+            "default": "",
+        },
         "output_dir": {
             "required": False,
             "description": "Output directory to dump the xml or json file",

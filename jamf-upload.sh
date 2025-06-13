@@ -274,6 +274,7 @@ API Object Read arguments:
     --all                   Read all objects
     --list                  Output a list all objects and nothing else
     --type <string>         The object type (e.g. policy)
+    --settings-key          For settings-style endpoints, specify a key to get the value of
     --output <string>       Optional path to output the parsed XML to. Directories to path must exist.
 
 DELETE OPTIONS
@@ -1045,6 +1046,14 @@ while test $# -gt 0 ; do
                 fi
             fi
             ;;
+        --id)
+            shift
+            if [[ $processor == "JamfObjectReader" || $processor == "JamfObjectUploader" ]]; then
+                if plutil -replace object_id -string "$1" "$temp_processor_plist"; then
+                    echo "   [jamf-upload] Wrote object_id='$1' into $temp_processor_plist"
+                fi
+            fi
+            ;;
         --list) 
             if [[ $processor == "JamfObjectReader" ]]; then
                 if plutil -replace list_only -string "True" "$temp_processor_plist"; then
@@ -1052,11 +1061,11 @@ while test $# -gt 0 ; do
                 fi
             fi
             ;;
-        --id)
+        --settings-key) 
             shift
-            if [[ $processor == "JamfObjectReader" || $processor == "JamfObjectUploader" ]]; then
-                if plutil -replace object_id -string "$1" "$temp_processor_plist"; then
-                    echo "   [jamf-upload] Wrote object_id='$1' into $temp_processor_plist"
+            if [[ $processor == "JamfObjectReader" ]]; then
+                if plutil -replace settings_key -string "$1" "$temp_processor_plist"; then
+                    echo "   [jamf-upload] Wrote settings_key='$1' into $temp_processor_plist"
                 fi
             fi
             ;;

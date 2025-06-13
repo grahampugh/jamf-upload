@@ -67,7 +67,7 @@ class JamfObjectUploaderBase(JamfUploaderBase):
                 url = f"{jamf_url}/{self.api_endpoints(object_type)}"
 
         additional_curl_options = []
-        # PATCH endpoints require special options
+        # settings-style endpoints require special options
         if (
             object_type == "volume_purchasing_location"
             or object_type == "computer_inventory_collection_settings"
@@ -79,7 +79,11 @@ class JamfObjectUploaderBase(JamfUploaderBase):
                 "--header",
                 "Content-type: application/json",
             ]
-        elif obj_id or "_settings" in object_type:
+        elif (
+            obj_id
+            or "_settings" in object_type
+            or object_type == "managed_software_updates_feature_toggle_command"
+        ):
             request = "PUT"
         else:
             request = "POST"
