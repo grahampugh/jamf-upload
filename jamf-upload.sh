@@ -28,6 +28,7 @@ Valid object types:
     logflush
     macapp
     mobiledeviceapp
+    msu | managedsoftwareupdateplan
     obj | object | classicobj
     patch
     pkg | package
@@ -138,6 +139,13 @@ Mac App Store App Upload arguments:
     --template <path>       XML template
     --key X=Y               Substitutable values in the template. Multiple values can be supplied
     --replace               Replace existing item
+
+Managed Software Update Plan Upload arguments:
+    --device-type           Device type, one of computer, mobile_device, apple_tv (case insensitive)
+    --version-type          Version type, one of latest_minor, latest_major, specific_version (case insensitive)
+    --version               Specific version, only required if version_type is set to specific_version
+    --group                 Computer or Mobile Device Group name
+    --days                  Days until forced install deadline
 
 Mobile Device App Upload arguments:
     --name <string>         The name
@@ -274,6 +282,7 @@ API Object Read arguments:
     --all                   Read all objects
     --list                  Output a list all objects and nothing else
     --type <string>         The object type (e.g. policy)
+    --settings-key          For settings-style endpoints, specify a key to get the value of
     --output <string>       Optional path to output the parsed XML to. Directories to path must exist.
 
 DELETE OPTIONS
@@ -436,6 +445,8 @@ elif [[ $object == "mobiledevicegroup" ]]; then
     processor="JamfMobileDeviceGroupUploader"
 elif [[ $object == "mobiledeviceprofile" ]]; then
     processor="JamfMobileDeviceProfileUploader"
+elif [[ $object == "msu" || $object == "managedsoftwareupdateplan" ]]; then
+    processor="JamfMSUPlanUploader"
 elif [[ $object == "pkg" || $object == "package" ]]; then
     processor="JamfPackageUploader"
 elif [[ $object == "pkgclean" ]]; then
@@ -1038,10 +1049,50 @@ while test $# -gt 0 ; do
                 fi
             fi
             ;;
+        --days*)
+            shift
+            if [[ $processor == "JamfMSUPlanUploader" ]]; then
+                if plutil -replace days_until_force_install -string "$1" "$temp_processor_plist"; then
+                    echo "   [jamf-upload] Wrote days_until_force_install='$1' into $temp_processor_plist"
+                fi
+            fi
+            ;;
+        --device-type)
+            shift
+            if [[ $processor == "JamfMSUPlanUploader" ]]; then
+                if plutil -replace device_type -string "$1" "$temp_processor_plist"; then
+                    echo "   [jamf-upload] Wrote device_type='$1' into $temp_processor_plist"
+                fi
+            fi
+            ;;
+        --group|--group-name)
+            shift
+            if [[ $processor == "JamfMSUPlanUploader" ]]; then
+                if plutil -replace group_name -string "$1" "$temp_processor_plist"; then
+                    echo "   [jamf-upload] Wrote group_name='$1' into $temp_processor_plist"
+                fi
+            fi
+            ;;
+        --version) 
+            shift
+            if [[ $processor == "JamfMSUPlanUploader" || $processor == "JamfPatchUploader" || $processor == "JamfUploaderSlacker" || $processor == "JamfUploaderTeamsNotifier" ]]; then
+                if plutil -replace version -string "$1" "$temp_processor_plist"; then
+                    echo "   [jamf-upload] Wrote version='$1' into $temp_processor_plist"
+                fi
+            fi
+            ;;
         --all) 
             if [[ $processor == "JamfObjectReader" ]]; then
                 if plutil -replace all_objects -string "True" "$temp_processor_plist"; then
                     echo "   [jamf-upload] Wrote all_objects='True' into $temp_processor_plist"
+                fi
+            fi
+            ;;
+        --id)
+            shift
+            if [[ $processor == "JamfObjectReader" || $processor == "JamfObjectUploader" ]]; then
+                if plutil -replace object_id -string "$1" "$temp_processor_plist"; then
+                    echo "   [jamf-upload] Wrote object_id='$1' into $temp_processor_plist"
                 fi
             fi
             ;;
@@ -1052,11 +1103,11 @@ while test $# -gt 0 ; do
                 fi
             fi
             ;;
-        --id)
+        --settings-key) 
             shift
-            if [[ $processor == "JamfObjectReader" || $processor == "JamfObjectUploader" ]]; then
-                if plutil -replace object_id -string "$1" "$temp_processor_plist"; then
-                    echo "   [jamf-upload] Wrote object_id='$1' into $temp_processor_plist"
+            if [[ $processor == "JamfObjectReader" ]]; then
+                if plutil -replace settings_key -string "$1" "$temp_processor_plist"; then
+                    echo "   [jamf-upload] Wrote settings_key='$1' into $temp_processor_plist"
                 fi
             fi
             ;;
@@ -1257,14 +1308,6 @@ while test $# -gt 0 ; do
             elif [[ $processor == "JamfUploaderSlacker" || $processor == "JamfUploaderTeamsNotifier" ]]; then
                 if plutil -replace policy_name -string "$1" "$temp_processor_plist"; then
                     echo "   [jamf-upload] Wrote policy_name='$1' into $temp_processor_plist"
-                fi
-            fi
-            ;;
-        --version) 
-            shift
-            if [[ $processor == "JamfPatchUploader" || $processor == "JamfUploaderSlacker" || $processor == "JamfUploaderTeamsNotifier" ]]; then
-                if plutil -replace version -string "$1" "$temp_processor_plist"; then
-                    echo "   [jamf-upload] Wrote version='$1' into $temp_processor_plist"
                 fi
             fi
             ;;

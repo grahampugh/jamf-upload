@@ -67,7 +67,7 @@ class JamfObjectUploaderBase(JamfUploaderBase):
                 url = f"{jamf_url}/{self.api_endpoints(object_type)}"
 
         additional_curl_options = []
-        # PATCH endpoints require special options
+        # settings-style endpoints require special options
         if (
             object_type == "volume_purchasing_location"
             or object_type == "computer_inventory_collection_settings"

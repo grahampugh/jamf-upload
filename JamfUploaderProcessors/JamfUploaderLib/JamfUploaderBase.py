@@ -44,7 +44,7 @@ class JamfUploaderBase(Processor):
     """Common functions used by at least two JamfUploader processors."""
 
     # Global version
-    __version__ = "2025.5.9.0"
+    __version__ = "2025.6.15.0"
 
     def api_endpoints(self, object_type):
         """Return the endpoint URL from the object type"""
@@ -84,6 +84,17 @@ class JamfUploaderBase(Processor):
             "logflush": "JSSResource/logflush",
             "ldap_server": "JSSResource/ldapservers",
             "mac_application": "JSSResource/macapplications",
+            "managed_software_updates_feature_toggle_settings": (
+                "api/v1/managed-software-updates/plans/feature-toggle"
+            ),
+            "managed_software_updates_plans_settings": "api/v1/managed-software-updates/plans",
+            "managed_software_updates_plans_group_settings": "api/v1/managed-software-updates/plans/group",
+            "managed_software_updates_available_updates_settings": (
+                "api/v1/managed-software-updates/available-updates"
+            ),
+            "managed_software_updates_update_statuses": (
+                "api/v1/managed-software-updates/update-statuses"
+            ),
             "mobile_device_application": "JSSResource/mobiledeviceapplications",
             "mobile_device_extension_attribute": "JSSResource/mobiledeviceextensionattributes",
             "mobile_device_group": "JSSResource/mobiledevicegroups",
@@ -943,6 +954,30 @@ class JamfUploaderBase(Processor):
 
         return object_list
 
+    def get_settings_object(self, jamf_url, object_type, token=""):
+        """get the content of a settings-style endpoint"""
+        # Get results from Jamf Pro as JSON object
+        self.output(f"Getting {self.api_endpoints(object_type)} from {jamf_url}")
+
+        # check for existing
+        url = f"{jamf_url}/{self.api_endpoints(object_type)}"
+        r = self.curl(request="GET", url=url, token=token)
+
+        # for Classic API
+        if "JSSResource" in url:
+            # placeholder as not sure if any settings need to be returned in Classic API
+            obj_content = []
+
+        # for Jamf Pro API
+        else:
+            obj_content = r.output
+            self.output(
+                obj_content,
+                verbose_level=4,
+            )
+
+        return obj_content
+
     def get_api_obj_contents_from_id(
         self, jamf_url, object_type, obj_id, obj_path="", token=""
     ):
@@ -1311,10 +1346,11 @@ class JamfUploaderBase(Processor):
         else:
             raise ProcessorError("Template does not exist!")
 
-        # parse the template
-        template_contents = self.parse_downloaded_api_object(
-            template_contents, object_type, elements_to_remove
-        )
+        # parse the template except for settings-style objects
+        if "_settings" not in object_type:
+            template_contents = self.parse_downloaded_api_object(
+                template_contents, object_type, elements_to_remove
+            )
 
         # substitute user-assignable keys
         if object_name:

@@ -16,10 +16,10 @@ A processor for AutoPkg that will upload a mobile device configuration profile t
   - **required:** False
   - **description:** Password of api user, optionally set as a key in the com.github.autopkg preference file.
 - **CLIENT_ID:**
-  - **required:** True
+  - **required:** False
   - **description:** Client ID with access to access to jss, optionally set as a key in the com.github.autopkg preference file.
 - **CLIENT_SECRET:**
-  - **required:** True
+  - **required:** False
   - **description:** Secret associated with the Client ID, optionally set as a key in the com.github.autopkg preference file.
 - **profile_name**:
   - **required**: False

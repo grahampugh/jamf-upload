@@ -37,7 +37,7 @@ from JamfUploaderBase import (  # pylint: disable=import-error, wrong-import-pos
 
 
 class JamfObjectReaderBase(JamfUploaderBase):
-    """Class for functions used to read a generic Classic API object in Jamf"""
+    """Class for functions used to read a generic API object in Jamf"""
 
     def execute(self):
         """Upload an API object"""
@@ -52,6 +52,7 @@ class JamfObjectReaderBase(JamfUploaderBase):
         list_only = self.env.get("list_only")
         object_type = self.env.get("object_type")
         output_dir = self.env.get("output_dir")
+        settings_key = self.env.get("settings_key")
         elements_to_remove = self.env.get("elements_to_remove")
         if isinstance(elements_to_remove, str):
             elements_to_remove = [elements_to_remove]
@@ -63,7 +64,7 @@ class JamfObjectReaderBase(JamfUploaderBase):
             list_only = False
 
         # check for required variables
-        if not all_objects and not list_only:
+        if not all_objects and not list_only and not "_settings" in object_type:
             if not object_name and not obj_id:
                 raise ProcessorError(
                     "ERROR: no object name or ID provided, and all_objects is False"
@@ -99,6 +100,7 @@ class JamfObjectReaderBase(JamfUploaderBase):
         # declare some empty variables
         output_filename = ""
         file_path = ""
+        settings_value = ""
 
         # declare name key
         namekey = self.get_namekey(object_type)
@@ -159,6 +161,18 @@ class JamfObjectReaderBase(JamfUploaderBase):
             else:
                 self.output(f"{object_type} '{object_name}' not found on {jamf_url}")
                 return
+
+        elif "_settings" in object_type:
+            object_content = self.get_settings_object(jamf_url, object_type, token)
+            if object_content:
+                self.output(
+                    f"{object_type} content on {jamf_url}: {object_content}",
+                    verbose_level=3,
+                )
+                if settings_key:
+                    settings_value = object_content[settings_key]
+            else:
+                self.output(f"{object_type} has no content on {jamf_url}")
 
         # now iterate through all the objects
         raw_object = ""
@@ -254,7 +268,11 @@ class JamfObjectReaderBase(JamfUploaderBase):
         # output the summary
         self.env["object_type"] = object_type
         self.env["output_dir"] = output_dir
-        if not all_objects and not list_only:
+        if "_settings" in object_type and object_content:
+            self.env["raw_object"] = str(object_content)
+            self.env["settings_key"] = settings_key
+            self.env["settings_value"] = str(settings_value)
+        elif not all_objects and not list_only:
             self.env["output_filename"] = output_filename
             self.env["output_path"] = file_path
             self.env["object_name"] = object_name
