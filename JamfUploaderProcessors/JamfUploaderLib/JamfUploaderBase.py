@@ -44,7 +44,7 @@ class JamfUploaderBase(Processor):
     """Common functions used by at least two JamfUploader processors."""
 
     # Global version
-    __version__ = "2025.6.13.0"
+    __version__ = "2025.6.15.0"
 
     def api_endpoints(self, object_type):
         """Return the endpoint URL from the object type"""
@@ -89,7 +89,7 @@ class JamfUploaderBase(Processor):
             ),
             "managed_software_updates_plans_settings": "api/v1/managed-software-updates/plans",
             "managed_software_updates_plans_group_settings": "api/v1/managed-software-updates/plans/group",
-            "managed_software_updates_available_updates": (
+            "managed_software_updates_available_updates_settings": (
                 "api/v1/managed-software-updates/available-updates"
             ),
             "managed_software_updates_update_statuses": (

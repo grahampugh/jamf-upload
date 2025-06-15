@@ -1,10 +1,8 @@
-# JamfClassicAPIObjectUploader
+# JamfObjectUploader
 
 ## Description
 
-A processor for AutoPkg that will upload various Classic API objects to a Jamf Cloud or on-prem server.
-
-**NOTE:** This process has been superceded by `JamfObjectUploader` and will be removed at a future date. Please update any recipes or workflows to use `JamfObjectUploader`. All key labels remain the same.
+A processor for AutoPkg that will create a Managed Software Update Plan. Currently restricted to the DOWNLOAD_INSTALL_SCHEDULE plan type (the only DDM plan available in Jamf Pro).
 
 ## Input variables
 
@@ -23,19 +21,19 @@ A processor for AutoPkg that will upload various Classic API objects to a Jamf C
 - **CLIENT_SECRET:**
   - **required:** False
   - **description:** Secret associated with the Client ID, optionally set as a key in the com.github.autopkg preference file.
-- **object_name**:
-  - **required**: False
-  - **description**: The name of the API object
-- **object_template**:
+- **device_type**:
   - **required**: True
-  - **description**: Path to the API object template file
-- **object_type**:
+  - **description**: Device type, must be one of 'computer', 'mobile-device', 'apple-tv' (case-insensitive).
+- **group_name**:
   - **required**: True
-  - **description**: The API object type. This is in the singular form - the name of the key in the XML template. See the [Object Reference](./Object%20Reference.md) for valid objects.
-- **replace_object**:
+  - **description**: Name of the target computer group or mobile device group.
+- **version**:
   - **required**: False
-  - **description**: overwrite an existing Computer Group if True.
-  - **default**: False
+  - **description**: OS Version to deploy, must be one of 'latest-minor', 'latest-major', 'latest-any', or a valid specific version string for the OS to be applied.
+- **days_until_force_install**:
+  - **required**: False
+  - **description**: Days until forced installation of planned managed software update.
+  - **default**: 7
 - **sleep:**
   - **required:** False
   - **description:** Pause after running this processor for specified seconds.
@@ -43,11 +41,13 @@ A processor for AutoPkg that will upload various Classic API objects to a Jamf C
 
 ## Output variables
 
-- **jamfclassicapiobjectuploader_summary_result:**
+- **jamfmsuplanuploader_summary_result:**
   - **description:** Description of interesting results.
-- **object_name**:
-  - **description**: The name of the API object
-- **object_type**:
-  - **description**: The API object type. This is in the singular form - the name of the key in the XML template.
+- **device_type**:
+  - **description**:  Device type.
+- **version_type**:
+  - **description**: Version type, one of 'latest_minor', 'latest_major', 'latest_any', or 'specific_version'.
+- **specific_version**:
+  - **description**: Specific version, if 'version_type' is set to 'specific_version'.
 - **object_updated**:
-  - **description**: Boolean - True if the object was changed.
+  - **description**: The date and time of the plan's forced installation deadline.

@@ -16,10 +16,10 @@ A processor for AutoPkg that will update or clone a Mobile Device app object on 
   - **required:** False
   - **description:** Password of api user, optionally set as a key in the com.github.autopkg preference file.
 - **CLIENT_ID:**
-  - **required:** True
+  - **required:** False
   - **description:** Client ID with access to access to jss, optionally set as a key in the com.github.autopkg preference file.
 - **CLIENT_SECRET:**
-  - **required:** True
+  - **required:** False
   - **description:** Secret associated with the Client ID, optionally set as a key in the com.github.autopkg preference file.
 - **mobiledeviceapp_name:**
   - **required:** False

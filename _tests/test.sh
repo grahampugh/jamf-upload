@@ -399,6 +399,16 @@ case "$test_type" in
             "$verbosity" \
             --replace
         ;;
+    msu)
+        "$DIR"/../jamf-upload.sh msu \
+            --prefs "$prefs" \
+            --recipe-dir /Users/gpugh/sourcecode/jamf-upload/_tests \
+            --device-type "computer" \
+            --group "Testing" \
+            --version "latest-minor" \
+            --days "14" \
+            "$verbosity"
+        ;;
     payload)
         "$DIR"/../jamf-upload.sh profile \
             --prefs "$prefs" \
