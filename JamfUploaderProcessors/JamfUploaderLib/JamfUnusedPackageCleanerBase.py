@@ -287,7 +287,7 @@ class JamfUnusedPackageCleanerBase(JamfUploaderBase):
         slack_webhook_url = self.env.get("slack_webhook_url")
 
         # handle setting replace in overrides
-        if not dry_run or dry_run == "False":
+        if not dry_run or dry_run.lower() == "false":
             dry_run = False
 
         object_type = "package"

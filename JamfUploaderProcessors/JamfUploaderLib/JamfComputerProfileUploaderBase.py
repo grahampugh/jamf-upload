@@ -277,10 +277,10 @@ class JamfComputerProfileUploaderBase(JamfUploaderBase):
         retain_scope = self.env.get("retain_scope")
         sleep_time = self.env.get("sleep")
         # handle setting replace in overrides
-        if not replace_profile or replace_profile == "False":
+        if not replace_profile or replace_profile.lower() == "false":
             replace_profile = False
         # handle setting retain_scope in overrides
-        if not retain_scope or retain_scope == "False":
+        if not retain_scope or retain_scope.lower() == "false":
             retain_scope = False
 
         # clear any pre-existing summary result

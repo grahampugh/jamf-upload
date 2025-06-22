@@ -77,9 +77,9 @@ class JamfPackageRecalculatorBase(JamfUploaderBase):
         client_secret = self.env.get("CLIENT_SECRET")
 
         # handle setting true/false variables in overrides
-        if not pkg_api_mode or pkg_api_mode == "False":
+        if not pkg_api_mode or pkg_api_mode.lower() == "false":
             pkg_api_mode = False
-        if not jcds2_mode or jcds2_mode == "False":
+        if not jcds2_mode or jcds2_mode.lower() == "false":
             jcds2_mode = False
 
         # get token using oauth or basic auth depending on the credentials given

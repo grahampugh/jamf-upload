@@ -59,9 +59,9 @@ class JamfObjectReaderBase(JamfUploaderBase):
             elements_to_remove = [elements_to_remove]
 
         # handle setting true/false variables in overrides
-        if not all_objects or all_objects == "False":
+        if not all_objects or all_objects.lower() == "false":
             all_objects = False
-        if not list_only or list_only == "False":
+        if not list_only or list_only.lower() == "false":
             list_only = False
 
         # check for required variables
