@@ -85,6 +85,9 @@ class JamfUploaderBase(Processor):
             "logflush": "JSSResource/logflush",
             "ldap_server": "JSSResource/ldapservers",
             "mac_application": "JSSResource/macapplications",
+            "managed_software_updates_available_updates": (
+                "api/v1/managed-software-updates/available-updates"
+            ),
             "managed_software_updates_feature_toggle_settings": (
                 "api/v1/managed-software-updates/plans/feature-toggle"
             ),
@@ -92,9 +95,6 @@ class JamfUploaderBase(Processor):
             "managed_software_updates_plans_events": f"api/v1/managed-software-updates/plans/{uuid}/events",
             "managed_software_updates_plans_group_settings": (
                 "api/v1/managed-software-updates/plans/group"
-            ),
-            "managed_software_updates_available_updates": (
-                "api/v1/managed-software-updates/available-updates"
             ),
             "managed_software_updates_update_statuses": (
                 "api/v1/managed-software-updates/update-statuses"
@@ -170,6 +170,9 @@ class JamfUploaderBase(Processor):
                 "managed_software_updates_available_updates"
             ),
             "managed_software_updates_plans": ("managed_software_updates_plans"),
+            "managed_software_updates_update_statuses": (
+                "managed_software_updates_update_statuses"
+            ),
             "managed_software_updates_plans_events": (
                 "managed_software_updates_plans_events"
             ),
