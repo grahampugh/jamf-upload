@@ -168,9 +168,12 @@ class JamfScriptUploaderBase(JamfUploaderBase):
         replace_script = self.env.get("replace_script")
         sleep_time = self.env.get("sleep")
         # handle setting replace in overrides
-        if not replace_script or replace_script == "False":
+        if not replace_script or replace_script.lower() == "false":
             replace_script = False
-        if not skip_script_key_substitution or skip_script_key_substitution == "False":
+        if (
+            not skip_script_key_substitution
+            or skip_script_key_substitution.lower() == "false"
+        ):
             skip_script_key_substitution = False
 
         # clear any pre-existing summary result

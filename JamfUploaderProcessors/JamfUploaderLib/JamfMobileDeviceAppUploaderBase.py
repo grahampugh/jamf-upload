@@ -163,7 +163,7 @@ class JamfMobileDeviceAppUploaderBase(JamfUploaderBase):
         replace_mobiledeviceapp = self.env.get("replace_mobiledeviceapp")
         sleep_time = self.env.get("sleep")
         # handle setting replace in overrides
-        if not replace_mobiledeviceapp or replace_mobiledeviceapp == "False":
+        if not replace_mobiledeviceapp or replace_mobiledeviceapp.lower() == "false":
             replace_mobiledeviceapp = False
         mobiledeviceapp_updated = False
 

@@ -211,13 +211,13 @@ class JamfPolicyUploaderBase(JamfUploaderBase):
         replace_icon = self.env.get("replace_icon")
         policy_updated = False
         # handle setting replace in overrides
-        if not replace_policy or replace_policy == "False":
+        if not replace_policy or replace_policy.lower() == "false":
             replace_policy = False
         # handle setting retain_scope in overrides
-        if not retain_scope or retain_scope == "False":
+        if not retain_scope or retain_scope.lower() == "false":
             retain_scope = False
         # handle setting replace in overrides
-        if not replace_icon or replace_icon == "False":
+        if not replace_icon or replace_icon.lower() == "false":
             replace_icon = False
 
         # clear any pre-existing summary result

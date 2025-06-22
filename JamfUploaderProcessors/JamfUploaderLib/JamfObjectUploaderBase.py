@@ -130,7 +130,7 @@ class JamfObjectUploaderBase(JamfUploaderBase):
         elements_to_remove = self.env.get("elements_to_remove")
         sleep_time = self.env.get("sleep")
         # handle setting replace in overrides
-        if not replace_object or replace_object == "False":
+        if not replace_object or replace_object.lower() == "false":
             replace_object = False
         if not elements_to_remove:
             elements_to_remove = []

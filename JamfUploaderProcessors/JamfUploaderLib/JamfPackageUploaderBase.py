@@ -852,19 +852,19 @@ class JamfPackageUploaderBase(JamfUploaderBase):
         pkg_metadata_updated = False
 
         # handle setting true/false variables in overrides
-        if not replace or replace == "False":
+        if not replace or replace.lower() == "false":
             replace = False
-        if not replace_metadata or replace_metadata == "False":
+        if not replace_metadata or replace_metadata.lower() == "false":
             replace_metadata = False
-        if not skip_metadata_upload or skip_metadata_upload == "False":
+        if not skip_metadata_upload or skip_metadata_upload.lower() == "false":
             skip_metadata_upload = False
-        if not jcds2_mode or jcds2_mode == "False":
+        if not jcds2_mode or jcds2_mode.lower() == "false":
             jcds2_mode = False
-        if not aws_cdp_mode or aws_cdp_mode == "False":
+        if not aws_cdp_mode or aws_cdp_mode.lower() == "false":
             aws_cdp_mode = False
-        if not recalculate or recalculate == "False":
+        if not recalculate or recalculate.lower() == "false":
             recalculate = False
-        if not cloud_dp or cloud_dp == "False":
+        if not cloud_dp or cloud_dp.lower() == "false":
             cloud_dp = False
 
         # set pkg_name if not separately defined

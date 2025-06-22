@@ -133,7 +133,7 @@ class JamfMacAppUploaderBase(JamfUploaderBase):
         replace_macapp = self.env.get("replace_macapp")
         sleep_time = self.env.get("sleep")
         # handle setting replace in overrides
-        if not replace_macapp or replace_macapp == "False":
+        if not replace_macapp or replace_macapp.lower() == "false":
             replace_macapp = False
         macapp_updated = False
 

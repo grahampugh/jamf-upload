@@ -218,7 +218,7 @@ class JamfMobileDeviceProfileUploaderBase(JamfUploaderBase):
         replace_profile = self.env.get("replace_profile")
         sleep_time = self.env.get("sleep")
         # handle setting replace in overrides
-        if not replace_profile or replace_profile == "False":
+        if not replace_profile or replace_profile.lower() == "false":
             replace_profile = False
 
         # clear any pre-existing summary result

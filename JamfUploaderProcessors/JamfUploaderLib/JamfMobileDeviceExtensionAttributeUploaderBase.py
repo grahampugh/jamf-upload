@@ -144,7 +144,7 @@ class JamfMobileDeviceExtensionAttributeUploaderBase(JamfUploaderBase):
         replace_ea = self.env.get("replace_ea")
         sleep_time = self.env.get("sleep")
         # handle setting replace in overrides
-        if not replace_ea or replace_ea == "False":
+        if not replace_ea or replace_ea.lower() == "false":
             replace_ea = False
 
         # convert popup choices to list
