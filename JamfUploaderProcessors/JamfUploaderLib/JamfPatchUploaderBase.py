@@ -256,7 +256,7 @@ class JamfPatchUploaderBase(JamfUploaderBase):
         patch_icon_policy_name = self.env.get("patch_icon_policy_name")
         replace_patchpolicy = self.env.get("replace_patch")
         sleep_time = self.env.get("sleep")
-        if not replace_patchpolicy or replace_patchpolicy == "False":
+        if not replace_patchpolicy or replace_patchpolicy.lower() == "false":
             replace_patchpolicy = False
 
         # clear any pre-existing summary result

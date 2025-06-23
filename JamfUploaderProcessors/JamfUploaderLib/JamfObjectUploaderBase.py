@@ -67,7 +67,7 @@ class JamfObjectUploaderBase(JamfUploaderBase):
                 url = f"{jamf_url}/{self.api_endpoints(object_type)}"
 
         additional_curl_options = []
-        # PATCH endpoints require special options
+        # settings-style endpoints require special options
         if (
             object_type == "volume_purchasing_location"
             or object_type == "computer_inventory_collection_settings"
@@ -130,7 +130,7 @@ class JamfObjectUploaderBase(JamfUploaderBase):
         elements_to_remove = self.env.get("elements_to_remove")
         sleep_time = self.env.get("sleep")
         # handle setting replace in overrides
-        if not replace_object or replace_object == "False":
+        if not replace_object or replace_object.lower() == "false":
             replace_object = False
         if not elements_to_remove:
             elements_to_remove = []

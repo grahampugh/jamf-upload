@@ -114,7 +114,7 @@ class JamfMobileDeviceGroupUploaderBase(JamfUploaderBase):
         replace_group = self.env.get("replace_group")
         sleep_time = self.env.get("sleep")
         # handle setting replace in overrides
-        if not replace_group or replace_group == "False":
+        if not replace_group or replace_group.lower() == "false":
             replace_group = False
 
         # clear any pre-existing summary result

@@ -16,10 +16,10 @@ A processor for AutoPkg that will upload a policy to a Jamf Cloud or on-prem ser
   - **required:** False
   - **description:** Password of api user, optionally set as a key in the com.github.autopkg preference file.
 - **CLIENT_ID:**
-  - **required:** True
+  - **required:** False
   - **description:** Client ID with access to access to jss, optionally set as a key in the com.github.autopkg preference file.
 - **CLIENT_SECRET:**
-  - **required:** True
+  - **required:** False
   - **description:** Secret associated with the Client ID, optionally set as a key in the com.github.autopkg preference file.
 - **policy_name:**
   - **required:** True

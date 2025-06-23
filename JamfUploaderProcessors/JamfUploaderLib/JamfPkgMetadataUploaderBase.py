@@ -200,7 +200,7 @@ class JamfPkgMetadataUploaderBase(JamfUploaderBase):
         pkg_metadata_updated = False
 
         # handle setting true/false variables in overrides
-        if not replace_metadata or replace_metadata == "False":
+        if not replace_metadata or replace_metadata.lower() == "false":
             replace_metadata = False
 
         # create a dictionary of package metadata from the inputs

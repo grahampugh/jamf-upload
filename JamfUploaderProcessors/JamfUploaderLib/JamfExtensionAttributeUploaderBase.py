@@ -161,11 +161,14 @@ class JamfExtensionAttributeUploaderBase(JamfUploaderBase):
         replace_ea = self.env.get("replace_ea")
         sleep_time = self.env.get("sleep")
         # handle setting replace in overrides
-        if not ea_enabled or ea_enabled == "True":
+        if not ea_enabled or ea_enabled.lower() == "true":
             ea_enabled = True
-        if not replace_ea or replace_ea == "False":
+        if not replace_ea or replace_ea.lower() == "false":
             replace_ea = False
-        if not skip_script_key_substitution or skip_script_key_substitution == "False":
+        if (
+            not skip_script_key_substitution
+            or skip_script_key_substitution.lower() == "false"
+        ):
             skip_script_key_substitution = False
 
         # convert popup choices to list

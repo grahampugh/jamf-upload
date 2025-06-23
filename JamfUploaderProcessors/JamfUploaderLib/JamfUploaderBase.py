@@ -44,9 +44,9 @@ class JamfUploaderBase(Processor):
     """Common functions used by at least two JamfUploader processors."""
 
     # Global version
-    __version__ = "2025.5.9.0"
+    __version__ = "2025.6.22.0"
 
-    def api_endpoints(self, object_type):
+    def api_endpoints(self, object_type, uuid=""):
         """Return the endpoint URL from the object type"""
         api_endpoints = {
             "account": "JSSResource/accounts",
@@ -61,6 +61,7 @@ class JamfUploaderBase(Processor):
             "category": "api/v1/categories",
             "check_in_settings": "api/v3/check-in",
             "cloud_ldap": "api/v2/cloud-ldaps",
+            "computer": "api/preview/computers",
             "computer_extension_attribute": "api/v1/computer-extension-attributes",
             "computer_group": "JSSResource/computergroups",
             "computer_inventory_collection_settings": (
@@ -84,6 +85,21 @@ class JamfUploaderBase(Processor):
             "logflush": "JSSResource/logflush",
             "ldap_server": "JSSResource/ldapservers",
             "mac_application": "JSSResource/macapplications",
+            "managed_software_updates_available_updates": (
+                "api/v1/managed-software-updates/available-updates"
+            ),
+            "managed_software_updates_feature_toggle_settings": (
+                "api/v1/managed-software-updates/plans/feature-toggle"
+            ),
+            "managed_software_updates_plans": "api/v1/managed-software-updates/plans",
+            "managed_software_updates_plans_events": f"api/v1/managed-software-updates/plans/{uuid}/events",
+            "managed_software_updates_plans_group_settings": (
+                "api/v1/managed-software-updates/plans/group"
+            ),
+            "managed_software_updates_update_statuses": (
+                "api/v1/managed-software-updates/update-statuses"
+            ),
+            "mobile_device": "api/v2/mobile-devices",
             "mobile_device_application": "JSSResource/mobiledeviceapplications",
             "mobile_device_extension_attribute": "JSSResource/mobiledeviceextensionattributes",
             "mobile_device_group": "JSSResource/mobiledevicegroups",
@@ -141,6 +157,7 @@ class JamfUploaderBase(Processor):
             "api_role": "api_roles",
             "app_installer": "app_installers",
             "category": "categories",
+            "computer": "computers",
             "computer_group": "computer_groups",
             "computer_prestage": "computer_prestages",
             "configuration_profile": "configuration_profiles",
@@ -149,6 +166,17 @@ class JamfUploaderBase(Processor):
             "computer_extension_attribute": "computer_extension_attributes",
             "ldap_server": "ldap_servers",
             "mac_application": "mac_applications",
+            "managed_software_updates_available_updates": (
+                "managed_software_updates_available_updates"
+            ),
+            "managed_software_updates_plans": ("managed_software_updates_plans"),
+            "managed_software_updates_update_statuses": (
+                "managed_software_updates_update_statuses"
+            ),
+            "managed_software_updates_plans_events": (
+                "managed_software_updates_plans_events"
+            ),
+            "mobile_device": "mobile_devices",
             "mobile_device_application": "mobile_device_applications",
             "mobile_device_extension_attribute": "mobile_device_extension_attributes",
             "mobile_device_group": "mobile_device_groups",
@@ -922,13 +950,13 @@ class JamfUploaderBase(Processor):
                         self.output(f"File found at: {matched_filepath}")
                         return matched_filepath
 
-    def get_all_api_objects(self, jamf_url, object_type, token=""):
+    def get_all_api_objects(self, jamf_url, object_type, uuid="", token=""):
         """get a list of all objects of a particular type"""
         # Get all objects from Jamf Pro as JSON object
         self.output(f"Getting all {self.api_endpoints(object_type)} from {jamf_url}")
 
         # check for existing
-        url = f"{jamf_url}/{self.api_endpoints(object_type)}"
+        url = f"{jamf_url}/{self.api_endpoints(object_type, uuid)}"
         r = self.curl(request="GET", url=url, token=token)
 
         # for Classic API
@@ -938,10 +966,39 @@ class JamfUploaderBase(Processor):
 
         # for Jamf Pro API
         else:
-            object_list = r.output["results"]
+            if object_type == "managed_software_updates_available_updates":
+                object_list = r.output["availableUpdates"]
+            elif object_type == "managed_software_updates_plans_events":
+                object_list = r.output["events"]
+            else:
+                object_list = r.output["results"]
             self.output(f"List of objects:\n{object_list}", verbose_level=3)
 
         return object_list
+
+    def get_settings_object(self, jamf_url, object_type, token=""):
+        """get the content of a settings-style endpoint"""
+        # Get results from Jamf Pro as JSON object
+        self.output(f"Getting {self.api_endpoints(object_type)} from {jamf_url}")
+
+        # check for existing
+        url = f"{jamf_url}/{self.api_endpoints(object_type)}"
+        r = self.curl(request="GET", url=url, token=token)
+
+        # for Classic API
+        if "JSSResource" in url:
+            # placeholder as not sure if any settings need to be returned in Classic API
+            obj_content = []
+
+        # for Jamf Pro API
+        else:
+            obj_content = r.output
+            self.output(
+                obj_content,
+                verbose_level=4,
+            )
+
+        return obj_content
 
     def get_api_obj_contents_from_id(
         self, jamf_url, object_type, obj_id, obj_path="", token=""
@@ -1311,10 +1368,11 @@ class JamfUploaderBase(Processor):
         else:
             raise ProcessorError("Template does not exist!")
 
-        # parse the template
-        template_contents = self.parse_downloaded_api_object(
-            template_contents, object_type, elements_to_remove
-        )
+        # parse the template except for settings-style objects
+        if "_settings" not in object_type:
+            template_contents = self.parse_downloaded_api_object(
+                template_contents, object_type, elements_to_remove
+            )
 
         # substitute user-assignable keys
         if object_name:
