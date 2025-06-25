@@ -149,11 +149,8 @@ class JamfAccountUploaderBase(JamfUploaderBase):
         account_type = self.env.get("account_type")
         domain = self.env.get("domain")
         account_template = self.env.get("account_template")
-        replace_account = self.env.get("replace_account")
+        replace_account = self.to_bool(self.env.get("replace_account"))
         sleep_time = self.env.get("sleep")
-        # handle setting replace in overrides
-        if not replace_account or replace_account == "False":
-            replace_account = False
         account_updated = False
 
         # clear any pre-existing summary result

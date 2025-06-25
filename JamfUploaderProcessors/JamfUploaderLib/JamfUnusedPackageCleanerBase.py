@@ -282,13 +282,9 @@ class JamfUnusedPackageCleanerBase(JamfUploaderBase):
         jamf_password = self.env.get("API_PASSWORD")
         client_id = self.env.get("CLIENT_ID")
         client_secret = self.env.get("CLIENT_SECRET")
-        dry_run = self.env.get("dry_run")
+        dry_run = self.to_bool(self.env.get("dry_run"))
         output_dir = self.env.get("output_dir")
         slack_webhook_url = self.env.get("slack_webhook_url")
-
-        # handle setting replace in overrides
-        if not dry_run or dry_run.lower() == "false":
-            dry_run = False
 
         object_type = "package"
 

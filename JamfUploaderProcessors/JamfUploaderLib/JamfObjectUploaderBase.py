@@ -126,14 +126,9 @@ class JamfObjectUploaderBase(JamfUploaderBase):
         object_name = self.env.get("object_name")
         object_type = self.env.get("object_type")
         object_template = self.env.get("object_template")
-        replace_object = self.env.get("replace_object")
+        replace_object = self.to_bool(self.env.get("replace_object"))
         elements_to_remove = self.env.get("elements_to_remove")
         sleep_time = self.env.get("sleep")
-        # handle setting replace in overrides
-        if not replace_object or replace_object.lower() == "false":
-            replace_object = False
-        if not elements_to_remove:
-            elements_to_remove = []
         object_updated = False
 
         # clear any pre-existing summary result

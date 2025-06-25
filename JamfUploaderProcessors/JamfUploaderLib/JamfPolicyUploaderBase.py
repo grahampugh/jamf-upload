@@ -205,20 +205,11 @@ class JamfPolicyUploaderBase(JamfUploaderBase):
         policy_name = self.env.get("policy_name")
         policy_template = self.env.get("policy_template")
         icon = self.env.get("icon")
-        replace_policy = self.env.get("replace_policy")
-        retain_scope = self.env.get("retain_scope")
+        replace_policy = self.to_bool(self.env.get("replace_policy"))
+        retain_scope = self.to_bool(self.env.get("retain_scope"))
         sleep_time = self.env.get("sleep")
-        replace_icon = self.env.get("replace_icon")
+        replace_icon = self.to_bool(self.env.get("replace_icon"))
         policy_updated = False
-        # handle setting replace in overrides
-        if not replace_policy or replace_policy.lower() == "false":
-            replace_policy = False
-        # handle setting retain_scope in overrides
-        if not retain_scope or retain_scope.lower() == "false":
-            retain_scope = False
-        # handle setting replace in overrides
-        if not replace_icon or replace_icon.lower() == "false":
-            replace_icon = False
 
         # clear any pre-existing summary result
         if "jamfpolicyuploader_summary_result" in self.env:

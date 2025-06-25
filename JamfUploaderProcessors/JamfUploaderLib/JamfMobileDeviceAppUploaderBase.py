@@ -160,11 +160,8 @@ class JamfMobileDeviceAppUploaderBase(JamfUploaderBase):
         selfservice_icon_uri = self.env.get("selfservice_icon_uri")
         mobiledeviceapp_template = self.env.get("mobiledeviceapp_template")
         appconfig_template = self.env.get("appconfig_template")
-        replace_mobiledeviceapp = self.env.get("replace_mobiledeviceapp")
+        replace_mobiledeviceapp = self.to_bool(self.env.get("replace_mobiledeviceapp"))
         sleep_time = self.env.get("sleep")
-        # handle setting replace in overrides
-        if not replace_mobiledeviceapp or replace_mobiledeviceapp.lower() == "false":
-            replace_mobiledeviceapp = False
         mobiledeviceapp_updated = False
 
         # clear any pre-existing summary result

@@ -271,7 +271,7 @@ class JamfExtensionAttributePopupChoiceAdjusterBase(JamfUploaderBase):
         object_template = self.env.get("object_template")
         output_dir = self.env.get("output_dir") or self.env.get("RECIPE_CACHE_DIR")
         choice_value = self.env.get("choice_value")
-        strict_mode = self.env.get("strict_mode")
+        strict_mode = self.to_bool(self.env.get("strict_mode"))
 
         if object_template:
             if not object_template.startswith("/"):
@@ -287,7 +287,7 @@ class JamfExtensionAttributePopupChoiceAdjusterBase(JamfUploaderBase):
             except Exception as e:
                 raise ProcessorError(f"Error reading object_template file: {e}") from e
 
-        if strict_mode == "False":
+        if not strict_mode:
             self.output("WARNING: Strict mode disabled!")
 
         is_json = parsed_object.strip().startswith(
