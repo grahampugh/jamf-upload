@@ -193,6 +193,13 @@ class JamfUploaderBase(Processor):
         }
         return object_list_types[object_type]
 
+    def to_bool(self, value):
+        if isinstance(value, bool):
+            return value
+        if isinstance(value, str):
+            return value.strip().lower() == "true"
+        raise ValueError(f"Cannot convert {value!r} to boolean")
+
     def get_namekey(self, object_type):
         """Return the name key that identifies the object"""
         namekey = "name"

@@ -167,7 +167,6 @@ class JamfMSUPlanUploaderBase(JamfUploaderBase):
         days_until_force_install = self.env.get("days_until_force_install")
         group_name = self.env.get("group_name")
         sleep_time = self.env.get("sleep")
-        # handle setting replace in overrides
         object_updated = False
 
         # set device type to upper case

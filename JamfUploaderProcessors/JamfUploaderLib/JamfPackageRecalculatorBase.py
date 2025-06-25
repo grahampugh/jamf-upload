@@ -68,19 +68,13 @@ class JamfPackageRecalculatorBase(JamfUploaderBase):
     ):  # pylint: disable=too-many-branches, too-many-locals, too-many-statements
         """Perform the package recalculation"""
 
-        jcds2_mode = self.env.get("jcds2_mode")
-        pkg_api_mode = self.env.get("pkg_api_mode")
+        jcds2_mode = self.to_bool(self.env.get("jcds2_mode"))
+        pkg_api_mode = self.to_bool(self.env.get("pkg_api_mode"))
         jamf_url = self.env.get("JSS_URL").rstrip("/")
         jamf_user = self.env.get("API_USERNAME")
         jamf_password = self.env.get("API_PASSWORD")
         client_id = self.env.get("CLIENT_ID")
         client_secret = self.env.get("CLIENT_SECRET")
-
-        # handle setting true/false variables in overrides
-        if not pkg_api_mode or pkg_api_mode.lower() == "false":
-            pkg_api_mode = False
-        if not jcds2_mode or jcds2_mode.lower() == "false":
-            jcds2_mode = False
 
         # get token using oauth or basic auth depending on the credentials given
         if jamf_url:

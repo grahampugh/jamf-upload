@@ -254,10 +254,8 @@ class JamfPatchUploaderBase(JamfUploaderBase):
         patch_name = self.env.get("patch_name")
         patch_template = self.env.get("patch_template")
         patch_icon_policy_name = self.env.get("patch_icon_policy_name")
-        replace_patchpolicy = self.env.get("replace_patch")
+        replace_patchpolicy = self.to_bool(self.env.get("replace_patch"))
         sleep_time = self.env.get("sleep")
-        if not replace_patchpolicy or replace_patchpolicy.lower() == "false":
-            replace_patchpolicy = False
 
         # clear any pre-existing summary result
         if "jamfpatchuploader_summary_result" in self.env:

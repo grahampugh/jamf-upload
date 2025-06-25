@@ -164,17 +164,11 @@ class JamfScriptUploaderBase(JamfUploaderBase):
         script_parameter9 = self.env.get("script_parameter9")
         script_parameter10 = self.env.get("script_parameter10")
         script_parameter11 = self.env.get("script_parameter11")
-        skip_script_key_substitution = self.env.get("skip_script_key_substitution")
-        replace_script = self.env.get("replace_script")
+        skip_script_key_substitution = self.to_bool(
+            self.env.get("skip_script_key_substitution")
+        )
+        replace_script = self.to_bool(self.env.get("replace_script"))
         sleep_time = self.env.get("sleep")
-        # handle setting replace in overrides
-        if not replace_script or replace_script.lower() == "false":
-            replace_script = False
-        if (
-            not skip_script_key_substitution
-            or skip_script_key_substitution.lower() == "false"
-        ):
-            skip_script_key_substitution = False
 
         # clear any pre-existing summary result
         if "jamfscriptuploader_summary_result" in self.env:
