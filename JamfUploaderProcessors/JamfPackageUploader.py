@@ -234,6 +234,11 @@ class JamfPackageUploader(JamfPackageUploaderBase):
             ),
             "default": "False",
         },
+        "recalculate": {
+            "required": False,
+            "description": "Recalculate package metadata in JCDS.",
+            "default": "False",
+        },
         "sleep": {
             "required": False,
             "description": "Pause after running this processor for specified seconds.",
