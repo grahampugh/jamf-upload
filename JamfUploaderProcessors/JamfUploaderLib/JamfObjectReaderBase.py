@@ -48,8 +48,8 @@ class JamfObjectReaderBase(JamfUploaderBase):
         client_secret = self.env.get("CLIENT_SECRET")
         obj_id = self.env.get("object_id")
         object_name = self.env.get("object_name")
-        all_objects = self.env.get("all_objects")
-        list_only = self.env.get("list_only")
+        all_objects = self.to_bool(self.env.get("all_objects"))
+        list_only = self.to_bool(self.env.get("list_only"))
         object_type = self.env.get("object_type")
         output_dir = self.env.get("output_dir")
         settings_key = self.env.get("settings_key")
@@ -57,12 +57,6 @@ class JamfObjectReaderBase(JamfUploaderBase):
         elements_to_remove = self.env.get("elements_to_remove")
         if isinstance(elements_to_remove, str):
             elements_to_remove = [elements_to_remove]
-
-        # handle setting true/false variables in overrides
-        if not all_objects or all_objects.lower() == "false":
-            all_objects = False
-        if not list_only or list_only.lower() == "false":
-            list_only = False
 
         # check for required variables
         if not all_objects and not list_only and not "_settings" in object_type:

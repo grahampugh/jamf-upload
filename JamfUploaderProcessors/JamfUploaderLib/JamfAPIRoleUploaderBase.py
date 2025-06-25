@@ -94,11 +94,8 @@ class JamfAPIRoleUploaderBase(JamfUploaderBase):
         client_secret = self.env.get("CLIENT_SECRET")
         object_name = self.env.get("api_role_name")
         object_template = self.env.get("api_role_template")
-        replace_object = self.env.get("replace_api_role")
+        replace_object = self.to_bool(self.env.get("replace_api_role"))
         sleep_time = self.env.get("sleep")
-        # handle setting replace in overrides
-        if not replace_object or replace_object == "False":
-            replace_object = False
         object_updated = False
 
         object_type = "api_role"

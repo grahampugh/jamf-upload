@@ -273,15 +273,9 @@ class JamfComputerProfileUploaderBase(JamfUploaderBase):
         organization = self.env.get("organization")
         profile_description = self.env.get("profile_description")
         profile_computergroup = self.env.get("profile_computergroup")
-        replace_profile = self.env.get("replace_profile")
-        retain_scope = self.env.get("retain_scope")
+        replace_profile = self.to_bool(self.env.get("replace_profile"))
+        retain_scope = self.to_bool(self.env.get("retain_scope"))
         sleep_time = self.env.get("sleep")
-        # handle setting replace in overrides
-        if not replace_profile or replace_profile.lower() == "false":
-            replace_profile = False
-        # handle setting retain_scope in overrides
-        if not retain_scope or retain_scope.lower() == "false":
-            retain_scope = False
 
         # clear any pre-existing summary result
         if "jamfcomputerprofileuploader_summary_result" in self.env:

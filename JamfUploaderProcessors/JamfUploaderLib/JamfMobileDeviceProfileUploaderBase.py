@@ -215,17 +215,13 @@ class JamfMobileDeviceProfileUploaderBase(JamfUploaderBase):
         organization = self.env.get("organization")
         profile_description = self.env.get("profile_description")
         profile_mobiledevicegroup = self.env.get("profile_mobiledevicegroup")
-        replace_profile = self.env.get("replace_profile")
+        replace_profile = self.to_bool(self.env.get("replace_profile"))
         sleep_time = self.env.get("sleep")
-        # handle setting replace in overrides
-        if not replace_profile or replace_profile.lower() == "false":
-            replace_profile = False
+        profile_updated = False
 
         # clear any pre-existing summary result
         if "jamfmobiledeviceprofilepploader_summary_result" in self.env:
             del self.env["jamfmobiledeviceprofilepploader_summary_result"]
-
-        profile_updated = False
 
         # handle files with no path
         if mobileconfig and "/" not in mobileconfig:

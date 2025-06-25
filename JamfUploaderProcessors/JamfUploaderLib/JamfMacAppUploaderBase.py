@@ -130,11 +130,8 @@ class JamfMacAppUploaderBase(JamfUploaderBase):
         clone_from = self.env.get("clone_from")
         selfservice_icon_uri = self.env.get("selfservice_icon_uri")
         macapp_template = self.env.get("macapp_template")
-        replace_macapp = self.env.get("replace_macapp")
+        replace_macapp = self.to_bool(self.env.get("replace_macapp"))
         sleep_time = self.env.get("sleep")
-        # handle setting replace in overrides
-        if not replace_macapp or replace_macapp.lower() == "false":
-            replace_macapp = False
         macapp_updated = False
 
         # clear any pre-existing summary result
