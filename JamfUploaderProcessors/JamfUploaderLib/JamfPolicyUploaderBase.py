@@ -263,7 +263,7 @@ class JamfPolicyUploaderBase(JamfUploaderBase):
             self.output(f"Policy '{policy_name}' already exists: ID {obj_id}")
             if replace_policy:
                 self.output(
-                    f"Replacing existing policy as 'replace_policy' is set to {replace_policy}",
+                    f"Replacing existing policy as 'replace_policy' is set to True",
                     verbose_level=1,
                 )
             else:

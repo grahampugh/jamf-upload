@@ -188,7 +188,7 @@ class JamfMobileDeviceExtensionAttributeUploaderBase(JamfUploaderBase):
                 self.output(
                     (
                         "Replacing existing Extension Attribute as 'replace_ea' is "
-                        f"set to {replace_ea}"
+                        f"set to True"
                     ),
                     verbose_level=1,
                 )

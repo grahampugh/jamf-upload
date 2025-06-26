@@ -195,7 +195,7 @@ class JamfAPIClientUploaderBase(JamfUploaderBase):
                 )
             if replace_object:
                 self.output(
-                    f"Replacing existing {object_type} as 'replace_api_client' is set to {replace_object}",
+                    f"Replacing existing {object_type} as 'replace_api_client' is set to True",
                     verbose_level=1,
                 )
             else:

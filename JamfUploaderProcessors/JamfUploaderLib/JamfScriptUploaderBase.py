@@ -241,7 +241,7 @@ class JamfScriptUploaderBase(JamfUploaderBase):
             self.output(f"Script '{script_name}' already exists: ID {obj_id}")
             if replace_script:
                 self.output(
-                    f"Replacing existing script as 'replace_script' is set to {replace_script}",
+                    f"Replacing existing script as 'replace_script' is set to True",
                     verbose_level=1,
                 )
             else:

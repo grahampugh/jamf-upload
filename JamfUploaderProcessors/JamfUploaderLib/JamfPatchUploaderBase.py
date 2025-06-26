@@ -410,10 +410,7 @@ class JamfPatchUploaderBase(JamfUploaderBase):
                 self.output(f"Patch '{patch_name}' already exists: ID {patch_id}")
                 if replace_patchpolicy:
                     self.output(
-                        (
-                            "Replacing existing patch as 'replace_patch' is set to "
-                            + replace_patchpolicy
-                        ),
+                        ("Replacing existing patch as 'replace_patch' is set to True"),
                         verbose_level=1,
                     )
                 else:

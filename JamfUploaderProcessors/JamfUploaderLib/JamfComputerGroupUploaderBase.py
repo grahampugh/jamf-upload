@@ -179,8 +179,7 @@ class JamfComputerGroupUploaderBase(JamfUploaderBase):
             )
             if replace_group:
                 self.output(
-                    "Replacing existing Computer Group as 'replace_group' is set "
-                    f"to {replace_group}",
+                    "Replacing existing Computer Group as 'replace_group' is set to True",
                     verbose_level=1,
                 )
             else:

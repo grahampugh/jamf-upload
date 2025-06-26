@@ -144,14 +144,13 @@ class JamfAPIRoleUploaderBase(JamfUploaderBase):
             self.output(f"{object_type} '{object_name}' already exists: ID {obj_id}")
             if replace_object:
                 self.output(
-                    f"Replacing existing {object_type} as replace_object is "
-                    f"set to '{replace_object}'",
+                    f"Replacing existing {object_type} as replace_object is set to True",
                     verbose_level=1,
                 )
             else:
                 self.output(
                     f"Not replacing existing {object_type}. Use "
-                    f"replace_object='True' to enforce."
+                    "replace_object='True' to enforce."
                 )
                 return
 

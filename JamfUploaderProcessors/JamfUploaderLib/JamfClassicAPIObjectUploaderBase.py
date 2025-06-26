@@ -148,7 +148,7 @@ class JamfClassicAPIObjectUploaderBase(JamfUploaderBase):
             if replace_object:
                 self.output(
                     f"Replacing existing {object_type} as replace_object is "
-                    f"set to '{replace_object}'",
+                    "set to True",
                     verbose_level=1,
                 )
             else:
