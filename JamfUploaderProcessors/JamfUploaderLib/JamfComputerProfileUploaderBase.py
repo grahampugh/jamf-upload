@@ -414,6 +414,10 @@ class JamfComputerProfileUploaderBase(JamfUploaderBase):
                 f"Configuration Profile '{mobileconfig_name}' already exists: ID {obj_id}"
             )
             if replace_profile:
+                self.output(
+                    "Replacing existing Computer Profile as 'replace_profile' is set to True",
+                    verbose_level=1,
+                )
                 # grab existing UUID from profile as it MUST match on the destination
                 (
                     existing_uuid,
@@ -461,8 +465,11 @@ class JamfComputerProfileUploaderBase(JamfUploaderBase):
                     self.output("A mobileconfig was not generated so cannot upload.")
             else:
                 self.output(
-                    "Not replacing existing Configuration Profile. "
-                    "Override the replace_profile key to True to enforce."
+                    (
+                        "Not replacing existing Configuration Profile. "
+                        "Override the replace_profile key to True to enforce."
+                    ),
+                    verbose_level=1,
                 )
         else:
             self.output(

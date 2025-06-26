@@ -210,7 +210,7 @@ class JamfMobileDeviceAppUploaderBase(JamfUploaderBase):
             if replace_mobiledeviceapp:
                 self.output(
                     f"Replacing existing Mobile device app as 'replace_mobiledeviceapp' "
-                    f"is set to {replace_mobiledeviceapp}",
+                    f"is set to True",
                     verbose_level=1,
                 )
 

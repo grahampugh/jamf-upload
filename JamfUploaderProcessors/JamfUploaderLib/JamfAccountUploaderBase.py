@@ -209,7 +209,7 @@ class JamfAccountUploaderBase(JamfUploaderBase):
             self.output(f"account '{account_name}' already exists: ID {obj_id}")
             if replace_account:
                 self.output(
-                    f"Replacing existing account as 'replace_account' is set to {replace_account}",
+                    f"Replacing existing account '{account_name}' as 'replace_account' is set to True",
                     verbose_level=1,
                 )
             else:

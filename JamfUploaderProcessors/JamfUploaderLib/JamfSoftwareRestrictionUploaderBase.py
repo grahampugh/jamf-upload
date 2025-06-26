@@ -199,7 +199,7 @@ class JamfSoftwareRestrictionUploaderBase(JamfUploaderBase):
             if replace_restriction:
                 self.output(
                     "Replacing existing Software Restriction as 'replace_restriction' is set "
-                    f"to {replace_restriction}",
+                    "to True",
                     verbose_level=1,
                 )
             else:

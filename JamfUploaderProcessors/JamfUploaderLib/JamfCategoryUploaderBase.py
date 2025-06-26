@@ -124,8 +124,7 @@ class JamfCategoryUploaderBase(JamfUploaderBase):
             self.output(f"Category '{category_name}' already exists: ID {obj_id}")
             if replace_category:
                 self.output(
-                    "Replacing existing category as 'replace_category' is set to "
-                    + replace_category,
+                    "Replacing existing category as 'replace_category' is set to True"
                     verbose_level=1,
                 )
             else:

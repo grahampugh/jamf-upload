@@ -145,7 +145,7 @@ class JamfDockItemUploaderBase(JamfUploaderBase):
             self.output(f"Dock Item '{dock_item_name}' already exists: ID {obj_id}")
             if replace_dock_item:
                 self.output(
-                    f"Replacing existing dock item as 'replace_dock_item' is set to {replace_dock_item}",
+                    f"Replacing existing dock item as 'replace_dock_item' is set to True",
                     verbose_level=1,
                 )
             else:

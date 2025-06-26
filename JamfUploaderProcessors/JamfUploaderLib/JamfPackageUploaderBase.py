@@ -1054,8 +1054,11 @@ class JamfPackageUploaderBase(JamfUploaderBase):
                     pkg_uploaded = True
             else:
                 self.output(
-                    f"Not replacing existing {pkg_name} as 'replace_pkg' is set to "
-                    f"{replace}. Use replace_pkg='True' to enforce."
+                    (
+                        f"Not replacing existing {pkg_name} as 'replace_pkg' is set to "
+                        "False. Use replace_pkg='True' to enforce."
+                    ),
+                    verbose_level=1,
                 )
                 if "smb://" in smb_url:
                     # unmount the share
