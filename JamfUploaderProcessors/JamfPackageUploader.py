@@ -218,6 +218,11 @@ class JamfPackageUploader(JamfPackageUploaderBase):
             "description": "Use jcds2 endpoint if True.",
             "default": "False",
         },
+        "aws_cdp_mode": {
+            "required": False,
+            "description": "Use AWS CDP mode if True.",
+            "default": "False",
+        },
         "replace_pkg_metadata": {
             "required": False,
             "description": (
