@@ -15,6 +15,8 @@ Usage:
 
 Valid object types:
     account
+    apiclient
+    apirole
     category
     delete | objdelete | objectdelete
     group | computergroup
@@ -61,6 +63,22 @@ UPLOAD OPTIONS
 Account Upload arguments:
     --name <string>         The name
     --type <string>         The account type. Must be 'user' or 'group'.
+    --template <path>       XML template
+    --key X=Y               Substitutable values in the template. Multiple values can be supplied
+    --replace               Replace existing item
+
+API Client Upload arguments:
+    --name <string>         The name
+    --api-client-id <string>
+                            The API Client ID
+    --api-role-name <string>
+                            The API Role name to assign to the API Client
+    --enabled               Enable the API Client
+    --lifetime <int>        The lifetime of the API Client in seconds
+    --replace               Replace existing item
+
+API Role Upload arguments:
+    --name <string>         The name
     --template <path>       XML template
     --key X=Y               Substitutable values in the template. Multiple values can be supplied
     --replace               Replace existing item
