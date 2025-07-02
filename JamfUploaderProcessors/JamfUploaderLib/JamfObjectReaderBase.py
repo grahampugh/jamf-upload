@@ -170,97 +170,169 @@ class JamfObjectReaderBase(JamfUploaderBase):
             else:
                 self.output(f"{object_type} has no content on {jamf_url}")
 
-        if not all_objects and not list_only:
+        self.output(
+            f"All objects is set to {all_objects}, list only is set to {list_only}",
+            verbose_level=1,
+        )
+
+        if all_objects and not list_only:
             # now iterate through all the objects
             raw_object = ""
             parsed_object = ""
             payload = ""
             payload_output_filename = ""
             payload_file_path = ""
-            for obj in object_list:
-                i = obj["id"]
-                n = obj[namekey]
-                raw_object = ""
-                parsed_object = ""
-                payload = ""
 
-                # get the object
-                raw_object = self.get_api_obj_contents_from_id(
-                    jamf_url, object_type, i, obj_path="", token=token
-                )
-
-                # parse the object
-                parsed_object = self.parse_downloaded_api_object(
-                    raw_object, object_type, elements_to_remove
-                )
-
-                self.output(parsed_object, verbose_level=2)
-
-                # for certain types we also want to extract the payload
-                payload_filetype = "sh"
-                if object_type == "computer_extension_attribute":
-                    payload = json.loads(parsed_object)["scriptContents"]
-                    if payload is not None:
-                        # determine the script type
-                        if "python" in payload.partition("\n")[0]:
-                            payload_filetype = "py"
-                elif object_type == "script":
-                    payload = json.loads(parsed_object)["scriptContents"]
-                elif (
-                    object_type == "os_x_configuration_profile"
-                    or object_type == "configuration_profile"
-                ):
-                    try:
-                        obj_xml = ET.fromstring(parsed_object)
-                    except ET.ParseError as xml_error:
-                        raise ProcessorError from xml_error
-                    payload_value = obj_xml.find("general/payloads")
-                    payload = self.pretty_print_xml(payload_value.text.encode()).decode(
-                        "UTF-8"
+            self.output(
+                f"Iterating through {object_type} objects in {jamf_url}",
+                verbose_level=1,
+            )
+            # exception for accounts
+            if object_type == "account":
+                # for accounts we need to split the object list into users and groups
+                for obj_subtype in ["users", "groups"]:
+                    self.output(
+                        f"Iterating through {obj_subtype} in {object_type} object list",
+                        verbose_level=1,
                     )
-                    payload_filetype = "mobileconfig"
+                    for obj in object_list[obj_subtype]:
+                        i = obj["id"]
+                        n = obj["name"]
+                        raw_object = ""
+                        parsed_object = ""
+                        payload = ""
 
-                # dump the object to file if output_dir is specified
-                if output_dir:
-                    # construct the filename
-                    if "JSSResource" in self.api_endpoints(object_type):
-                        filetype = "xml"
-                    else:
-                        filetype = "json"
-
-                    output_filename = f"{subdomain}-{self.object_list_types(object_type)}-{n}.{filetype}"
-                    file_path = os.path.join(output_dir, output_filename)
-                    # check that parent folder exists
-                    if os.path.isdir(output_dir):
-                        try:
-                            with open(file_path, "w", encoding="utf-8") as fp:
-                                fp.write(parsed_object)
-                            self.output(f"Wrote parsed object to {file_path}")
-                            # also output the payload if appropriate
-                            if payload:
-                                payload_output_filename = (
-                                    f"{subdomain}-{self.object_list_types(object_type)}-{n}"
-                                    f".{payload_filetype}".replace(".sh.sh", ".sh")
-                                )
-                                payload_file_path = os.path.join(
-                                    output_dir, payload_output_filename
-                                )
-                                with open(
-                                    payload_file_path, "w", encoding="utf-8"
-                                ) as fp:
-                                    fp.write(payload)
-                                self.output(
-                                    f"Wrote {object_type} payload to {payload_file_path}"
-                                )
-
-                        except IOError as e:
-                            raise ProcessorError(
-                                f"Could not write output to {file_path} - {str(e)}"
-                            ) from e
-                    else:
-                        self.output(
-                            f"Cannot write to {output_dir} as the folder doesn't exist"
+                        # get the object
+                        if obj_subtype == "users":
+                            object_type = "account_user"
+                        else:
+                            object_type = "account_group"
+                        raw_object = self.get_api_obj_contents_from_id(
+                            jamf_url, object_type, i, obj_path="", token=token
                         )
+
+                        # parse the object
+                        parsed_object = self.parse_downloaded_api_object(
+                            raw_object, object_type, elements_to_remove
+                        )
+
+                        self.output(parsed_object, verbose_level=2)
+
+                        # dump the object to file if output_dir is specified
+                        if output_dir:
+                            filetype = "json"
+
+                            output_filename = (
+                                f"{subdomain}-accounts-" f"{obj_subtype}-{n}.{filetype}"
+                            )
+                            file_path = os.path.join(output_dir, output_filename)
+                            # check that parent folder exists
+                            if os.path.isdir(output_dir):
+                                try:
+                                    with open(file_path, "w", encoding="utf-8") as fp:
+                                        fp.write(parsed_object)
+                                    self.output(f"Wrote parsed object to {file_path}")
+                                except IOError as e:
+                                    raise ProcessorError(
+                                        f"Could not write output to {file_path} - {str(e)}"
+                                    ) from e
+                            else:
+                                self.output(
+                                    f"Cannot write to {output_dir} as the folder doesn't exist"
+                                )
+
+            else:
+                # for all other object types we can just iterate through the list
+                # and get the object contents
+                for obj in object_list:
+                    i = obj["id"]
+                    n = obj[namekey]
+                    raw_object = ""
+                    parsed_object = ""
+                    payload = ""
+
+                    # get the object
+                    raw_object = self.get_api_obj_contents_from_id(
+                        jamf_url, object_type, i, obj_path="", token=token
+                    )
+
+                    # parse the object
+                    parsed_object = self.parse_downloaded_api_object(
+                        raw_object, object_type, elements_to_remove
+                    )
+
+                    self.output(parsed_object, verbose_level=2)
+
+                    # for certain types we also want to extract the payload
+                    payload_filetype = "sh"
+                    if object_type == "computer_extension_attribute":
+                        payload = json.loads(parsed_object)["scriptContents"]
+                        if payload is not None:
+                            # determine the script type
+                            if "python" in payload.partition("\n")[0]:
+                                payload_filetype = "py"
+                    elif object_type == "script":
+                        payload = json.loads(parsed_object)["scriptContents"]
+                    elif (
+                        object_type == "os_x_configuration_profile"
+                        or object_type == "configuration_profile"
+                    ):
+                        try:
+                            obj_xml = ET.fromstring(parsed_object)
+                        except ET.ParseError as xml_error:
+                            raise ProcessorError from xml_error
+                        payload_value = obj_xml.find("general/payloads")
+                        payload = self.pretty_print_xml(
+                            payload_value.text.encode()
+                        ).decode("UTF-8")
+                        payload_filetype = "mobileconfig"
+
+                    # dump the object to file if output_dir is specified
+                    if output_dir:
+                        # construct the filename
+                        if "JSSResource" in self.api_endpoints(object_type):
+                            filetype = "xml"
+                        else:
+                            filetype = "json"
+
+                        output_filename = f"{subdomain}-{self.object_list_types(object_type)}-{n}.{filetype}"
+                        file_path = os.path.join(output_dir, output_filename)
+                        # check that parent folder exists
+                        if os.path.isdir(output_dir):
+                            try:
+                                with open(file_path, "w", encoding="utf-8") as fp:
+                                    fp.write(parsed_object)
+                                self.output(f"Wrote parsed object to {file_path}")
+                                # also output the payload if appropriate
+                                if payload:
+                                    payload_output_filename = (
+                                        f"{subdomain}-{self.object_list_types(object_type)}-{n}"
+                                        f".{payload_filetype}".replace(".sh.sh", ".sh")
+                                    )
+                                    payload_file_path = os.path.join(
+                                        output_dir, payload_output_filename
+                                    )
+                                    with open(
+                                        payload_file_path, "w", encoding="utf-8"
+                                    ) as fp:
+                                        fp.write(payload)
+                                    self.output(
+                                        f"Wrote {object_type} payload to {payload_file_path}"
+                                    )
+
+                            except IOError as e:
+                                raise ProcessorError(
+                                    f"Could not write output to {file_path} - {str(e)}"
+                                ) from e
+                        else:
+                            self.output(
+                                f"Cannot write to {output_dir} as the folder doesn't exist"
+                            )
+        else:
+            self.output(
+                "somehow we got here with all_objects being True",
+                verbose_level=1,
+            )
 
         # output the summary
         self.env["object_type"] = object_type

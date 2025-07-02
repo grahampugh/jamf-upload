@@ -128,6 +128,8 @@ class JamfObjectUploaderBase(JamfUploaderBase):
         object_template = self.env.get("object_template")
         replace_object = self.to_bool(self.env.get("replace_object"))
         elements_to_remove = self.env.get("elements_to_remove")
+        element_to_replace = self.env.get("element_to_replace")
+        replacement_value = self.env.get("replacement_value")
         sleep_time = self.env.get("sleep")
         object_updated = False
 
@@ -243,6 +245,8 @@ class JamfObjectUploaderBase(JamfUploaderBase):
                 object_name=None,
                 xml_escape=xml_escape,
                 elements_to_remove=elements_to_remove,
+                element_to_replace=element_to_replace,
+                replacement_value=replacement_value,
             )
         elif "_command" in object_type:
             template_file = ""
@@ -253,6 +257,8 @@ class JamfObjectUploaderBase(JamfUploaderBase):
                 object_name,
                 xml_escape=xml_escape,
                 elements_to_remove=elements_to_remove,
+                element_to_replace=element_to_replace,
+                replacement_value=replacement_value,
                 namekey_path=namekey_path,
             )
 
