@@ -63,6 +63,8 @@ UPLOAD OPTIONS
 Account Upload arguments:
     --name <string>         The name
     --type <string>         The account type. Must be 'user' or 'group'.
+    --domain <string>       The LDAP domain name. Must exist.
+    --group <string>        The group name. Must exist.
     --template <path>       XML template
     --key X=Y               Substitutable values in the template. Multiple values can be supplied
     --replace               Replace existing item
@@ -584,6 +586,26 @@ while test $# -gt 0 ; do
                 fi
             fi
             ;;
+        --domain)
+            shift
+            if [[ $processor == "JamfAccountUploader" ]]; then
+                if plutil -replace domain -string "$1" "$temp_processor_plist"; then
+                    echo "   [jamf-upload] Wrote domain='$1' into $temp_processor_plist"
+                fi
+            fi
+            ;;
+        --group|--group_name|--group-name)
+            shift
+            if [[ $processor == "JamfAccountUploader" ]]; then
+                if plutil -replace group -string "$1" "$temp_processor_plist"; then
+                    echo "   [jamf-upload] Wrote group='$1' into $temp_processor_plist"
+                fi
+            elif [[ $processor == "JamfMSUPlanUploader" ]]; then
+                if plutil -replace group_name -string "$1" "$temp_processor_plist"; then
+                    echo "   [jamf-upload] Wrote group_name='$1' into $temp_processor_plist"
+                fi
+            fi
+            ;;
         --priority) 
             shift
             if [[ $processor == "JamfCategoryUploader" ]]; then
@@ -1080,14 +1102,6 @@ while test $# -gt 0 ; do
             if [[ $processor == "JamfMSUPlanUploader" ]]; then
                 if plutil -replace device_type -string "$1" "$temp_processor_plist"; then
                     echo "   [jamf-upload] Wrote device_type='$1' into $temp_processor_plist"
-                fi
-            fi
-            ;;
-        --group|--group-name)
-            shift
-            if [[ $processor == "JamfMSUPlanUploader" ]]; then
-                if plutil -replace group_name -string "$1" "$temp_processor_plist"; then
-                    echo "   [jamf-upload] Wrote group_name='$1' into $temp_processor_plist"
                 fi
             fi
             ;;

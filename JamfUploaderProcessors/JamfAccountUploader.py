@@ -94,6 +94,11 @@ class JamfAccountUploader(JamfAccountUploaderBase):
             "description": "LDAP domain, required if writing an LDAP group.",
             "default": "",
         },
+        "group": {
+            "required": False,
+            "description": "Local group, required if giving a user group access.",
+            "default": "",
+        },
         "sleep": {
             "required": False,
             "description": "Pause after running this processor for specified seconds.",
