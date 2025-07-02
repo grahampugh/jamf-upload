@@ -149,7 +149,9 @@ class JamfExtensionAttributeUploaderBase(JamfUploaderBase):
         ea_script_path = self.env.get("ea_script_path")
         ea_name = self.env.get("ea_name")
         ea_description = self.env.get("ea_description")
-        skip_script_key_substitution = self.env.get("skip_script_key_substitution")
+        skip_script_key_substitution = self.to_bool(
+            self.env.get("skip_script_key_substitution")
+        )
         ea_input_type = self.env.get("ea_input_type")
         ea_data_type = self.env.get("ea_data_type")
         ea_inventory_display = self.env.get("ea_inventory_display")
@@ -157,19 +159,9 @@ class JamfExtensionAttributeUploaderBase(JamfUploaderBase):
         ea_directory_service_attribute_mapping = self.env.get(
             "ea_directory_service_attribute_mapping"
         )
-        ea_enabled = self.env.get("ea_enabled")
-        replace_ea = self.env.get("replace_ea")
+        ea_enabled = self.to_bool(self.env.get("ea_enabled"))
+        replace_ea = self.to_bool(self.env.get("replace_ea"))
         sleep_time = self.env.get("sleep")
-        # handle setting replace in overrides
-        if not ea_enabled or ea_enabled.lower() == "true":
-            ea_enabled = True
-        if not replace_ea or replace_ea.lower() == "false":
-            replace_ea = False
-        if (
-            not skip_script_key_substitution
-            or skip_script_key_substitution.lower() == "false"
-        ):
-            skip_script_key_substitution = False
 
         # convert popup choices to list
         if ea_popup_choices:
@@ -223,7 +215,7 @@ class JamfExtensionAttributeUploaderBase(JamfUploaderBase):
                 self.output(
                     (
                         "Replacing existing Extension Attribute as 'replace_ea' is "
-                        f"set to {replace_ea}"
+                        f"set to True"
                     ),
                     verbose_level=1,
                 )

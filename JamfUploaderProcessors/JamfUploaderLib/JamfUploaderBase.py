@@ -44,12 +44,14 @@ class JamfUploaderBase(Processor):
     """Common functions used by at least two JamfUploader processors."""
 
     # Global version
-    __version__ = "2025.6.22.0"
+    __version__ = "2025.7.2.0"
 
     def api_endpoints(self, object_type, uuid=""):
         """Return the endpoint URL from the object type"""
         api_endpoints = {
             "account": "JSSResource/accounts",
+            "account_user": "JSSResource/accounts",
+            "account_group": "JSSResource/accounts",
             "advanced_computer_search": "JSSResource/advancedcomputersearches",
             "advanced_mobile_device_search": "JSSResource/advancedmobiledevicesearches",
             "api_client": "api/v1/api-integrations",
@@ -151,6 +153,8 @@ class JamfUploaderBase(Processor):
         """Return a XML dictionary type from the object type"""
         object_list_types = {
             "account": "accounts",
+            "account_user": "accounts_users",
+            "account_group": "accounts_groups",
             "advanced_computer_search": "advanced_computer_searches",
             "advanced_mobile_device_search": "advanced_mobile_device_searches",
             "api_client": "api_clients",
@@ -192,6 +196,13 @@ class JamfUploaderBase(Processor):
             "self_service_settings": "self_service_settings",
         }
         return object_list_types[object_type]
+
+    def to_bool(self, value):
+        if isinstance(value, bool):
+            return value
+        if isinstance(value, str):
+            return value.strip().lower() == "true"
+        raise ValueError(f"Cannot convert {value!r} to boolean")
 
     def get_namekey(self, object_type):
         """Return the name key that identifies the object"""
@@ -1007,7 +1018,13 @@ class JamfUploaderBase(Processor):
         # define the relationship between the object types and their URL
         if "JSSResource" in self.api_endpoints(object_type):
             # do XML stuff
-            url = f"{jamf_url}/{self.api_endpoints(object_type)}/id/{obj_id}"
+            if object_type == "account_user":
+                url = f"{jamf_url}/{self.api_endpoints(object_type)}/userid/{obj_id}"
+            elif object_type == "account_group":
+                url = f"{jamf_url}/{self.api_endpoints(object_type)}/groupid/{obj_id}"
+            else:
+                # for all other Classic API objects, we use the ID
+                url = f"{jamf_url}/{self.api_endpoints(object_type)}/id/{obj_id}"
             request = "GET"
             r = self.curl(request=request, url=url, token=token, accept_header="xml")
             if r.status_code == 200:
@@ -1358,6 +1375,8 @@ class JamfUploaderBase(Processor):
         object_name=None,
         xml_escape=False,
         elements_to_remove=None,
+        element_to_replace=None,
+        replacement_value=None,
         namekey_path=None,
     ):
         """prepare the object contents"""
@@ -1386,6 +1405,16 @@ class JamfUploaderBase(Processor):
         template_contents = self.substitute_assignable_keys(
             template_contents, xml_escape
         )
+
+        # replace specific element in the template
+        if element_to_replace and replacement_value:
+            template_contents = self.replace_element(
+                object_type,
+                template_contents,
+                element_to_replace,
+                replacement_value,
+            )
+
         # PreStages need to iterate the versionLock value in order to replace them
         if object_type == "computer_prestage":
             template_contents = self.inject_version_lock(template_contents)

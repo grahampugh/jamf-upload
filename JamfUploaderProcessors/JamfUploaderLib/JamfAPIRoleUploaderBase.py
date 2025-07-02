@@ -94,11 +94,8 @@ class JamfAPIRoleUploaderBase(JamfUploaderBase):
         client_secret = self.env.get("CLIENT_SECRET")
         object_name = self.env.get("api_role_name")
         object_template = self.env.get("api_role_template")
-        replace_object = self.env.get("replace_api_role")
+        replace_object = self.to_bool(self.env.get("replace_api_role"))
         sleep_time = self.env.get("sleep")
-        # handle setting replace in overrides
-        if not replace_object or replace_object == "False":
-            replace_object = False
         object_updated = False
 
         object_type = "api_role"
@@ -147,14 +144,13 @@ class JamfAPIRoleUploaderBase(JamfUploaderBase):
             self.output(f"{object_type} '{object_name}' already exists: ID {obj_id}")
             if replace_object:
                 self.output(
-                    f"Replacing existing {object_type} as replace_object is "
-                    f"set to '{replace_object}'",
+                    f"Replacing existing {object_type} as replace_object is set to True",
                     verbose_level=1,
                 )
             else:
                 self.output(
                     f"Not replacing existing {object_type}. Use "
-                    f"replace_object='True' to enforce."
+                    "replace_object='True' to enforce."
                 )
                 return
 

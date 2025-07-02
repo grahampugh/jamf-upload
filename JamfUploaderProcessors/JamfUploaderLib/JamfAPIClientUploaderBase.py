@@ -145,18 +145,11 @@ class JamfAPIClientUploaderBase(JamfUploaderBase):
         client_secret = self.env.get("CLIENT_SECRET")
         object_name = self.env.get("api_client_name")
         api_client_id = self.env.get("api_client_id")
-        api_client_enabled = self.env.get("api_client_enabled")
+        api_client_enabled = self.to_bool(self.env.get("api_client_enabled"))
         api_role_name = self.env.get("api_role_name")
         access_token_lifetime = self.env.get("access_token_lifetime")
-        replace_object = self.env.get("replace_api_client")
+        replace_object = self.to_bool(self.env.get("replace_api_client"))
         sleep_time = self.env.get("sleep")
-        # handle setting replace in overrides
-        if not replace_object or replace_object == "False":
-            replace_object = False
-        if api_client_enabled or api_client_enabled == "True":
-            api_client_enabled = True
-        else:
-            api_client_enabled = False
 
         # clear any pre-existing summary result
         if "jamfapiclientuploader_summary_result" in self.env:
@@ -202,7 +195,7 @@ class JamfAPIClientUploaderBase(JamfUploaderBase):
                 )
             if replace_object:
                 self.output(
-                    f"Replacing existing {object_type} as 'replace_api_client' is set to {replace_object}",
+                    f"Replacing existing {object_type} as 'replace_api_client' is set to True",
                     verbose_level=1,
                 )
             else:

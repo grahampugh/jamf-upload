@@ -89,11 +89,8 @@ class JamfCategoryUploaderBase(JamfUploaderBase):
         client_secret = self.env.get("CLIENT_SECRET")
         category_name = self.env.get("category_name")
         category_priority = self.env.get("category_priority")
-        replace_category = self.env.get("replace_category")
+        replace_category = self.to_bool(self.env.get("replace_category"))
         sleep_time = self.env.get("sleep")
-        # handle setting replace_pkg in overrides
-        if not replace_category or replace_category == "False":
-            replace_category = False
 
         # clear any pre-existing summary result
         if "jamfcategoryuploader_summary_result" in self.env:
@@ -127,8 +124,7 @@ class JamfCategoryUploaderBase(JamfUploaderBase):
             self.output(f"Category '{category_name}' already exists: ID {obj_id}")
             if replace_category:
                 self.output(
-                    "Replacing existing category as 'replace_category' is set to "
-                    + replace_category,
+                    "Replacing existing category as 'replace_category' is set to True",
                     verbose_level=1,
                 )
             else:

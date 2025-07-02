@@ -833,39 +833,23 @@ class JamfPackageUploaderBase(JamfUploaderBase):
         pkg_name = self.env.get("pkg_name")
         pkg_display_name = self.env.get("pkg_display_name")
         version = self.env.get("version")
-        replace = self.env.get("replace_pkg")
+        replace = self.to_bool(self.env.get("replace_pkg"))
         sleep_time = self.env.get("sleep")
-        replace_metadata = self.env.get("replace_pkg_metadata")
-        skip_metadata_upload = self.env.get("skip_metadata_upload")
-        jcds2_mode = self.env.get("jcds2_mode")
-        aws_cdp_mode = self.env.get("aws_cdp_mode")
-        recalculate = self.env.get("recalculate")
+        replace_metadata = self.to_bool(self.env.get("replace_pkg_metadata"))
+        skip_metadata_upload = self.to_bool(self.env.get("skip_metadata_upload"))
+        jcds2_mode = self.to_bool(self.env.get("jcds2_mode"))
+        aws_cdp_mode = self.to_bool(self.env.get("aws_cdp_mode"))
+        recalculate = self.to_bool(self.env.get("recalculate"))
         use_md5 = self.env.get("md5")
         jamf_url = self.env.get("JSS_URL").rstrip("/")
         jamf_user = self.env.get("API_USERNAME")
         jamf_password = self.env.get("API_PASSWORD")
         client_id = self.env.get("CLIENT_ID")
         client_secret = self.env.get("CLIENT_SECRET")
-        cloud_dp = self.env.get("CLOUD_DP")
+        cloud_dp = self.to_bool(self.env.get("CLOUD_DP"))
         recipe_cache_dir = self.env.get("RECIPE_CACHE_DIR")
         pkg_uploaded = False
         pkg_metadata_updated = False
-
-        # handle setting true/false variables in overrides
-        if not replace or replace.lower() == "false":
-            replace = False
-        if not replace_metadata or replace_metadata.lower() == "false":
-            replace_metadata = False
-        if not skip_metadata_upload or skip_metadata_upload.lower() == "false":
-            skip_metadata_upload = False
-        if not jcds2_mode or jcds2_mode.lower() == "false":
-            jcds2_mode = False
-        if not aws_cdp_mode or aws_cdp_mode.lower() == "false":
-            aws_cdp_mode = False
-        if not recalculate or recalculate.lower() == "false":
-            recalculate = False
-        if not cloud_dp or cloud_dp.lower() == "false":
-            cloud_dp = False
 
         # set pkg_name if not separately defined
         if not pkg_name:
@@ -1070,8 +1054,11 @@ class JamfPackageUploaderBase(JamfUploaderBase):
                     pkg_uploaded = True
             else:
                 self.output(
-                    f"Not replacing existing {pkg_name} as 'replace_pkg' is set to "
-                    f"{replace}. Use replace_pkg='True' to enforce."
+                    (
+                        f"Not replacing existing {pkg_name} as 'replace_pkg' is set to "
+                        "False. Use replace_pkg='True' to enforce."
+                    ),
+                    verbose_level=1,
                 )
                 if "smb://" in smb_url:
                     # unmount the share

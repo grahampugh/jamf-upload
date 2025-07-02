@@ -134,33 +134,16 @@ class JamfSoftwareRestrictionUploaderBase(JamfUploaderBase):
         template = self.env.get("restriction_template")
         restriction_computergroup = self.env.get("restriction_computergroup")
         sleep_time = self.env.get("sleep")
-        replace_restriction = self.env.get("replace_restriction")
-        # handle setting display_message in overrides
-        display_message = self.env.get("display_message")
-        if not display_message or display_message.lower() == "false":
-            display_message = "False"
-        # handle setting match_exact_process_name in overrides
-        match_exact_process_name = self.env.get("match_exact_process_name")
-        if not match_exact_process_name or match_exact_process_name.lower() == "false":
-            match_exact_process_name = "False"
-        # handle setting send_notification in overrides
-        restriction_send_notification = self.env.get("restriction_send_notification")
-        if (
-            not restriction_send_notification
-            or restriction_send_notification.lower() == "false"
-        ):
-            restriction_send_notification = "false"
-        # handle setting kill_process in overrides
-        kill_process = self.env.get("kill_process")
-        if not kill_process or kill_process.lower() == "false":
-            kill_process = "false"
-        # handle setting delete_executable in overrides
-        delete_executable = self.env.get("delete_executable")
-        if not delete_executable or delete_executable.lower() == "false":
-            delete_executable = "false"
-        # handle setting replace in overrides
-        if not replace_restriction or replace_restriction.lower() == "false":
-            replace_restriction = False
+        replace_restriction = self.to_bool(self.env.get("replace_restriction"))
+        display_message = self.to_bool(self.env.get("display_message"))
+        match_exact_process_name = self.to_bool(
+            self.env.get("match_exact_process_name")
+        )
+        restriction_send_notification = self.to_bool(
+            self.env.get("restriction_send_notification")
+        )
+        kill_process = self.to_bool(self.env.get("kill_process"))
+        delete_executable = self.to_bool(self.env.get("delete_executable"))
 
         # clear any pre-existing summary result
         if "jamfsoftwarerestrictionuploader_summary_result" in self.env:
@@ -216,7 +199,7 @@ class JamfSoftwareRestrictionUploaderBase(JamfUploaderBase):
             if replace_restriction:
                 self.output(
                     "Replacing existing Software Restriction as 'replace_restriction' is set "
-                    f"to {replace_restriction}",
+                    "to True",
                     verbose_level=1,
                 )
             else:
