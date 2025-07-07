@@ -170,16 +170,6 @@ class JamfUploaderBase(Processor):
             "computer_extension_attribute": "computer_extension_attributes",
             "ldap_server": "ldap_servers",
             "mac_application": "mac_applications",
-            "managed_software_updates_available_updates": (
-                "managed_software_updates_available_updates"
-            ),
-            "managed_software_updates_plans": ("managed_software_updates_plans"),
-            "managed_software_updates_update_statuses": (
-                "managed_software_updates_update_statuses"
-            ),
-            "managed_software_updates_plans_events": (
-                "managed_software_updates_plans_events"
-            ),
             "mobile_device": "mobile_devices",
             "mobile_device_application": "mobile_device_applications",
             "mobile_device_extension_attribute": "mobile_device_extension_attributes",
@@ -191,13 +181,15 @@ class JamfUploaderBase(Processor):
             "patch_policy": "patch_policies",
             "patch_software_title": "patch_software_titles",
             "policy": "policies",
-            "restricted_software": "restricted_software",
             "script": "scripts",
-            "self_service_settings": "self_service_settings",
         }
-        return object_list_types[object_type]
+        if object_type in object_list_types:
+            return object_list_types[object_type]
+        # if the object type is not in the list, return the object type itself
+        return object_type
 
     def to_bool(self, value):
+        """Convert a value to a boolean"""
         if isinstance(value, bool):
             return value
         if isinstance(value, str):
