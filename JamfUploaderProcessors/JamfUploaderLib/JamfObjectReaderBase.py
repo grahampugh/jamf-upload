@@ -96,6 +96,11 @@ class JamfObjectReaderBase(JamfUploaderBase):
         output_filename = ""
         file_path = ""
         settings_value = ""
+        raw_object = ""
+        parsed_object = ""
+        payload = ""
+        payload_output_filename = ""
+        payload_file_path = ""
 
         # declare name key
         namekey = self.get_namekey(object_type)
@@ -167,22 +172,62 @@ class JamfObjectReaderBase(JamfUploaderBase):
                 )
                 if settings_key:
                     settings_value = object_content[settings_key]
+                if settings_value:
+                    self.output(
+                        f"Settings key '{settings_key}' value: {settings_value}",
+                        verbose_level=1,
+                    )
+                else:
+                    self.output(
+                        f"Settings key '{settings_key}' not found in {object_type} content",
+                        verbose_level=1,
+                    )
+                # dump the object to file if output_dir is specified
+                if output_dir:
+                    # construct the filename
+                    if "JSSResource" in self.api_endpoints(object_type):
+                        filetype = "xml"
+                    else:
+                        filetype = "json"
+
+                    output_filename = (
+                        f"{subdomain}-{self.object_list_types(object_type)}.{filetype}"
+                    )
+                    file_path = os.path.join(output_dir, output_filename)
+                    # check that parent folder exists
+                    if os.path.isdir(output_dir):
+                        try:
+                            if isinstance(object_content, dict):
+                                # convert dict to JSON string
+                                object_content = json.dumps(
+                                    object_content, indent=4, ensure_ascii=False
+                                )
+                            elif isinstance(object_content, ET.Element):
+                                # convert XML Element to pretty-printed string
+                                object_content = self.pretty_print_xml(
+                                    ET.tostring(object_content)
+                                ).decode("UTF-8")
+                            elif isinstance(object_content, str):
+                                # ensure it's a string
+                                object_content = str(object_content)
+                            with open(file_path, "w", encoding="utf-8") as fp:
+                                fp.write(object_content)
+                            self.output(f"Wrote object to {file_path}")
+
+                        except IOError as e:
+                            raise ProcessorError(
+                                f"Could not write output to {file_path} - {str(e)}"
+                            ) from e
+                    else:
+                        self.output(
+                            f"Cannot write to {output_dir} as the folder doesn't exist"
+                        )
+
             else:
                 self.output(f"{object_type} has no content on {jamf_url}")
 
-        self.output(
-            f"All objects is set to {all_objects}, list only is set to {list_only}",
-            verbose_level=1,
-        )
-
         if all_objects and not list_only:
             # now iterate through all the objects
-            raw_object = ""
-            parsed_object = ""
-            payload = ""
-            payload_output_filename = ""
-            payload_file_path = ""
-
             self.output(
                 f"Iterating through {object_type} objects in {jamf_url}",
                 verbose_level=1,
@@ -328,11 +373,6 @@ class JamfObjectReaderBase(JamfUploaderBase):
                             self.output(
                                 f"Cannot write to {output_dir} as the folder doesn't exist"
                             )
-        else:
-            self.output(
-                "somehow we got here with all_objects being True",
-                verbose_level=1,
-            )
 
         # output the summary
         self.env["object_type"] = object_type
