@@ -61,6 +61,13 @@ class JamfObjectReaderBase(JamfUploaderBase):
             else:
                 object_type = "account_group"
             output_filename = f"{subdomain}-accounts-" f"{obj_subtype}-{n}.{filetype}"
+        elif n is not None:
+            # escape slashes in the object name
+            n = n.replace("/", "_").replace("\\", "_")
+            n = n.replace(":", "_")  # also replace colons with underscores
+            output_filename = (
+                f"{subdomain}-{self.object_list_types(object_type)}-{n}.{filetype}"
+            )
         else:
             output_filename = (
                 f"{subdomain}-{self.object_list_types(object_type)}.{filetype}"
@@ -100,6 +107,7 @@ class JamfObjectReaderBase(JamfUploaderBase):
         """Get the payload filetype based on the object type"""
         # for certain types we also want to extract the payload
         payload_filetype = "sh"
+        payload = None
         if object_type == "computer_extension_attribute":
             payload = json.loads(parsed_object)["scriptContents"]
             if payload is not None:
@@ -122,7 +130,9 @@ class JamfObjectReaderBase(JamfUploaderBase):
 
         return payload, payload_filetype
 
-    def write_payload_file(self, output_dir, payload, subdomain, object_type, n=None):
+    def write_payload_file(
+        self, output_dir, payload, payload_filetype, subdomain, object_type, n=None
+    ):
         """Write the payload to a file"""
 
         try:
@@ -130,6 +140,12 @@ class JamfObjectReaderBase(JamfUploaderBase):
                 f"{subdomain}-{self.object_list_types(object_type)}-{n}"
                 f".{payload_filetype}".replace(".sh.sh", ".sh")
             )
+            # ensure the filename is safe from slashes
+            payload_output_filename = payload_output_filename.replace("/", "_").replace(
+                "\\", "_"
+            )
+            # also replace colons with underscores
+            payload_output_filename = payload_output_filename.replace(":", "_")
             payload_file_path = os.path.join(output_dir, payload_output_filename)
             with open(payload_file_path, "w", encoding="utf-8") as fp:
                 fp.write(payload)
@@ -264,7 +280,6 @@ class JamfObjectReaderBase(JamfUploaderBase):
                 object_list = [{"id": obj_id, namekey: object_name}]
             else:
                 self.output(f"{object_type} '{object_name}' not found on {jamf_url}")
-            return
 
         elif "_settings" in object_type:
             object_content = self.get_settings_object(jamf_url, object_type, token)
@@ -297,7 +312,7 @@ class JamfObjectReaderBase(JamfUploaderBase):
             else:
                 self.output(f"{object_type} has no content on {jamf_url}")
 
-        elif not list_only:
+        if not list_only:
             # now iterate through all the objects
             self.output(
                 f"Iterating through {object_type} objects in {jamf_url}",
@@ -345,28 +360,6 @@ class JamfObjectReaderBase(JamfUploaderBase):
                                 obj_subtype=obj_subtype,
                                 n=n,
                             )
-
-                        #     filetype = "json"
-
-                        #     output_filename = (
-                        #         f"{subdomain}-accounts-" f"{obj_subtype}-{n}.{filetype}"
-                        #     )
-                        #     file_path = os.path.join(output_dir, output_filename)
-                        #     # check that parent folder exists
-                        #     if os.path.isdir(output_dir):
-                        #         try:
-                        #             with open(file_path, "w", encoding="utf-8") as fp:
-                        #                 fp.write(parsed_object)
-                        #             self.output(f"Wrote parsed object to {file_path}")
-                        #         except IOError as e:
-                        #             raise ProcessorError(
-                        #                 f"Could not write output to {file_path} - {str(e)}"
-                        #             ) from e
-                        #     else:
-                        #         self.output(
-                        #             f"Cannot write to {output_dir} as the folder doesn't exist"
-                        #         )
-
             else:
                 # for all other object types we can just iterate through the list
                 # and get the object contents
@@ -387,28 +380,19 @@ class JamfObjectReaderBase(JamfUploaderBase):
                         raw_object, object_type, elements_to_remove
                     )
 
-                    self.output(parsed_object, verbose_level=2)
+                    self.output("Raw object:", verbose_level=3)
+                    self.output(parsed_object, verbose_level=3)
 
                     # dump the object to file if output_dir is specified
                     if output_dir:
                         self.write_output_file(
-                            object_type, output_dir, parsed_object, subdomain
+                            object_type,
+                            output_dir,
+                            parsed_object,
+                            subdomain,
+                            obj_subtype=None,
+                            n=n,
                         )
-                        # # construct the filename
-                        # if "JSSResource" in self.api_endpoints(object_type):
-                        #     filetype = "xml"
-                        # else:
-                        #     filetype = "json"
-
-                        # output_filename = f"{subdomain}-{self.object_list_types(object_type)}-{n}.{filetype}"
-                        # file_path = os.path.join(output_dir, output_filename)
-                        # # check that parent folder exists
-                        # if os.path.isdir(output_dir):
-                        #     try:
-                        #         with open(file_path, "w", encoding="utf-8") as fp:
-                        #             fp.write(parsed_object)
-                        #         self.output(f"Wrote parsed object to {file_path}")
-                        # also output the payload if appropriate
 
                         payload, payload_filetype = self.get_payload_filetype(
                             object_type, parsed_object
@@ -428,31 +412,6 @@ class JamfObjectReaderBase(JamfUploaderBase):
                                 payload_output_filename
                             )
                             self.env["payload_file_path"] = payload_file_path
-
-                            # try:
-                            #     payload_output_filename = (
-                            #         f"{subdomain}-{self.object_list_types(object_type)}-{n}"
-                            #         f".{payload_filetype}".replace(".sh.sh", ".sh")
-                            #     )
-                            #     payload_file_path = os.path.join(
-                            #         output_dir, payload_output_filename
-                            #     )
-                            #     with open(
-                            #         payload_file_path, "w", encoding="utf-8"
-                            #     ) as fp:
-                            #         fp.write(payload)
-                            #     self.output(
-                            #         f"Wrote {object_type} payload to {payload_file_path}"
-                            #     )
-
-                            # except IOError as e:
-                            #     raise ProcessorError(
-                            #         f"Could not write output to {file_path} - {str(e)}"
-                            #     ) from e
-                            # self.env["payload_output_filename"] = (
-                            #     payload_output_filename
-                            # )
-                            # self.env["payload_file_path"] = payload_file_path
 
         self.env["object_type"] = object_type
         self.env["output_dir"] = output_dir

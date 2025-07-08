@@ -44,7 +44,7 @@ class JamfUploaderBase(Processor):
     """Common functions used by at least two JamfUploader processors."""
 
     # Global version
-    __version__ = "2025.7.2.0"
+    __version__ = "2025.7.8.0"
 
     def api_endpoints(self, object_type, uuid=""):
         """Return the endpoint URL from the object type"""
