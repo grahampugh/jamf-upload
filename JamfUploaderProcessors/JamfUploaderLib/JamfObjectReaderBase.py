@@ -406,6 +406,7 @@ class JamfObjectReaderBase(JamfUploaderBase):
                                     payload_filetype,
                                     subdomain,
                                     object_type,
+                                    n=n,
                                 )
                             )
                             self.env["payload_output_filename"] = (
