@@ -148,6 +148,11 @@ class JamfComputerGroupUploaderBase(JamfUploaderBase):
                     f"ERROR: Computer Group file {computergroup_template} not found"
                 )
 
+        # we need to substitute the values in the computer group name now to
+        # account for version strings in the name
+        # substitute user-assignable keys
+        computergroup_name = self.substitute_assignable_keys(computergroup_name)
+
         # now start the process of uploading the object
         self.output(f"Checking for existing '{computergroup_name}' on {jamf_url}")
 
