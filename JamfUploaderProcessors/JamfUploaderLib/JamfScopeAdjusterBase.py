@@ -101,7 +101,7 @@ class JamfScopeAdjusterBase(JamfUploaderBase):
                 parent = root.find(parent_xpath)
 
             for child in parent.findall(scopeable_type):
-                if child.text == scopeable_name and strict_mode == "False":
+                if child.text == scopeable_name and not strict_mode:
                     self.output(
                         f"WARNING: {scoping_type}: {scopeable_type} with name "
                         f"'{scopeable_name}' already exists, raw object unchanged."
@@ -178,7 +178,7 @@ class JamfScopeAdjusterBase(JamfUploaderBase):
                 if (
                     name_tag is not None
                     and name_tag.text == scopeable_name
-                    and strict_mode == "False"
+                    and not strict_mode
                 ):
                     self.output(
                         f"WARNING: {scoping_type}: {scopeable_type} with name "
@@ -227,7 +227,7 @@ class JamfScopeAdjusterBase(JamfUploaderBase):
             parent_xpath = "./scope/limit_to_users/user_groups"
             parent = root.find(parent_xpath)
 
-            if parent is None and strict_mode == "False":
+            if parent is None and not strict_mode:
                 self.output(
                     f"WARNING: Parent element not found for XPath: {parent_xpath}"
                 )
@@ -250,7 +250,7 @@ class JamfScopeAdjusterBase(JamfUploaderBase):
 
         parent = root.find(parent_xpath)
 
-        if parent is None and strict_mode == "False":
+        if parent is None and not strict_mode:
             self.output(f"WARNING: Parent element not found for XPath: {parent_xpath}")
         elif parent is None:
             raise ProcessorError(f"Parent element not found for XPath: {parent_xpath}")
@@ -268,7 +268,7 @@ class JamfScopeAdjusterBase(JamfUploaderBase):
                 f"Removed {scoping_type}: {scopeable_type} with name '{scopeable_name}'."
             )
         else:
-            if strict_mode == "False":
+            if not strict_mode:
                 self.output(
                     f"WARNING: {scoping_type}: {scopeable_type} with name "
                     f"'{scopeable_name}' not found, raw object unchanged."
