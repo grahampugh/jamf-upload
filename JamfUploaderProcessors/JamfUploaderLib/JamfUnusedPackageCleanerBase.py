@@ -352,8 +352,8 @@ class JamfUnusedPackageCleanerBase(JamfUploaderBase):
                 )
 
         # Clear any pre-existing summary result
-        if "jamfpackagecleaner_summary_result" in self.env:
-            del self.env["jamfpackagecleaner_summary_result"]
+        if "jamfunusedpackagecleaner_summary_result" in self.env:
+            del self.env["jamfunusedpackagecleaner_summary_result"]
 
         # Get all packages from Jamf Pro as JSON object
         self.output(f"Getting all packages from {jamf_url}")
