@@ -385,7 +385,7 @@ class JamfObjectReaderBase(JamfUploaderBase):
 
                     # dump the object to file if output_dir is specified
                     if output_dir:
-                        self.write_output_file(
+                        object_content, file_path = self.write_output_file(
                             object_type,
                             output_dir,
                             parsed_object,
