@@ -119,6 +119,7 @@ class JamfUploaderBase(Processor):
             "policy_properties_settings": "api/v1/policy-properties",
             "restricted_software": "JSSResource/restrictedsoftware",
             "self_service_settings": "api/v1/self-service/settings",
+            "self_service_plus_settings": "api/v1/self-service-plus/settings",
             "script": "api/v1/scripts",
             "smtp_server_settings": "api/v2/smtp-server",
             "sso_cert_command": "api/v2/sso/cert",
