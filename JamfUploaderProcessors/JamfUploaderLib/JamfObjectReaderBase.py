@@ -425,7 +425,7 @@ class JamfObjectReaderBase(JamfUploaderBase):
             self.env["output_filename"] = output_filename
             self.env["output_path"] = file_path
             self.env["object_name"] = object_name
-            self.env["object_id"] = obj_id
+            self.env["object_id"] = str(obj_id)
             self.env["raw_object"] = str(raw_object)
             self.env["parsed_object"] = str(parsed_object)
 
