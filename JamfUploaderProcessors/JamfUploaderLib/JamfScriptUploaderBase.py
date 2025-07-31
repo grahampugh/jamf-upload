@@ -175,6 +175,11 @@ class JamfScriptUploaderBase(JamfUploaderBase):
             del self.env["jamfscriptuploader_summary_result"]
         script_uploaded = False
 
+        # we need to substitute the values in the script name now to
+        # account for generated strings in the name
+        # substitute user-assignable keys
+        script_name = self.substitute_assignable_keys(script_name)
+
         # get token using oauth or basic auth depending on the credentials given
         if jamf_url:
             token = self.handle_api_auth(
