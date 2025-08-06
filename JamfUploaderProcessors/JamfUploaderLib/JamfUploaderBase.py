@@ -44,7 +44,7 @@ class JamfUploaderBase(Processor):
     """Common functions used by at least two JamfUploader processors."""
 
     # Global version
-    __version__ = "2025.7.16.0"
+    __version__ = "2025.8.6.0"
 
     def api_endpoints(self, object_type, uuid=""):
         """Return the endpoint URL from the object type"""
@@ -121,6 +121,7 @@ class JamfUploaderBase(Processor):
             "self_service_settings": "api/v1/self-service/settings",
             "self_service_plus_settings": "api/v1/self-service-plus/settings",
             "script": "api/v1/scripts",
+            "smart_computer_group_membership": "api/v2/computer-groups/smart-group-membership",
             "smtp_server_settings": "api/v2/smtp-server",
             "sso_cert_command": "api/v2/sso/cert",
             "sso_settings": "api/v3/sso",
@@ -183,6 +184,7 @@ class JamfUploaderBase(Processor):
             "patch_software_title": "patch_software_titles",
             "policy": "policies",
             "script": "scripts",
+            "smart_computer_group_membership": "smart_computer_group_membership",
         }
         if object_type in object_list_types:
             return object_list_types[object_type]
