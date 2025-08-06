@@ -254,9 +254,18 @@ class JamfObjectReaderBase(JamfUploaderBase):
                 raise ProcessorError("ERROR: no output path provided")
 
         elif obj_id:
-            object_name = self.get_api_obj_value_from_id(
-                jamf_url, object_type, obj_id, obj_path=namekey_path, token=token
-            )
+            if object_name:
+                self.output(
+                    f"Object ID {obj_id} and name {object_name} provided, "
+                    "using object ID to get object contents"
+                )
+            else:
+                self.output(
+                    f"Object ID {obj_id} provided, using object ID to get object contents"
+                )
+                object_name = self.get_api_obj_value_from_id(
+                    jamf_url, object_type, obj_id, obj_path=namekey_path, token=token
+                )
             object_list = [{"id": obj_id, namekey: object_name}]
             self.output(f"Name: {object_name}", verbose_level=3)
 
@@ -365,7 +374,16 @@ class JamfObjectReaderBase(JamfUploaderBase):
                 # and get the object contents
                 for obj in object_list:
                     i = obj["id"]
-                    n = obj[namekey]
+                    if object_name:
+                        # if we have an object name, use that
+                        n = object_name
+                    else:
+                        # otherwise use the name key from the object
+                        if namekey not in obj:
+                            raise ProcessorError(
+                                f"ERROR: {namekey} not found in object {obj}"
+                            )
+                        n = obj[namekey]
                     raw_object = ""
                     parsed_object = ""
                     payload = ""
