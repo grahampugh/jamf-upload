@@ -283,6 +283,10 @@ class JamfComputerProfileUploaderBase(JamfUploaderBase):
 
         profile_updated = False
 
+        # substitute values in the profile name and category
+        profile_name = self.substitute_assignable_keys(profile_name)
+        profile_category = self.substitute_assignable_keys(profile_category)
+
         # handle files with no path
         if payload and "/" not in payload:
             found_payload = self.get_path_to_file(payload)
