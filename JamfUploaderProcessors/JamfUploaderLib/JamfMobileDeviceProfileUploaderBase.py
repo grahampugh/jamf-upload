@@ -223,6 +223,10 @@ class JamfMobileDeviceProfileUploaderBase(JamfUploaderBase):
         if "jamfmobiledeviceprofilepploader_summary_result" in self.env:
             del self.env["jamfmobiledeviceprofilepploader_summary_result"]
 
+        # substitute values in the profile name and category
+        profile_name = self.substitute_assignable_keys(profile_name)
+        profile_category = self.substitute_assignable_keys(profile_category)
+
         # handle files with no path
         if mobileconfig and "/" not in mobileconfig:
             found_mobileconfig = self.get_path_to_file(mobileconfig)
