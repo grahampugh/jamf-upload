@@ -104,6 +104,7 @@ class JamfUploaderBase(Processor):
             "mobile_device": "api/v2/mobile-devices",
             "mobile_device_application": "JSSResource/mobiledeviceapplications",
             "mobile_device_extension_attribute": "JSSResource/mobiledeviceextensionattributes",
+            "mobile_device_extension_attribute_v1": "api/v1/mobile-device-extension-attributes",
             "mobile_device_group": "JSSResource/mobiledevicegroups",
             "mobile_device_prestage": "api/v1/mobile-device-prestages",
             "network_segment": "JSSResource/networksegments",
@@ -146,6 +147,7 @@ class JamfUploaderBase(Processor):
             "policy": "policies",
             "computer_extension_attribute": "computerextensionattributes",
             "mobile_device_extension_attribute": "mobiledeviceextensionattributes",
+            "mobile_device_extension_attribute_v1": "mobiledeviceextensionattributes",
             "restricted_software": "restrictedsoftware",
             "os_x_configuration_profile": "osxconfigurationprofiles",
         }
@@ -175,6 +177,7 @@ class JamfUploaderBase(Processor):
             "mobile_device": "mobile_devices",
             "mobile_device_application": "mobile_device_applications",
             "mobile_device_extension_attribute": "mobile_device_extension_attributes",
+            "mobile_device_extension_attribute_v1": "mobile_device_extension_attributes",
             "mobile_device_group": "mobile_device_groups",
             "mobile_device_prestage": "mobile_device_prestages",
             "network_segment": "network_segments",
