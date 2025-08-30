@@ -211,7 +211,7 @@ class JamfUploaderBase(Processor):
             "enrollment_customization",
         ):
             namekey = "displayName"
-        elif object_type in ("app_installers_deployment"):
+        elif object_type == "app_installers_title":
             namekey = "titleName"
         return namekey
 
