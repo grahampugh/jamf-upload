@@ -920,9 +920,22 @@ class JamfUploaderBase(Processor):
         self.output(
             f"Looking for {filename} in {recipe_dir} or its siblings", verbose_level=3
         )
-        for sibling in recipe_dir_path.parent.glob(f"{recipe_dir_path.name}/*"):
-            if sibling.is_dir():
-                self.output(f"Looking for {filename} in {sibling}", verbose_level=3)
+        # First check the recipe directory itself
+        filepath = os.path.join(recipe_dir, filename)
+        if os.path.exists(filepath):
+            self.output(f"File found at: {filepath}")
+            return filepath
+
+        # Then check sibling directories
+        self.output(
+            f"Checking sibling directories of {recipe_dir_path}", verbose_level=3
+        )
+        for sibling in recipe_dir_path.parent.iterdir():
+            if sibling.is_dir() and sibling != recipe_dir_path:
+                self.output(
+                    f"Looking for {filename} in sibling directory: {sibling}",
+                    verbose_level=3,
+                )
                 filepath = os.path.join(sibling, filename)
                 if os.path.exists(filepath):
                     self.output(f"File found at: {filepath}")
@@ -939,22 +952,6 @@ class JamfUploaderBase(Processor):
                 )
                 self.output(
                     f"Looking for {filename} in {search_dir_path}",
-                    verbose_level=3,
-                )
-                self.output(
-                    f"Checking if search_dir_path ({search_dir_path}) matches criteria:",
-                    verbose_level=3,
-                )
-                self.output(
-                    f"  search_dir_path == recipe_dir_path: {search_dir_path == recipe_dir_path}",
-                    verbose_level=3,
-                )
-                self.output(
-                    f"  search_dir_path.parent ({search_dir_path.parent}) == recipe_dir_path.parent ({recipe_dir_path.parent}): {search_dir_path.parent == recipe_dir_path.parent}",
-                    verbose_level=3,
-                )
-                self.output(
-                    f"  search_dir_path in recipe_dir_path.parent.parents: {search_dir_path in recipe_dir_path.parent.parents}",
                     verbose_level=3,
                 )
                 if (
