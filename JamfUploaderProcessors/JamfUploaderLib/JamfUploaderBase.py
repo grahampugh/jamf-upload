@@ -931,12 +931,10 @@ class JamfUploaderBase(Processor):
                     f"Looking for {filename} in {search_dir_path}",
                     verbose_level=3,
                 )
-                for parent in recipe_dir_path.parents:
-                    self.output(f"Parent: {parent}", verbose_level=3)
-
                 if (
                     search_dir_path == recipe_dir_path
-                    or search_dir_path in recipe_dir_path.parents
+                    or search_dir_path.parent == recipe_dir_path.parent
+                    or search_dir_path in recipe_dir_path.parent.parents
                 ):
                     # matching search dir, look for file in here
                     self.output(f"Matching dir: {search_dir_path}", verbose_level=3)
