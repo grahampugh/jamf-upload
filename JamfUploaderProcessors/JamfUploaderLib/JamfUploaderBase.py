@@ -56,7 +56,8 @@ class JamfUploaderBase(Processor):
             "advanced_mobile_device_search": "JSSResource/advancedmobiledevicesearches",
             "api_client": "api/v1/api-integrations",
             "api_role": "api/v1/api-roles",
-            "app_installer": "api/v1/app-installers/deployments",
+            "app_installers_deployment": "api/v1/app-installers/deployments",
+            "app_installers_title": "api/v1/app-installers/titles",
             "app_installers_accept_t_and_c_command": (
                 "api/v1/app-installers/terms-and-conditions/accept"
             ),
@@ -136,7 +137,6 @@ class JamfUploaderBase(Processor):
         object_types = {
             "advanced_computer_search": "advancedcomputersearches",
             "advanced_mobile_device_search": "advancedmobiledevicesearches",
-            "app_installer": "appinstallers",
             "package": "packages",
             "computer_group": "computergroups",
             "configuration_profile": "mobiledeviceconfigurationprofiles",
@@ -163,7 +163,6 @@ class JamfUploaderBase(Processor):
             "advanced_mobile_device_search": "advanced_mobile_device_searches",
             "api_client": "api_clients",
             "api_role": "api_roles",
-            "app_installer": "app_installers",
             "category": "categories",
             "computer": "computers",
             "computer_group": "computer_groups",
@@ -212,6 +211,8 @@ class JamfUploaderBase(Processor):
             "enrollment_customization",
         ):
             namekey = "displayName"
+        elif object_type in ("app_installers_deployment"):
+            namekey = "titleName"
         return namekey
 
     def get_namekey_path(self, object_type, namekey):

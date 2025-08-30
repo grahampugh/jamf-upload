@@ -101,12 +101,18 @@ class JamfObjectReader(JamfObjectReaderBase):
         },
         "settings_key": {
             "required": False,
-            "description": "For settings-style endpoints, specify a key from which to get the value",
+            "description": {
+                "For settings-style endpoints, "
+                "specify a key from which to get the value"
+            },
             "default": "",
         },
         "uuid": {
             "required": False,
-            "description": "For the managed software update events endpoint, specify a uuid from which to get the events",
+            "description": {
+                "For the managed software update events endpoint, "
+                "specify a uuid from which to get the events"
+            },
             "default": "",
         },
         "output_dir": {
