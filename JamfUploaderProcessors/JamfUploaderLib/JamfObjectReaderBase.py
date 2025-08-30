@@ -439,6 +439,10 @@ class JamfObjectReaderBase(JamfUploaderBase):
             self.env["raw_object"] = str(object_content)
             self.env["settings_key"] = settings_key
             self.env["settings_value"] = str(settings_value)
+            self.output(
+                f"Settings key {settings_key} value {settings_value} exported to env",
+                verbose_level=3,
+            )
         elif not all_objects and not list_only:
             self.env["output_filename"] = output_filename
             self.env["output_path"] = file_path
