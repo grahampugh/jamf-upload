@@ -928,6 +928,10 @@ class JamfUploaderBase(Processor):
             for d in self.env["RECIPE_SEARCH_DIRS"]:
                 search_dir_path = Path(os.path.expanduser(d))
                 self.output(
+                    f"Recipe directory: {recipe_dir_path}",
+                    verbose_level=3,
+                )
+                self.output(
                     f"Looking for {filename} in {search_dir_path}",
                     verbose_level=3,
                 )
