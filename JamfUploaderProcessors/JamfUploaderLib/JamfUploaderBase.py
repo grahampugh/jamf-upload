@@ -916,11 +916,17 @@ class JamfUploaderBase(Processor):
         else:
             self.output("No RECIPE_OVERRIDE_DIRS defined", verbose_level=3)
 
-        # second, look in the same directory as the recipe
-        self.output(f"Looking for {filename} in {recipe_dir}", verbose_level=3)
-        if os.path.exists(filepath):
-            self.output(f"File found at: {filepath}")
-            return filepath
+        # second, look in the same directory as the recipe or any sibling directories
+        self.output(
+            f"Looking for {filename} in {recipe_dir} or its siblings", verbose_level=3
+        )
+        for sibling in recipe_dir_path.parent.glob(f"{recipe_dir_path.name}/*"):
+            if sibling.is_dir():
+                self.output(f"Looking for {filename} in {sibling}", verbose_level=3)
+                filepath = os.path.join(sibling, filename)
+                if os.path.exists(filepath):
+                    self.output(f"File found at: {filepath}")
+                    return filepath
 
         # third, try to match the recipe's dir with one of the recipe search dirs
         if self.env.get("RECIPE_SEARCH_DIRS"):
