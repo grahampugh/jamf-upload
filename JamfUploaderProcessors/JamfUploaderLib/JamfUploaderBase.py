@@ -893,6 +893,7 @@ class JamfUploaderBase(Processor):
         recipe_dir_path = Path(os.path.expanduser(recipe_dir))
         filepath = os.path.join(recipe_dir, filename)
         matched_override_dir = ""
+        matched_filepath = ""
 
         # first, look in the overrides directory
         if self.env.get("RECIPE_OVERRIDE_DIRS"):
@@ -959,6 +960,7 @@ class JamfUploaderBase(Processor):
                     if matched_filepath:
                         self.output(f"File found at: {matched_filepath}")
                         return matched_filepath
+        raise ProcessorError(f"File '{filename}' not found")
 
     def get_all_api_objects(self, jamf_url, object_type, uuid="", token=""):
         """get a list of all objects of a particular type"""
