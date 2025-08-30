@@ -928,9 +928,12 @@ class JamfUploaderBase(Processor):
             for d in self.env["RECIPE_SEARCH_DIRS"]:
                 search_dir_path = Path(os.path.expanduser(d))
                 self.output(
-                    f"Looking for {filename} in {search_dir_path} if it matches {recipe_dir_path}",
+                    f"Looking for {filename} in {search_dir_path}",
                     verbose_level=3,
                 )
+                for parent in recipe_dir_path.parents:
+                    self.output(f"Parent: {parent}", verbose_level=3)
+
                 if (
                     search_dir_path == recipe_dir_path
                     or search_dir_path in recipe_dir_path.parents
