@@ -931,6 +931,22 @@ class JamfUploaderBase(Processor):
                     f"Looking for {filename} in {search_dir_path}",
                     verbose_level=3,
                 )
+                self.output(
+                    f"Checking if search_dir_path ({search_dir_path}) matches criteria:",
+                    verbose_level=3,
+                )
+                self.output(
+                    f"  search_dir_path == recipe_dir_path: {search_dir_path == recipe_dir_path}",
+                    verbose_level=3,
+                )
+                self.output(
+                    f"  search_dir_path.parent ({search_dir_path.parent}) == recipe_dir_path.parent ({recipe_dir_path.parent}): {search_dir_path.parent == recipe_dir_path.parent}",
+                    verbose_level=3,
+                )
+                self.output(
+                    f"  search_dir_path in recipe_dir_path.parent.parents: {search_dir_path in recipe_dir_path.parent.parents}",
+                    verbose_level=3,
+                )
                 if (
                     search_dir_path == recipe_dir_path
                     or search_dir_path.parent == recipe_dir_path.parent
