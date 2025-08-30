@@ -58,6 +58,9 @@ class JamfUploaderBase(Processor):
             "api_role": "api/v1/api-roles",
             "app_installers_deployment": "api/v1/app-installers/deployments",
             "app_installers_title": "api/v1/app-installers/titles",
+            "app_installers_t_and_c_settings": (
+                "api/v1/app-installers/terms-and-conditions"
+            ),
             "app_installers_accept_t_and_c_command": (
                 "api/v1/app-installers/terms-and-conditions/accept"
             ),
