@@ -896,6 +896,7 @@ class JamfUploaderBase(Processor):
         matched_filepath = ""
 
         # first, look in the overrides directory
+        self.output(f"Looking for {filename} in RECIPE_OVERRIDE_DIRS", verbose_level=3)
         if self.env.get("RECIPE_OVERRIDE_DIRS"):
             matched_filepath = ""
             for d in self.env["RECIPE_OVERRIDE_DIRS"]:
@@ -912,6 +913,8 @@ class JamfUploaderBase(Processor):
             if matched_filepath:
                 self.output(f"File found at: {matched_filepath}")
                 return matched_filepath
+        else:
+            self.output("No RECIPE_OVERRIDE_DIRS defined", verbose_level=3)
 
         # second, look in the same directory as the recipe
         self.output(f"Looking for {filename} in {recipe_dir}", verbose_level=3)
@@ -923,6 +926,7 @@ class JamfUploaderBase(Processor):
         if self.env.get("RECIPE_SEARCH_DIRS"):
             matched_filepath = ""
             for d in self.env["RECIPE_SEARCH_DIRS"]:
+                self.output(f"Looking for {filename} in {d}", verbose_level=3)
                 search_dir_path = Path(os.path.expanduser(d))
                 if (
                     search_dir_path == recipe_dir_path
@@ -936,10 +940,17 @@ class JamfUploaderBase(Processor):
                 if matched_filepath:
                     self.output(f"File found at: {matched_filepath}")
                     return matched_filepath
+            self.output(
+                f"File {filename} not found in any RECIPE_SEARCH_DIRS", verbose_level=3
+            )
 
         # fourth, look in the parent recipe's directory if we are an override
         if matched_override_dir:
             if self.env.get("PARENT_RECIPES"):
+                self.output(
+                    f"Looking for {filename} in parent recipe's repo",
+                    verbose_level=3,
+                )
                 matched_filepath = ""
                 parent = self.env["PARENT_RECIPES"][0]
                 self.output(f"Parent Recipe: {parent}", verbose_level=2)
