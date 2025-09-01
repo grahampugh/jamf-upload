@@ -1008,8 +1008,9 @@ class JamfUploaderBase(Processor):
         # Get all objects from Jamf Pro as JSON object
         self.output(f"Getting all {self.api_endpoints(object_type)} from {jamf_url}")
 
+        url_filter = "?page=0&page-size=1000&sort=id&sort-order=asc"
         # check for existing
-        url = f"{jamf_url}/{self.api_endpoints(object_type, uuid)}"
+        url = f"{jamf_url}/{self.api_endpoints(object_type, uuid)}{url_filter}"
         r = self.curl(request="GET", url=url, token=token)
 
         # for Classic API
