@@ -855,6 +855,14 @@ class JamfPackageUploaderBase(JamfUploaderBase):
         if not pkg_name:
             pkg_name = os.path.basename(pkg_path)
 
+        # handle files with a relative path
+        if not pkg_path.startswith("/"):
+            found_pkg = self.get_path_to_file(pkg_path)
+            if found_pkg:
+                pkg_path = found_pkg
+            else:
+                raise ProcessorError(f"ERROR: pkg {pkg_path} not found")
+
         # Create a list of smb shares in tuples
         smb_shares = []
         if self.env.get("SMB_URL"):
