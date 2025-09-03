@@ -10,7 +10,7 @@ test_type="$1"
 verbosity="$2"
 url="$3"
 jira_user="$4"
-jira_pass="$5"
+jira_api_token="$5"
 
 # path to test items
 pkg_path="/Users/gpugh/Downloads/Workbrew-1.1.7.pkg"
@@ -868,8 +868,8 @@ case "$test_type" in
             --jira-project "25833" \
             --jira-priority "5" \
             --jira-issue "10001" \
-            --jira-pass "$jira_pass" \
-            --jira-url "$url" \
+            --jira-api-token "$jira_api_token" \
+            --jira-url "$url/rest/api/3/issue/" \
             "$verbosity"
         ;;
     slack)

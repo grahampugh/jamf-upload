@@ -380,8 +380,8 @@ Jira notifications arguments:
     --policy-uploaded       Pretends that a policy was uploaded (sets a value to jamfpolicyuploader_summary_result)
     --jira-url <url>        The Jira URL
     --jira-user <string>    The Jira account username
-    --jira-password <string>
-                            The Jira account password
+    --jira-api-token <string>
+                            The Jira API token
     --jira-project <string> The Jira Project ID
     --jira-issue-type <string>
                             The Jira Issue Type ID
@@ -1472,11 +1472,11 @@ while test $# -gt 0 ; do
                 fi
             fi
             ;;
-        --jira-pass*) 
+        --jira-api-token) 
             shift
             if [[ $processor == "JamfUploaderJiraNotifier" ]]; then
-                if plutil -replace jira_password -string "$1" "$temp_processor_plist"; then
-                    echo "   [jamf-upload] Wrote jira_password='$1' into $temp_processor_plist"
+                if plutil -replace jira_api_token -string "$1" "$temp_processor_plist"; then
+                    echo "   [jamf-upload] Wrote jira_api_token='$1' into $temp_processor_plist"
                 fi
             fi
             ;;

@@ -625,7 +625,7 @@ class JamfUploaderBase(Processor):
                 or endpoint_type == "teams"
                 or endpoint_type == "jira"
             ):
-                # slack and teams require a data argument
+                # jira, slack and teams require a data argument
                 curl_cmd.extend(["--data", data])
                 curl_cmd.extend(["--header", "Content-type: application/json"])
             elif data:
@@ -639,7 +639,7 @@ class JamfUploaderBase(Processor):
                 curl_cmd.extend(
                     ["--header", "Content-Type: application/x-www-form-urlencoded"]
                 )
-            elif "/api/" in url or "/uapi/" in url:
+            elif ("/api/" in url and endpoint_type != "jira") or "/uapi/" in url:
                 curl_cmd.extend(["--header", "Content-type: application/json"])
             # note: other endpoints should supply their headers via 'additional_curl_opts'
 
@@ -653,7 +653,7 @@ class JamfUploaderBase(Processor):
 
         # write session for jamf API requests
         if (
-            "/api/" in url
+            ("/api/" in url and endpoint_type != "jira")
             or "/uapi/" in url
             or "JSSResource" in url
             or endpoint_type == "package_upload"

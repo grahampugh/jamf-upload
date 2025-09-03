@@ -68,9 +68,17 @@ class JamfUploaderJiraNotifier(JamfUploaderBase):
             "required": False,
             "description": ("Summary results of policy processors."),
         },
-        "jira_url": {"required": True, "description": ("Jira URL.")},
+        "jira_url": {
+            "required": True,
+            "description": ("Jira URL (https://<subdomain>.atlassian.net)."),
+        },
         "jira_username": {"required": True, "description": ("Jira account username.")},
-        "jira_password": {"required": True, "description": ("Jira account password.")},
+        "jira_api_token": {
+            "required": True,
+            "description": (
+                "Jira API token (generated in Jira - Account Settings - Security)."
+            ),
+        },
         "jira_project_id": {
             "required": True,
             "description": ("Jira Project ID."),
@@ -99,9 +107,8 @@ class JamfUploaderJiraNotifier(JamfUploaderBase):
         if r.status_code == 200 or r.status_code == 201 or r.status_code == 202:
             self.output("Jira request sent successfully")
             return "break"
-        else:
-            self.output("WARNING: Jira request failed to send")
-            self.output(r.output, verbose_level=2)
+        self.output("WARNING: Jira request failed to send")
+        self.output(r.output, verbose_level=2)
 
     def main(self):
         """Do the main thing"""
@@ -128,7 +135,7 @@ class JamfUploaderJiraNotifier(JamfUploaderBase):
 
         jira_url = self.env.get("jira_url")
         jira_username = self.env.get("jira_username")
-        jira_password = self.env.get("jira_password")
+        jira_api_token = self.env.get("jira_api_token")
         jira_project_id = self.env.get("jira_project_id")
         jira_issuetype_id = self.env.get("jira_issuetype_id")
         jira_priority_id = self.env.get("jira_priority_id")
@@ -146,17 +153,13 @@ class JamfUploaderJiraNotifier(JamfUploaderBase):
         description = f"URL: {jss_url}\n"
 
         if not jira_url:
-            self.output("No Jira URL provided")
-            return
+            raise ProcessorError("No Jira URL provided")
         if not jira_username:
-            self.output("No Jira username provided")
-            return
-        if not jira_password:
-            self.output("No Jira password provided")
-            return
+            raise ProcessorError("No Jira username provided")
+        if not jira_api_token:
+            raise ProcessorError("No Jira API token provided")
         if not jira_project_id:
-            self.output("No Jira project ID provided")
-            return
+            raise ProcessorError("No Jira project ID provided")
 
         if selfservice_policy_name:
             description += f"Title: {selfservice_policy_name}\n"
@@ -194,7 +197,7 @@ class JamfUploaderJiraNotifier(JamfUploaderBase):
             return
 
         if not description:
-            self.output("Nothing to report to Teams")
+            self.output("Nothing to report to Jira")
             return
 
         template_text = {
@@ -218,12 +221,7 @@ class JamfUploaderJiraNotifier(JamfUploaderBase):
 
         jira_json = json.dumps(template_text)
 
-        enc_creds = self.get_enc_creds(jira_username, jira_password)
-
-        additional_curl_opts = [
-            "--header",
-            "X-Atlassian-Token: no-check",
-        ]
+        enc_creds = self.get_enc_creds(jira_username, jira_api_token)
 
         count = 0
         while True:
@@ -237,7 +235,6 @@ class JamfUploaderJiraNotifier(JamfUploaderBase):
                 url=jira_url,
                 enc_creds=enc_creds,
                 data=jira_json,
-                additional_curl_opts=additional_curl_opts,
                 endpoint_type="jira",
             )
             # check HTTP response
