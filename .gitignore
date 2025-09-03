@@ -129,11 +129,14 @@ dmypy.json
 # Pyre type checker
 .pyre/
 
-# Mac artefacts
+# Mac artefacts
 .DS_Store
 
 # Visual Studio Code settings
 .vscode/
 
-# temporary ignore for prospective projects
+# temporary ignore for prospective projects
 jamf_signed_computerprofile_upload.py
+jira-creds.txt
+jira-creds.sh
+
