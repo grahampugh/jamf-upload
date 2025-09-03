@@ -33,13 +33,12 @@ from JamfUploaderLib.JamfUploaderBase import (  # pylint: disable=import-error, 
 )
 
 
-__all__ = ["JamfUploaderJiraNotifier"]
+__all__ = ["JamfUploaderJiraIssueCreator"]
 
 
-class JamfUploaderJiraNotifier(JamfUploaderBase):
+class JamfUploaderJiraIssueCreator(JamfUploaderBase):
     description = (
-        "A postprocessor for AutoPkg that will send details about a recipe run "
-        "to a Jira issue based on the output of a "
+        "A postprocessor for AutoPkg that will create a Jira issue based on the output of a "
         "JamfUploader process."
     )
     input_variables = {
@@ -232,7 +231,7 @@ class JamfUploaderJiraNotifier(JamfUploaderBase):
             )
             r = self.curl(
                 request="POST",
-                url=jira_url,
+                url=f"{jira_url}/rest/api/3/issue/",
                 enc_creds=enc_creds,
                 data=jira_json,
                 endpoint_type="jira",
@@ -248,5 +247,5 @@ class JamfUploaderJiraNotifier(JamfUploaderBase):
 
 
 if __name__ == "__main__":
-    PROCESSOR = JamfUploaderJiraNotifier()
+    PROCESSOR = JamfUploaderJiraIssueCreator()
     PROCESSOR.execute_shell()

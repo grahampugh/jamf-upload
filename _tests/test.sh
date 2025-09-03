@@ -9,8 +9,9 @@ DIR=$(dirname "$0")
 test_type="$1"
 verbosity="$2"
 url="$3"
-jira_user="$4"
-jira_api_token="$5"
+jira_project="$4"
+jira_user="$5"
+jira_api_token="$6"
 
 # path to test items
 pkg_path="/Users/gpugh/Downloads/Workbrew-1.1.7.pkg"
@@ -854,8 +855,8 @@ case "$test_type" in
     jira)
         "$DIR"/../jamf-upload.sh jira \
             --prefs "$prefs" \
-            --name "JamfUploaderJiraNotifier Test - please ignore" \
-            --policy-name "JamfUploaderJiraNotifier Test" \
+            --name "JamfUploaderJiraIssueCreator Test - please ignore" \
+            --policy-name "JamfUploaderJiraIssueCreator Test" \
             --policy-category "Applications" \
             --pkg-category "Packages" \
             --pkg-name "Test-Package.pkg" \
@@ -865,7 +866,7 @@ case "$test_type" in
             --pkg-uploaded \
             --policy-uploaded \
             --jira-user "$jira_user" \
-            --jira-project "25833" \
+            --jira-project "$jira_project" \
             --jira-priority "5" \
             --jira-issue "10001" \
             --jira-api-token "$jira_api_token" \
