@@ -45,6 +45,7 @@ class JamfUploaderJiraIssueCreator(JamfUploaderBase):
         "JSS_URL": {"required": False, "description": ("JSS_URL.")},
         "POLICY_CATEGORY": {"required": False, "description": ("Policy Category.")},
         "PKG_CATEGORY": {"required": False, "description": ("Package Category.")},
+        "CATEGORY": {"required": False, "description": ("Category.")},
         "policy_name": {
             "required": False,
             "description": ("Untested product name from a jamf recipe."),
@@ -113,7 +114,8 @@ class JamfUploaderJiraIssueCreator(JamfUploaderBase):
         """Do the main thing"""
         jss_url = self.env.get("JSS_URL")
         policy_category = self.env.get("POLICY_CATEGORY")
-        category = self.env.get("PKG_CATEGORY")
+        pkg_category = self.env.get("PKG_CATEGORY")
+        category = self.env.get("CATEGORY")
         policy_name = self.env.get("policy_name")
         name = self.env.get("NAME")
         version = self.env.get("version")
@@ -129,8 +131,13 @@ class JamfUploaderJiraIssueCreator(JamfUploaderBase):
             "jamfpolicyuploader_summary_result"
         )
 
-        if not category and jamfpackageuploader_summary_result:
-            category = jamfpackageuploader_summary_result["data"]["category"]
+        if policy_category and jamfpolicyuploader_summary_result:
+            category = policy_category
+        elif pkg_category and jamfpackageuploader_summary_result:
+            category = pkg_category
+        else:
+            if not category and jamfpackageuploader_summary_result:
+                category = jamfpackageuploader_summary_result["data"]["category"]
 
         jira_url = self.env.get("jira_url")
         jira_username = self.env.get("jira_username")
@@ -145,7 +152,8 @@ class JamfUploaderJiraIssueCreator(JamfUploaderBase):
         self.output(f"Policy: {policy_name}")
         self.output(f"Version: {version}")
         self.output(f"Package: {pkg_name}")
-        self.output(f"Package Category: {category}")
+        self.output(f"Category: {pkg_category}")
+        self.output(f"Package Category: {pkg_category}")
         self.output(f"Policy Category: {policy_category}")
 
         summary = ""
@@ -160,16 +168,18 @@ class JamfUploaderJiraIssueCreator(JamfUploaderBase):
         if not jira_project_id:
             raise ProcessorError("No Jira project ID provided")
 
+        if pkg_name:
+            description += f"Package: {pkg_name}\n"
+            summary = pkg_name
         if selfservice_policy_name:
             description += f"Title: {selfservice_policy_name}\n"
+            summary = selfservice_policy_name if not summary else summary
         if category:
             description += f"Category: {category}\n"
         if policy_category:
             description += f"Policy Category: {policy_category}\n"
         if policy_name:
             description += f"Policy Name: {policy_name}\n"
-        if pkg_name:
-            description += f"Package: {pkg_name}\n"
         if version:
             description += f"Version: {version}\n"
         if patch_name:
@@ -180,19 +190,20 @@ class JamfUploaderJiraIssueCreator(JamfUploaderBase):
             and jamfpolicyuploader_summary_result
             and jamfpackageuploader_summary_result
         ):
-            summary = "Policy, Patch Policy and Package created or updated"
+            description += "Policy, Patch Policy and Package created or updated"
         elif jamfpolicyuploader_summary_result and jamfpackageuploader_summary_result:
-            summary = "Policy and Package created or updated"
+            description += "Policy and Package created or updated"
         elif jamfpatchuploader_summary_result and jamfpackageuploader_summary_result:
-            summary = "Package and Patch Policy created or updated"
+            description += "Package and Patch Policy created or updated"
         elif jamfpolicyuploader_summary_result:
-            summary = "Policy created or updated"
+            description += "Policy created or updated"
         elif jamfpatchuploader_summary_result:
-            summary = "Patch Policy created or updated"
+            description += "Patch Policy created or updated"
         elif jamfpackageuploader_summary_result:
-            summary = "Package uploaded"
-        if not summary:
-            self.output("Nothing to report to Jira")
+            description += "Package uploaded"
+        else:
+            description += "Nothing created or updated"
+            self.output("Nothing new to report to Jira")
             return
 
         if not description:
