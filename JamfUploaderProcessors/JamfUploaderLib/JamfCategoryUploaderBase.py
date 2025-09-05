@@ -80,6 +80,13 @@ class JamfCategoryUploaderBase(JamfUploaderBase):
             else:
                 sleep(30)
 
+            # output the ID of the new or updated object
+        if not obj_id:
+            obj_id = r.output["id"]
+        if obj_id:
+            self.output(f"Category '{category_name}' has ID {obj_id}")
+        return obj_id
+
     def execute(self):
         """Upload a category"""
         jamf_url = self.env.get("JSS_URL").rstrip("/")
@@ -137,7 +144,7 @@ class JamfCategoryUploaderBase(JamfUploaderBase):
             self.output(f"Category '{category_name}' not found: ID {obj_id}")
 
         # upload the category
-        self.upload_category(
+        category_id = self.upload_category(
             jamf_url,
             category_name,
             category_priority,
@@ -148,11 +155,13 @@ class JamfCategoryUploaderBase(JamfUploaderBase):
 
         # output the summary
         self.env["category"] = category_name
+        self.env["category_id"] = category_id
         self.env["jamfcategoryuploader_summary_result"] = {
             "summary_text": "The following categories were created or updated in Jamf Pro:",
-            "report_fields": ["category", "priority"],
+            "report_fields": ["category", "id", "priority"],
             "data": {
                 "category": category_name,
+                "id": str(obj_id),
                 "priority": str(category_priority),
             },
         }
