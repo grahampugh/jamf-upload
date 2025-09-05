@@ -119,6 +119,11 @@ class JamfMobileDeviceGroupUploaderBase(JamfUploaderBase):
         if "JamfMobileDeviceGroupUploader_summary_result" in self.env:
             del self.env["JamfMobileDeviceGroupUploader_summary_result"]
 
+        # we need to substitute the values in the computer group name now to
+        # account for version strings in the name
+        # substitute user-assignable keys
+        mobiledevicegroup_name = self.substitute_assignable_keys(mobiledevicegroup_name)
+
         # handle files with a relative path
         if not mobiledevicegroup_template.startswith("/"):
             found_template = self.get_path_to_file(mobiledevicegroup_template)
