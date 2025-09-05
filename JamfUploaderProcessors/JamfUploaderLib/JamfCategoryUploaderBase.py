@@ -139,6 +139,7 @@ class JamfCategoryUploaderBase(JamfUploaderBase):
                     "Not replacing existing category. Use replace_category='True' to enforce.",
                     verbose_level=1,
                 )
+                self.env["category_id"] = obj_id
                 return
         else:
             self.output(f"Category '{category_name}' not found: ID {obj_id}")
