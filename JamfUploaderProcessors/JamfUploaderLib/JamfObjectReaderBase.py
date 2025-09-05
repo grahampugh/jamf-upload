@@ -191,6 +191,10 @@ class JamfObjectReaderBase(JamfUploaderBase):
             del self.env["jamfobjectreader_summary_result"]
 
         # now start the process of reading the object
+        # we need to substitute the values in the computer group name now to
+        # account for version strings in the name
+        # substitute user-assignable keys
+        object_name = self.substitute_assignable_keys(object_name)
 
         # get token using oauth or basic auth depending on the credentials given
         if jamf_url:
