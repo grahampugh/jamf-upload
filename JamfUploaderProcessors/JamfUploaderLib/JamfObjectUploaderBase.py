@@ -137,6 +137,11 @@ class JamfObjectUploaderBase(JamfUploaderBase):
         if "jamfobjectuploader_summary_result" in self.env:
             del self.env["jamfobjectuploader_summary_result"]
 
+        # we need to substitute the values in the computer group name now to
+        # account for version strings in the name
+        # substitute user-assignable keys
+        object_name = self.substitute_assignable_keys(object_name)
+
         # now start the process of uploading the object
         self.output(f"Obtaining API token for {jamf_url}")
 

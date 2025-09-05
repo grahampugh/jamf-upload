@@ -103,6 +103,11 @@ class JamfCategoryUploaderBase(JamfUploaderBase):
         if "jamfcategoryuploader_summary_result" in self.env:
             del self.env["jamfcategoryuploader_summary_result"]
 
+        # we need to substitute the values in the computer group name now to
+        # account for version strings in the name
+        # substitute user-assignable keys
+        category_name = self.substitute_assignable_keys(category_name)
+
         # get token using oauth or basic auth depending on the credentials given
         if jamf_url:
             token = self.handle_api_auth(
