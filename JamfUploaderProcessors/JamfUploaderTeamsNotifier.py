@@ -1,4 +1,5 @@
 #!/usr/local/autopkg/python
+# pylint: disable=invalid-name
 
 """
 Copyright 2022 Graham Pugh, Jacob Burley
@@ -28,7 +29,9 @@ from autopkglib import ProcessorError  # pylint: disable=import-error
 # imports require noqa comments for E402
 sys.path.insert(0, os.path.dirname(__file__))
 
-from JamfUploaderLib.JamfUploaderBase import JamfUploaderBase  # noqa: E402
+from JamfUploaderLib.JamfUploaderBase import (  # pylint: disable=import-error, wrong-import-position
+    JamfUploaderBase,
+)
 
 
 __all__ = ["JamfUploaderTeamsNotifier"]
@@ -111,7 +114,7 @@ class JamfUploaderTeamsNotifier(JamfUploaderBase):
             "jamfpolicyuploader_summary_result"
         )
 
-        if (not category and jamfpackageuploader_summary_result):
+        if not category and jamfpackageuploader_summary_result:
             category = jamfpackageuploader_summary_result["data"]["category"]
 
         teams_webhook_url = self.env.get("teams_webhook_url")
@@ -136,26 +139,20 @@ class JamfUploaderTeamsNotifier(JamfUploaderBase):
         webhook_text["attachments"][0][
             "contentType"
         ] = "application/vnd.microsoft.card.adaptive"
-        webhook_text["attachments"][0][
-            "contentUrl"
-        ] = "null"
+        webhook_text["attachments"][0]["contentUrl"] = "null"
         webhook_text["attachments"][0]["content"] = {}
         webhook_text["attachments"][0]["content"]["type"] = "AdaptiveCard"
         webhook_text["attachments"][0]["content"][
             "$schema"
         ] = "http://adaptivecards.io/schemas/adaptive-card.json"
-        webhook_text["attachments"][0]["content"][
-            "version"
-        ] = "1.2"
-        webhook_text["attachments"][0]["content"][
-            "verticalContentAlignment"
-        ] = "Center"
+        webhook_text["attachments"][0]["content"]["version"] = "1.2"
+        webhook_text["attachments"][0]["content"]["verticalContentAlignment"] = "Center"
         webhook_text["attachments"][0]["content"]["body"] = [
             {
                 "type": "TextBlock",
                 "size": "medium",
                 "weight": "bolder",
-                "text": "New Item Uploaded to Jamf Pro"
+                "text": "New Item Uploaded to Jamf Pro",
             },
             {
                 "type": "ColumnSet",
@@ -163,13 +160,9 @@ class JamfUploaderTeamsNotifier(JamfUploaderBase):
                     {
                         "type": "Column",
                         "items": [
-                            {
-                                "type": "Image",
-                                "url": teams_icon_url,
-                                "size": "Small"
-                            }
+                            {"type": "Image", "url": teams_icon_url, "size": "Small"}
                         ],
-                        "width": "auto"
+                        "width": "auto",
                     },
                     {
                         "type": "Column",
@@ -178,24 +171,21 @@ class JamfUploaderTeamsNotifier(JamfUploaderBase):
                                 "type": "TextBlock",
                                 "weight": "Bolder",
                                 "text": teams_username,
-                                "wrap": True
+                                "wrap": True,
                             },
                             {
                                 "type": "TextBlock",
                                 "spacing": "None",
                                 "text": jss_url,
                                 "isSubtle": True,
-                                "wrap": True
-                            }
+                                "wrap": True,
+                            },
                         ],
-                        "width": "stretch"
-                    }
-                ]
+                        "width": "stretch",
+                    },
+                ],
             },
-            {
-                "type": "FactSet",
-                "facts": []
-            }
+            {"type": "FactSet", "facts": []},
         ]
 
         if (
@@ -241,7 +231,7 @@ class JamfUploaderTeamsNotifier(JamfUploaderBase):
                     "type": "TextBlock",
                     "text": "No new package uploaded.",
                     "wrap": True,
-                    "separator": True
+                    "separator": True,
                 }
             )
 
@@ -256,10 +246,9 @@ class JamfUploaderTeamsNotifier(JamfUploaderBase):
                     "type": "TextBlock",
                     "text": "No new policy uploaded.",
                     "wrap": True,
-                    "separator": True
+                    "separator": True,
                 }
             )
-                
 
         else:
             print("Nothing to report to Teams")
@@ -271,7 +260,7 @@ class JamfUploaderTeamsNotifier(JamfUploaderBase):
         while True:
             count += 1
             self.output(
-                "Teams webhook post attempt {}".format(count),
+                f"Teams webhook post attempt {count}",
                 verbose_level=2,
             )
             r = self.curl(
@@ -285,7 +274,7 @@ class JamfUploaderTeamsNotifier(JamfUploaderBase):
                 break
             if count > 5:
                 self.output("Teams webhook send did not succeed after 5 attempts")
-                self.output("\nHTTP POST Response Code: {}".format(r.status_code))
+                self.output(f"\nHTTP POST Response Code: {r.status_code}")
                 raise ProcessorError("ERROR: Teams webhook failed to send")
             sleep(10)
 
