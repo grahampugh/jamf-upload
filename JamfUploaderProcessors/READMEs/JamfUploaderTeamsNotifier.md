@@ -41,7 +41,7 @@ A postprocessor for AutoPkg that will send details about a recipe run to a Micro
   - **description:** Teams webhook URL to send the message to.
 - **teams_username:**
   - **required:** False
-  - **description:** Sets the displayname shown in the MessageCard in Teams. Defaults to AutoPkg.
+  - **description:** Sets the display name shown in the AdaptiveCard in Teams. Defaults to AutoPkg.
 - **teams_icon_url:**
   - **required:** False
-  - **description:** Sets the icon shown in the MessageCard in Teams. Defaults to a Jamf Pro product icon. Recommended that you use a square image that is publicly reachable.
+  - **description:** Sets the icon shown in the AdaptiveCard in Teams. Defaults to a Jamf Pro product icon. Recommended that you use a square image that is publicly reachable.
