@@ -37,16 +37,16 @@ Takes elements from [this gist](https://gist.github.com/devStepsize/b1b795309a21
   - **description:** Result of JamfPolicyUploader.
 - **slack_webhook_url:**
   - **required:** True
-  - **description:** Teams webhook URL to send the message to.
+  - **description:** Slack webhook URL to send the message to.
 - **slack_username:**
   - **required:** False
-  - **description:** Sets the displayname shown in the MessageCard in Teams. Defaults to AutoPkg.
+  - **description:** Sets the display name shown in the message in Slack. Defaults to AutoPkg.
 - **slack_icon_url:**
   - **required:** False
   - **description:** Sets the icon shown in the Slack notification.
 - **slack_channel:**
   - **required:** False
   - **description:** Slack channel (for overriding the default).
-- **slack_icon_moji:**
+- **slack_icon_emoji:**
   - **required:** False
   - **description:** Sets the icon shown in the Slack notification as an emoji.
