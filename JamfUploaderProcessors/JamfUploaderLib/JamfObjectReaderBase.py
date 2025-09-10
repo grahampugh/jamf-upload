@@ -277,13 +277,34 @@ class JamfObjectReaderBase(JamfUploaderBase):
             # Check for existing item
             self.output(f"Checking for existing '{object_name}' on {jamf_url}")
 
-            obj_id = self.get_api_obj_id_from_name(
-                jamf_url,
-                object_name,
-                object_type,
-                token=token,
-                filter_name=namekey,
-            )
+            # exception for accounts
+            if object_type == "account":
+                # for accounts we need to split the object list into users and groups
+                for obj_subtype in ["users", "groups"]:
+
+                    # get the object
+                    if obj_subtype == "users":
+                        object_type = "account_user"
+                    else:
+                        object_type = "account_group"
+
+                    obj_id = self.get_api_obj_id_from_name(
+                        jamf_url,
+                        object_name,
+                        object_type,
+                        token=token,
+                        filter_name=namekey,
+                    )
+                    if obj_id:
+                        break
+            else:
+                obj_id = self.get_api_obj_id_from_name(
+                    jamf_url,
+                    object_name,
+                    object_type,
+                    token=token,
+                    filter_name=namekey,
+                )
 
             if obj_id:
                 self.output(

@@ -160,8 +160,8 @@ class JamfUploaderBase(Processor):
         """Return a XML dictionary type from the object type"""
         object_list_types = {
             "account": "accounts",
-            "account_user": "accounts_users",
-            "account_group": "accounts_groups",
+            "account_user": "users",
+            "account_group": "groups",
             "advanced_computer_search": "advanced_computer_searches",
             "advanced_mobile_device_search": "advanced_mobile_device_searches",
             "api_client": "api_clients",
@@ -776,6 +776,8 @@ class JamfUploaderBase(Processor):
                     verbose_level=4,
                 )
                 obj_id = 0
+                if object_type == "account_user" or object_type == "account_group":
+                    object_list = object_list["accounts"]
                 for obj in object_list[self.object_list_types(object_type)]:
                     self.output(
                         obj,
