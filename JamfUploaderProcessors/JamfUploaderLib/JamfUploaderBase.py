@@ -1050,7 +1050,11 @@ class JamfUploaderBase(Processor):
         # for Classic API
         if "JSSResource" in url:
             # placeholder as not sure if any settings need to be returned in Classic API
-            obj_content = []
+            obj_content = r.output
+            self.output(
+                obj_content,
+                verbose_level=4,
+            )
 
         # for Jamf Pro API
         else:
