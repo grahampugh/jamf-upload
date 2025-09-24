@@ -990,6 +990,7 @@ class JamfUploaderBase(Processor):
                 if (
                     search_dir_path == recipe_dir_path
                     or search_dir_path.parent == recipe_dir_path.parent
+                    or search_dir_path == recipe_dir_path.parent
                     or search_dir_path in recipe_dir_path.parent.parents
                 ):
                     # matching search dir, look for file in here
