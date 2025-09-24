@@ -1049,8 +1049,8 @@ class JamfUploaderBase(Processor):
 
         # for Classic API
         if "JSSResource" in url:
-            # convert bytes to string
-            obj_content = r.output.decode("utf-8")
+            # convert bytes to string and then load as JSON
+            obj_content = json.loads(r.output.decode("utf-8"))
             self.output(
                 obj_content,
                 verbose_level=4,
