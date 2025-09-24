@@ -741,10 +741,32 @@ class JamfUploaderBase(Processor):
                 self.output(r.output, verbose_level=2)
 
             if r.status_code >= 400:
-                raise ProcessorError(
-                    f"ERROR: {endpoint_type} '{obj_name}' {action} failed - "
-                    f"status code {r.status_code}"
-                )
+                # extract the error message, which is in a line of the output starting with "<p>Error:".Strip the <p> and </p> tags.
+                if isinstance(r.output, (bytes, bytearray)):
+                    error_lines = re.findall(
+                        r"<p>Error:(.*?)</p>", r.output.decode("utf-8")
+                    )
+                elif isinstance(r.output, str):
+                    error_lines = re.findall(r"<p>Error:(.*?)</p>", r.output)
+                else:
+                    error_lines = []
+                if error_lines:
+                    error_message = error_lines[0].strip()
+                    if obj_name:
+                        raise ProcessorError(
+                            f"ERROR: {endpoint_type} '{obj_name}' {action} failed - "
+                            f"{error_message} (status code {r.status_code})"
+                        )
+                    else:
+                        raise ProcessorError(
+                            f"ERROR: {endpoint_type} {action} failed - "
+                            f"{error_message} (status code {r.status_code})"
+                        )
+                else:
+                    self.output(
+                        f"ERROR: {endpoint_type} {action} failed - "
+                        f"status code {r.status_code}"
+                    )
 
     def get_jamf_pro_version(self, jamf_url, token):
         """get the Jamf Pro version so that we can figure out which auth method to use for the
