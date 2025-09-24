@@ -328,7 +328,7 @@ class JamfObjectReaderBase(JamfUploaderBase):
                 if settings_key:
                     try:
                         settings_value = object_content[settings_key]
-                    except KeyError:
+                    except TypeError:
                         settings_value = ET.fromstring(object_content)[settings_key]
                 if settings_value:
                     self.output(
