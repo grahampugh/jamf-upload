@@ -330,10 +330,13 @@ class JamfObjectReaderBase(JamfUploaderBase):
                         settings_value = object_content[settings_key]
                     except TypeError:
                         # We need to remove "_settings" from object_type to get the correct key
-                        object_type_key = object_type.replace("_settings", "")
-                        settings_value = ET.fromstring(object_content)[object_type_key][
-                            settings_key
-                        ]
+                        # object_type_key = object_type.replace("_settings", "")
+                        settings_object = ET.fromstring(object_content)
+                        settings_value = settings_object.find(settings_key).text
+                    except KeyError as e:
+                        raise ProcessorError(
+                            f"ERROR: Settings key '{settings_key}' not found in {object_type} content"
+                        ) from e
                 if settings_value:
                     self.output(
                         f"Settings key '{settings_key}' value: {settings_value}",
