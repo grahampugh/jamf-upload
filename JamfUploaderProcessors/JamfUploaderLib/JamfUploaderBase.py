@@ -1049,8 +1049,9 @@ class JamfUploaderBase(Processor):
 
         # for Classic API
         if "JSSResource" in url:
-            # convert bytes to string and then load as JSON, getting only the contents of the key identified by object_type
-            obj_content = json.loads(r.output.decode("utf-8"))[object_type]
+            # convert bytes to string and then load as JSON. We need to remove "_settings" from object_type to get the correct key
+            object_type_key = object_type.replace("_settings", "")
+            obj_content = json.loads(r.output.decode("utf-8"))[object_type_key]
             self.output(
                 obj_content,
                 verbose_level=4,
