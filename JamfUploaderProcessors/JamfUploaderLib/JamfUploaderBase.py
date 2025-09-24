@@ -52,6 +52,7 @@ class JamfUploaderBase(Processor):
             "account": "JSSResource/accounts",
             "account_user": "JSSResource/accounts",
             "account_group": "JSSResource/accounts",
+            "activation_code_settings": "JSSResource/activationcode",
             "advanced_computer_search": "JSSResource/advancedcomputersearches",
             "advanced_mobile_device_search": "JSSResource/advancedmobiledevicesearches",
             "api_client": "api/v1/api-integrations",
