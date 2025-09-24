@@ -50,7 +50,10 @@ class JamfObjectReaderBase(JamfUploaderBase):
     ):
         """output the file"""
         # construct the filename
-        if "JSSResource" in self.api_endpoints(object_type):
+        if (
+            "JSSResource" in self.api_endpoints(object_type)
+            and not "_settings" in object_type
+        ):
             filetype = "xml"
         else:
             filetype = "json"
@@ -323,7 +326,10 @@ class JamfObjectReaderBase(JamfUploaderBase):
                     verbose_level=3,
                 )
                 if settings_key:
-                    settings_value = object_content[settings_key]
+                    try:
+                        settings_value = object_content[settings_key]
+                    except KeyError:
+                        settings_value = ET.fromstring(object_content)[settings_key]
                 if settings_value:
                     self.output(
                         f"Settings key '{settings_key}' value: {settings_value}",

@@ -1045,13 +1045,20 @@ class JamfUploaderBase(Processor):
 
         # check for existing
         url = f"{jamf_url}/{self.api_endpoints(object_type)}"
-        r = self.curl(request="GET", url=url, token=token)
 
         # for Classic API
         if "JSSResource" in url:
-            # convert bytes to string and then load as JSON. We need to remove "_settings" from object_type to get the correct key
+            r = self.curl(request="GET", url=url, token=token, accept_header="xml")
+            # We need to remove "_settings" from object_type to get the correct key
             object_type_key = object_type.replace("_settings", "")
-            obj_content = json.loads(r.output.decode("utf-8"))[object_type_key]
+            # Parse response as xml
+            try:
+                obj_xml = ET.fromstring(r.output)
+            except ET.ParseError as xml_error:
+                raise ProcessorError from xml_error
+            else:
+                ET.indent(obj_xml)
+                obj_content = ET.tostring(obj_xml, encoding="UTF-8").decode("UTF-8")
             self.output(
                 obj_content,
                 verbose_level=4,
@@ -1059,6 +1066,7 @@ class JamfUploaderBase(Processor):
 
         # for Jamf Pro API
         else:
+            r = self.curl(request="GET", url=url, token=token, accept_header="json")
             obj_content = r.output
             self.output(
                 obj_content,
