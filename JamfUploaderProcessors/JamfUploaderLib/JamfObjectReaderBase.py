@@ -335,16 +335,16 @@ class JamfObjectReaderBase(JamfUploaderBase):
                         raise ProcessorError(
                             f"ERROR: Settings key '{settings_key}' not found in {object_type} content"
                         ) from e
-                if settings_value:
-                    self.output(
-                        f"Settings key '{settings_key}' value: {settings_value}",
-                        verbose_level=1,
-                    )
-                else:
-                    self.output(
-                        f"Settings key '{settings_key}' not found in {object_type} content",
-                        verbose_level=1,
-                    )
+                    if settings_value:
+                        self.output(
+                            f"Settings key '{settings_key}' value: {settings_value}",
+                            verbose_level=1,
+                        )
+                    else:
+                        self.output(
+                            f"Settings key '{settings_key}' not found in {object_type} content",
+                            verbose_level=1,
+                        )
                 # dump the object to file if output_dir is specified
                 if output_dir:
                     object_content, file_path = self.write_output_file(
