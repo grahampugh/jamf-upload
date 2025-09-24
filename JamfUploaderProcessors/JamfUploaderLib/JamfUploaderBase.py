@@ -1049,8 +1049,6 @@ class JamfUploaderBase(Processor):
         # for Classic API
         if "JSSResource" in url:
             r = self.curl(request="GET", url=url, token=token, accept_header="xml")
-            # We need to remove "_settings" from object_type to get the correct key
-            object_type_key = object_type.replace("_settings", "")
             # Parse response as xml
             try:
                 obj_xml = ET.fromstring(r.output)

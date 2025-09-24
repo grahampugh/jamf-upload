@@ -329,7 +329,11 @@ class JamfObjectReaderBase(JamfUploaderBase):
                     try:
                         settings_value = object_content[settings_key]
                     except TypeError:
-                        settings_value = ET.fromstring(object_content)[settings_key]
+                        # We need to remove "_settings" from object_type to get the correct key
+                        object_type_key = object_type.replace("_settings", "")
+                        settings_value = ET.fromstring(object_content)[object_type_key][
+                            settings_key
+                        ]
                 if settings_value:
                     self.output(
                         f"Settings key '{settings_key}' value: {settings_value}",
