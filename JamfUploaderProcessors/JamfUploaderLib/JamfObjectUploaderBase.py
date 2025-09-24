@@ -58,8 +58,11 @@ class JamfObjectUploaderBase(JamfUploaderBase):
         # if we find an object ID or it's an endpoint without IDs, we PUT or PATCH
         # if we're creating a new object, we POST
         if "JSSResource" in self.api_endpoints(object_type):
-            # do XML stuff
-            url = f"{jamf_url}/{self.api_endpoints(object_type)}/id/{obj_id}"
+            if "_settings" in object_type:
+                # settings-style endpoints don't use IDs
+                url = f"{jamf_url}/{self.api_endpoints(object_type)}"
+            else:
+                url = f"{jamf_url}/{self.api_endpoints(object_type)}/id/{obj_id}"
         else:
             if obj_id:
                 url = f"{jamf_url}/{self.api_endpoints(object_type)}/{obj_id}"
