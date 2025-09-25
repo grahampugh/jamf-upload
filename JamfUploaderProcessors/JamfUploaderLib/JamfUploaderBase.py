@@ -22,6 +22,7 @@ import os
 import re
 import subprocess
 import tempfile
+import time
 import xml.etree.ElementTree as ET
 
 from base64 import b64encode
@@ -1034,30 +1035,60 @@ class JamfUploaderBase(Processor):
                         return matched_filepath
         raise ProcessorError(f"File '{filename}' not found")
 
-    def get_all_api_objects(self, jamf_url, object_type, uuid="", token=""):
+    def get_all_api_objects(
+        self, jamf_url, object_type, uuid="", token="", namekey="name"
+    ):
         """get a list of all objects of a particular type"""
         # Get all objects from Jamf Pro as JSON object
         self.output(f"Getting all {self.api_endpoints(object_type)} from {jamf_url}")
 
-        url_filter = "?page=0&page-size=1000&sort=id&sort-order=asc"
-        # check for existing
-        url = f"{jamf_url}/{self.api_endpoints(object_type, uuid)}{url_filter}"
-        r = self.curl(request="GET", url=url, token=token)
-
-        # for Classic API
-        if "JSSResource" in url:
+        # find the number of objects to get so that we can paginate properly
+        if "JSSResource" in self.api_endpoints(object_type, uuid):
+            # Classic API: no pagination, just get all objects at once
+            url = f"{jamf_url}/{self.api_endpoints(object_type, uuid)}"
+            r = self.curl(request="GET", url=url, token=token)
+            if r.status_code != 200:
+                raise ProcessorError(
+                    f"ERROR: Unable to get list of {object_type} from {jamf_url}"
+                )
+            self.output(f"Output:\n{r.output}", verbose_level=4)
             object_list = json.loads(r.output)[self.object_list_types(object_type)]
-            self.output(f"List of objects:\n{object_list}", verbose_level=3)
-
-        # for Jamf Pro API
         else:
-            if object_type == "managed_software_updates_available_updates":
-                object_list = r.output["availableUpdates"]
-            elif object_type == "managed_software_updates_plans_events":
-                object_list = r.output["events"]
-            else:
-                object_list = r.output["results"]
-            self.output(f"List of objects:\n{object_list}", verbose_level=3)
+            # Jamf Pro API: use pagination
+            url_filter = "?page=0&page-size=1"
+            url = f"{jamf_url}/{self.api_endpoints(object_type, uuid)}{url_filter}"
+            r = self.curl(request="GET", url=url, token=token)
+            self.output(f"Output:\n{r.output}", verbose_level=4)
+            total_objects = int(r.output.get("totalCount", 0))
+            self.output(f"Total objects: {total_objects}", verbose_level=2)
+
+            # if total count is 0, return empty list
+            if total_objects == 0:
+                return []
+
+            # now get all objects in a loop, paginating per 100 objects
+            object_list = []
+
+            for page in range(0, total_objects, 100):
+                url_filter = f"?page={page}&page-size=100&sort={namekey}&sort-order=asc"
+                self.output(f"Getting page {page} of objects", verbose_level=2)
+                if page > 0:
+                    time.sleep(0.5)  # be nice to the server
+                url = f"{jamf_url}/{self.api_endpoints(object_type, uuid)}{url_filter}"
+                r = self.curl(request="GET", url=url, token=token)
+                if r.status_code != 200:
+                    raise ProcessorError(
+                        f"ERROR: Unable to get list of {object_type} from {jamf_url}"
+                    )
+                self.output(f"Output:\n{r.output}", verbose_level=4)
+                # parse the output to get the list of objects
+                if object_type == "managed_software_updates_available_updates":
+                    object_list.extend(r.output["availableUpdates"])
+                elif object_type == "managed_software_updates_plans_events":
+                    object_list.extend(r.output["events"])
+                else:
+                    object_list.extend(r.output["results"])
+        self.output(f"List of objects:\n{object_list}", verbose_level=3)
 
         return object_list
 

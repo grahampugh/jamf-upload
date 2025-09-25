@@ -73,6 +73,15 @@ case "$test_type" in
             --key CLIENT_ID=c611d89d-471b-40d2-855d-08647131fc1d \
             "$verbosity"
         ;;
+    list-scripts)
+        "$DIR"/../jamf-upload.sh read \
+            --prefs "$prefs" \
+            --recipe-dir /Users/gpugh/sourcecode/jamf-upload/_tests \
+            --type "script" \
+            --list \
+            --output "/Users/Shared/Jamf/JamfUploaderTests" \
+            "$verbosity"
+        ;;
     scope)
         echo "Running scope test"
         "$DIR"/../jamf-upload.sh scope \
