@@ -82,6 +82,15 @@ case "$test_type" in
             --output "/Users/Shared/Jamf/JamfUploaderTests" \
             "$verbosity"
         ;;
+    list-groups)
+        "$DIR"/../jamf-upload.sh read \
+            --prefs "$prefs" \
+            --recipe-dir /Users/gpugh/sourcecode/jamf-upload/_tests \
+            --type "computer_group" \
+            --list \
+            --output "/Users/Shared/Jamf/JamfUploaderTests" \
+            "$verbosity"
+        ;;
     scope)
         echo "Running scope test"
         "$DIR"/../jamf-upload.sh scope \
