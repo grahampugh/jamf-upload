@@ -233,7 +233,7 @@ class JamfObjectReaderBase(JamfUploaderBase):
         if all_objects or list_only:
             self.output(f"Getting all {object_type} objects from {jamf_url}")
             object_list = self.get_all_api_objects(
-                jamf_url, object_type, uuid=uuid, token=token
+                jamf_url, object_type, uuid=uuid, token=token, namekey=namekey
             )
             if list_only:
                 self.env["object_list"] = object_list
