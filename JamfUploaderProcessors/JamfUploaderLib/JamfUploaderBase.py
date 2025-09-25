@@ -1088,6 +1088,8 @@ class JamfUploaderBase(Processor):
                     object_list.extend(r.output["events"])
                 else:
                     object_list.extend(r.output["results"])
+        # ensure the list is sorted by namekey
+        object_list = sorted(object_list, key=lambda x: x.get(namekey, "").lower())
         self.output(f"List of objects:\n{object_list}", verbose_level=3)
 
         return object_list
