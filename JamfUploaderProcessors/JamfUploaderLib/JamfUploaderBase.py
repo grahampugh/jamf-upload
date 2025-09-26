@@ -218,6 +218,8 @@ class JamfUploaderBase(Processor):
             namekey = "displayName"
         elif object_type == "app_installers_title":
             namekey = "titleName"
+        elif object_type == "managed_software_updates_available_updates":
+            namekey = "availableUpdates"
         return namekey
 
     def get_namekey_path(self, object_type, namekey):
