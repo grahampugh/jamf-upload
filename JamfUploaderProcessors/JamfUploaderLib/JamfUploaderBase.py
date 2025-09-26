@@ -744,7 +744,7 @@ class JamfUploaderBase(Processor):
                 self.output(r.output, verbose_level=2)
 
             if r.status_code >= 400:
-                # extract the error message, which is in a line of the output starting with "<p>Error:".Strip the <p> and </p> tags.
+                # extract the error message
                 if isinstance(r.output, (bytes, bytearray)):
                     error_lines = re.findall(
                         r"<p>Error:(.*?)</p>", r.output.decode("utf-8")
@@ -1097,8 +1097,12 @@ class JamfUploaderBase(Processor):
                 # results list
                 object_list = r.output
 
-        # ensure the list is sorted by namekey
-        object_list = sorted(object_list, key=lambda x: x.get(namekey, "").lower())
+        # ensure the list is sorted by namekey if possible
+        try:
+            object_list = sorted(object_list, key=lambda x: x.get(namekey, "").lower())
+        except (KeyError, TypeError, AttributeError):
+            # if not, just leave the list as is
+            pass
         self.output(f"List of objects:\n{object_list}", verbose_level=3)
 
         return object_list
