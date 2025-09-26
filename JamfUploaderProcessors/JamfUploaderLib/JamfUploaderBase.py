@@ -216,6 +216,7 @@ class JamfUploaderBase(Processor):
             "app_installers_title": "titleName",
             "managed_software_updates_available_updates": "availableUpdates",
             "managed_software_updates_plans": "planUuid",
+            "managed_software_updates_plans_events": "id",
         }
 
         if object_type in object_type_namekeys:
