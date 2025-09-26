@@ -84,7 +84,7 @@ class JamfUploaderBase(Processor):
             "failover": "api/v1/sso/failover",
             "failover_generate_command": "api/v1/sso/failover/generate",
             "icon": "api/v1/icon",
-            "jamf_pro_version": "api/v1/jamf-pro-version",
+            "jamf_pro_version_settings": "api/v1/jamf-pro-version",
             "jamf_protect_plans_sync_command": "api/v1/jamf-protect/plans/sync",
             "jamf_protect_register_settings": "api/v1/jamf-protect/register",
             "jamf_protect_settings": "api/v1/jamf-protect",
@@ -772,7 +772,7 @@ class JamfUploaderBase(Processor):
     def get_jamf_pro_version(self, jamf_url, token):
         """get the Jamf Pro version so that we can figure out which auth method to use for the
         Classic API"""
-        url = jamf_url + "/" + self.api_endpoints("jamf_pro_version")
+        url = jamf_url + "/" + self.api_endpoints("jamf_pro_version_settings")
         r = self.curl(request="GET", url=url, token=token)
         if r.status_code == 200:
             try:
