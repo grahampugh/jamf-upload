@@ -218,6 +218,8 @@ class JamfUploaderBase(Processor):
             namekey = "displayName"
         elif object_type == "app_installers_title":
             namekey = "titleName"
+        elif object_type == "managed_software_updates_available_updates":
+            namekey = "availableUpdates"
         return namekey
 
     def get_namekey_path(self, object_type, namekey):
@@ -742,7 +744,7 @@ class JamfUploaderBase(Processor):
                 self.output(r.output, verbose_level=2)
 
             if r.status_code >= 400:
-                # extract the error message, which is in a line of the output starting with "<p>Error:".Strip the <p> and </p> tags.
+                # extract the error message
                 if isinstance(r.output, (bytes, bytearray)):
                     error_lines = re.findall(
                         r"<p>Error:(.*?)</p>", r.output.decode("utf-8")
@@ -1059,37 +1061,48 @@ class JamfUploaderBase(Processor):
             url = f"{jamf_url}/{self.api_endpoints(object_type, uuid)}{url_filter}"
             r = self.curl(request="GET", url=url, token=token)
             self.output(f"Output:\n{r.output}", verbose_level=4)
-            total_objects = int(r.output.get("totalCount", 0))
-            self.output(f"Total objects: {total_objects}", verbose_level=2)
+            # check if there is a totalCount value in the output
+            try:
+                total_objects = int(r.output["totalCount"])
+                self.output(f"Total objects: {total_objects}", verbose_level=2)
+                # if total count is 0, return empty list
+                if total_objects == 0:
+                    return []
+                # now get all objects in a loop, paginating per 100 objects
+                object_list = []
 
-            # if total count is 0, return empty list
-            if total_objects == 0:
-                return []
-
-            # now get all objects in a loop, paginating per 100 objects
-            object_list = []
-
-            for page in range(0, total_objects, 100):
-                url_filter = f"?page={page}&page-size=100&sort={namekey}&sort-order=asc"
-                self.output(f"Getting page {page} of objects", verbose_level=2)
-                if page > 0:
-                    time.sleep(0.5)  # be nice to the server
-                url = f"{jamf_url}/{self.api_endpoints(object_type, uuid)}{url_filter}"
-                r = self.curl(request="GET", url=url, token=token)
-                if r.status_code != 200:
-                    raise ProcessorError(
-                        f"ERROR: Unable to get list of {object_type} from {jamf_url}"
+                for page in range(0, total_objects, 100):
+                    url_filter = (
+                        f"?page={page}&page-size=100&sort={namekey}&sort-order=asc"
                     )
-                self.output(f"Output:\n{r.output}", verbose_level=4)
-                # parse the output to get the list of objects
-                if object_type == "managed_software_updates_available_updates":
-                    object_list.extend(r.output["availableUpdates"])
-                elif object_type == "managed_software_updates_plans_events":
-                    object_list.extend(r.output["events"])
-                else:
-                    object_list.extend(r.output["results"])
-        # ensure the list is sorted by namekey
-        object_list = sorted(object_list, key=lambda x: x.get(namekey, "").lower())
+                    self.output(f"Getting page {page} of objects", verbose_level=2)
+                    if page > 0:
+                        time.sleep(0.5)  # be nice to the server
+                    url = f"{jamf_url}/{self.api_endpoints(object_type, uuid)}{url_filter}"
+                    r = self.curl(request="GET", url=url, token=token)
+                    if r.status_code != 200:
+                        raise ProcessorError(
+                            f"ERROR: Unable to get list of {object_type} from {jamf_url}"
+                        )
+                    self.output(f"Output:\n{r.output}", verbose_level=4)
+                    # parse the output to get the list of objects
+                    if object_type == "managed_software_updates_available_updates":
+                        object_list.extend(r.output["availableUpdates"])
+                    elif object_type == "managed_software_updates_plans_events":
+                        object_list.extend(r.output["events"])
+                    else:
+                        object_list.extend(r.output["results"])
+            except (KeyError, TypeError):
+                # if not, we're not dealing with a paginated endpoint, so just return the
+                # results list
+                object_list = r.output
+
+        # ensure the list is sorted by namekey if possible
+        try:
+            object_list = sorted(object_list, key=lambda x: x.get(namekey, "").lower())
+        except (KeyError, TypeError, AttributeError):
+            # if not, just leave the list as is
+            pass
         self.output(f"List of objects:\n{object_list}", verbose_level=3)
 
         return object_list
