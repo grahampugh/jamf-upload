@@ -1059,12 +1059,16 @@ class JamfUploaderBase(Processor):
             url = f"{jamf_url}/{self.api_endpoints(object_type, uuid)}{url_filter}"
             r = self.curl(request="GET", url=url, token=token)
             self.output(f"Output:\n{r.output}", verbose_level=4)
-            total_objects = int(r.output.get("totalCount", 0))
-            self.output(f"Total objects: {total_objects}", verbose_level=2)
-
-            # if total count is 0, return empty list
-            if total_objects == 0:
-                return []
+            # check if there is a totalCount value in the output
+            try:
+                total_objects = int(r.output["totalCount"])
+                self.output(f"Total objects: {total_objects}", verbose_level=2)
+                # if total count is 0, return empty list
+                if total_objects == 0:
+                    return []
+            except (KeyError, TypeError):
+                # if not, assume there is just one object
+                total_objects = 1
 
             # now get all objects in a loop, paginating per 100 objects
             object_list = []
