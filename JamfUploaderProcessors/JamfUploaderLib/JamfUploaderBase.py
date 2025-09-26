@@ -208,18 +208,20 @@ class JamfUploaderBase(Processor):
 
     def get_namekey(self, object_type):
         """Return the name key that identifies the object"""
-        namekey = "name"
-        if object_type in (
-            "api_client",
-            "computer_prestage",
-            "mobile_device_prestage",
-            "enrollment_customization",
-        ):
-            namekey = "displayName"
-        elif object_type == "app_installers_title":
-            namekey = "titleName"
-        elif object_type == "managed_software_updates_available_updates":
-            namekey = "availableUpdates"
+        object_type_namekeys = {
+            "api_client": "displayName",
+            "computer_prestage": "displayName",
+            "mobile_device_prestage": "displayName",
+            "enrollment_customization": "displayName",
+            "app_installers_title": "titleName",
+            "managed_software_updates_available_updates": "availableUpdates",
+            "managed_software_updates_plans": "planUuid",
+        }
+
+        if object_type in object_type_namekeys:
+            namekey = object_type_namekeys[object_type]
+        else:
+            namekey = "name"
         return namekey
 
     def get_namekey_path(self, object_type, namekey):
