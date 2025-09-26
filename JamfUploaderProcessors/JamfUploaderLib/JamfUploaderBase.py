@@ -1093,7 +1093,7 @@ class JamfUploaderBase(Processor):
             except (KeyError, TypeError):
                 # if not, we're not dealing with a paginated endpoint, so just return the
                 # results list
-                object_list = r.output["results"]
+                object_list = r.output
 
         # ensure the list is sorted by namekey
         object_list = sorted(object_list, key=lambda x: x.get(namekey, "").lower())
