@@ -96,6 +96,7 @@ class JamfPolicyUploaderBase(JamfUploaderBase):
             self.output(f"Policy upload attempt {count}", verbose_level=2)
             request = "PUT" if obj_id else "POST"
             r = self.curl(
+                api_type="classic",
                 request=request,
                 url=url,
                 token=token,
@@ -173,6 +174,7 @@ class JamfPolicyUploaderBase(JamfUploaderBase):
                 self.output(f"Icon upload attempt {count}", verbose_level=2)
                 request = "POST"
                 r = self.curl(
+                    api_type="classic",
                     request=request,
                     url=url,
                     token=token,

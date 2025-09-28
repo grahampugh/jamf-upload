@@ -114,7 +114,11 @@ class JamfPatchUploaderBase(JamfUploaderBase):
 
         # No need to loop over curl function, since we only make a "GET" request.
         r = self.curl(
-            request="GET", url=url, token=token, endpoint_type="patch_software_title"
+            api_type="classic",
+            request="GET",
+            url=url,
+            token=token,
+            endpoint_type="patch_software_title",
         )
 
         if r.status_code != 200:
@@ -169,6 +173,7 @@ class JamfPatchUploaderBase(JamfUploaderBase):
             count += 1
             self.output(f"Patch Softwaretitle upload attempt {count}.", verbose_level=2)
             r = self.curl(
+                api_type="classic",
                 request="PUT",
                 url=url,  # Unchanged url from the request earlier
                 token=token,
@@ -221,6 +226,7 @@ class JamfPatchUploaderBase(JamfUploaderBase):
             self.output(f"Patch upload attempt {count}", verbose_level=2)
             request = "PUT" if patch_id else "POST"
             r = self.curl(
+                api_type="classic",
                 request=request,
                 url=url,
                 token=token,

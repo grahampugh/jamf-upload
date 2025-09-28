@@ -65,6 +65,7 @@ class JamfAPIRoleUploaderBase(JamfUploaderBase):
             self.output(f"{object_type} upload attempt {count}", verbose_level=2)
             request = "PUT" if obj_id else "POST"
             r = self.curl(
+                api_type="jpapi",
                 request=request,
                 url=url,
                 token=token,

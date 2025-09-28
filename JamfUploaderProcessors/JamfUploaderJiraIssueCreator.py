@@ -241,6 +241,7 @@ class JamfUploaderJiraIssueCreator(JamfUploaderBase):
                 verbose_level=2,
             )
             r = self.curl(
+                api_type="jira",
                 request="POST",
                 url=f"{jira_url}/rest/api/3/issue/",
                 enc_creds=enc_creds,

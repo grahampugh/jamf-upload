@@ -186,7 +186,7 @@ class JamfUnusedPackageCleanerBase(JamfUploaderBase):
             count += 1
             self.output(f"Package delete attempt {count}", verbose_level=2)
             request = "DELETE"
-            r = self.curl(request=request, url=url, token=token)
+            r = self.curl(api_type="classic", request=request, url=url, token=token)
 
             # check HTTP response
             if self.status_check(r, "Package", obj_id, request) == "break":
@@ -250,6 +250,7 @@ class JamfUnusedPackageCleanerBase(JamfUploaderBase):
                 verbose_level=2,
             )
             r = self.curl(
+                api_type="slack",
                 request="POST",
                 url=slack_webhook_url,
                 data=slack_json,

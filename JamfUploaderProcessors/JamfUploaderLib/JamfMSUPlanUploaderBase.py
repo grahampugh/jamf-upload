@@ -135,6 +135,7 @@ class JamfMSUPlanUploaderBase(JamfUploaderBase):
             count += 1
             self.output(f"{object_type} upload attempt {count}", verbose_level=2)
             r = self.curl(
+                api_type="jpapi",
                 request=request,
                 url=url,
                 token=token,

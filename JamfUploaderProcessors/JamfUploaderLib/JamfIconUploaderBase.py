@@ -52,7 +52,9 @@ class JamfIconUploaderBase(JamfUploaderBase):
                 verbose_level=2,
             )
             request = "GET"
-            r = self.curl(request=request, url=icon_uri, endpoint_type="icon_get")
+            r = self.curl(
+                api_type="none", request=request, url=icon_uri, endpoint_type="icon_get"
+            )
             # check HTTP response
             if self.status_check(r, "Icon", icon_uri, request) == "break":
                 break
@@ -85,6 +87,7 @@ class JamfIconUploaderBase(JamfUploaderBase):
             )
             request = "POST"
             r = self.curl(
+                api_type="jpapi",
                 request=request,
                 url=url,
                 token=token,

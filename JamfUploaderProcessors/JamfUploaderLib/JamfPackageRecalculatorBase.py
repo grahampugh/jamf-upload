@@ -43,6 +43,7 @@ class JamfPackageRecalculatorBase(JamfUploaderBase):
 
         request = "POST"
         r = self.curl(
+            api_type="jpapi",
             request=request,
             url=url,
             token=token,

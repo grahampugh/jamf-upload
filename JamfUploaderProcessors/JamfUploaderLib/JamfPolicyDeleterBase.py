@@ -52,7 +52,7 @@ class JamfPolicyDeleterBase(JamfUploaderBase):
             count += 1
             self.output(f"Policy delete attempt {count}", verbose_level=2)
             request = "DELETE"
-            r = self.curl(request=request, url=url, token=token)
+            r = self.curl(api_type="classic", request=request, url=url, token=token)
 
             # check HTTP response
             if self.status_check(r, "Policy", obj_id, request) == "break":

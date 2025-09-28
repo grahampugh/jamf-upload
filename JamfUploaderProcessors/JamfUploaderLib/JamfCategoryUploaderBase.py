@@ -66,7 +66,13 @@ class JamfCategoryUploaderBase(JamfUploaderBase):
                 verbose_level=2,
             )
             request = "PUT" if obj_id else "POST"
-            r = self.curl(request=request, url=url, token=token, data=category_json)
+            r = self.curl(
+                api_type="jpapi",
+                request=request,
+                url=url,
+                token=token,
+                data=category_json,
+            )
 
             # check HTTP response
             if self.status_check(r, "Category", category_name, request) == "break":

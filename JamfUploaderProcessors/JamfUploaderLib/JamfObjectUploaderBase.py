@@ -44,6 +44,7 @@ class JamfObjectUploaderBase(JamfUploaderBase):
     def upload_object(
         self,
         jamf_url,
+        api_type,
         object_type,
         template_file,
         sleep_time,
@@ -57,17 +58,20 @@ class JamfObjectUploaderBase(JamfUploaderBase):
 
         # if we find an object ID or it's an endpoint without IDs, we PUT or PATCH
         # if we're creating a new object, we POST
-        if "JSSResource" in self.api_endpoints(object_type):
+
+        if api_type == "classic":
             if "_settings" in object_type:
                 # settings-style endpoints don't use IDs
                 url = f"{jamf_url}/{self.api_endpoints(object_type)}"
             else:
                 url = f"{jamf_url}/{self.api_endpoints(object_type)}/id/{obj_id}"
-        else:
+        elif api_type == "jpapi":
             if obj_id:
                 url = f"{jamf_url}/{self.api_endpoints(object_type)}/{obj_id}"
             else:
                 url = f"{jamf_url}/{self.api_endpoints(object_type)}"
+        else:
+            raise ProcessorError(f"ERROR: API type {api_type} not supported")
 
         additional_curl_options = []
         # settings-style endpoints require special options
@@ -139,6 +143,9 @@ class JamfObjectUploaderBase(JamfUploaderBase):
         # clear any pre-existing summary result
         if "jamfobjectuploader_summary_result" in self.env:
             del self.env["jamfobjectuploader_summary_result"]
+
+        # get api type
+        api_type = self.api_type(object_type)
 
         # we need to substitute the values in the computer group name now to
         # account for version strings in the name
@@ -243,7 +250,7 @@ class JamfObjectUploaderBase(JamfUploaderBase):
 
         # we need to substitute the values in the object name and template now to
         # account for version strings in the name
-        if "JSSResource" in self.api_endpoints(object_type):
+        if api_type == "classic":
             xml_escape = True
         else:
             xml_escape = False
@@ -274,6 +281,7 @@ class JamfObjectUploaderBase(JamfUploaderBase):
         # upload the object
         self.upload_object(
             jamf_url,
+            api_type,
             object_type,
             template_file,
             sleep_time,

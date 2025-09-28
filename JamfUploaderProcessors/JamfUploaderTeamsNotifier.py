@@ -264,6 +264,7 @@ class JamfUploaderTeamsNotifier(JamfUploaderBase):
                 verbose_level=2,
             )
             r = self.curl(
+                api_type="teams",
                 request="POST",
                 url=teams_webhook_url,
                 data=teams_json,

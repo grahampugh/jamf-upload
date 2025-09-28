@@ -63,7 +63,11 @@ class JamfPatchCheckerBase(JamfUploaderBase):
 
         # No need to loop over curl function, since we only make a "GET" request.
         r = self.curl(
-            request="GET", url=url, token=token, endpoint_type="patch_software_title"
+            api_type="classic",
+            request="GET",
+            url=url,
+            token=token,
+            endpoint_type="patch_software_title",
         )
 
         if r.status_code != 200:

@@ -222,6 +222,7 @@ class JamfPackageUploaderBase(JamfUploaderBase):
 
         request = "POST"
         r = self.curl(
+            api_type="dbfileupload",
             request=request,
             url=url,
             enc_creds=enc_creds,
@@ -268,6 +269,7 @@ class JamfPackageUploaderBase(JamfUploaderBase):
 
             request = "POST"
             r = self.curl(
+                api_type="jpapi",
                 request=request,
                 url=url,
                 token=token,
@@ -325,6 +327,7 @@ class JamfPackageUploaderBase(JamfUploaderBase):
 
         request = "GET"
         r = self.curl(
+            api_type="jpapi",
             request=request,
             url=url,
             token=token,
@@ -372,6 +375,7 @@ class JamfPackageUploaderBase(JamfUploaderBase):
 
         request = "DELETE"
         r = self.curl(
+            api_type="jpapi",
             request=request,
             url=url,
             token=token,
@@ -413,6 +417,7 @@ class JamfPackageUploaderBase(JamfUploaderBase):
 
             request = "POST"
             r = self.curl(
+                api_type="jpapi",
                 request=request,
                 url=url,
                 token=token,
@@ -560,6 +565,7 @@ class JamfPackageUploaderBase(JamfUploaderBase):
 
         request = "GET"
         r = self.curl(
+            api_type="classic",
             request=request,
             url=url,
             token=token,
@@ -671,7 +677,9 @@ class JamfPackageUploaderBase(JamfUploaderBase):
                 verbose_level=2,
             )
             request = "PUT" if pkg_id else "POST"
-            r = self.curl(request=request, url=url, token=token, data=pkg_json)
+            r = self.curl(
+                api_type="jpapi", request=request, url=url, token=token, data=pkg_json
+            )
             # check HTTP response
             if self.status_check(r, "Package Metadata", pkg_name, request) == "break":
                 break
@@ -758,6 +766,7 @@ class JamfPackageUploaderBase(JamfUploaderBase):
 
             request = "PUT" if pkg_id else "POST"
             r = self.curl(
+                api_type="classic",
                 request=request,
                 url=url,
                 token=token,
@@ -793,6 +802,7 @@ class JamfPackageUploaderBase(JamfUploaderBase):
 
         request = "POST"
         r = self.curl(
+            api_type="jpapi",
             request=request,
             url=url,
             token=token,

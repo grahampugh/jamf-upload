@@ -336,6 +336,7 @@ class JamfUploaderSlacker(JamfUploaderBase):
                 verbose_level=2,
             )
             r = self.curl(
+                api_type="slack",
                 request="POST",
                 url=slack_webhook_url,
                 data=slack_json,
