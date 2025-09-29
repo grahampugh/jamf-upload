@@ -49,8 +49,12 @@ class JamfObjectReaderBase(JamfUploaderBase):
         n=None,
     ):
         """output the file"""
+
+        # get api type
+        api_type = self.api_type(object_type)
+
         # construct the filename
-        if "JSSResource" in self.api_endpoints(object_type):
+        if api_type == "classic":
             filetype = "xml"
         else:
             filetype = "json"
