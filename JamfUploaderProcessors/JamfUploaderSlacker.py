@@ -340,7 +340,6 @@ class JamfUploaderSlacker(JamfUploaderBase):
                 request="POST",
                 url=slack_webhook_url,
                 data=slack_json,
-                endpoint_type="slack",
             )
             # check HTTP response
             if self.slack_status_check(r) == "break":

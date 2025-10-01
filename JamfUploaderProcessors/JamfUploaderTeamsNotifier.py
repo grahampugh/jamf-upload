@@ -268,7 +268,6 @@ class JamfUploaderTeamsNotifier(JamfUploaderBase):
                 request="POST",
                 url=teams_webhook_url,
                 data=teams_json,
-                endpoint_type="teams",
             )
             # check HTTP response
             if self.teams_status_check(r) == "break":

@@ -124,6 +124,20 @@ class JamfUploaderBase(Processor):
             "restricted_software",
         ):
             return "classic"
+        elif object_type in ("package_upload",):
+            return "dbfileupload"
+        elif object_type in (
+            "cb_benchmarks",
+            "cb_rules",
+            "cb_baselines",
+        ):
+            return "platform"
+        elif object_type == "slack":
+            return "slack"
+        elif object_type == "teams":
+            return "teams"
+        elif object_type == "jira":
+            return "jira"
         else:
             raise ProcessorError(f"ERROR: Unknown object type {object_type}")
 
@@ -147,6 +161,9 @@ class JamfUploaderBase(Processor):
                 "api/v1/app-installers/terms-and-conditions/accept"
             ),
             "category": "api/v1/categories",
+            "cb_benchmarks": "api/cb/engine/v2/benchmarks",
+            "cb_rules": "api/cb/engine/v1/rules",
+            "cb_baselines": "api/cb/engine/v1/baselines",
             "check_in_settings": "api/v3/check-in",
             "cloud_ldap": "api/v2/cloud-ldaps",
             "computer": "api/preview/computers",
@@ -607,16 +624,14 @@ class JamfUploaderBase(Processor):
         """
         Build a curl command based on request type (GET, POST, PUT, PATCH, DELETE).
 
-        This function handles 6 different API types:
+        This function handles 7 different API types:
         1. classic: The Jamf Pro Classic API. These endpoints are under the 'JSSResource' URL.
         2. jpapi: The Jamf Pro API. These endpoints are under the 'api'/'uapi' URL.
         3. dbfileupload: The Jamf Pro dbfileupload endpoint, for uploading packages (v1).
-        4. legacy/packages: The Jamf Pro legacy/packages endpoint, for uploading packages (v3).
-        5. slack: Slack webhooks.
-        6. teams: Microsoft Teams webhooks.
-        7. jira: Jira Cloud issue requests (REST API).
-        8. none: URLs that do not require authentication, for example ics.services.jamfcloud.com.
-        9. jcds: Jamf Cloud Device Sync service (JCDS).
+        4. slack: Slack webhooks.
+        5. teams: Microsoft Teams webhooks.
+        6. jira: Jira Cloud issue requests (REST API).
+        7. none: URLs that do not require authentication, for example ics.services.jamfcloud.com.
 
         For the Jamf Pro API and Classic API, basic authentication is used to obtain a
         bearer token, which we write to a file along with its expiry datetime.
@@ -662,88 +677,45 @@ class JamfUploaderBase(Processor):
         if request:
             curl_cmd.extend(["--request", request])
 
-        # all endpoints except the JCDS endpoint can be specified silent with show-error
-        if endpoint_type != "jcds":
-            curl_cmd.extend(["--silent", "--show-error"])
+        # break down by the api types
+        if api_type not in (
+            "classic",
+            "jpapi",
+            "dbfileupload",
+            "slack",
+            "teams",
+            "jira",
+            "platform",
+            "none",
+        ):
+            raise ProcessorError(f"ERROR: Unknown API type {api_type}")
 
-        # Jamf Pro API authentication headers
-        if enc_creds:
-            curl_cmd.extend(["--header", f"authorization: Basic {enc_creds}"])
-        elif token:
-            curl_cmd.extend(["--header", f"authorization: Bearer {token}"])
+        # fail unknown request types
+        elif (
+            request not in ("GET", "DELETE", "POST", "PATCH", "PUT")
+            and api_type != "none"
+        ):
+            raise ProcessorError(f"ERROR: HTTP method {request} not supported")
 
-        # icon download
-        if endpoint_type == "icon_get":
-            output_file = os.path.join(tmp_dir, "icon_download.png")
+        # operations for classic and jpapi
+        if api_type == "classic" or api_type == "jpapi" or api_type == "dbfileupload":
 
-        # 'Accept' for GET and DELETE requests
-        # By default, we obtain json as its easier to parse. However,
-        # some endpoints (For example the 'patchsoftwaretitle' endpoint)
-        # do not return complete json, so we have to get the xml instead.
-        elif (request == "GET" or request == "DELETE") and endpoint_type != "jcds":
-            if endpoint_type == "patch_software_title" or accept_header == "xml":
-                curl_cmd.extend(["--header", "Accept: application/xml"])
+            # check that we have either a token or credentials
+            if endpoint_type == "dbfileupload" and not enc_creds:
+                raise ProcessorError(
+                    "No credentials supplied for dbfileupload endpoint"
+                )
+
+            # Jamf Pro API authentication headers
+            if enc_creds:
+                curl_cmd.extend(["--header", f"authorization: Basic {enc_creds}"])
+            elif token:
+                curl_cmd.extend(["--header", f"authorization: Bearer {token}"])
             else:
-                curl_cmd.extend(["--header", "Accept: application/json"])
-        # for uploading a package we need to return JSON
-        elif request == "POST" and endpoint_type == "package":
-            curl_cmd.extend(["--header", "Accept: application/json"])
+                raise ProcessorError("No token or credentials supplied")
 
-        # package upload (Jamf Pro API)
-        elif endpoint_type == "package_v1":
-            curl_cmd.extend(["--header", "Content-type: multipart/form-data"])
-            curl_cmd.extend(["--form", f"file=@{data}"])
-
-        # policy icon upload (Classic API)
-        elif endpoint_type == "policy_icon":
-            curl_cmd.extend(["--header", "Content-type: multipart/form-data"])
-            curl_cmd.extend(["--form", f"name=@{data}"])
-
-        # icon upload (Jamf Pro API)
-        elif endpoint_type == "icon_upload":
-            curl_cmd.extend(["--header", "Content-type: multipart/form-data"])
-            curl_cmd.extend(["--form", f"file=@{data};type=image/png"])
-
-        elif request == "PATCH":
-            curl_cmd.extend(["--header", "Content-type: application/merge-patch+json"])
-            if data:
-                # jamf data upload requires upload-file argument
-                curl_cmd.extend(["--upload-file", data])
-
-        # Content-Type for POST/PUT
-        elif request == "POST" or request == "PUT":
-            if api_type == "slack" or api_type == "teams" or api_type == "jira":
-                # jira, slack and teams require a data argument
-                curl_cmd.extend(["--data", data])
-                curl_cmd.extend(["--header", "Content-type: application/json"])
-            elif data:
-                # jamf data upload requires upload-file argument
-                curl_cmd.extend(["--upload-file", data])
-
-            if api_type == "classic":
-                # Jamf Pro API and Slack posts json, but Classic API posts xml
-                curl_cmd.extend(["--header", "Content-type: application/xml"])
-            elif api_type == "jpapi":
-                if endpoint_type == "oauth":
-                    curl_cmd.extend(
-                        ["--header", "Content-Type: application/x-www-form-urlencoded"]
-                    )
-            else:
-                curl_cmd.extend(["--header", "Content-type: application/json"])
-            # note: other endpoints should supply their headers via 'additional_curl_opts'
-
-        # fail other request types
-        elif request != "GET" and request != "DELETE" and request != "PATCH":
-            self.output(f"WARNING: HTTP method {request} not supported")
-
-        # direct output to a file
-        curl_cmd.extend(["--output", output_file])
-        self.output(f"Output file is: {output_file}", verbose_level=3)
-
-        # write session for jamf API requests
-        if api_type == "jpapi" or api_type == "classic" or api_type == "dbfileupload":
+            # write session for jamf API requests
             curl_cmd.extend(["--cookie-jar", cookie_jar])
-
             # look for existing session
             if os.path.exists(cookie_jar):
                 self.output("Existing cookie found", verbose_level=2)
@@ -752,6 +724,129 @@ class JamfUploaderBase(Processor):
                 self.output(
                     "No existing cookie found - starting new session", verbose_level=2
                 )
+
+            # all endpoints except the JCDS endpoint can be specified silent with show-error
+            if endpoint_type != "jcds":
+                curl_cmd.extend(["--silent", "--show-error"])
+
+            # icon download
+            if endpoint_type == "icon_get":
+                output_file = os.path.join(tmp_dir, "icon_download.png")
+
+            # 'Accept' for GET and DELETE requests
+            # By default, we obtain json as its easier to parse. However,
+            # some endpoints (For example the 'patchsoftwaretitle' endpoint)
+            # do not return complete json, so we have to get the xml instead.
+            elif (request == "GET" or request == "DELETE") and endpoint_type != "jcds":
+                if endpoint_type == "patch_software_title" or accept_header == "xml":
+                    curl_cmd.extend(["--header", "Accept: application/xml"])
+                else:
+                    curl_cmd.extend(["--header", "Accept: application/json"])
+            # for uploading a package we need to return JSON
+            elif request == "POST" and endpoint_type == "package":
+                curl_cmd.extend(["--header", "Accept: application/json"])
+
+            # package upload (Jamf Pro API)
+            elif endpoint_type == "package_v1":
+                curl_cmd.extend(["--header", "Content-type: multipart/form-data"])
+                curl_cmd.extend(["--form", f"file=@{data}"])
+
+            # policy icon upload (Classic API)
+            elif endpoint_type == "policy_icon":
+                curl_cmd.extend(["--header", "Content-type: multipart/form-data"])
+                curl_cmd.extend(["--form", f"name=@{data}"])
+
+            # icon upload (Jamf Pro API)
+            elif endpoint_type == "icon_upload":
+                curl_cmd.extend(["--header", "Content-type: multipart/form-data"])
+                curl_cmd.extend(["--form", f"file=@{data};type=image/png"])
+
+            elif request == "PATCH":
+                curl_cmd.extend(
+                    ["--header", "Content-type: application/merge-patch+json"]
+                )
+                if data:
+                    # jamf data upload requires upload-file argument
+                    curl_cmd.extend(["--upload-file", data])
+
+            # Content-Type for POST/PUT
+            elif request == "POST" or request == "PUT":
+                if data:
+                    # jamf data upload requires upload-file argument
+                    curl_cmd.extend(["--upload-file", data])
+
+                if api_type == "classic":
+                    # Jamf Pro API and Slack posts json, but Classic API posts xml
+                    curl_cmd.extend(["--header", "Content-type: application/xml"])
+                else:
+                    if endpoint_type == "oauth":
+                        curl_cmd.extend(
+                            [
+                                "--header",
+                                "Content-Type: application/x-www-form-urlencoded",
+                            ]
+                        )
+                    else:
+                        curl_cmd.extend(["--header", "Content-type: application/json"])
+            # note: other endpoints should supply their headers via 'additional_curl_opts'
+
+        elif api_type == "slack" or api_type == "teams":
+            # slack and teams webhooks
+            curl_cmd.extend(["--silent", "--show-error"])
+            if request == "POST":
+                if not data:
+                    raise ProcessorError(
+                        "No data supplied for Slack/Teams POST request"
+                    )
+                curl_cmd.extend(["--header", "Content-type: application/json"])
+                curl_cmd.extend(["--data", data])
+            else:
+                raise ProcessorError(
+                    f"ERROR: HTTP method {request} not supported for {api_type}"
+                )
+
+        elif api_type == "jira":
+            # jira cloud issue requests
+            curl_cmd.extend(["--silent", "--show-error"])
+            if not enc_creds:
+                raise ProcessorError("No credentials supplied for Jira request")
+            curl_cmd.extend(["--header", f"authorization: Basic {enc_creds}"])
+            if request == "POST":
+                if not data:
+                    raise ProcessorError("No data supplied for Jira POST/PUT request")
+                curl_cmd.extend(["--header", "Content-type: application/json"])
+                curl_cmd.extend(["--data", data])
+            else:
+                raise ProcessorError(
+                    f"ERROR: HTTP method {request} not supported for {api_type}"
+                )
+
+        elif api_type == "platform":
+            # platform API requests
+            curl_cmd.extend(["--silent", "--show-error"])
+            if not token:
+                raise ProcessorError("No token supplied for Platform API request")
+
+            # URL must match {region}.apigw.jamf.com
+            if not re.match(r"^[a-z1-9]{2}\.apigw\.jamf\.com$", url):
+                raise ProcessorError(f"Invalid URL for Platform API request: {url}")
+
+        elif api_type == "none":
+            # no authentication required - for example ics.services.jamfcloud.com
+            curl_cmd.extend(["--silent", "--show-error"])
+            if request == "POST":
+                if not data:
+                    raise ProcessorError("No data supplied for POST request")
+                curl_cmd.extend(["--header", "Content-type: application/json"])
+                curl_cmd.extend(["--data", data])
+            elif request != "GET" and request != "DELETE":
+                raise ProcessorError(
+                    f"ERROR: HTTP method {request} not supported for {api_type}"
+                )
+
+        # direct output to a file
+        curl_cmd.extend(["--output", output_file])
+        self.output(f"Output file is: {output_file}", verbose_level=3)
 
         # additional headers for advanced requests
         if additional_curl_opts:
@@ -1123,29 +1218,29 @@ class JamfUploaderBase(Processor):
         raise ProcessorError(f"File '{filename}' not found")
 
     def get_all_api_objects(
-        self, jamf_url, object_type, uuid="", token="", namekey="name"
+        self, domain, object_type, uuid="", token="", namekey="name"
     ):
         """get a list of all objects of a particular type"""
         # Get all objects from Jamf Pro as JSON object
-        self.output(f"Getting all {self.api_endpoints(object_type)} from {jamf_url}")
+        self.output(f"Getting all {self.api_endpoints(object_type)} from {domain}")
 
         # find the number of objects to get so that we can paginate properly
         # get api type
         api_type = self.api_type(object_type)
         if api_type == "classic":
             # Classic API: no pagination, just get all objects at once
-            url = f"{jamf_url}/{self.api_endpoints(object_type, uuid)}"
+            url = f"{domain}/{self.api_endpoints(object_type, uuid)}"
             r = self.curl(api_type=api_type, request="GET", url=url, token=token)
             if r.status_code != 200:
                 raise ProcessorError(
-                    f"ERROR: Unable to get list of {object_type} from {jamf_url}"
+                    f"ERROR: Unable to get list of {object_type} from {domain}"
                 )
             self.output(f"Output:\n{r.output}", verbose_level=4)
             object_list = json.loads(r.output)[self.object_list_types(object_type)]
-        else:
+        elif api_type == "jpapi":
             # Jamf Pro API: use pagination
             url_filter = "?page=0&page-size=1"
-            url = f"{jamf_url}/{self.api_endpoints(object_type, uuid)}{url_filter}"
+            url = f"{domain}/{self.api_endpoints(object_type, uuid)}{url_filter}"
             r = self.curl(api_type=api_type, request="GET", url=url, token=token)
             self.output(f"Output:\n{r.output}", verbose_level=4)
             # check if there is a totalCount value in the output
@@ -1165,13 +1260,15 @@ class JamfUploaderBase(Processor):
                     self.output(f"Getting page {page} of objects", verbose_level=2)
                     if page > 0:
                         time.sleep(0.5)  # be nice to the server
-                    url = f"{jamf_url}/{self.api_endpoints(object_type, uuid)}{url_filter}"
+                    url = (
+                        f"{domain}/{self.api_endpoints(object_type, uuid)}{url_filter}"
+                    )
                     r = self.curl(
                         api_type=api_type, request="GET", url=url, token=token
                     )
                     if r.status_code != 200:
                         raise ProcessorError(
-                            f"ERROR: Unable to get list of {object_type} from {jamf_url}"
+                            f"ERROR: Unable to get list of {object_type} from {domain}"
                         )
                     self.output(f"Output:\n{r.output}", verbose_level=4)
                     # parse the output to get the list of objects
@@ -1185,6 +1282,18 @@ class JamfUploaderBase(Processor):
                 # if not, we're not dealing with a paginated endpoint, so just return the
                 # results list
                 object_list = r.output
+        elif api_type == "platform":
+            # Platform API: no pagination, just get all objects at once
+            url = f"{domain}/{self.api_endpoints(object_type, uuid)}"
+            r = self.curl(api_type=api_type, request="GET", url=url, token=token)
+            if r.status_code != 200:
+                raise ProcessorError(
+                    f"ERROR: Unable to get list of {object_type} from {domain}"
+                )
+            self.output(f"Output:\n{r.output}", verbose_level=4)
+            object_list = r.output.get("data", [])
+        else:
+            raise ProcessorError(f"ERROR: Unknown API type {api_type}")
 
         # ensure the list is sorted by namekey if possible
         try:
@@ -1303,7 +1412,7 @@ class JamfUploaderBase(Processor):
                 )
                 return obj_content
 
-    def get_api_obj_value_from_id(self, jamf_url, object_type, obj_id, obj_path, token):
+    def get_api_obj_value_from_id(self, domain, object_type, obj_id, obj_path, token):
         """get the value of an item in a Classic or Jamf Pro API object"""
         # define the relationship between the object types and their URL
         # we could make this shorter with some regex but I think this way is clearer
@@ -1316,7 +1425,7 @@ class JamfUploaderBase(Processor):
         value = ""
         if api_type == "classic":
             # do XML stuff
-            url = f"{jamf_url}/{self.api_endpoints(object_type)}/id/{obj_id}"
+            url = f"{domain}/{self.api_endpoints(object_type)}/id/{obj_id}"
             r = self.curl(api_type=api_type, request="GET", url=url, token=token)
             if r.status_code == 200:
                 obj_content = json.loads(r.output)
@@ -1336,8 +1445,8 @@ class JamfUploaderBase(Processor):
                             break
             else:
                 raise ProcessorError(f"ERROR: {object_type} of ID {obj_id} not found.")
-        else:
-            url = f"{jamf_url}/{self.api_endpoints(object_type)}/{obj_id}"
+        elif api_type == "jpapi" or api_type == "platform":
+            url = f"{domain}/{self.api_endpoints(object_type)}/{obj_id}"
             r = self.curl(api_type=api_type, request="GET", url=url, token=token)
             if r.status_code == 200:
                 obj_content = r.output

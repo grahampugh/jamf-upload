@@ -246,7 +246,6 @@ class JamfUploaderJiraIssueCreator(JamfUploaderBase):
                 url=f"{jira_url}/rest/api/3/issue/",
                 enc_creds=enc_creds,
                 data=jira_json,
-                endpoint_type="jira",
             )
             # check HTTP response
             if self.jira_status_check(r) == "break":
