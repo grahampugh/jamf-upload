@@ -249,10 +249,25 @@ class JamfObjectReaderBase(JamfUploaderBase):
                         self.output(
                             f"Wrote object list to file {file_path}", verbose_level=1
                         )
-                    except IOError as e:
-                        raise ProcessorError(
-                            f"Could not write output to {file_path} - {str(e)}"
-                        ) from e
+                    except IOError:
+                        # try to create the directory if it doesn't exist
+                        if not os.path.isdir(output_dir):
+                            try:
+                                os.makedirs(output_dir)
+                                self.output(
+                                    f"Created output directory {output_dir}",
+                                    verbose_level=1,
+                                )
+                                with open(file_path, "w", encoding="utf-8") as fp:
+                                    json.dump(object_list, fp, indent=4)
+                                self.output(
+                                    f"Wrote object list to file {file_path}",
+                                    verbose_level=1,
+                                )
+                            except OSError as dir_error:
+                                raise ProcessorError(
+                                    f"Could not create output directory {output_dir} - {str(dir_error)}"
+                                ) from dir_error
             # we really need an output path for all_objects, so exit if not provided
             if not output_dir:
                 raise ProcessorError("ERROR: no output path provided")
