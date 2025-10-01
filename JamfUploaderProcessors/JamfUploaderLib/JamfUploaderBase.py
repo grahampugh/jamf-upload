@@ -815,6 +815,7 @@ class JamfUploaderBase(Processor):
                     # we need to check for a case-insensitive match
                     if obj["name"].lower() == object_name.lower():
                         obj_id = obj["id"]
+                        break
                 return obj_id
             elif r.status_code == 401:
                 raise ProcessorError(
