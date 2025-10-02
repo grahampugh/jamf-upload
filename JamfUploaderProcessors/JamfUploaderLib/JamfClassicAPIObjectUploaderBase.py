@@ -94,11 +94,8 @@ class JamfClassicAPIObjectUploaderBase(JamfUploaderBase):
         object_name = self.env.get("object_name")
         object_type = self.env.get("object_type")
         object_template = self.env.get("object_template")
-        replace_object = self.env.get("replace_object")
+        replace_object = self.to_bool(self.env.get("replace_object"))
         sleep_time = self.env.get("sleep")
-        # handle setting replace in overrides
-        if not replace_object or replace_object == "False":
-            replace_object = False
         object_updated = False
 
         # clear any pre-existing summary result
@@ -118,7 +115,7 @@ class JamfClassicAPIObjectUploaderBase(JamfUploaderBase):
         # we need to substitute the values in the object name and template now to
         # account for version strings in the name
         object_name, template_file = self.prepare_template(
-            object_type, object_template, object_name, xml_escape=True
+            jamf_url, object_type, object_template, object_name, xml_escape=True
         )
 
         # now start the process of uploading the object
@@ -151,7 +148,7 @@ class JamfClassicAPIObjectUploaderBase(JamfUploaderBase):
             if replace_object:
                 self.output(
                     f"Replacing existing {object_type} as replace_object is "
-                    f"set to '{replace_object}'",
+                    "set to True",
                     verbose_level=1,
                 )
             else:

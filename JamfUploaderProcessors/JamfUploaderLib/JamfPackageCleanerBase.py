@@ -107,7 +107,7 @@ class JamfPackageCleanerBase(JamfUploaderBase):
         maximum_allowed_packages_to_delete = int(
             self.env.get("maximum_allowed_packages_to_delete")
         )
-        dry_run = self.env.get("dry_run")
+        dry_run = self.to_bool(self.env.get("dry_run"))
 
         # Create a list of smb shares in tuples
         smb_shares = []

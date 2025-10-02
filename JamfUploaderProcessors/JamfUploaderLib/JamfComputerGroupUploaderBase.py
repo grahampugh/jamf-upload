@@ -130,11 +130,8 @@ class JamfComputerGroupUploaderBase(JamfUploaderBase):
         client_secret = self.env.get("CLIENT_SECRET")
         computergroup_name = self.env.get("computergroup_name")
         computergroup_template = self.env.get("computergroup_template")
-        replace_group = self.env.get("replace_group")
+        replace_group = self.to_bool(self.env.get("replace_group"))
         sleep_time = self.env.get("sleep")
-        # handle setting replace in overrides
-        if not replace_group or replace_group == "False":
-            replace_group = False
 
         # clear any pre-existing summary result
         if "jamfcomputergroupuploader_summary_result" in self.env:
@@ -150,6 +147,11 @@ class JamfComputerGroupUploaderBase(JamfUploaderBase):
                 raise ProcessorError(
                     f"ERROR: Computer Group file {computergroup_template} not found"
                 )
+
+        # we need to substitute the values in the computer group name now to
+        # account for version strings in the name
+        # substitute user-assignable keys
+        computergroup_name = self.substitute_assignable_keys(computergroup_name)
 
         # now start the process of uploading the object
         self.output(f"Checking for existing '{computergroup_name}' on {jamf_url}")
@@ -182,8 +184,7 @@ class JamfComputerGroupUploaderBase(JamfUploaderBase):
             )
             if replace_group:
                 self.output(
-                    "Replacing existing Computer Group as 'replace_group' is set "
-                    f"to {replace_group}",
+                    "Replacing existing Computer Group as 'replace_group' is set to True",
                     verbose_level=1,
                 )
             else:

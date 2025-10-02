@@ -58,8 +58,11 @@ class JamfObjectUploaderBase(JamfUploaderBase):
         # if we find an object ID or it's an endpoint without IDs, we PUT or PATCH
         # if we're creating a new object, we POST
         if "JSSResource" in self.api_endpoints(object_type):
-            # do XML stuff
-            url = f"{jamf_url}/{self.api_endpoints(object_type)}/id/{obj_id}"
+            if "_settings" in object_type:
+                # settings-style endpoints don't use IDs
+                url = f"{jamf_url}/{self.api_endpoints(object_type)}"
+            else:
+                url = f"{jamf_url}/{self.api_endpoints(object_type)}/id/{obj_id}"
         else:
             if obj_id:
                 url = f"{jamf_url}/{self.api_endpoints(object_type)}/{obj_id}"
@@ -67,15 +70,14 @@ class JamfObjectUploaderBase(JamfUploaderBase):
                 url = f"{jamf_url}/{self.api_endpoints(object_type)}"
 
         additional_curl_options = []
-        # PATCH endpoints require special options
-        if object_type == "volume_purchasing_location":
+        # settings-style endpoints require special options
+        if (
+            object_type == "volume_purchasing_location"
+            or object_type == "computer_inventory_collection_settings"
+        ):
             request = "PATCH"
-            additional_curl_options = [
-                "--header",
-                "Content-type: application/merge-patch+json",
-            ]
-        elif object_type == "computer_inventory_collection_settings":
-            request = "PATCH"
+        elif object_type == "jamf_protect_register_settings":
+            request = "POST"
             additional_curl_options = [
                 "--header",
                 "Content-type: application/json",
@@ -98,6 +100,11 @@ class JamfObjectUploaderBase(JamfUploaderBase):
             )
             # check HTTP response
             if self.status_check(r, object_type, object_name, request) == "break":
+                if object_type == "failover_generate_command":
+                    output = r.output
+                    failover_url = output.get("failoverUrl", "")
+                    self.output(f"Failover URL: {failover_url}", verbose_level=1)
+                    self.env["failover_url"] = failover_url
                 break
             if count > 5:
                 self.output(
@@ -122,19 +129,22 @@ class JamfObjectUploaderBase(JamfUploaderBase):
         object_name = self.env.get("object_name")
         object_type = self.env.get("object_type")
         object_template = self.env.get("object_template")
-        replace_object = self.env.get("replace_object")
+        replace_object = self.to_bool(self.env.get("replace_object"))
         elements_to_remove = self.env.get("elements_to_remove")
+        element_to_replace = self.env.get("element_to_replace")
+        replacement_value = self.env.get("replacement_value")
         sleep_time = self.env.get("sleep")
-        # handle setting replace in overrides
-        if not replace_object or replace_object == "False":
-            replace_object = False
-        if not elements_to_remove:
-            elements_to_remove = []
         object_updated = False
 
         # clear any pre-existing summary result
         if "jamfobjectuploader_summary_result" in self.env:
             del self.env["jamfobjectuploader_summary_result"]
+
+        # we need to substitute the values in the computer group name now to
+        # account for version strings in the name
+        # substitute user-assignable keys
+        if object_name:
+            object_name = self.substitute_assignable_keys(object_name)
 
         # now start the process of uploading the object
         self.output(f"Obtaining API token for {jamf_url}")
@@ -151,14 +161,15 @@ class JamfObjectUploaderBase(JamfUploaderBase):
         else:
             raise ProcessorError("ERROR: Jamf Pro URL not supplied")
 
-        # check for an existing object except for settings-related endpoints
-        if "_settings" not in object_type and "_command" not in object_type:
-            if obj_id:
-                # declare name key
-                namekey = self.get_namekey(object_type)
-                namekey_path = self.get_namekey_path(object_type, namekey)
+        # declare name key
+        namekey = self.get_namekey(object_type)
+        namekey_path = self.get_namekey_path(object_type, namekey)
 
-                # if an ID has been passed into the recipe, look for object based on ID rather than name
+        # check for an existing object except for settings-related endpoints
+        if not any(suffix in object_type for suffix in ("_settings", "_command")):
+            if obj_id:
+                # if an ID has been passed into the recipe, look for object based on ID
+                # rather than name
                 self.output(
                     f"Checking for existing {object_type} with ID '{obj_id}' on {jamf_url}"
                 )
@@ -173,7 +184,7 @@ class JamfObjectUploaderBase(JamfUploaderBase):
                     if replace_object:
                         self.output(
                             f"Replacing existing {object_type} as replace_object is "
-                            f"set to '{replace_object}'",
+                            "set to True",
                             verbose_level=1,
                         )
                     else:
@@ -238,21 +249,27 @@ class JamfObjectUploaderBase(JamfUploaderBase):
             xml_escape = False
         if "_settings" in object_type:
             _, template_file = self.prepare_template(
+                jamf_url,
                 object_type,
                 object_template,
                 object_name=None,
                 xml_escape=xml_escape,
                 elements_to_remove=elements_to_remove,
+                element_to_replace=element_to_replace,
+                replacement_value=replacement_value,
             )
         elif "_command" in object_type:
             template_file = ""
         else:
             object_name, template_file = self.prepare_template(
+                jamf_url,
                 object_type,
                 object_template,
                 object_name,
                 xml_escape=xml_escape,
                 elements_to_remove=elements_to_remove,
+                element_to_replace=element_to_replace,
+                replacement_value=replacement_value,
                 namekey_path=namekey_path,
             )
 
@@ -269,7 +286,7 @@ class JamfObjectUploaderBase(JamfUploaderBase):
         object_updated = True
 
         # output the summary
-        self.env["object_name"] = object_name
+        self.env["object_name"] = str(object_name)
         self.env["object_type"] = object_type
         self.env["object_updated"] = object_updated
         if object_updated:
@@ -278,7 +295,7 @@ class JamfObjectUploaderBase(JamfUploaderBase):
                 "report_fields": ["object_name", "object_type", "template"],
                 "data": {
                     "object_type": object_type,
-                    "object_name": object_name,
+                    "object_name": str(object_name),
                     "template": object_template,
                 },
             }

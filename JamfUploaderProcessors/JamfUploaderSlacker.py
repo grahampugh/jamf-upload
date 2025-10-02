@@ -76,6 +76,10 @@ class JamfUploaderSlacker(JamfUploaderBase):
             "required": False,
             "description": ("Summary results of package processors."),
         },
+        "jamfpkgmetadatauploader_summary_result": {
+            "required": False,
+            "description": ("Summary results of package metadata processors."),
+        },
         "jamfpolicyuploader_summary_result": {
             "required": False,
             "description": ("Summary results of policy processors."),
@@ -83,6 +87,28 @@ class JamfUploaderSlacker(JamfUploaderBase):
         "jamfcomputerprofileuploader_summary_result": {
             "required": False,
             "description": ("Summary results of computer profile processors."),
+        },
+        "jamfmobiledeviceprofilepploader_summary_result": {
+            "required": False,
+            "description": ("Summary results of mobile device profile processors."),
+        },
+        "jamfmacappuploader_summary_result": {
+            "required": False,
+            "description": ("Summary results of Mac App Store App processors."),
+        },
+        "jamfmobiledeviceappuploader_summary_result": {
+            "required": False,
+            "description": (
+                "Summary results of Mobile Device App Store App processors."
+            ),
+        },
+        "jamfmsuplanuploader_summary_result": {
+            "required": False,
+            "description": ("Summary results of MSU Plan processors."),
+        },
+        "jamfobjectuploader_summary_result": {
+            "required": False,
+            "description": ("Summary results of generic object uploader processors."),
         },
         "slack_webhook_url": {"required": True, "description": ("Slack webhook.")},
         "slack_username": {
@@ -120,6 +146,7 @@ class JamfUploaderSlacker(JamfUploaderBase):
     def main(self):
         """Do the main thing"""
         jss_url = self.env.get("JSS_URL")
+        failover_url = self.env.get("failover_url")
         policy_category = self.env.get("POLICY_CATEGORY")
         category = self.env.get("PKG_CATEGORY")
         policy_name = self.env.get("policy_name")
@@ -152,6 +179,9 @@ class JamfUploaderSlacker(JamfUploaderBase):
         )
         jamfmobiledeviceappuploader_summary_result = self.env.get(
             "jamfmobiledeviceappuploader_summary_result"
+        )
+        jamfmsuplanuploader_summary_result = self.env.get(
+            "jamfmsuplanuploader_summary_result"
         )
         jamfobjectuploader_summary_result = self.env.get(
             "jamfobjectuploader_summary_result"
@@ -256,11 +286,31 @@ class JamfUploaderSlacker(JamfUploaderBase):
                 + f"App: *{mobiledeviceapp_name}*"
             )
         elif jamfobjectuploader_summary_result:
+            slack_text = f"*{object_type} uploaded to Jamf Pro:*" + f"\nURL: {jss_url}"
+            if object_name:
+                slack_text += f"\nName: *{object_name}*"
+            if failover_url:
+                slack_text += f"\nFailover URL: {failover_url}"
+        elif jamfmsuplanuploader_summary_result:
             slack_text = (
-                f"*{object_type} uploaded to Jamf Pro:*\n"
+                "*Managed Software Update plan uploaded to Jamf Pro:*\n"
                 + f"URL: {jss_url}\n"
-                + f"Name: *{object_name}*"
+                + "Device Type: "
+                + jamfmsuplanuploader_summary_result["data"]["device_type"].lower()
+                + "\nGroup Name: "
+                + jamfmsuplanuploader_summary_result["data"]["group_name"]
+                + "\nForce Install Date: "
+                + jamfmsuplanuploader_summary_result["data"][
+                    "force_install_local_datetime"
+                ]
+                + "\nVersion Type: "
+                + jamfmsuplanuploader_summary_result["data"]["version_type"].lower()
             )
+            if jamfmsuplanuploader_summary_result["data"]["specific_version"]:
+                slack_text += (
+                    "\nSpecific Version: "
+                    f"{jamfmsuplanuploader_summary_result['data']['specific_version']}"
+                )
         else:
             self.output("Nothing to report to Slack")
             return

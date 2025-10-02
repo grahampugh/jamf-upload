@@ -161,7 +161,9 @@ class JamfPatchUploaderBase(JamfUploaderBase):
             )
 
         # Write xml file
-        patch_softwaretitle_xml_file = self.write_xml_file(patch_softwaretitle_xml)
+        patch_softwaretitle_xml_file = self.write_xml_file(
+            jamf_url, patch_softwaretitle_xml
+        )
 
         # Upload the 'updated' patch softwaretitle
         count = 0
@@ -254,10 +256,8 @@ class JamfPatchUploaderBase(JamfUploaderBase):
         patch_name = self.env.get("patch_name")
         patch_template = self.env.get("patch_template")
         patch_icon_policy_name = self.env.get("patch_icon_policy_name")
-        replace_patchpolicy = self.env.get("replace_patch")
+        replace_patchpolicy = self.to_bool(self.env.get("replace_patch"))
         sleep_time = self.env.get("sleep")
-        if not replace_patchpolicy or replace_patchpolicy == "False":
-            replace_patchpolicy = False
 
         # clear any pre-existing summary result
         if "jamfpatchuploader_summary_result" in self.env:
@@ -412,10 +412,7 @@ class JamfPatchUploaderBase(JamfUploaderBase):
                 self.output(f"Patch '{patch_name}' already exists: ID {patch_id}")
                 if replace_patchpolicy:
                     self.output(
-                        (
-                            "Replacing existing patch as 'replace_patch' is set to "
-                            + replace_patchpolicy
-                        ),
+                        ("Replacing existing patch as 'replace_patch' is set to True"),
                         verbose_level=1,
                     )
                 else:

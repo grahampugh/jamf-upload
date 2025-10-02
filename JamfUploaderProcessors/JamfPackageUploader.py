@@ -218,6 +218,11 @@ class JamfPackageUploader(JamfPackageUploaderBase):
             "description": "Use jcds2 endpoint if True.",
             "default": "False",
         },
+        "aws_cdp_mode": {
+            "required": False,
+            "description": "Use AWS CDP mode if True.",
+            "default": "False",
+        },
         "replace_pkg_metadata": {
             "required": False,
             "description": (
@@ -232,6 +237,11 @@ class JamfPackageUploader(JamfPackageUploaderBase):
                 "Skip processing package metadata and continue if True. "
                 "Designed for organisations where amending packages is not allowed."
             ),
+            "default": "False",
+        },
+        "recalculate": {
+            "required": False,
+            "description": "Recalculate package metadata in JCDS.",
             "default": "False",
         },
         "sleep": {

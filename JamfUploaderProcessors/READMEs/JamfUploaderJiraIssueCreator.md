@@ -1,8 +1,8 @@
-# JamfUploaderTeamsNotifier
+# JamfUploaderJiraIssueCreator
 
 ## Description
 
-A postprocessor for AutoPkg that will send details about a recipe run to a Microsoft Teams webhook based on the output of a JamfPolicyUploader process.
+A postprocessor for AutoPkg that will create a Jira issue based on the output of a JamfUploader process.
 
 ## Input variables
 
@@ -36,12 +36,23 @@ A postprocessor for AutoPkg that will send details about a recipe run to a Micro
 - **jamfpolicyuploader_summary_result:**
   - **required:** False
   - **description:** Result of JamfPolicyUploader.
-- **teams_webhook_url:**
+- **jira_url:**
   - **required:** True
-  - **description:** Teams webhook URL to send the message to.
-- **teams_username:**
+  - **description:** Jira base URL to send the message to (e.g. <https://yourcompany.atlassian.net> - API endpoint not required).
+- **jira_product_id:**
+  - **required:** True
+  - **description:** Jira Product ID
+- **jira_username:**
+  - **required:** True
+  - **description:** Account name with access to Jira Issues.
+- **jira_api_token:**
+  - **required:** True
+  - **description:** API Token created in the account supplied in jira_username.
+- **jira_issuetype_id:**
   - **required:** False
-  - **description:** Sets the display name shown in the AdaptiveCard in Teams. Defaults to AutoPkg.
-- **teams_icon_url:**
+  - **description:** Jira Issue Type. Default is 10001 ('Story'). See <https://support.atlassian.com/jira/kb/finding-the-id-for-issue-types-in-jira-server-or-data-center/>.
+  - **default:** 10001
+- **jira_priority_id:**
   - **required:** False
-  - **description:** Sets the icon shown in the AdaptiveCard in Teams. Defaults to a Jamf Pro product icon. Recommended that you use a square image that is publicly reachable.
+  - **description:** Jira Priority. Default is 5 (the lowest priority). See <https://support.atlassian.com/jira/kb/find-the-id-numbers-of-jira-priority-field-values-in-jira-cloud/>.
+  - **default:** 5

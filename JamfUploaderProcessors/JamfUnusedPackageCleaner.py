@@ -1,7 +1,7 @@
 #!/usr/local/autopkg/python
 
 """
-Copyright 2023 Graham Pugh
+Copyright 2023 Graham Pugh, Henrik Engström
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -16,7 +16,8 @@ See the License for the specific language governing permissions and
 limitations under the License.
 
 NOTES:
-All functions are in JamfUploaderLib/JamfAccountUploaderBase.py
+This processor was written by Henrik Engström based on other JamfUploader processors
+All functions are in JamfUploaderLib/JamfUnusedPackageCleanerBase.py
 """
 
 import os.path
@@ -27,26 +28,23 @@ import sys
 # imports require noqa comments for E402
 sys.path.insert(0, os.path.dirname(__file__))
 
-from JamfUploaderLib.JamfAccountUploaderBase import (  # noqa: E402
-    JamfAccountUploaderBase,
+from JamfUploaderLib.JamfUnusedPackageCleanerBase import (  # noqa: E402
+    JamfUnusedPackageCleanerBase,
 )
 
-__all__ = ["JamfAccountUploader"]
+__all__ = ["JamfUnusedPackageCleaner"]
 
 
-class JamfAccountUploader(JamfAccountUploaderBase):
+class JamfUnusedPackageCleaner(JamfUnusedPackageCleanerBase):
     description = (
-        "A processor for AutoPkg that will create or update an account "
-        "object on a Jamf Pro server."
-        "'Jamf Pro User Accounts & Groups' CRU privileges are required by the API_USERNAME user."
+        "A processor for AutoPkg that will remove packages from Jamf Pro, "
+        "but keep X number of a packages matching a string"
     )
 
     input_variables = {
         "JSS_URL": {
             "required": True,
-            "description": "URL to a Jamf Pro server that the API user has write access "
-            "to, optionally set as a key in the com.github.autopkg "
-            "preference file.",
+            "description": "URL to a Jamf Pro server that the API user has write access to.",
         },
         "API_USERNAME": {
             "required": False,
@@ -70,55 +68,25 @@ class JamfAccountUploader(JamfAccountUploaderBase):
             "description": "Secret associated with the Client ID, optionally set as a key in "
             "the com.github.autopkg preference file.",
         },
-        "account_name": {
-            "required": True,
-            "description": "account name",
-            "default": "",
-        },
-        "account_type": {
-            "required": True,
-            "description": "account type - either 'user' or 'group",
-            "default": "user",
-        },
-        "account_template": {
-            "required": True,
-            "description": "Full path to the XML template",
-        },
-        "replace_account": {
+        "dry_run": {
             "required": False,
-            "description": "Overwrite an existing account if True.",
+            "description": "If set to True, nothing is deleted from Jamf Pro. "
+            "Use together with '-vv' for detailed information. "
+            "This is used for testing",
             "default": False,
         },
-        "domain": {
+        "output_dir": {
             "required": False,
-            "description": "LDAP domain, required if writing an LDAP group.",
+            "description": "Output directory to dump the csv file.",
             "default": "",
         },
-        "group": {
-            "required": False,
-            "description": "Local group, required if giving a user group access.",
-            "default": "",
-        },
-        "sleep": {
-            "required": False,
-            "description": "Pause after running this processor for specified seconds.",
-            "default": "0",
-        },
+        "slack_webhook_url": {"required": False, "description": ("Slack webhook.")},
     }
 
     output_variables = {
-        "jamfaccountuploader_summary_result": {
+        "jamfunusedpackagecleaner_summary_result": {
             "description": "Description of interesting results.",
-        },
-        "account_name": {
-            "description": "Jamf object name of the newly created or modified account.",
-        },
-        "account_updated": {
-            "description": "Boolean - True if the account was changed."
-        },
-        "changed_account_id": {
-            "description": "Jamf object ID of the newly created or modified account.",
-        },
+        }
     }
 
     def main(self):
@@ -128,5 +96,5 @@ class JamfAccountUploader(JamfAccountUploaderBase):
 
 
 if __name__ == "__main__":
-    PROCESSOR = JamfAccountUploader()
+    PROCESSOR = JamfUnusedPackageCleaner()
     PROCESSOR.execute_shell()

@@ -111,16 +111,18 @@ class JamfMobileDeviceGroupUploaderBase(JamfUploaderBase):
         client_secret = self.env.get("CLIENT_SECRET")
         mobiledevicegroup_name = self.env.get("mobiledevicegroup_name")
         mobiledevicegroup_template = self.env.get("mobiledevicegroup_template")
-        replace_group = self.env.get("replace_group")
+        replace_group = self.to_bool(self.env.get("replace_group"))
         sleep_time = self.env.get("sleep")
-        # handle setting replace in overrides
-        if not replace_group or replace_group == "False":
-            replace_group = False
+        group_uploaded = False
 
         # clear any pre-existing summary result
         if "JamfMobileDeviceGroupUploader_summary_result" in self.env:
             del self.env["JamfMobileDeviceGroupUploader_summary_result"]
-        group_uploaded = False
+
+        # we need to substitute the values in the computer group name now to
+        # account for version strings in the name
+        # substitute user-assignable keys
+        mobiledevicegroup_name = self.substitute_assignable_keys(mobiledevicegroup_name)
 
         # handle files with a relative path
         if not mobiledevicegroup_template.startswith("/"):
@@ -163,8 +165,7 @@ class JamfMobileDeviceGroupUploaderBase(JamfUploaderBase):
             )
             if replace_group:
                 self.output(
-                    "Replacing existing Mobile Device Group as 'replace_group' is set "
-                    f"to {replace_group}",
+                    "Replacing existing Mobile Device Group as 'replace_group' is set to True",
                     verbose_level=1,
                 )
             else:

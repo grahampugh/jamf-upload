@@ -141,11 +141,9 @@ class JamfMobileDeviceExtensionAttributeUploaderBase(JamfUploaderBase):
         ea_directory_service_attribute_mapping = self.env.get(
             "ea_directory_service_attribute_mapping"
         )
-        replace_ea = self.env.get("replace_ea")
+        replace_ea = self.to_bool(self.env.get("replace_ea"))
         sleep_time = self.env.get("sleep")
-        # handle setting replace in overrides
-        if not replace_ea or replace_ea == "False":
-            replace_ea = False
+        ea_uploaded = False
 
         # convert popup choices to list
         if ea_popup_choices:
@@ -154,7 +152,6 @@ class JamfMobileDeviceExtensionAttributeUploaderBase(JamfUploaderBase):
         # clear any pre-existing summary result
         if "jamfmobiledeviceextensionattributeuploader_summary_result" in self.env:
             del self.env["jamfmobiledeviceextensionattributeuploader_summary_result"]
-        ea_uploaded = False
 
         # determine input type
         if ea_input_type != "popup" and ea_input_type != "ldap":
@@ -190,8 +187,7 @@ class JamfMobileDeviceExtensionAttributeUploaderBase(JamfUploaderBase):
             if replace_ea:
                 self.output(
                     (
-                        "Replacing existing Extension Attribute as 'replace_ea' is "
-                        f"set to {replace_ea}"
+                        "Replacing existing Extension Attribute as 'replace_ea' is set to True"
                     ),
                     verbose_level=1,
                 )

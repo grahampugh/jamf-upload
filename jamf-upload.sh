@@ -15,6 +15,8 @@ Usage:
 
 Valid object types:
     account
+    apiclient
+    apirole
     category
     computerprestage
     delete | objdelete | objectdelete
@@ -26,9 +28,11 @@ Valid object types:
     ea | extensionattribute | computerextensionattribute
     eapopup | eapopupadjuster
     icon
+    jira
     logflush
     macapp
     mobiledeviceapp
+    msu | managedsoftwareupdateplan
     obj | object | classicobj
     patch
     pkg | package
@@ -44,6 +48,7 @@ Valid object types:
     script
     slack
     teams
+    unusedpkgclean
 
 Arguments:
     --prefs <path>          Inherit AutoPkg prefs file provided by the full path to the file
@@ -60,6 +65,24 @@ UPLOAD OPTIONS
 Account Upload arguments:
     --name <string>         The name
     --type <string>         The account type. Must be 'user' or 'group'.
+    --domain <string>       The LDAP domain name. Must exist.
+    --group <string>        The group name. Must exist.
+    --template <path>       XML template
+    --key X=Y               Substitutable values in the template. Multiple values can be supplied
+    --replace               Replace existing item
+
+API Client Upload arguments:
+    --name <string>         The name
+    --api-client-id <string>
+                            The API Client ID
+    --api-role-name <string>
+                            The API Role name to assign to the API Client
+    --enabled               Enable the API Client
+    --lifetime <int>        The lifetime of the API Client in seconds
+    --replace               Replace existing item
+
+API Role Upload arguments:
+    --name <string>         The name
     --template <path>       XML template
     --key X=Y               Substitutable values in the template. Multiple values can be supplied
     --replace               Replace existing item
@@ -144,6 +167,13 @@ Mac App Store App Upload arguments:
     --template <path>       XML template
     --key X=Y               Substitutable values in the template. Multiple values can be supplied
     --replace               Replace existing item
+
+Managed Software Update Plan Upload arguments:
+    --device-type           Device type, one of computer, mobile_device, apple_tv (case insensitive)
+    --version-type          Version type, one of latest_minor, latest_major, specific_version (case insensitive)
+    --version               Specific version, only required if version_type is set to specific_version
+    --group                 Computer or Mobile Device Group name
+    --days                  Days until forced install deadline
 
 Mobile Device App Upload arguments:
     --name <string>         The name
@@ -280,6 +310,7 @@ API Object Read arguments:
     --all                   Read all objects
     --list                  Output a list all objects and nothing else
     --type <string>         The object type (e.g. policy)
+    --settings-key          For settings-style endpoints, specify a key to get the value of
     --output <string>       Optional path to output the parsed XML to. Directories to path must exist.
 
 DELETE OPTIONS
@@ -311,6 +342,17 @@ Package Clean arguments:
                             Username with share access
     --smb_pass <SMB_PASSWORD>
                             Password of the user
+    --dry-run               Dry run mode. No files will be deleted.
+
+Unused Package Clean arguments:
+    --smb-url <url>         URL of the fileshare distribution point (on premises Jamf Pro only)
+    --smb-user <SMB_USERNAME>
+                            Username with share access
+    --smb_pass <SMB_PASSWORD>
+                            Password of the user
+    --output <dir>          Optional directory to output the list to a CSV. Directory must exist.
+    --dry-run               Dry run mode. No files will be deleted.
+    --slack-url <url>       The slack_webhook_url
 
 Package Recalculate arguments: None
 
@@ -332,13 +374,36 @@ Scope Adjust arguments:
 
 NOTIFICATION OPTIONS
 
-Slack arguments:
+Jira notifications arguments:
     --name <string>         The name
     --policy-category <string>
                             The POLICY_CATEGORY
     --pkg-category <string> The PKG_CATEGORY
-    --pkg_name <string>     The package name
+    --patch-name <string>   The patch policy name
+    --pkg-name <string>     The package name
     --version <string>      The package (or app) version
+    --patch-uploaded        Pretends that a patch was updated (sets a value to jamfpatchuploader_summary_result)
+    --pkg-uploaded          Pretends that a package was uploaded (sets a value to jamfpackageuploader_summary_result)
+    --policy-uploaded       Pretends that a policy was uploaded (sets a value to jamfpolicyuploader_summary_result)
+    --jira-url <url>        The Jira URL
+    --jira-user <string>    The Jira account username
+    --jira-api-token <string>
+                            The Jira API token
+    --jira-project <string> The Jira Project ID
+    --jira-issue-type <string>
+                            The Jira Issue Type ID
+    --jira-priority <string>
+                            The Jira Issue Priority ID
+    --icon <url>            The Slack icon URL
+
+Slack notifications arguments:
+    --name <string>         The name
+    --policy-category <string>
+                            The POLICY_CATEGORY
+    --pkg-category <string> The PKG_CATEGORY
+    --pkg-name <string>     The package name
+    --version <string>      The package (or app) version
+    --patch-uploaded        Pretends that a patch was updated (sets a value to jamfpatchuploader_summary_result)
     --pkg-uploaded          Pretends that a package was uploaded (sets a value to jamfpackageuploader_summary_result)
     --policy-uploaded       Pretends that a policy was uploaded (sets a value to jamfpolicyuploader_summary_result)
     --slack-url <url>       The slack_webhook_url
@@ -347,13 +412,13 @@ Slack arguments:
     --channel <string>      The Slack channel to post to
     --emoji <string>        the Slack icon emoji
 
-Teams arguments:
+Teams notifications arguments:
     --name <string>         The name
     --policy-category <string>
                             The POLICY_CATEGORY
     --pkg-category <string> The PKG_CATEGORY
-    --patch_name <string>   The patch policy name
-    --pkg_name <string>     The package name
+    --patch-name <string>   The patch policy name
+    --pkg-name <string>     The package name
     --version <string>      The package (or app) version
     --patch-uploaded        Pretends that a patch was updated (sets a value to jamfpatchuploader_summary_result)
     --pkg-uploaded          Pretends that a package was uploaded (sets a value to jamfpackageuploader_summary_result)
@@ -369,8 +434,9 @@ Teams arguments:
 ## DEFAULTS ##
 ##############
 
-temp_processor_plist="/tmp/processor.plist"
-temp_receipt="/tmp/processor_receipt.plist"
+temp_processor_plist="/tmp/jamf_upload/processor.plist"
+temp_receipt="/tmp/jamf_upload/processor_receipt.plist"
+mkdir -p "/tmp/jamf_upload"
 
 # this folder
 DIR=$(dirname "$0")
@@ -429,12 +495,14 @@ elif [[ $object == "mobiledevicegroup" ]]; then
     processor="JamfMobileDeviceGroupUploader"
 elif [[ $object == "mobiledeviceprofile" ]]; then
     processor="JamfMobileDeviceProfileUploader"
-elif [[ $object == "obj"* || $object == "classicobj"* ]]; then
-    processor="JamfObjectUploader"
+elif [[ $object == "msu" || $object == "managedsoftwareupdateplan" ]]; then
+    processor="JamfMSUPlanUploader"
 elif [[ $object == "pkg" || $object == "package" ]]; then
     processor="JamfPackageUploader"
 elif [[ $object == "pkgclean" ]]; then
     processor="JamfPackageCleaner"
+elif [[ $object == "unusedpkgclean" ]]; then
+    processor="JamfUnusedPackageCleaner"
 elif [[ $object == "pkgdata" ]]; then
     processor="JamfPkgMetadataUploader"
 elif [[ $object == "pkgcalc" || $object == "packagerecalculate" ]]; then
@@ -455,6 +523,8 @@ elif [[ $object == "scope" ]]; then
     processor="JamfScopeAdjuster"
 elif [[ $object == "script" ]]; then
     processor="JamfScriptUploader"
+elif [[ $object == "jira" ]]; then
+    processor="JamfUploaderJiraIssueCreator"
 elif [[ $object == "slack" ]]; then
     processor="JamfUploaderSlacker"
 elif [[ $object == "teams" ]]; then
@@ -547,6 +617,26 @@ while test $# -gt 0 ; do
             elif [[ $processor == "JamfScopeAdjuster" ]]; then
                 if plutil -replace scopeable_type -string "$1" "$temp_processor_plist"; then
                     echo "   [jamf-upload] Wrote scopeable_type='$1' into $temp_processor_plist"
+                fi
+            fi
+            ;;
+        --domain)
+            shift
+            if [[ $processor == "JamfAccountUploader" ]]; then
+                if plutil -replace domain -string "$1" "$temp_processor_plist"; then
+                    echo "   [jamf-upload] Wrote domain='$1' into $temp_processor_plist"
+                fi
+            fi
+            ;;
+        --group|--group_name|--group-name)
+            shift
+            if [[ $processor == "JamfAccountUploader" ]]; then
+                if plutil -replace group -string "$1" "$temp_processor_plist"; then
+                    echo "   [jamf-upload] Wrote group='$1' into $temp_processor_plist"
+                fi
+            elif [[ $processor == "JamfMSUPlanUploader" ]]; then
+                if plutil -replace group_name -string "$1" "$temp_processor_plist"; then
+                    echo "   [jamf-upload] Wrote group_name='$1' into $temp_processor_plist"
                 fi
             fi
             ;;
@@ -719,7 +809,7 @@ while test $# -gt 0 ; do
                 if plutil -replace script_name -string "$1" "$temp_processor_plist"; then
                     echo "   [jamf-upload] Wrote script_name='$1' into $temp_processor_plist"
                 fi
-            elif [[ $processor == "JamfUploaderSlacker" || $processor == "JamfUploaderTeamsNotifier" ]]; then
+            elif [[ $processor == "JamfUploaderJiraIssueCreator" || $processor == "JamfUploaderSlacker" || $processor == "JamfUploaderTeamsNotifier" ]]; then
                 if plutil -replace NAME -string "$1" "$temp_processor_plist"; then
                     echo "   [jamf-upload] Wrote NAME='$1' into $temp_processor_plist"
                 fi
@@ -928,7 +1018,7 @@ while test $# -gt 0 ; do
             ;;
         --output)
             shift
-            if [[ $processor == "JamfExtensionAttributePopupChoiceAdjuster" || $processor == "JamfObjectReader" || $processor == "JamfScopeAdjuster" ]]; then
+            if [[ $processor == "JamfExtensionAttributePopupChoiceAdjuster" || $processor == "JamfObjectReader" || $processor == "JamfUnusedPackageCleaner" || $processor == "JamfScopeAdjuster" ]]; then
                 if plutil -replace output_dir -string "$1" "$temp_processor_plist"; then
                     echo "   [jamf-upload] Wrote output_dir='$1' into $temp_processor_plist"
                 fi
@@ -1045,17 +1135,34 @@ while test $# -gt 0 ; do
                 fi
             fi
             ;;
+        --days*)
+            shift
+            if [[ $processor == "JamfMSUPlanUploader" ]]; then
+                if plutil -replace days_until_force_install -string "$1" "$temp_processor_plist"; then
+                    echo "   [jamf-upload] Wrote days_until_force_install='$1' into $temp_processor_plist"
+                fi
+            fi
+            ;;
+        --device-type)
+            shift
+            if [[ $processor == "JamfMSUPlanUploader" ]]; then
+                if plutil -replace device_type -string "$1" "$temp_processor_plist"; then
+                    echo "   [jamf-upload] Wrote device_type='$1' into $temp_processor_plist"
+                fi
+            fi
+            ;;
+        --version) 
+            shift
+            if [[ $processor == "JamfMSUPlanUploader" || $processor == "JamfPatchUploader" || $processor == "JamfUploaderSlacker" || $processor == "JamfUploaderTeamsNotifier" ]]; then
+                if plutil -replace version -string "$1" "$temp_processor_plist"; then
+                    echo "   [jamf-upload] Wrote version='$1' into $temp_processor_plist"
+                fi
+            fi
+            ;;
         --all) 
             if [[ $processor == "JamfObjectReader" ]]; then
                 if plutil -replace all_objects -string "True" "$temp_processor_plist"; then
                     echo "   [jamf-upload] Wrote all_objects='True' into $temp_processor_plist"
-                fi
-            fi
-            ;;
-        --list) 
-            if [[ $processor == "JamfObjectReader" ]]; then
-                if plutil -replace list_only -string "True" "$temp_processor_plist"; then
-                    echo "   [jamf-upload] Wrote list_only='True' into $temp_processor_plist"
                 fi
             fi
             ;;
@@ -1067,9 +1174,39 @@ while test $# -gt 0 ; do
                 fi
             fi
             ;;
+        --list) 
+            if [[ $processor == "JamfObjectReader" ]]; then
+                if plutil -replace list_only -string "True" "$temp_processor_plist"; then
+                    echo "   [jamf-upload] Wrote list_only='True' into $temp_processor_plist"
+                fi
+            fi
+            ;;
+        --settings-key) 
+            shift
+            if [[ $processor == "JamfObjectReader" ]]; then
+                if plutil -replace settings_key -string "$1" "$temp_processor_plist"; then
+                    echo "   [jamf-upload] Wrote settings_key='$1' into $temp_processor_plist"
+                fi
+            fi
+            ;;
+        --dry-run) 
+            if [[ $processor == "JamfPackageCleaner" || $processor == "JamfUnusedPackageCleaner" ]]; then
+                if plutil -replace dry_run -string "True" "$temp_processor_plist"; then
+                    echo "   [jamf-upload] Wrote dry_run='True' into $temp_processor_plist"
+                fi
+            fi
+            ;;
+        --keep) 
+            shift
+            if [[ $processor == "JamfPackageCleaner" ]]; then
+                if plutil -replace versions_to_keep -string "$1" "$temp_processor_plist"; then
+                    echo "   [jamf-upload] Wrote versions_to_keep='$1' into $temp_processor_plist"
+                fi
+            fi
+            ;;
         --smb_url|--smb-url)
             shift
-            if [[ $processor == "JamfPackageUploader" ]]; then
+            if [[ $processor == "JamfPackageCleaner" || $processor == "JamfUnusedPackageCleaner" || $processor == "JamfPackageUploader" ]]; then
                 if plutil -replace SMB_URL -string "$1" "$temp_processor_plist"; then
                     echo "   [jamf-upload] Wrote SMB_URL='$1' into $temp_processor_plist"
                 fi
@@ -1078,7 +1215,7 @@ while test $# -gt 0 ; do
         --smb_user*|--smb-user*)  
             ## allows --smb_user, --smb_username, --smb-user, --smb-username
             shift
-            if [[ $processor == "JamfPackageUploader" ]]; then
+            if [[ $processor == "JamfPackageCleaner" || $processor == "JamfUnusedPackageCleaner" || $processor == "JamfPackageUploader" ]]; then
                 if plutil -replace SMB_USERNAME -string "$1" "$temp_processor_plist"; then
                     echo "   [jamf-upload] Wrote SMB_USERNAME='$1' into $temp_processor_plist"
                 fi
@@ -1087,7 +1224,7 @@ while test $# -gt 0 ; do
         --smb_pass*|--smb-pass*)  
             ## allows --smb_pass, --smb_password, --smb-pass, --smb-password
             shift
-            if [[ $processor == "JamfPackageUploader" ]]; then
+            if [[ $processor == "JamfPackageCleaner" || $processor == "JamfUnusedPackageCleaner" || $processor == "JamfPackageUploader" ]]; then
                 if plutil -replace SMB_PASSWORD -string "$1" "$temp_processor_plist"; then
                     echo "   [jamf-upload] Wrote SMB_PASSWORD='[redacted]' into $temp_processor_plist"
                 fi
@@ -1107,7 +1244,7 @@ while test $# -gt 0 ; do
             ;;
         --pkg-name|--pkg_name) 
             shift
-            if [[ $processor == "JamfPackageUploader" || $processor == "JamfPkgMetadataUploader" || $processor == "JamfUploaderSlacker" || $processor == "JamfUploaderTeamsNotifier" || $processor == "JamfPatchUploader" ]]; then
+            if [[ $processor == "JamfPackageUploader" || $processor == "JamfPkgMetadataUploader" || $processor == "JamfUploaderJiraIssueCreator" || $processor == "JamfUploaderSlacker" || $processor == "JamfUploaderTeamsNotifier" || $processor == "JamfPatchUploader" ]]; then
                 if plutil -replace pkg_name -string "$1" "$temp_processor_plist"; then
                     echo "   [jamf-upload] Wrote pkg_name='$1' into $temp_processor_plist"
                 fi
@@ -1232,14 +1369,6 @@ while test $# -gt 0 ; do
                 fi
             fi
             ;;
-        --keep) 
-            shift
-            if [[ $processor == "JamfPackageCleaner" ]]; then
-                if plutil -replace versions_to_keep -string "$1" "$temp_processor_plist"; then
-                    echo "   [jamf-upload] Wrote versions_to_keep='$1' into $temp_processor_plist"
-                fi
-            fi
-            ;;
         --title)
             shift
             if [[ $processor == "JamfPatchUploader" ]]; then
@@ -1254,7 +1383,7 @@ while test $# -gt 0 ; do
                 if plutil -replace patch_icon_policy_name -string "$1" "$temp_processor_plist"; then
                     echo "   [jamf-upload] Wrote patch_icon_policy_name='$1' into $temp_processor_plist"
                 fi
-            elif [[ $processor == "JamfUploaderSlacker" || $processor == "JamfUploaderTeamsNotifier" ]]; then
+            elif [[ $processor == "JamfUploaderJiraIssueCreator" || $processor == "JamfUploaderSlacker" || $processor == "JamfUploaderTeamsNotifier" ]]; then
                 if plutil -replace policy_name -string "$1" "$temp_processor_plist"; then
                     echo "   [jamf-upload] Wrote policy_name='$1' into $temp_processor_plist"
                 fi
@@ -1262,7 +1391,7 @@ while test $# -gt 0 ; do
             ;;
         --version) 
             shift
-            if [[ $processor == "JamfPatchUploader" || $processor == "JamfUploaderSlacker" || $processor == "JamfUploaderTeamsNotifier" ]]; then
+            if [[ $processor == "JamfPatchUploader" || $processor == "JamfUploaderJiraIssueCreator" || $processor == "JamfUploaderSlacker" || $processor == "JamfUploaderTeamsNotifier" ]]; then
                 if plutil -replace version -string "$1" "$temp_processor_plist"; then
                     echo "   [jamf-upload] Wrote version='$1' into $temp_processor_plist"
                 fi
@@ -1347,9 +1476,65 @@ while test $# -gt 0 ; do
                 fi
             fi
             ;;
+        --slack-url) 
+            shift
+            if [[ $processor == "JamfUnusedPackageCleaner" || $processor == "JamfUploaderSlacker" ]]; then
+                if plutil -replace slack_webhook_url -string "$1" "$temp_processor_plist"; then
+                    echo "   [jamf-upload] Wrote slack_webhook_url='$1' into $temp_processor_plist"
+                fi
+            fi
+            ;;
+        --jira-issue)
+            shift
+            if [[ $processor == "JamfUploaderJiraIssueCreator" ]]; then
+                if plutil -replace jira_issue_id -string "$1" "$temp_processor_plist"; then
+                    echo "   [jamf-upload] Wrote jira_issue_id='$1' into $temp_processor_plist"
+                fi
+            fi
+            ;;
+        --jira-api-token) 
+            shift
+            if [[ $processor == "JamfUploaderJiraIssueCreator" ]]; then
+                if plutil -replace jira_api_token -string "$1" "$temp_processor_plist"; then
+                    echo "   [jamf-upload] Wrote jira_api_token='$1' into $temp_processor_plist"
+                fi
+            fi
+            ;;
+        --jira-project) 
+            shift
+            if [[ $processor == "JamfUploaderJiraIssueCreator" ]]; then
+                if plutil -replace jira_project_id -string "$1" "$temp_processor_plist"; then
+                    echo "   [jamf-upload] Wrote jira_project_id='$1' into $temp_processor_plist"
+                fi
+            fi
+            ;;
+        --jira-priority) 
+            shift
+            if [[ $processor == "JamfUploaderJiraIssueCreator" ]]; then
+                if plutil -replace jira_priority_id -string "$1" "$temp_processor_plist"; then
+                    echo "   [jamf-upload] Wrote jira_priority_id='$1' into $temp_processor_plist"
+                fi
+            fi
+            ;;
+        --jira-url)
+            shift
+            if [[ $processor == "JamfUploaderJiraIssueCreator" ]]; then
+                if plutil -replace jira_url -string "$1" "$temp_processor_plist"; then
+                    echo "   [jamf-upload] Wrote jira_url='$1' into $temp_processor_plist"
+                fi
+            fi
+            ;;
+        --jira-user*) 
+            shift
+            if [[ $processor == "JamfUploaderJiraIssueCreator" ]]; then
+                if plutil -replace jira_username -string "$1" "$temp_processor_plist"; then
+                    echo "   [jamf-upload] Wrote jira_username='$1' into $temp_processor_plist"
+                fi
+            fi
+            ;;
         --pkg-category)
             shift
-            if [[ $processor == "JamfUploaderSlacker" || $processor == "JamfUploaderTeamsNotifier" ]]; then
+            if [[ $processor == "JamfUploaderJiraIssueCreator" || $processor == "JamfUploaderSlacker" || $processor == "JamfUploaderTeamsNotifier" ]]; then
                 if plutil -replace PKG_CATEGORY -string "$1" "$temp_processor_plist"; then
                     echo "   [jamf-upload] Wrote PKG_CATEGORY='$1' into $temp_processor_plist"
                 fi
@@ -1357,46 +1542,30 @@ while test $# -gt 0 ; do
             ;;
         --policy-category)
             shift
-            if [[ $processor == "JamfUploaderSlacker" || $processor == "JamfUploaderTeamsNotifier" ]]; then
+            if [[ $processor == "JamfUploaderJiraIssueCreator" || $processor == "JamfUploaderSlacker" || $processor == "JamfUploaderTeamsNotifier" ]]; then
                 if plutil -replace POLICY_CATEGORY -string "$1" "$temp_processor_plist"; then
                     echo "   [jamf-upload] Wrote POLICY_CATEGORY='$1' into $temp_processor_plist"
                 fi
             fi
             ;;
         --patch-uploaded) 
-            if [[ $processor == "JamfUploaderTeamsNotifier" ]]; then
+            if [[ $processor == "JamfUploaderJiraIssueCreator" || $processor == "JamfUploaderSlacker" || $processor == "JamfUploaderTeamsNotifier" ]]; then
                 if plutil -replace jamfpatchuploader_summary_result -string "true" "$temp_processor_plist"; then
                     echo "   [jamf-upload] Wrote jamfpatchuploader_summary_result='true' into $temp_processor_plist"
                 fi
             fi
             ;;
         --pkg-uploaded) 
-            if [[ $processor == "JamfUploaderSlacker" || $processor == "JamfUploaderTeamsNotifier" ]]; then
+            if [[ $processor == "JamfUploaderJiraIssueCreator" || $processor == "JamfUploaderSlacker" || $processor == "JamfUploaderTeamsNotifier" ]]; then
                 if plutil -replace jamfpackageuploader_summary_result -string "true" "$temp_processor_plist"; then
                     echo "   [jamf-upload] Wrote jamfpackageuploader_summary_result='true' into $temp_processor_plist"
                 fi
             fi
             ;;
         --policy-uploaded) 
-            if [[ $processor == "JamfUploaderSlacker" || $processor == "JamfUploaderTeamsNotifier" ]]; then
+            if [[ $processor == "JamfUploaderJiraIssueCreator" || $processor == "JamfUploaderSlacker" || $processor == "JamfUploaderTeamsNotifier" ]]; then
                 if plutil -replace jamfpolicyuploader_summary_result -string "true" "$temp_processor_plist"; then
                     echo "   [jamf-upload] Wrote jamfpolicyuploader_summary_result='true' into $temp_processor_plist"
-                fi
-            fi
-            ;;
-        --slack-url) 
-            shift
-            if [[ $processor == "JamfUploaderSlacker" ]]; then
-                if plutil -replace slack_webhook_url -string "$1" "$temp_processor_plist"; then
-                    echo "   [jamf-upload] Wrote slack_webhook_url='$1' into $temp_processor_plist"
-                fi
-            fi
-            ;;
-        --slack-user) 
-            shift
-            if [[ $processor == "JamfUploaderSlacker" ]]; then
-                if plutil -replace slack_username -string "$1" "$temp_processor_plist"; then
-                    echo "   [jamf-upload] Wrote slack_username='$1' into $temp_processor_plist"
                 fi
             fi
             ;;
@@ -1413,6 +1582,14 @@ while test $# -gt 0 ; do
             if [[ $processor == "JamfUploaderSlacker" ]]; then
                 if plutil -replace slack_icon_emoji -string "$1" "$temp_processor_plist"; then
                     echo "   [jamf-upload] Wrote slack_icon_emoji='$1' into $temp_processor_plist"
+                fi
+            fi
+            ;;
+        --slack-user) 
+            shift
+            if [[ $processor == "JamfUploaderSlacker" ]]; then
+                if plutil -replace slack_username -string "$1" "$temp_processor_plist"; then
+                    echo "   [jamf-upload] Wrote slack_username='$1' into $temp_processor_plist"
                 fi
             fi
             ;;

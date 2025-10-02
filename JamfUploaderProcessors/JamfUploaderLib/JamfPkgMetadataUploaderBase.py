@@ -138,7 +138,7 @@ class JamfPkgMetadataUploaderBase(JamfUploaderBase):
             verbose_level=2,
         )
 
-        pkg_json = self.write_json_file(pkg_data)
+        pkg_json = self.write_json_file(jamf_url, pkg_data)
 
         # if we find a pkg ID we put, if not, we post
         object_type = "package_v1"
@@ -195,13 +195,9 @@ class JamfPkgMetadataUploaderBase(JamfUploaderBase):
         client_secret = self.env.get("CLIENT_SECRET")
         pkg_name = self.env.get("pkg_name")
         pkg_display_name = self.env.get("pkg_display_name")
-        replace_metadata = self.env.get("replace_pkg_metadata")
+        replace_metadata = self.to_bool(self.env.get("replace_pkg_metadata"))
         sleep_time = self.env.get("sleep")
         pkg_metadata_updated = False
-
-        # handle setting true/false variables in overrides
-        if not replace_metadata or replace_metadata == "False":
-            replace_metadata = False
 
         # create a dictionary of package metadata from the inputs
         pkg_category = self.env.get("pkg_category")
@@ -210,12 +206,8 @@ class JamfPkgMetadataUploaderBase(JamfUploaderBase):
         priority = self.env.get("pkg_priority")
         os_requirements = self.env.get("os_requirements")
         required_processor = self.env.get("required_processor")
-        reboot_required = self.env.get("reboot_required")
-        if not reboot_required or reboot_required == "False":
-            reboot_required = False
-        send_notification = self.env.get("send_notification")
-        if not send_notification or send_notification == "False":
-            send_notification = False
+        reboot_required = self.to_bool(self.env.get("reboot_required"))
+        send_notification = self.to_bool(self.env.get("send_notification"))
 
         # allow passing a pkg path to extract the name
         if "/" in pkg_name:

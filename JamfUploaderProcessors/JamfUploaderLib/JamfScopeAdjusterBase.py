@@ -101,7 +101,7 @@ class JamfScopeAdjusterBase(JamfUploaderBase):
                 parent = root.find(parent_xpath)
 
             for child in parent.findall(scopeable_type):
-                if child.text == scopeable_name and strict_mode == "False":
+                if child.text == scopeable_name and not strict_mode:
                     self.output(
                         f"WARNING: {scoping_type}: {scopeable_type} with name "
                         f"'{scopeable_name}' already exists, raw object unchanged."
@@ -121,26 +121,41 @@ class JamfScopeAdjusterBase(JamfUploaderBase):
 
         else:
             if scoping_type == "target" and scopeable_type in (
-                "computer_group", "mobile_device_group",
-                "building", "department"
-                ):
+                "computer_group",
+                "mobile_device_group",
+                "building",
+                "department",
+            ):
                 parent_xpath = f"./scope/{scopeable_type}s"
                 if scope.find(f"{scopeable_type}s") is None:
                     ET.SubElement(scope, f"{scopeable_type}s")
 
             elif (
-                object_type != "restricted_software" and scoping_type ==
-                "limitation" and scopeable_type in
-                ("network_segment", "user_group", "computer_group")
-                ) or (
-                object_type == "restricted_software" and scoping_type == "exclusion"
-                and scopeable_type in ("computer_group", "building", "department")
-                ) or (
-                object_type != "restricted_software" and scoping_type == "exclusion"
-                and scopeable_type in
-                ("computer_group", "mobile_device_group", "user_group",
-                "network_segment", "building", "department")
-                ):
+                (
+                    object_type != "restricted_software"
+                    and scoping_type == "limitation"
+                    and scopeable_type
+                    in ("network_segment", "user_group", "computer_group")
+                )
+                or (
+                    object_type == "restricted_software"
+                    and scoping_type == "exclusion"
+                    and scopeable_type in ("computer_group", "building", "department")
+                )
+                or (
+                    object_type != "restricted_software"
+                    and scoping_type == "exclusion"
+                    and scopeable_type
+                    in (
+                        "computer_group",
+                        "mobile_device_group",
+                        "user_group",
+                        "network_segment",
+                        "building",
+                        "department",
+                    )
+                )
+            ):
                 parent_xpath = f"./scope/{scoping_type}s/{scopeable_type}s"
                 scoping_types = scope.find(f"{scoping_type}s")
                 if scoping_types is None:
@@ -163,7 +178,7 @@ class JamfScopeAdjusterBase(JamfUploaderBase):
                 if (
                     name_tag is not None
                     and name_tag.text == scopeable_name
-                    and strict_mode == "False"
+                    and not strict_mode
                 ):
                     self.output(
                         f"WARNING: {scoping_type}: {scopeable_type} with name "
@@ -212,7 +227,7 @@ class JamfScopeAdjusterBase(JamfUploaderBase):
             parent_xpath = "./scope/limit_to_users/user_groups"
             parent = root.find(parent_xpath)
 
-            if parent is None and strict_mode == "False":
+            if parent is None and not strict_mode:
                 self.output(
                     f"WARNING: Parent element not found for XPath: {parent_xpath}"
                 )
@@ -235,7 +250,7 @@ class JamfScopeAdjusterBase(JamfUploaderBase):
 
         parent = root.find(parent_xpath)
 
-        if parent is None and strict_mode == "False":
+        if parent is None and not strict_mode:
             self.output(f"WARNING: Parent element not found for XPath: {parent_xpath}")
         elif parent is None:
             raise ProcessorError(f"Parent element not found for XPath: {parent_xpath}")
@@ -253,7 +268,7 @@ class JamfScopeAdjusterBase(JamfUploaderBase):
                 f"Removed {scoping_type}: {scopeable_type} with name '{scopeable_name}'."
             )
         else:
-            if strict_mode == "False":
+            if not strict_mode:
                 self.output(
                     f"WARNING: {scoping_type}: {scopeable_type} with name "
                     f"'{scopeable_name}' not found, raw object unchanged."
@@ -274,8 +289,8 @@ class JamfScopeAdjusterBase(JamfUploaderBase):
         scopeable_type = self.env.get("scopeable_type")
         scoping_type = self.env.get("scoping_type")
         scopeable_name = self.env.get("scopeable_name")
-        strict_mode = self.env.get("strict_mode")
-        strip_raw_xml = self.env.get("strip_raw_xml")
+        strict_mode = self.to_bool(self.env.get("strict_mode"))
+        strip_raw_xml = self.to_bool(self.env.get("strip_raw_xml"))
 
         if object_template:
             if not object_template.startswith("/"):
@@ -291,7 +306,7 @@ class JamfScopeAdjusterBase(JamfUploaderBase):
             except Exception as e:
                 raise ProcessorError(f"Error reading template file: {e}") from e
 
-        if strict_mode == "False":
+        if not strict_mode:
             self.output("WARNING: Strict mode disabled!")
 
         if raw_object.strip().startswith("<"):
@@ -302,7 +317,7 @@ class JamfScopeAdjusterBase(JamfUploaderBase):
             else:
                 filename = self.generate_filename_from_raw_xml(object_type, raw_object)
             object_template = os.path.join(output_dir, filename)
-            if strip_raw_xml == "True":
+            if strip_raw_xml:
                 raw_object = self.clean_raw_xml(raw_object)
             if scoping_operation == "add":
                 raw_object = self.add_scope_element(

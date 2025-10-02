@@ -102,6 +102,19 @@ class JamfObjectUploader(JamfObjectUploaderBase):
                 "Note that id and self_service_icon are removed automatically."
             ),
         },
+        "element_to_replace": {
+            "required": False,
+            "description": (
+                "Full path of an element to replace the value of, "
+                "such as general/id. "
+            ),
+        },
+        "replacement_value": {
+            "required": False,
+            "description": (
+                "The value of the element provided by the element_to_replace key. "
+            ),
+        },
         "replace_object": {
             "required": False,
             "description": "Overwrite an existing object if True.",
@@ -122,6 +135,9 @@ class JamfObjectUploader(JamfObjectUploaderBase):
             "description": "Jamf object name of the newly created or modified object.",
         },
         "object_updated": {"description": "Boolean - True if the object was changed."},
+        "failover_url": {
+            "description": "Failover URL, if uploading failover_generate_command object.",
+        },
     }
 
     def main(self):

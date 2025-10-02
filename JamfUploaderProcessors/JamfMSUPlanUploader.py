@@ -1,4 +1,5 @@
 #!/usr/local/autopkg/python
+# pylint: disable=invalid-name
 
 """
 Copyright 2023 Graham Pugh
@@ -16,7 +17,9 @@ See the License for the specific language governing permissions and
 limitations under the License.
 
 NOTES:
-All functions are in JamfUploaderLib/JamfAccountUploaderBase.py
+The API endpoint must be defined in the api_endpoints function in JamfUploaderBase.py
+
+All functions are in JamfUploaderLib/JamfObjectUploaderBase.py
 """
 
 import os.path
@@ -27,18 +30,22 @@ import sys
 # imports require noqa comments for E402
 sys.path.insert(0, os.path.dirname(__file__))
 
-from JamfUploaderLib.JamfAccountUploaderBase import (  # noqa: E402
-    JamfAccountUploaderBase,
+from JamfUploaderLib.JamfMSUPlanUploaderBase import (  # pylint: disable=import-error, wrong-import-position
+    JamfMSUPlanUploaderBase,
 )
 
-__all__ = ["JamfAccountUploader"]
+__all__ = ["JamfMSUPlanUploader"]
 
 
-class JamfAccountUploader(JamfAccountUploaderBase):
+class JamfMSUPlanUploader(JamfMSUPlanUploaderBase):
+    """Processor to upload an API object not covered by the other specific
+    JamfUploader processors
+    """
+
     description = (
-        "A processor for AutoPkg that will create or update an account "
-        "object on a Jamf Pro server."
-        "'Jamf Pro User Accounts & Groups' CRU privileges are required by the API_USERNAME user."
+        "A processor for AutoPkg that will create or update an API object template "
+        "on a Jamf Pro server."
+        "'Jamf Pro privileges are required by the API_USERNAME user for whatever the endpoint is."
     )
 
     input_variables = {
@@ -70,33 +77,29 @@ class JamfAccountUploader(JamfAccountUploaderBase):
             "description": "Secret associated with the Client ID, optionally set as a key in "
             "the com.github.autopkg preference file.",
         },
-        "account_name": {
-            "required": True,
-            "description": "account name",
+        "days_until_force_install": {
+            "required": False,
+            "description": "Days until forced installation of planned managed software update.",
+            "default": "7",
+        },
+        "device_type": {
+            "required": False,
+            "description": (
+                "Device type, must be one of 'computer', 'mobile-device', "
+                "'apple-tv' (case-insensitive)."
+            ),
             "default": "",
         },
-        "account_type": {
+        "group_name": {
             "required": True,
-            "description": "account type - either 'user' or 'group",
-            "default": "user",
+            "description": "Name of the target computer group or mobile device group.",
         },
-        "account_template": {
+        "version": {
             "required": True,
-            "description": "Full path to the XML template",
-        },
-        "replace_account": {
-            "required": False,
-            "description": "Overwrite an existing account if True.",
-            "default": False,
-        },
-        "domain": {
-            "required": False,
-            "description": "LDAP domain, required if writing an LDAP group.",
-            "default": "",
-        },
-        "group": {
-            "required": False,
-            "description": "Local group, required if giving a user group access.",
+            "description": (
+                "OS Version to deploy, must be one of 'latest-minor', 'latest-major', "
+                "'latest-any', or a valid specific version string for the OS to be applied."
+            ),
             "default": "",
         },
         "sleep": {
@@ -107,17 +110,23 @@ class JamfAccountUploader(JamfAccountUploaderBase):
     }
 
     output_variables = {
-        "jamfaccountuploader_summary_result": {
+        "jamfmsuplanuploader_summary_result": {
             "description": "Description of interesting results.",
         },
-        "account_name": {
-            "description": "Jamf object name of the newly created or modified account.",
+        "device_type": {
+            "description": "Device type.",
         },
-        "account_updated": {
-            "description": "Boolean - True if the account was changed."
+        "version_type": {
+            "description": (
+                "Version type, one of 'latest_minor', 'latest_major', 'latest_any', "
+                "or 'specific_version'"
+            ),
         },
-        "changed_account_id": {
-            "description": "Jamf object ID of the newly created or modified account.",
+        "specific_version": {
+            "description": "Specific version, if 'version_type' is set to 'specific_version'.",
+        },
+        "force_install_local_datetime": {
+            "description": "The date and time of the plan's forced installation deadline."
         },
     }
 
@@ -128,5 +137,5 @@ class JamfAccountUploader(JamfAccountUploaderBase):
 
 
 if __name__ == "__main__":
-    PROCESSOR = JamfAccountUploader()
+    PROCESSOR = JamfMSUPlanUploader()
     PROCESSOR.execute_shell()

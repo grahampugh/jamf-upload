@@ -58,7 +58,7 @@ class JamfCategoryUploaderBase(JamfUploaderBase):
 
         # write the category.
         count = 0
-        category_json = self.write_json_file(category_data)
+        category_json = self.write_json_file(jamf_url, category_data)
         while True:
             count += 1
             self.output(
@@ -80,6 +80,13 @@ class JamfCategoryUploaderBase(JamfUploaderBase):
             else:
                 sleep(30)
 
+            # output the ID of the new or updated object
+        if not obj_id:
+            obj_id = r.output["id"]
+        if obj_id:
+            self.output(f"Category '{category_name}' has ID {obj_id}")
+        return obj_id
+
     def execute(self):
         """Upload a category"""
         jamf_url = self.env.get("JSS_URL").rstrip("/")
@@ -89,15 +96,17 @@ class JamfCategoryUploaderBase(JamfUploaderBase):
         client_secret = self.env.get("CLIENT_SECRET")
         category_name = self.env.get("category_name")
         category_priority = self.env.get("category_priority")
-        replace_category = self.env.get("replace_category")
+        replace_category = self.to_bool(self.env.get("replace_category"))
         sleep_time = self.env.get("sleep")
-        # handle setting replace_pkg in overrides
-        if not replace_category or replace_category == "False":
-            replace_category = False
 
         # clear any pre-existing summary result
         if "jamfcategoryuploader_summary_result" in self.env:
             del self.env["jamfcategoryuploader_summary_result"]
+
+        # we need to substitute the values in the computer group name now to
+        # account for version strings in the name
+        # substitute user-assignable keys
+        category_name = self.substitute_assignable_keys(category_name)
 
         # get token using oauth or basic auth depending on the credentials given
         if jamf_url:
@@ -127,8 +136,7 @@ class JamfCategoryUploaderBase(JamfUploaderBase):
             self.output(f"Category '{category_name}' already exists: ID {obj_id}")
             if replace_category:
                 self.output(
-                    "Replacing existing category as 'replace_category' is set to "
-                    + replace_category,
+                    "Replacing existing category as 'replace_category' is set to True",
                     verbose_level=1,
                 )
             else:
@@ -136,12 +144,13 @@ class JamfCategoryUploaderBase(JamfUploaderBase):
                     "Not replacing existing category. Use replace_category='True' to enforce.",
                     verbose_level=1,
                 )
+                self.env["category_id"] = obj_id
                 return
         else:
             self.output(f"Category '{category_name}' not found: ID {obj_id}")
 
         # upload the category
-        self.upload_category(
+        category_id = self.upload_category(
             jamf_url,
             category_name,
             category_priority,
@@ -152,11 +161,13 @@ class JamfCategoryUploaderBase(JamfUploaderBase):
 
         # output the summary
         self.env["category"] = category_name
+        self.env["category_id"] = category_id
         self.env["jamfcategoryuploader_summary_result"] = {
             "summary_text": "The following categories were created or updated in Jamf Pro:",
-            "report_fields": ["category", "priority"],
+            "report_fields": ["category", "id", "priority"],
             "data": {
                 "category": category_name,
+                "id": str(obj_id),
                 "priority": str(category_priority),
             },
         }

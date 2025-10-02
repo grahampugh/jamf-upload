@@ -109,7 +109,7 @@ class JamfScriptUploaderBase(JamfUploaderBase):
             verbose_level=2,
         )
 
-        script_json = self.write_json_file(script_data)
+        script_json = self.write_json_file(jamf_url, script_data)
 
         self.output("Uploading script..")
 
@@ -164,19 +164,21 @@ class JamfScriptUploaderBase(JamfUploaderBase):
         script_parameter9 = self.env.get("script_parameter9")
         script_parameter10 = self.env.get("script_parameter10")
         script_parameter11 = self.env.get("script_parameter11")
-        skip_script_key_substitution = self.env.get("skip_script_key_substitution")
-        replace_script = self.env.get("replace_script")
+        skip_script_key_substitution = self.to_bool(
+            self.env.get("skip_script_key_substitution")
+        )
+        replace_script = self.to_bool(self.env.get("replace_script"))
         sleep_time = self.env.get("sleep")
-        # handle setting replace in overrides
-        if not replace_script or replace_script == "False":
-            replace_script = False
-        if not skip_script_key_substitution or skip_script_key_substitution == "False":
-            skip_script_key_substitution = False
 
         # clear any pre-existing summary result
         if "jamfscriptuploader_summary_result" in self.env:
             del self.env["jamfscriptuploader_summary_result"]
         script_uploaded = False
+
+        # we need to substitute the values in the script name now to
+        # account for generated strings in the name
+        # substitute user-assignable keys
+        script_name = self.substitute_assignable_keys(script_name)
 
         # get token using oauth or basic auth depending on the credentials given
         if jamf_url:
@@ -244,7 +246,7 @@ class JamfScriptUploaderBase(JamfUploaderBase):
             self.output(f"Script '{script_name}' already exists: ID {obj_id}")
             if replace_script:
                 self.output(
-                    f"Replacing existing script as 'replace_script' is set to {replace_script}",
+                    f"Replacing existing script as 'replace_script' is set to True",
                     verbose_level=1,
                 )
             else:

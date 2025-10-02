@@ -22,6 +22,7 @@ import os
 import re
 import subprocess
 import tempfile
+import time
 import xml.etree.ElementTree as ET
 
 from base64 import b64encode
@@ -29,6 +30,7 @@ from collections import abc, namedtuple
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from shutil import rmtree
+from time import sleep
 from urllib.parse import quote, urlparse
 from uuid import UUID
 from xml.sax.saxutils import escape
@@ -43,23 +45,31 @@ class JamfUploaderBase(Processor):
     """Common functions used by at least two JamfUploader processors."""
 
     # Global version
-    __version__ = "2025.3.21.0"
+    __version__ = "2025.10.2.0"
 
-    def api_endpoints(self, object_type):
+    def api_endpoints(self, object_type, uuid=""):
         """Return the endpoint URL from the object type"""
         api_endpoints = {
             "account": "JSSResource/accounts",
+            "account_user": "JSSResource/accounts",
+            "account_group": "JSSResource/accounts",
+            "activation_code_settings": "JSSResource/activationcode",
             "advanced_computer_search": "JSSResource/advancedcomputersearches",
             "advanced_mobile_device_search": "JSSResource/advancedmobiledevicesearches",
             "api_client": "api/v1/api-integrations",
             "api_role": "api/v1/api-roles",
-            "app_installer": "api/v1/app-installers/deployments",
+            "app_installers_deployment": "api/v1/app-installers/deployments",
+            "app_installers_title": "api/v1/app-installers/titles",
+            "app_installers_t_and_c_settings": (
+                "api/v1/app-installers/terms-and-conditions"
+            ),
             "app_installers_accept_t_and_c_command": (
                 "api/v1/app-installers/terms-and-conditions/accept"
             ),
             "category": "api/v1/categories",
             "check_in_settings": "api/v3/check-in",
             "cloud_ldap": "api/v2/cloud-ldaps",
+            "computer": "api/preview/computers",
             "computer_extension_attribute": "api/v1/computer-extension-attributes",
             "computer_group": "JSSResource/computergroups",
             "computer_inventory_collection_settings": (
@@ -72,18 +82,35 @@ class JamfUploaderBase(Processor):
             "enrollment_settings": "api/v4/enrollment",
             "enrollment_customization": "api/v2/enrollment-customizations",
             "failover": "api/v1/sso/failover",
+            "failover_generate_command": "api/v1/sso/failover/generate",
             "icon": "api/v1/icon",
-            "jamf_pro_version": "api/v1/jamf-pro-version",
+            "jamf_pro_version_settings": "api/v1/jamf-pro-version",
             "jamf_protect_plans_sync_command": "api/v1/jamf-protect/plans/sync",
-            "jamf_protect_register": "api/v1/jamf-protect/register",
+            "jamf_protect_register_settings": "api/v1/jamf-protect/register",
             "jamf_protect_settings": "api/v1/jamf-protect",
             "jcds": "api/v1/jcds",
             "laps_settings": "api/v2/local-admin-password/settings",
             "logflush": "JSSResource/logflush",
             "ldap_server": "JSSResource/ldapservers",
             "mac_application": "JSSResource/macapplications",
+            "managed_software_updates_available_updates": (
+                "api/v1/managed-software-updates/available-updates"
+            ),
+            "managed_software_updates_feature_toggle_settings": (
+                "api/v1/managed-software-updates/plans/feature-toggle"
+            ),
+            "managed_software_updates_plans": "api/v1/managed-software-updates/plans",
+            "managed_software_updates_plans_events": f"api/v1/managed-software-updates/plans/{uuid}/events",
+            "managed_software_updates_plans_group_settings": (
+                "api/v1/managed-software-updates/plans/group"
+            ),
+            "managed_software_updates_update_statuses": (
+                "api/v1/managed-software-updates/update-statuses"
+            ),
+            "mobile_device": "api/v2/mobile-devices",
             "mobile_device_application": "JSSResource/mobiledeviceapplications",
             "mobile_device_extension_attribute": "JSSResource/mobiledeviceextensionattributes",
+            "mobile_device_extension_attribute_v1": "api/v1/mobile-device-extension-attributes",
             "mobile_device_group": "JSSResource/mobiledevicegroups",
             "mobile_device_prestage": "api/v1/mobile-device-prestages",
             "network_segment": "JSSResource/networksegments",
@@ -99,7 +126,9 @@ class JamfUploaderBase(Processor):
             "policy_properties_settings": "api/v1/policy-properties",
             "restricted_software": "JSSResource/restrictedsoftware",
             "self_service_settings": "api/v1/self-service/settings",
+            "self_service_plus_settings": "api/v1/self-service-plus/settings",
             "script": "api/v1/scripts",
+            "smart_computer_group_membership": "api/v2/computer-groups/smart-group-membership",
             "smtp_server_settings": "api/v2/smtp-server",
             "sso_cert_command": "api/v2/sso/cert",
             "sso_settings": "api/v3/sso",
@@ -113,7 +142,6 @@ class JamfUploaderBase(Processor):
         object_types = {
             "advanced_computer_search": "advancedcomputersearches",
             "advanced_mobile_device_search": "advancedmobiledevicesearches",
-            "app_installer": "appinstallers",
             "package": "packages",
             "computer_group": "computergroups",
             "configuration_profile": "mobiledeviceconfigurationprofiles",
@@ -124,6 +152,7 @@ class JamfUploaderBase(Processor):
             "policy": "policies",
             "computer_extension_attribute": "computerextensionattributes",
             "mobile_device_extension_attribute": "mobiledeviceextensionattributes",
+            "mobile_device_extension_attribute_v1": "mobiledeviceextensionattributes",
             "restricted_software": "restrictedsoftware",
             "os_x_configuration_profile": "osxconfigurationprofiles",
         }
@@ -133,12 +162,14 @@ class JamfUploaderBase(Processor):
         """Return a XML dictionary type from the object type"""
         object_list_types = {
             "account": "accounts",
+            "account_user": "users",
+            "account_group": "groups",
             "advanced_computer_search": "advanced_computer_searches",
             "advanced_mobile_device_search": "advanced_mobile_device_searches",
             "api_client": "api_clients",
             "api_role": "api_roles",
-            "app_installer": "app_installers",
             "category": "categories",
+            "computer": "computers",
             "computer_group": "computer_groups",
             "computer_prestage": "computer_prestages",
             "configuration_profile": "configuration_profiles",
@@ -147,8 +178,10 @@ class JamfUploaderBase(Processor):
             "computer_extension_attribute": "computer_extension_attributes",
             "ldap_server": "ldap_servers",
             "mac_application": "mac_applications",
+            "mobile_device": "mobile_devices",
             "mobile_device_application": "mobile_device_applications",
             "mobile_device_extension_attribute": "mobile_device_extension_attributes",
+            "mobile_device_extension_attribute_v1": "mobile_device_extension_attributes",
             "mobile_device_group": "mobile_device_groups",
             "mobile_device_prestage": "mobile_device_prestages",
             "network_segment": "network_segments",
@@ -157,22 +190,39 @@ class JamfUploaderBase(Processor):
             "patch_policy": "patch_policies",
             "patch_software_title": "patch_software_titles",
             "policy": "policies",
-            "restricted_software": "restricted_software",
             "script": "scripts",
-            "self_service_settings": "self_service_settings",
+            "smart_computer_group_membership": "smart_computer_group_membership",
         }
-        return object_list_types[object_type]
+        if object_type in object_list_types:
+            return object_list_types[object_type]
+        # if the object type is not in the list, return the object type itself
+        return object_type
+
+    def to_bool(self, value):
+        """Convert a value to a boolean"""
+        if isinstance(value, bool):
+            return value
+        if isinstance(value, str):
+            return value.strip().lower() == "true"
+        raise ValueError(f"Cannot convert {value!r} to boolean")
 
     def get_namekey(self, object_type):
         """Return the name key that identifies the object"""
-        namekey = "name"
-        if object_type in (
-            "api_client",
-            "computer_prestage",
-            "mobile_device_prestage",
-            "enrollment_customization",
-        ):
-            namekey = "displayName"
+        object_type_namekeys = {
+            "api_client": "displayName",
+            "computer_prestage": "displayName",
+            "mobile_device_prestage": "displayName",
+            "enrollment_customization": "displayName",
+            "app_installers_title": "titleName",
+            "managed_software_updates_available_updates": "availableUpdates",
+            "managed_software_updates_plans": "planUuid",
+            "managed_software_updates_plans_events": "id",
+        }
+
+        if object_type in object_type_namekeys:
+            namekey = object_type_namekeys[object_type]
+        else:
+            namekey = "name"
         return namekey
 
     def get_namekey_path(self, object_type, namekey):
@@ -192,42 +242,43 @@ class JamfUploaderBase(Processor):
             namekey_path = namekey
         return namekey_path
 
-    def write_json_file(self, data):
+    def write_json_file(self, jamf_url, data):
         """dump some json to a temporary file"""
-        tf = self.init_temp_file(suffix=".json")
+        tf = self.init_temp_file(jamf_url, suffix=".json")
         with open(tf, "w", encoding="utf-8") as fp:
             json.dump(data, fp)
         return tf
 
     def write_token_to_json_file(self, jamf_url, jamf_user, data):
         """dump the token, expiry, url and user as json to an instance-specific token file"""
-        url_specific_dir = self.make_url_specific_dir(jamf_url)
-        token_file = os.path.join(url_specific_dir, "token_from_jamf_upload.txt")
+        tmp_dir = self.make_tmp_dir(jamf_url)
+        token_file = os.path.join(tmp_dir, "token_from_jamf_upload.txt")
         data["url"] = jamf_url
         data["user"] = jamf_user
         with open(token_file, "w", encoding="utf-8") as fp:
             json.dump(data, fp)
 
-    def write_xml_file(self, data):
+    def write_xml_file(self, jamf_url, data):
         """dump some xml to a temporary file"""
         xml_tree = ET.ElementTree(data)
-        tf = self.init_temp_file(suffix=".xml")
+        tf = self.init_temp_file(jamf_url, suffix=".xml")
         xml_tree.write(tf)
         return tf
 
-    def write_temp_file(self, data):
+    def write_temp_file(self, jamf_url, data):
         """dump some text to a temporary file"""
-        tf = self.init_temp_file(suffix=".txt")
+        tf = self.init_temp_file(jamf_url, suffix=".txt")
         with open(tf, "w", encoding="utf-8") as fp:
             fp.write(data)
         return tf
 
-    def make_tmp_dir(self, tmp_dir="/tmp/jamf_upload_"):
+    def make_tmp_dir(self, jamf_url, tmp_dir="/tmp/jamf_upload"):
         """make the tmp directory"""
+        cust_id = self.get_netloc(jamf_url)
         if not self.env.get("jamfupload_tmp_dir"):
-            base_dir, dir_name = tmp_dir.rsplit("/", 1)
+            os.makedirs(tmp_dir, exist_ok=True)
             self.env["jamfupload_tmp_dir"] = tempfile.mkdtemp(
-                prefix=dir_name, dir=base_dir
+                dir=tmp_dir, prefix=cust_id + "_"
             )
         return self.env["jamfupload_tmp_dir"]
 
@@ -239,22 +290,23 @@ class JamfUploaderBase(Processor):
         instance_id = re.sub(r"\W+", "_", netloc).strip("_")
         return instance_id
 
-    def make_url_specific_dir(self, jamf_url, tmp_dir="/tmp/jamf_upload_"):
-        """make the URL-specific directory for storing token and cookies"""
-        cust_id = self.get_netloc(jamf_url)
-        url_specific_dir = f"{tmp_dir}{cust_id}"
-        if not os.path.exists(url_specific_dir):
-            os.mkdir(url_specific_dir)
-        return url_specific_dir
-
     def init_temp_file(
-        self, prefix="jamf_upload_", suffix=None, dir_name=None, text=True
+        self,
+        jamf_url,
+        prefix=None,
+        suffix=None,
+        dir_name="/tmp/jamf_upload",
+        text=True,
     ):
         """dump some text to a temporary file"""
+        if self.env.get("jamfupload_tmp_dir"):
+            dir_name = self.env.get("jamfupload_tmp_dir")
+        if not os.path.exists(dir_name):
+            dir_name = self.make_tmp_dir(jamf_url=jamf_url, tmp_dir=dir_name)
         return tempfile.mkstemp(
             prefix=prefix,
             suffix=suffix,
-            dir=self.make_tmp_dir() if dir_name is None else dir_name,
+            dir=dir_name,
             text=text,
         )[1]
 
@@ -266,8 +318,8 @@ class JamfUploaderBase(Processor):
 
     def check_api_token(self, jamf_url, jamf_user):
         """Check validity of an existing token"""
-        url_specific_dir = self.make_url_specific_dir(jamf_url)
-        token_file = os.path.join(url_specific_dir, "token_from_jamf_upload.txt")
+        tmp_dir = self.make_tmp_dir(jamf_url)
+        token_file = os.path.join(tmp_dir, "token_from_jamf_upload.txt")
         token = ""
 
         if os.path.exists(token_file):
@@ -302,7 +354,8 @@ class JamfUploaderBase(Processor):
                                     token = data["token"]
                                 else:
                                     self.output(
-                                        f"Existing token expired - {data['expires']} vs {datetime.now(timezone.utc)}"
+                                        f"Existing token expired - {data['expires']} "
+                                        "vs {datetime.now(timezone.utc)}"
                                     )
 
                             except ValueError:
@@ -480,6 +533,7 @@ class JamfUploaderBase(Processor):
         4. The Jamf Pro legacy/packages endpoint, for uploading packages (v3).
         5. Slack webhooks.
         6. Microsoft Teams webhooks.
+        7. Jira Cloud issue requests (REST API)
 
         For the Jamf Pro API and Classic API, basic authentication is used to obtain a
         bearer token, which we write to a file along with its expiry datetime.
@@ -490,13 +544,10 @@ class JamfUploaderBase(Processor):
         This is generated by the JamfPackageUploader processor.
         Authentication for the webhooks is achieved with a preconfigured token.
         """
-        tmp_dir = self.make_tmp_dir()
-        url_specific_dir = self.make_url_specific_dir(url)
-        headers_file = os.path.join(
-            url_specific_dir, "curl_headers_from_jamf_upload.txt"
-        )
-        output_file = self.init_temp_file(prefix="jamf_upload_", suffix=".txt")
-        cookie_jar = os.path.join(url_specific_dir, "curl_cookies_from_jamf_upload.txt")
+        tmp_dir = self.make_tmp_dir(jamf_url=url)
+        headers_file = os.path.join(tmp_dir, "curl_headers_from_jamf_upload.txt")
+        output_file = self.init_temp_file(url, suffix=".txt")
+        cookie_jar = os.path.join(tmp_dir, "curl_cookies_from_jamf_upload.txt")
 
         # build the curl command based on supplied endpoint_types
         if url:
@@ -568,14 +619,19 @@ class JamfUploaderBase(Processor):
             curl_cmd.extend(["--form", f"file=@{data};type=image/png"])
 
         elif request == "PATCH":
+            curl_cmd.extend(["--header", "Content-type: application/merge-patch+json"])
             if data:
                 # jamf data upload requires upload-file argument
                 curl_cmd.extend(["--upload-file", data])
 
         # Content-Type for POST/PUT
         elif request == "POST" or request == "PUT":
-            if endpoint_type == "slack" or endpoint_type == "teams":
-                # slack and teams require a data argument
+            if (
+                endpoint_type == "slack"
+                or endpoint_type == "teams"
+                or endpoint_type == "jira"
+            ):
+                # jira, slack and teams require a data argument
                 curl_cmd.extend(["--data", data])
                 curl_cmd.extend(["--header", "Content-type: application/json"])
             elif data:
@@ -589,7 +645,7 @@ class JamfUploaderBase(Processor):
                 curl_cmd.extend(
                     ["--header", "Content-Type: application/x-www-form-urlencoded"]
                 )
-            elif "/api/" in url or "/uapi/" in url:
+            elif ("/api/" in url and endpoint_type != "jira") or "/uapi/" in url:
                 curl_cmd.extend(["--header", "Content-type: application/json"])
             # note: other endpoints should supply their headers via 'additional_curl_opts'
 
@@ -603,7 +659,7 @@ class JamfUploaderBase(Processor):
 
         # write session for jamf API requests
         if (
-            "/api/" in url
+            ("/api/" in url and endpoint_type != "jira")
             or "/uapi/" in url
             or "JSSResource" in url
             or endpoint_type == "package_upload"
@@ -690,15 +746,37 @@ class JamfUploaderBase(Processor):
                 self.output(r.output, verbose_level=2)
 
             if r.status_code >= 400:
-                raise ProcessorError(
-                    f"ERROR: {endpoint_type} '{obj_name}' {action} failed - "
-                    f"status code {r.status_code}"
-                )
+                # extract the error message
+                if isinstance(r.output, (bytes, bytearray)):
+                    error_lines = re.findall(
+                        r"<p>Error:(.*?)</p>", r.output.decode("utf-8")
+                    )
+                elif isinstance(r.output, str):
+                    error_lines = re.findall(r"<p>Error:(.*?)</p>", r.output)
+                else:
+                    error_lines = []
+                if error_lines:
+                    error_message = error_lines[0].strip()
+                    if obj_name:
+                        raise ProcessorError(
+                            f"ERROR: {endpoint_type} '{obj_name}' {action} failed - "
+                            f"{error_message} (status code {r.status_code})"
+                        )
+                    else:
+                        raise ProcessorError(
+                            f"ERROR: {endpoint_type} {action} failed - "
+                            f"{error_message} (status code {r.status_code})"
+                        )
+                else:
+                    self.output(
+                        f"ERROR: {endpoint_type} {action} failed - "
+                        f"status code {r.status_code}"
+                    )
 
     def get_jamf_pro_version(self, jamf_url, token):
         """get the Jamf Pro version so that we can figure out which auth method to use for the
         Classic API"""
-        url = jamf_url + "/" + self.api_endpoints("jamf_pro_version")
+        url = jamf_url + "/" + self.api_endpoints("jamf_pro_version_settings")
         r = self.curl(request="GET", url=url, token=token)
         if r.status_code == 200:
             try:
@@ -719,13 +797,15 @@ class JamfUploaderBase(Processor):
             url = jamf_url + "/" + self.api_endpoints(object_type)
             r = self.curl(request="GET", url=url, token=token)
 
-            if r.status_code == 200:
+            if self.status_check(r, object_type, object_name, "GET") == "break":
                 object_list = json.loads(r.output)
                 self.output(
                     object_list,
                     verbose_level=4,
                 )
                 obj_id = 0
+                if object_type == "account_user" or object_type == "account_group":
+                    object_list = object_list["accounts"]
                 for obj in object_list[self.object_list_types(object_type)]:
                     self.output(
                         obj,
@@ -734,10 +814,12 @@ class JamfUploaderBase(Processor):
                     # we need to check for a case-insensitive match
                     if obj["name"].lower() == object_name.lower():
                         obj_id = obj["id"]
+                        break
                 return obj_id
-            elif r.status_code == 401:
+            else:
                 raise ProcessorError(
-                    "ERROR: Jamf returned status code '401' - Access denied."
+                    f"ERROR: Unable to get {object_type} list from server - "
+                    f"status code {r.status_code}"
                 )
         else:
             # do JSON stuff
@@ -747,7 +829,7 @@ class JamfUploaderBase(Processor):
             )
             url = jamf_url + "/" + self.api_endpoints(object_type) + url_filter
             r = self.curl(request="GET", url=url, token=token)
-            if r.status_code == 200:
+            if self.status_check(r, object_type, object_name, "GET") == "break":
                 obj_id = 0
                 output = r.output
                 for obj in output["results"]:
@@ -759,9 +841,10 @@ class JamfUploaderBase(Processor):
                         obj_id = obj["id"]
                         break
                 return obj_id
-            elif r.status_code == 401:
+            else:
                 raise ProcessorError(
-                    "ERROR: Jamf returned status code '401' - Access denied."
+                    f"ERROR: Unable to get {object_type} list from server - "
+                    f"status code {r.status_code}"
                 )
 
     def substitute_assignable_keys(self, data, xml_escape=False):
@@ -851,8 +934,10 @@ class JamfUploaderBase(Processor):
         recipe_dir_path = Path(os.path.expanduser(recipe_dir))
         filepath = os.path.join(recipe_dir, filename)
         matched_override_dir = ""
+        matched_filepath = ""
 
         # first, look in the overrides directory
+        self.output(f"Looking for {filename} in RECIPE_OVERRIDE_DIRS", verbose_level=3)
         if self.env.get("RECIPE_OVERRIDE_DIRS"):
             matched_filepath = ""
             for d in self.env["RECIPE_OVERRIDE_DIRS"]:
@@ -869,21 +954,52 @@ class JamfUploaderBase(Processor):
             if matched_filepath:
                 self.output(f"File found at: {matched_filepath}")
                 return matched_filepath
+        else:
+            self.output("No RECIPE_OVERRIDE_DIRS defined", verbose_level=3)
 
-        # second, look in the same directory as the recipe
-        self.output(f"Looking for {filename} in {recipe_dir}", verbose_level=3)
+        # second, look in the same directory as the recipe or any sibling directories
+        self.output(
+            f"Looking for {filename} in {recipe_dir} or its siblings", verbose_level=3
+        )
+        # First check the recipe directory itself
+        filepath = os.path.join(recipe_dir, filename)
         if os.path.exists(filepath):
             self.output(f"File found at: {filepath}")
             return filepath
+
+        # Then check sibling directories
+        self.output(
+            f"Checking sibling directories of {recipe_dir_path}", verbose_level=3
+        )
+        for sibling in recipe_dir_path.parent.iterdir():
+            if sibling.is_dir() and sibling != recipe_dir_path:
+                self.output(
+                    f"Looking for {filename} in sibling directory: {sibling}",
+                    verbose_level=3,
+                )
+                filepath = os.path.join(sibling, filename)
+                if os.path.exists(filepath):
+                    self.output(f"File found at: {filepath}")
+                    return filepath
 
         # third, try to match the recipe's dir with one of the recipe search dirs
         if self.env.get("RECIPE_SEARCH_DIRS"):
             matched_filepath = ""
             for d in self.env["RECIPE_SEARCH_DIRS"]:
                 search_dir_path = Path(os.path.expanduser(d))
+                self.output(
+                    f"Recipe directory: {recipe_dir_path}",
+                    verbose_level=3,
+                )
+                self.output(
+                    f"Looking for {filename} in {search_dir_path}",
+                    verbose_level=3,
+                )
                 if (
                     search_dir_path == recipe_dir_path
-                    or search_dir_path in recipe_dir_path.parents
+                    or search_dir_path.parent == recipe_dir_path.parent
+                    or search_dir_path == recipe_dir_path.parent
+                    or search_dir_path in recipe_dir_path.parent.parents
                 ):
                     # matching search dir, look for file in here
                     self.output(f"Matching dir: {search_dir_path}", verbose_level=3)
@@ -893,10 +1009,17 @@ class JamfUploaderBase(Processor):
                 if matched_filepath:
                     self.output(f"File found at: {matched_filepath}")
                     return matched_filepath
+            self.output(
+                f"File {filename} not found in any RECIPE_SEARCH_DIRS", verbose_level=3
+            )
 
         # fourth, look in the parent recipe's directory if we are an override
         if matched_override_dir:
             if self.env.get("PARENT_RECIPES"):
+                self.output(
+                    f"Looking for {filename} in parent recipe's repo",
+                    verbose_level=3,
+                )
                 matched_filepath = ""
                 parent = self.env["PARENT_RECIPES"][0]
                 self.output(f"Parent Recipe: {parent}", verbose_level=2)
@@ -917,27 +1040,112 @@ class JamfUploaderBase(Processor):
                     if matched_filepath:
                         self.output(f"File found at: {matched_filepath}")
                         return matched_filepath
+        raise ProcessorError(f"File '{filename}' not found")
 
-    def get_all_api_objects(self, jamf_url, object_type, token=""):
+    def get_all_api_objects(
+        self, jamf_url, object_type, uuid="", token="", namekey="name"
+    ):
         """get a list of all objects of a particular type"""
         # Get all objects from Jamf Pro as JSON object
         self.output(f"Getting all {self.api_endpoints(object_type)} from {jamf_url}")
 
+        # find the number of objects to get so that we can paginate properly
+        if "JSSResource" in self.api_endpoints(object_type, uuid):
+            # Classic API: no pagination, just get all objects at once
+            url = f"{jamf_url}/{self.api_endpoints(object_type, uuid)}"
+            r = self.curl(request="GET", url=url, token=token)
+            if r.status_code != 200:
+                raise ProcessorError(
+                    f"ERROR: Unable to get list of {object_type} from {jamf_url}"
+                )
+            self.output(f"Output:\n{r.output}", verbose_level=4)
+            object_list = json.loads(r.output)[self.object_list_types(object_type)]
+        else:
+            # Jamf Pro API: use pagination
+            url_filter = "?page=0&page-size=1"
+            url = f"{jamf_url}/{self.api_endpoints(object_type, uuid)}{url_filter}"
+            r = self.curl(request="GET", url=url, token=token)
+            self.output(f"Output:\n{r.output}", verbose_level=4)
+            # check if there is a totalCount value in the output
+            try:
+                total_objects = int(r.output["totalCount"])
+                self.output(f"Total objects: {total_objects}", verbose_level=2)
+                # if total count is 0, return empty list
+                if total_objects == 0:
+                    return []
+                # now get all objects in a loop, paginating per 100 objects
+                object_list = []
+
+                for page in range(0, total_objects, 100):
+                    url_filter = (
+                        f"?page={page}&page-size=100&sort={namekey}&sort-order=asc"
+                    )
+                    self.output(f"Getting page {page} of objects", verbose_level=2)
+                    if page > 0:
+                        time.sleep(0.5)  # be nice to the server
+                    url = f"{jamf_url}/{self.api_endpoints(object_type, uuid)}{url_filter}"
+                    r = self.curl(request="GET", url=url, token=token)
+                    if r.status_code != 200:
+                        raise ProcessorError(
+                            f"ERROR: Unable to get list of {object_type} from {jamf_url}"
+                        )
+                    self.output(f"Output:\n{r.output}", verbose_level=4)
+                    # parse the output to get the list of objects
+                    if object_type == "managed_software_updates_available_updates":
+                        object_list.extend(r.output["availableUpdates"])
+                    elif object_type == "managed_software_updates_plans_events":
+                        object_list.extend(r.output["events"])
+                    else:
+                        object_list.extend(r.output["results"])
+            except (KeyError, TypeError):
+                # if not, we're not dealing with a paginated endpoint, so just return the
+                # results list
+                object_list = r.output
+
+        # ensure the list is sorted by namekey if possible
+        try:
+            object_list = sorted(object_list, key=lambda x: x.get(namekey, "").lower())
+        except (KeyError, TypeError, AttributeError):
+            # if not, just leave the list as is
+            pass
+        self.output(f"List of objects:\n{object_list}", verbose_level=3)
+
+        return object_list
+
+    def get_settings_object(self, jamf_url, object_type, token=""):
+        """get the content of a settings-style endpoint"""
+        # Get results from Jamf Pro as JSON object
+        self.output(f"Getting {self.api_endpoints(object_type)} from {jamf_url}")
+
         # check for existing
         url = f"{jamf_url}/{self.api_endpoints(object_type)}"
-        r = self.curl(request="GET", url=url, token=token)
 
         # for Classic API
         if "JSSResource" in url:
-            object_list = json.loads(r.output)[self.object_list_types(object_type)]
-            self.output(f"List of objects:\n{object_list}", verbose_level=3)
+            r = self.curl(request="GET", url=url, token=token, accept_header="xml")
+            # Parse response as xml
+            try:
+                obj_xml = ET.fromstring(r.output)
+            except ET.ParseError as xml_error:
+                raise ProcessorError from xml_error
+            else:
+                ET.indent(obj_xml)
+                obj_content = ET.tostring(obj_xml, encoding="UTF-8").decode("UTF-8")
+            self.output(
+                obj_content,
+                verbose_level=4,
+            )
 
         # for Jamf Pro API
         else:
-            object_list = r.output["results"]
-            self.output(f"List of objects:\n{object_list}", verbose_level=3)
+            r = self.curl(request="GET", url=url, token=token, accept_header="json")
+            obj_content = r.output
+            self.output(
+                obj_content,
+                verbose_level=4,
+            )
 
-        return object_list
+        return obj_content
 
     def get_api_obj_contents_from_id(
         self, jamf_url, object_type, obj_id, obj_path="", token=""
@@ -946,7 +1154,13 @@ class JamfUploaderBase(Processor):
         # define the relationship between the object types and their URL
         if "JSSResource" in self.api_endpoints(object_type):
             # do XML stuff
-            url = f"{jamf_url}/{self.api_endpoints(object_type)}/id/{obj_id}"
+            if object_type == "account_user":
+                url = f"{jamf_url}/{self.api_endpoints(object_type)}/userid/{obj_id}"
+            elif object_type == "account_group":
+                url = f"{jamf_url}/{self.api_endpoints(object_type)}/groupid/{obj_id}"
+            else:
+                # for all other Classic API objects, we use the ID
+                url = f"{jamf_url}/{self.api_endpoints(object_type)}/id/{obj_id}"
             request = "GET"
             r = self.curl(request=request, url=url, token=token, accept_header="xml")
             if r.status_code == 200:
@@ -1033,6 +1247,36 @@ class JamfUploaderBase(Processor):
         if value:
             self.output(f"Value of '{obj_path}': {value}", verbose_level=2)
         return value
+
+    def delete_object(self, jamf_url, object_type, obj_id, token):
+        """Delete API object"""
+
+        self.output(f"Deleting {object_type}...")
+
+        if "JSSResource" in self.api_endpoints(object_type):
+            # do XML stuff
+            url = f"{jamf_url}/{self.api_endpoints(object_type)}/id/{obj_id}"
+        else:
+            url = f"{jamf_url}/{self.api_endpoints(object_type)}/{obj_id}"
+
+        count = 0
+        while True:
+            count += 1
+            self.output(f"{object_type} delete attempt {count}", verbose_level=2)
+            request = "DELETE"
+            r = self.curl(request=request, url=url, token=token)
+
+            # check HTTP response
+            if self.status_check(r, object_type, obj_id, request) == "break":
+                break
+            if count > 5:
+                self.output(
+                    f"WARNING: {object_type} deletion did not succeed after 5 attempts"
+                )
+                self.output(f"\nHTTP POST Response Code: {r.status_code}")
+                raise ProcessorError(f"ERROR: {object_type} deletion failed ")
+            sleep(30)
+        return r.status_code
 
     def pretty_print_xml(self, xml):
         """prettifies XML"""
@@ -1307,11 +1551,14 @@ class JamfUploaderBase(Processor):
 
     def prepare_template(
         self,
+        jamf_url,
         object_type,
         object_template,
         object_name=None,
         xml_escape=False,
         elements_to_remove=None,
+        element_to_replace=None,
+        replacement_value=None,
         namekey_path=None,
     ):
         """prepare the object contents"""
@@ -1322,10 +1569,11 @@ class JamfUploaderBase(Processor):
         else:
             raise ProcessorError("Template does not exist!")
 
-        # parse the template
-        template_contents = self.parse_downloaded_api_object(
-            template_contents, object_type, elements_to_remove
-        )
+        # parse the template except for settings-style objects
+        if "_settings" not in object_type:
+            template_contents = self.parse_downloaded_api_object(
+                template_contents, object_type, elements_to_remove
+            )
 
         # substitute user-assignable keys
         if object_name:
@@ -1340,11 +1588,24 @@ class JamfUploaderBase(Processor):
             template_contents, xml_escape
         )
 
+        # replace specific element in the template
+        if element_to_replace and replacement_value:
+            template_contents = self.replace_element(
+                object_type,
+                template_contents,
+                element_to_replace,
+                replacement_value,
+            )
+
+        # PreStages need to iterate the versionLock value in order to replace them
+        if object_type == "computer_prestage":
+            template_contents = self.inject_version_lock(template_contents)
+
         self.output("object data:", verbose_level=2)
         self.output(template_contents, verbose_level=2)
 
         # write the template to temp file
-        template_file = self.write_temp_file(template_contents)
+        template_file = self.write_temp_file(jamf_url, template_contents)
         return object_name, template_file
 
     def remove_non_printable(self, text):

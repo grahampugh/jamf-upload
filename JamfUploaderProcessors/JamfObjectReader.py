@@ -99,6 +99,22 @@ class JamfObjectReader(JamfObjectReaderBase):
             "description": "Type of the object. This is the name of the key in the XML template",
             "default": "",
         },
+        "settings_key": {
+            "required": False,
+            "description": {
+                "For settings-style endpoints, "
+                "specify a key from which to get the value"
+            },
+            "default": "",
+        },
+        "uuid": {
+            "required": False,
+            "description": {
+                "For the managed software update events endpoint, "
+                "specify a uuid from which to get the events"
+            },
+            "default": "",
+        },
         "output_dir": {
             "required": False,
             "description": "Output directory to dump the xml or json file",
@@ -124,6 +140,9 @@ class JamfObjectReader(JamfObjectReaderBase):
     }
 
     output_variables = {
+        "jamfobjectreader_summary_result": {
+            "description": "Description of interesting results.",
+        },
         "object_name": {
             "description": "Jamf object name of the object.",
         },
@@ -141,6 +160,12 @@ class JamfObjectReader(JamfObjectReaderBase):
         },
         "output_dir": {
             "description": "Path of dumped xml",
+        },
+        "file_path": {
+            "description": "Path of outputted results",
+        },
+        "payload_path": {
+            "description": "Path of outputted payload",
         },
     }
 

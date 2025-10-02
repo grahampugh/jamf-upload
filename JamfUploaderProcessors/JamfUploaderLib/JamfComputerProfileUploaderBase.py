@@ -273,21 +273,19 @@ class JamfComputerProfileUploaderBase(JamfUploaderBase):
         organization = self.env.get("organization")
         profile_description = self.env.get("profile_description")
         profile_computergroup = self.env.get("profile_computergroup")
-        replace_profile = self.env.get("replace_profile")
-        retain_scope = self.env.get("retain_scope")
+        replace_profile = self.to_bool(self.env.get("replace_profile"))
+        retain_scope = self.to_bool(self.env.get("retain_scope"))
         sleep_time = self.env.get("sleep")
-        # handle setting replace in overrides
-        if not replace_profile or replace_profile == "False":
-            replace_profile = False
-        # handle setting retain_scope in overrides
-        if not retain_scope or retain_scope == "False":
-            retain_scope = False
 
         # clear any pre-existing summary result
         if "jamfcomputerprofileuploader_summary_result" in self.env:
             del self.env["jamfcomputerprofileuploader_summary_result"]
 
         profile_updated = False
+
+        # substitute values in the profile name and category
+        profile_name = self.substitute_assignable_keys(profile_name)
+        profile_category = self.substitute_assignable_keys(profile_category)
 
         # handle files with no path
         if payload and "/" not in payload:
@@ -420,6 +418,10 @@ class JamfComputerProfileUploaderBase(JamfUploaderBase):
                 f"Configuration Profile '{mobileconfig_name}' already exists: ID {obj_id}"
             )
             if replace_profile:
+                self.output(
+                    "Replacing existing Computer Profile as 'replace_profile' is set to True",
+                    verbose_level=1,
+                )
                 # grab existing UUID from profile as it MUST match on the destination
                 (
                     existing_uuid,
@@ -467,8 +469,11 @@ class JamfComputerProfileUploaderBase(JamfUploaderBase):
                     self.output("A mobileconfig was not generated so cannot upload.")
             else:
                 self.output(
-                    "Not replacing existing Configuration Profile. "
-                    "Override the replace_profile key to True to enforce."
+                    (
+                        "Not replacing existing Configuration Profile. "
+                        "Override the replace_profile key to True to enforce."
+                    ),
+                    verbose_level=1,
                 )
         else:
             self.output(
