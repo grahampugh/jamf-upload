@@ -16,9 +16,6 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 
-NOTES:
-The API endpoint must be defined in the api_endpoints function in JamfUploaderBase.py
-
 All functions are in JamfUploaderLib/JamfComputerPreStageUploaderBase.py
 """
 
