@@ -44,7 +44,7 @@ from JamfUploaderBase import (  # pylint: disable=import-error, wrong-import-pos
 class JamfPatchUploaderBase(JamfUploaderBase):
     """Class for functions used to upload a patch policy to Jamf"""
 
-    def prepare_patch_template(self, patch_name, patch_template):
+    def prepare_patch_template(self, jamf_url, patch_name, patch_template):
         """
         Prepares the patch template. Mostly copied from the policy processor.
         """
@@ -64,7 +64,7 @@ class JamfPatchUploaderBase(JamfUploaderBase):
         self.output(template_contents, verbose_level=2)
 
         # write the template to temp file
-        template_xml = self.write_temp_file(template_contents)
+        template_xml = self.write_temp_file(jamf_url, template_contents)
         return patch_name, template_xml
 
     def handle_patch_pkg(
@@ -396,7 +396,7 @@ class JamfPatchUploaderBase(JamfUploaderBase):
                 )
 
             patch_name, patch_template_xml = self.prepare_patch_template(
-                patch_name, patch_template
+                jamf_url, patch_name, patch_template
             )
 
             obj_type = "patch_policy"
