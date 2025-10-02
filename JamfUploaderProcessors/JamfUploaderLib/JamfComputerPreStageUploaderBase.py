@@ -2,7 +2,7 @@
 # pylint: disable=invalid-name
 
 """
-Copyright 2023 Graham Pugh
+Copyright 2025 Graham Pugh
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
