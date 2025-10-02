@@ -63,7 +63,7 @@ class JamfDockItemUploaderBase(JamfUploaderBase):
         ET.SubElement(dock_item_xml_root, "type").text = dock_item_type
         ET.SubElement(dock_item_xml_root, "path").text = dock_item_path
 
-        dock_item_xml = self.write_xml_file(dock_item_xml_root)
+        dock_item_xml = self.write_xml_file(jamf_url, dock_item_xml_root)
 
         self.output("Uploading dock item..")
 
