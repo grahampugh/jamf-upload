@@ -107,7 +107,7 @@ class JamfExtensionAttributeUploaderBase(JamfUploaderBase):
         )
 
         self.output("Uploading Extension Attribute...")
-        ea_json = self.write_json_file(ea_data)
+        ea_json = self.write_json_file(jamf_url, ea_data)
 
         # if we find an object ID we put, if not, we post
         object_type = "computer_extension_attribute"

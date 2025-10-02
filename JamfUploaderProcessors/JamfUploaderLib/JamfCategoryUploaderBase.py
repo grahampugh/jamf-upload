@@ -58,7 +58,7 @@ class JamfCategoryUploaderBase(JamfUploaderBase):
 
         # write the category.
         count = 0
-        category_json = self.write_json_file(category_data)
+        category_json = self.write_json_file(jamf_url, category_data)
         while True:
             count += 1
             self.output(

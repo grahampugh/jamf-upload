@@ -115,7 +115,7 @@ class JamfClassicAPIObjectUploaderBase(JamfUploaderBase):
         # we need to substitute the values in the object name and template now to
         # account for version strings in the name
         object_name, template_file = self.prepare_template(
-            object_type, object_template, object_name, xml_escape=True
+            jamf_url, object_type, object_template, object_name, xml_escape=True
         )
 
         # now start the process of uploading the object

@@ -161,7 +161,9 @@ class JamfPatchUploaderBase(JamfUploaderBase):
             )
 
         # Write xml file
-        patch_softwaretitle_xml_file = self.write_xml_file(patch_softwaretitle_xml)
+        patch_softwaretitle_xml_file = self.write_xml_file(
+            jamf_url, patch_softwaretitle_xml
+        )
 
         # Upload the 'updated' patch softwaretitle
         count = 0

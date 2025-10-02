@@ -109,7 +109,7 @@ class JamfScriptUploaderBase(JamfUploaderBase):
             verbose_level=2,
         )
 
-        script_json = self.write_json_file(script_data)
+        script_json = self.write_json_file(jamf_url, script_data)
 
         self.output("Uploading script..")
 

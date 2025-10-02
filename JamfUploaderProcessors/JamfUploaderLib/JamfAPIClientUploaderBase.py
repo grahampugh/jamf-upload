@@ -51,7 +51,7 @@ class JamfAPIClientUploaderBase(JamfUploaderBase):
     ):
         """Update API Client metadata."""
 
-        template_file = self.write_json_file(object_data)
+        template_file = self.write_json_file(jamf_url, object_data)
 
         self.output(f"Uploading {object_type}...")
 
