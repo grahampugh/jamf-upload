@@ -1367,8 +1367,14 @@ class JamfUploaderBase(Processor):
             for elem in parent.findall(element):
                 parent.remove(elem)
 
+    def substitute_elements_in_xml(self, object_xml, element, replacement_value):
+        """substitutes all instances of an object from XML with a provided replacement value"""
+        for parent in object_xml.findall(f".//{element}/.."):
+            for elem in parent.findall(element):
+                elem.text = replacement_value
+
     def replace_element(self, object_type, existing_object, element_path, new_value):
-        """Replaces a specific element from XML using a path such as 'general/id'."""
+        """Replaces a specific element from XML or JSON using a path such as 'general/id'."""
         # Split the path into parts
         keys = element_path.split("/")
         if "JSSResource" in self.api_endpoints(object_type):
@@ -1429,29 +1435,6 @@ class JamfUploaderBase(Processor):
             )
             return json.dumps(existing_object, indent=4)
 
-    def substitute_elements_in_xml(self, object_xml, element, replacement_value):
-        """substitutes all instances of an object from XML with a provided replaceement value"""
-        for parent in object_xml.findall(f".//{element}/.."):
-            for elem in parent.findall(element):
-                # parent.remove(elem)
-                elem.text = replacement_value
-
-    def inject_version_lock(self, existing_object):
-        """PreStages need to add the version lock in order to replace them"""
-        if existing_object:
-            if not isinstance(existing_object, dict):
-                existing_object = json.loads(existing_object)
-                current_version_lock = existing_object["versionLock"]
-                existing_object["versionLock"] = current_version_lock + 1
-                for value in existing_object.values():
-                    value_check = value
-                    if isinstance(value_check, abc.Mapping):
-                        if "versionLock" in value:
-                            current_version_lock = value["versionLock"]
-                            value["versionLock"] = current_version_lock
-            return json.dumps(existing_object, indent=4)
-        return ""
-
     def parse_downloaded_api_object(
         self, existing_object, object_type, elements_to_remove
     ):
@@ -1503,6 +1486,68 @@ class JamfUploaderBase(Processor):
                                 value.pop(elem)
             return json.dumps(existing_object, indent=4)
         return ""
+
+    def substitute_existing_version_locks(
+        self, jamf_url, object_type, obj_id, object_template, token
+    ):
+        """replace the existing version lock to ensure we don't change it"""
+        # first grab the payload from the json object
+        existing_object = self.get_api_obj_contents_from_id(
+            jamf_url,
+            object_type,
+            obj_id,
+            "",
+            token=token,
+        )
+
+        # import template from file and replace any keys in the template
+        if os.path.exists(object_template):
+            with open(object_template, "r", encoding="utf-8") as file:
+                template_contents = json.load(file)
+        else:
+            raise ProcessorError("Template does not exist!")
+
+        self.output(f"Existing Object: {existing_object}", verbose_level=3)  # TEMP
+        # now extract the main version lock from the existing object
+        template_contents["versionLock"] = existing_object["versionLock"]
+        self.output(
+            f"Top level version lock: {existing_object['versionLock']}", verbose_level=2
+        )
+        template_contents["locationInformation"]["versionLock"] = existing_object[
+            "locationInformation"
+        ]["versionLock"]
+        self.output(
+            (
+                "locationInformation version lock: "
+                f"{existing_object['locationInformation']['versionLock']}"
+            ),
+            verbose_level=3,
+        )
+        template_contents["purchasingInformation"]["versionLock"] = existing_object[
+            "purchasingInformation"
+        ]["versionLock"]
+        self.output(
+            (
+                "purchasingInformation version lock: "
+                f"{existing_object['purchasingInformation']['versionLock']}"
+            ),
+            verbose_level=3,
+        )
+        template_contents["accountSettings"]["versionLock"] = existing_object[
+            "accountSettings"
+        ]["versionLock"]
+        self.output(
+            (
+                "accountSettings version lock: "
+                f"{existing_object['accountSettings']['versionLock']}"
+            ),
+            verbose_level=3,
+        )
+
+        self.output(f"Prestage: {template_contents}", verbose_level=3)  # TEMP
+
+        with open(object_template, "w", encoding="utf-8") as file:
+            json.dump(template_contents, file)
 
     def prepare_template(
         self,
