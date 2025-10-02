@@ -818,10 +818,6 @@ class JamfUploaderBase(Processor):
                 return obj_id
             else:
                 raise ProcessorError(
-                    "ERROR: Failed to get Object ID from Object Name."
-                )
-            else:
-                raise ProcessorError(
                     f"ERROR: Unable to get {object_type} list from server - "
                     f"status code {r.status_code}"
                 )
