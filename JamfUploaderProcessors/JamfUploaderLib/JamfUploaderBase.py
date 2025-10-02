@@ -798,7 +798,7 @@ class JamfUploaderBase(Processor):
             url = jamf_url + "/" + self.api_endpoints(object_type)
             r = self.curl(request="GET", url=url, token=token)
 
-            if r.status_code == 200:
+            if self.status_check(r, object_type, object_name, "GET") == "break":
                 object_list = json.loads(r.output)
                 self.output(
                     object_list,
@@ -816,9 +816,9 @@ class JamfUploaderBase(Processor):
                     if obj["name"].lower() == object_name.lower():
                         obj_id = obj["id"]
                 return obj_id
-            elif r.status_code == 401:
+            else:
                 raise ProcessorError(
-                    "ERROR: Jamf returned status code '401' - Access denied."
+                    "ERROR: Failed to get Object ID from Object Name."
                 )
         else:
             # do JSON stuff
@@ -828,7 +828,7 @@ class JamfUploaderBase(Processor):
             )
             url = jamf_url + "/" + self.api_endpoints(object_type) + url_filter
             r = self.curl(request="GET", url=url, token=token)
-            if r.status_code == 200:
+            if self.status_check(r, object_type, object_name, "GET") == "break":
                 obj_id = 0
                 output = r.output
                 for obj in output["results"]:
@@ -840,9 +840,9 @@ class JamfUploaderBase(Processor):
                         obj_id = obj["id"]
                         break
                 return obj_id
-            elif r.status_code == 401:
+            else:
                 raise ProcessorError(
-                    "ERROR: Jamf returned status code '401' - Access denied."
+                    "ERROR: Failed to get Object ID from Object Name."
                 )
 
     def substitute_assignable_keys(self, data, xml_escape=False):
