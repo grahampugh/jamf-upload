@@ -797,7 +797,7 @@ class JamfUploaderBase(Processor):
             url = jamf_url + "/" + self.api_endpoints(object_type)
             r = self.curl(request="GET", url=url, token=token)
 
-            if r.status_code == 200:
+            if self.status_check(r, object_type, object_name, "GET") == "break":
                 object_list = json.loads(r.output)
                 self.output(
                     object_list,
@@ -816,10 +816,6 @@ class JamfUploaderBase(Processor):
                         obj_id = obj["id"]
                         break
                 return obj_id
-            elif r.status_code == 401:
-                raise ProcessorError(
-                    "ERROR: Jamf returned status code '401' - Access denied."
-                )
             else:
                 raise ProcessorError(
                     f"ERROR: Unable to get {object_type} list from server - "
@@ -833,7 +829,7 @@ class JamfUploaderBase(Processor):
             )
             url = jamf_url + "/" + self.api_endpoints(object_type) + url_filter
             r = self.curl(request="GET", url=url, token=token)
-            if r.status_code == 200:
+            if self.status_check(r, object_type, object_name, "GET") == "break":
                 obj_id = 0
                 output = r.output
                 for obj in output["results"]:
@@ -845,10 +841,6 @@ class JamfUploaderBase(Processor):
                         obj_id = obj["id"]
                         break
                 return obj_id
-            if r.status_code == 401:
-                raise ProcessorError(
-                    "ERROR: Jamf returned status code '401' - Access denied."
-                )
             else:
                 raise ProcessorError(
                     f"ERROR: Unable to get {object_type} list from server - "
