@@ -545,7 +545,7 @@ class JamfUploaderBase(Processor):
         tmp_dir = self.make_tmp_dir()
         url_specific_dir = self.make_url_specific_dir(url)
         headers_file = os.path.join(
-            url_specific_dir, "curl_headers_from_jamf_upload.txt"
+            tmp_dir, "curl_headers_from_jamf_upload.txt"
         )
         output_file = self.init_temp_file(prefix="jamf_upload_", suffix=".txt")
         cookie_jar = os.path.join(url_specific_dir, "curl_cookies_from_jamf_upload.txt")
