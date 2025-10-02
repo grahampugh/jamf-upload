@@ -427,8 +427,9 @@ Teams notifications arguments:
 ## DEFAULTS ##
 ##############
 
-temp_processor_plist="/tmp/processor.plist"
-temp_receipt="/tmp/processor_receipt.plist"
+temp_processor_plist="/tmp/jamf_upload/processor.plist"
+temp_receipt="/tmp/jamf_upload/processor_receipt.plist"
+mkdir -p "/tmp/jamf_upload"
 
 # this folder
 DIR=$(dirname "$0")

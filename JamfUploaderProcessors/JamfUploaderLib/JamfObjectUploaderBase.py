@@ -249,6 +249,7 @@ class JamfObjectUploaderBase(JamfUploaderBase):
             xml_escape = False
         if "_settings" in object_type:
             _, template_file = self.prepare_template(
+                jamf_url,
                 object_type,
                 object_template,
                 object_name=None,
@@ -261,6 +262,7 @@ class JamfObjectUploaderBase(JamfUploaderBase):
             template_file = ""
         else:
             object_name, template_file = self.prepare_template(
+                jamf_url,
                 object_type,
                 object_template,
                 object_name,

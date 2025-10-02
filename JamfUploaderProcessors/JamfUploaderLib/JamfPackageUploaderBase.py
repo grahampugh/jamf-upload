@@ -654,7 +654,7 @@ class JamfPackageUploaderBase(JamfUploaderBase):
             verbose_level=2,
         )
 
-        pkg_json = self.write_json_file(pkg_data)
+        pkg_json = self.write_json_file(jamf_url, pkg_data)
 
         # if we find a pkg ID we put, if not, we post
         object_type = "package_v1"
