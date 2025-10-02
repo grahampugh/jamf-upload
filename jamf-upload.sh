@@ -497,6 +497,8 @@ elif [[ $object == "mobiledeviceprofile" ]]; then
     processor="JamfMobileDeviceProfileUploader"
 elif [[ $object == "msu" || $object == "managedsoftwareupdateplan" ]]; then
     processor="JamfMSUPlanUploader"
+elif [[ $object == "obj"* || $object == "classicobj"* ]]; then
+    processor="JamfObjectUploader"
 elif [[ $object == "pkg" || $object == "package" ]]; then
     processor="JamfPackageUploader"
 elif [[ $object == "pkgclean" ]]; then
