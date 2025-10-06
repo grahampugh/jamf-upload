@@ -178,6 +178,9 @@ class JamfScriptUploaderBase(JamfUploaderBase):
         # we need to substitute the values in the script name now to
         # account for generated strings in the name
         # substitute user-assignable keys
+        if not script_name:
+            script_name = os.path.basename(script_path)
+
         script_name = self.substitute_assignable_keys(script_name)
 
         # get token using oauth or basic auth depending on the credentials given
@@ -224,9 +227,6 @@ class JamfScriptUploaderBase(JamfUploaderBase):
                 raise ProcessorError(f"ERROR: Script file {script_path} not found")
 
         # now start the process of uploading the object
-        if not script_name:
-            script_name = os.path.basename(script_path)
-
         # check for existing script
         self.output(f"Checking for existing '{script_name}' on {jamf_url}")
         self.output(
