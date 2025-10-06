@@ -288,6 +288,8 @@ Script Upload arguments:
     --key X=Y               Substitutable values in the script. Multiple values can be supplied
     --parameter[4-11]
                             Script parameter labels 
+    --skip-substitution
+                            Skip substitution of variables in the script
     --replace               Replace existing item
 
 Software Restriction Upload arguments:
@@ -1438,6 +1440,13 @@ while test $# -gt 0 ; do
             if [[ $processor == "JamfScriptUploader" ]]; then
                 if plutil -replace "script_parameter$param_number" -string "$1" "$temp_processor_plist"; then
                     echo "   [jamf-upload] Wrote script_parameter$param_number='$1' into $temp_processor_plist"
+                fi
+            fi
+            ;;
+        --skip-substitution) 
+            if [[ $processor == "JamfScriptUploader" ]]; then
+                if plutil -replace skip_script_key_substitution -string "True" "$temp_processor_plist"; then
+                    echo "   [jamf-upload] Wrote skip_script_key_substitution='True' into $temp_processor_plist"
                 fi
             fi
             ;;
