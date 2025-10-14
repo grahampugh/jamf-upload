@@ -124,7 +124,7 @@ class JamfUploaderBase(Processor):
             "restricted_software",
         ):
             return "classic"
-        elif object_type in ("package_upload",):
+        elif object_type == "package_upload":
             return "dbfileupload"
         elif object_type in (
             "cb_benchmarks",
@@ -197,7 +197,9 @@ class JamfUploaderBase(Processor):
                 "api/v1/managed-software-updates/plans/feature-toggle"
             ),
             "managed_software_updates_plans": "api/v1/managed-software-updates/plans",
-            "managed_software_updates_plans_events": f"api/v1/managed-software-updates/plans/{uuid}/events",
+            "managed_software_updates_plans_events": (
+                f"api/v1/managed-software-updates/plans/{uuid}/events"
+            ),
             "managed_software_updates_plans_group_settings": (
                 "api/v1/managed-software-updates/plans/group"
             ),
