@@ -202,13 +202,22 @@ class JamfObjectReaderBase(JamfUploaderBase):
 
         # get token using oauth or basic auth depending on the credentials given
         if jamf_url:
-            token = self.handle_api_auth(
-                jamf_url,
-                jamf_user=jamf_user,
-                password=jamf_password,
-                client_id=client_id,
-                client_secret=client_secret,
-            )
+            # determine which token we need based on object type. classic and jpapi types use handle_api_auth, platform type uses handle_platform_api_auth
+            api_type = self.api_type(object_type)
+            if api_type == "platform":
+                token = self.handle_platform_api_auth(
+                    jamf_url,
+                    client_id=client_id,
+                    client_secret=client_secret,
+                )
+            else:
+                token = self.handle_api_auth(
+                    jamf_url,
+                    jamf_user=jamf_user,
+                    password=jamf_password,
+                    client_id=client_id,
+                    client_secret=client_secret,
+                )
         else:
             raise ProcessorError("ERROR: Jamf Pro URL not supplied")
 

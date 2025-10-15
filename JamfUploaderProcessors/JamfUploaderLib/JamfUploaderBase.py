@@ -130,6 +130,7 @@ class JamfUploaderBase(Processor):
             "cb_benchmarks",
             "cb_rules",
             "cb_baselines",
+            "platform_api_token",
         ):
             return "platform"
         elif object_type == "slack":
@@ -220,6 +221,7 @@ class JamfUploaderBase(Processor):
             "package_upload": "dbfileupload",
             "patch_policy": "JSSResource/patchpolicies",
             "patch_software_title": "JSSResource/patchsoftwaretitles",
+            "platform_api_token": "auth/token",
             "policy": "JSSResource/policies",
             "policy_icon": "JSSResource/fileuploads/policies",
             "policy_properties_settings": "api/v1/policy-properties",
@@ -556,7 +558,7 @@ class JamfUploaderBase(Processor):
 
         # first try to get the account and password from the Keychain
         user_from_kc, pass_from_kc = self.keychain_get_creds(
-            jamf_url, jamf_user, client_id
+            jamf_url, jamf_user=jamf_user, client_id=client_id
         )
         if user_from_kc and pass_from_kc:
             if self.is_valid_uuid(user_from_kc):
@@ -605,6 +607,137 @@ class JamfUploaderBase(Processor):
         # return token and classic creds
         return token
 
+    def check_platform_api_token(self, api_url, client_id):
+        """Check validity of an existing token"""
+        url_specific_dir = self.make_url_specific_dir(api_url)
+        token_file = os.path.join(url_specific_dir, "token_from_jamf_upload.txt")
+        token = ""
+
+        if os.path.exists(token_file):
+            with open(token_file, "rb") as file:
+                data = json.load(file)
+                # check that there is a 'token' key
+                try:
+                    self.output(
+                        f"Checking {data['url']} against {api_url}", verbose_level=2
+                    )
+                    if data["url"] == api_url and data["user"] == client_id:
+                        self.output(
+                            "URL and client ID for token matches current request",
+                            verbose_level=2,
+                        )
+                        if data["access_token"]:
+                            try:
+                                # check if it's expired or not
+                                # the expires_in key represents how many minutes until the token expires, from the time the file was created
+                                expires_in = data["expires_in"]
+                                token_file_creation_epoch = os.path.getctime(token_file)
+
+                                token_file_expiry_epoch = token_file_creation_epoch + (
+                                    expires_in * 60
+                                )
+
+                                now_epoch = time.time()
+
+                                if token_file_expiry_epoch > now_epoch:
+                                    self.output("Existing token is valid")
+                                    token = data["access_token"]
+                                else:
+                                    self.output(
+                                        f"Existing token expired - {token_file_expiry_epoch} "
+                                        f"vs {now_epoch}"
+                                    )
+
+                            except ValueError:
+                                self.output(
+                                    "Token expiry could not be parsed", verbose_level=2
+                                )
+                        else:
+                            self.output("Token not found in file", verbose_level=2)
+                    else:
+                        self.output(
+                            "URL or user do not match current token request",
+                            verbose_level=2,
+                        )
+                except KeyError as e:
+                    self.output(
+                        f"Some other error: {e}",
+                        verbose_level=2,
+                    )
+        else:
+            self.output("No existing valid token found", verbose_level=2)
+        return token
+
+    def get_platform_api_token(self, api_url="", client_id="", client_secret=""):
+        """get a token for the Jamf Pro API or Classic API using basic auth"""
+        url = api_url + "/" + self.api_endpoints("platform_api_token")
+        additional_curl_opts = [
+            "--header",
+            "Content-Type: application/x-www-form-urlencoded",
+            "--data-urlencode",
+            f"client_id={client_id}",
+            "--data-urlencode",
+            f"client_secret={client_secret}",
+            "--data-urlencode",
+            "grant_type=client_credentials",
+        ]
+        r = self.curl(
+            api_type="platform",
+            request="POST",
+            url=url,
+            additional_curl_opts=additional_curl_opts,
+        )
+        output = r.output
+        if r.status_code == 200:
+            try:
+                token = str(output["access_token"])
+                expires_in = str(output["expires_in"])
+
+                # write the data to a file
+                self.write_token_to_json_file(api_url, client_id, output)
+                self.output("Session token received")
+                self.output(f"Token: {token}", verbose_level=2)
+                self.output(f"Expires: {expires_in}", verbose_level=2)
+                return token
+            except KeyError:
+                self.output("ERROR: No token received")
+        else:
+            self.output(f"ERROR: No token received (HTTP response {r.status_code})")
+
+    def handle_platform_api_auth(self, api_url, client_id="", client_secret=""):
+        """obtain token for Platform API"""
+
+        # first try to get the account and password from the Keychain
+        id_from_kc, pass_from_kc = self.keychain_get_creds(api_url, client_id=client_id)
+        if id_from_kc and pass_from_kc:
+            if self.is_valid_uuid(id_from_kc):
+                client_id = id_from_kc
+                client_secret = pass_from_kc
+                self.output(
+                    "Using API client credentials found in keychain", verbose_level=2
+                )
+            else:
+                self.output(
+                    "Client ID found in keychain is not a valid UUID", verbose_level=2
+                )
+        else:
+            self.output("Credentials not found in keychain", verbose_level=2)
+
+        # check for existing token
+        self.output("Checking for existing authentication token", verbose_level=2)
+        if client_id and client_secret:
+            token = self.check_api_token(api_url, client_id)
+            # if no valid token, get one
+            if not token:
+                self.output("Getting an authentication token", verbose_level=2)
+                token = self.get_platform_api_token(api_url, client_id, client_secret)
+            if not token:
+                raise ProcessorError("No token found, cannot continue")
+        else:
+            raise ProcessorError("Insufficient credentials provided, cannot continue")
+        # return token and classic creds
+        return token
+
     def clear_tmp_dir(self, tmp_dir="/tmp/jamf_upload"):
         """remove the tmp directory"""
         if os.path.exists(tmp_dir):
@@ -626,20 +759,22 @@ class JamfUploaderBase(Processor):
         """
         Build a curl command based on request type (GET, POST, PUT, PATCH, DELETE).
 
-        This function handles 7 different API types:
+        This function handles 8 different API types:
         1. classic: The Jamf Pro Classic API. These endpoints are under the 'JSSResource' URL.
         2. jpapi: The Jamf Pro API. These endpoints are under the 'api'/'uapi' URL.
-        3. dbfileupload: The Jamf Pro dbfileupload endpoint, for uploading packages (v1).
-        4. slack: Slack webhooks.
-        5. teams: Microsoft Teams webhooks.
-        6. jira: Jira Cloud issue requests (REST API).
-        7. none: URLs that do not require authentication, for example ics.services.jamfcloud.com.
+        3. platform: Jamf Platform API.
+        4. dbfileupload: The Jamf Pro dbfileupload endpoint, for uploading packages (v1).
+        5. slack: Slack webhooks.
+        6. teams: Microsoft Teams webhooks.
+        7. jira: Jira Cloud issue requests (REST API).
+        8. none: URLs that do not require authentication, for example ics.services.jamfcloud.com.
 
         For the Jamf Pro API and Classic API, basic authentication is used to obtain a
         bearer token, which we write to a file along with its expiry datetime.
         Subsequent requests to the same URL use the bearer token until it expires.
         Jamf Pro versions older than 10.35 use basic auth for all Classic API requests.
         The dbfileupload endpoint also uses basic auth.
+        The Jamf Platform API uses OAuth 2.0 for authentication.
         The legacy/packages endpoint uses a session ID and separate authentication token.
         This is generated by the JamfPackageUploader processor.
         Authentication for the webhooks is achieved with a preconfigured token.
@@ -1814,7 +1949,7 @@ class JamfUploaderBase(Processor):
             self.output(f"{uuid_to_test} is an account name", verbose_level=3)
             return False
 
-    def keychain_get_creds(self, service, jamf_user, client_id):
+    def keychain_get_creds(self, service, jamf_user="", client_id=""):
         """Get an account name and password from the keychain.
 
         Args:
