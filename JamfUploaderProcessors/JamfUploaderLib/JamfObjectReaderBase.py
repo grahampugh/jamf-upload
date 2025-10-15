@@ -204,6 +204,7 @@ class JamfObjectReaderBase(JamfUploaderBase):
         if jamf_url:
             # determine which token we need based on object type. classic and jpapi types use handle_api_auth, platform type uses handle_platform_api_auth
             api_type = self.api_type(object_type)
+            self.output(f"API type for {object_type} is {api_type}", verbose_level=3)
             if api_type == "platform":
                 token = self.handle_platform_api_auth(
                     jamf_url,

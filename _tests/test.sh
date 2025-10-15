@@ -54,6 +54,24 @@ fi
 # script
 
 case "$test_type" in
+    list-benchmarks)
+        "$DIR"/../jamf-upload.sh read \
+            --prefs "$prefs" \
+            --recipe-dir /Users/gpugh/sourcecode/jamf-upload/_tests \
+            --type "benchmarks" \
+            --list \
+            --output "/Users/Shared/Jamf/JamfUploaderTests" \
+            "$verbosity"
+        ;;
+    list-baselines)
+        "$DIR"/../jamf-upload.sh read \
+            --prefs "$prefs" \
+            --recipe-dir /Users/gpugh/sourcecode/jamf-upload/_tests \
+            --type "baselines" \
+            --list \
+            --output "/Users/Shared/Jamf/JamfUploaderTests" \
+            "$verbosity"
+        ;;
     list-policies)
         "$DIR"/../jamf-upload.sh read \
             --prefs "$prefs" \

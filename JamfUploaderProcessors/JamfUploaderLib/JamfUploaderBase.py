@@ -127,9 +127,9 @@ class JamfUploaderBase(Processor):
         elif object_type == "package_upload":
             return "dbfileupload"
         elif object_type in (
-            "cb_benchmarks",
-            "cb_rules",
-            "cb_baselines",
+            "baselines",
+            "benchmarks",
+            "rules",
             "platform_api_token",
         ):
             return "platform"
@@ -161,10 +161,9 @@ class JamfUploaderBase(Processor):
             "app_installers_accept_t_and_c_command": (
                 "api/v1/app-installers/terms-and-conditions/accept"
             ),
+            "baselines": "api/cb/engine/v1/baselines",
+            "benchmarks": "api/cb/engine/v2/benchmarks",
             "category": "api/v1/categories",
-            "cb_benchmarks": "api/cb/engine/v2/benchmarks",
-            "cb_rules": "api/cb/engine/v1/rules",
-            "cb_baselines": "api/cb/engine/v1/baselines",
             "check_in_settings": "api/v3/check-in",
             "cloud_ldap": "api/v2/cloud-ldaps",
             "computer": "api/preview/computers",
@@ -226,6 +225,7 @@ class JamfUploaderBase(Processor):
             "policy_icon": "JSSResource/fileuploads/policies",
             "policy_properties_settings": "api/v1/policy-properties",
             "restricted_software": "JSSResource/restrictedsoftware",
+            "rules": "api/cb/engine/v1/rules",
             "self_service_settings": "api/v1/self-service/settings",
             "self_service_plus_settings": "api/v1/self-service-plus/settings",
             "script": "api/v1/scripts",
@@ -640,7 +640,9 @@ class JamfUploaderBase(Processor):
                                 now_epoch = time.time()
 
                                 if token_file_expiry_epoch > now_epoch:
-                                    self.output("Existing token is valid")
+                                    self.output(
+                                        f"Existing token is valid ({token_file})"
+                                    )
                                     token = data["access_token"]
                                 else:
                                     self.output(
@@ -683,6 +685,7 @@ class JamfUploaderBase(Processor):
         ]
         r = self.curl(
             api_type="platform",
+            endpoint_type="auth",
             request="POST",
             url=url,
             additional_curl_opts=additional_curl_opts,
@@ -690,8 +693,8 @@ class JamfUploaderBase(Processor):
         output = r.output
         if r.status_code == 200:
             try:
-                token = str(output["access_token"])
-                expires_in = str(output["expires_in"])
+                token = output["access_token"]
+                expires_in = output["expires_in"]
 
                 # write the data to a file
                 self.write_token_to_json_file(api_url, client_id, output)
@@ -726,10 +729,12 @@ class JamfUploaderBase(Processor):
         # check for existing token
         self.output("Checking for existing authentication token", verbose_level=2)
         if client_id and client_secret:
-            token = self.check_api_token(api_url, client_id)
+            token = self.check_platform_api_token(api_url, client_id)
             # if no valid token, get one
             if not token:
-                self.output("Getting an authentication token", verbose_level=2)
+                self.output(
+                    "Getting a Platform API authentication token", verbose_level=2
+                )
                 token = self.get_platform_api_token(api_url, client_id, client_secret)
             if not token:
                 raise ProcessorError("No token found, cannot continue")
@@ -961,11 +966,13 @@ class JamfUploaderBase(Processor):
         elif api_type == "platform":
             # platform API requests
             curl_cmd.extend(["--silent", "--show-error"])
-            if not token:
+            if token:
+                curl_cmd.extend(["--header", f"authorization: Bearer {token}"])
+            elif endpoint_type != "auth":
                 raise ProcessorError("No token supplied for Platform API request")
 
             # URL must match {region}.apigw.jamf.com
-            if not re.match(r"^[a-z1-9]{2}\.apigw\.jamf\.com$", url):
+            if not re.match(r"^https:\/\/[a-z1-9]{2}\.apigw\.jamf\.com", url):
                 raise ProcessorError(f"Invalid URL for Platform API request: {url}")
 
         elif api_type == "none":
@@ -994,7 +1001,17 @@ class JamfUploaderBase(Processor):
             custom_curl_opts_list = self.env.get("custom_curl_opts").split()
             curl_cmd.extend(custom_curl_opts_list)
 
-        self.output(f"curl command: {' '.join(curl_cmd)}", verbose_level=3)
+        # Format curl command for shell execution, adding quotes where needed
+        formatted_cmd = []
+        for arg in curl_cmd:
+            if " " in arg or '"' in arg or "'" in arg or "&" in arg or "|" in arg:
+                # Escape any existing quotes and wrap in quotes
+                escaped_arg = arg.replace('"', '\\"')
+                formatted_cmd.append(f'"{escaped_arg}"')
+            else:
+                formatted_cmd.append(arg)
+
+        self.output(f"curl command: {' '.join(formatted_cmd)}", verbose_level=3)
 
         # now subprocess the curl command and build the r tuple which contains the
         # headers, status code and outputted data
@@ -1012,21 +1029,30 @@ class JamfUploaderBase(Processor):
                     r.status_code = int(header.split()[1])
         except IOError as exc:
             raise ProcessorError(f"WARNING: {headers_file} not found") from exc
-        if os.path.exists(output_file) and os.path.getsize(output_file) > 0:
-            if "ics.services.jamfcloud.com" in url:
-                r.output = output_file
-            else:
-                with open(output_file, "rb") as file:
-                    if api_type == "jpapi" or (
-                        api_type == "classic"
-                        and endpoint_type != "icon_get"
-                        and endpoint_type != "policy_icon"
-                    ):
-                        r.output = json.load(file)
+        if r.status_code is not None:
+            self.output(f"HTTP response: {r.status_code}", verbose_level=3)
+            if int(r.status_code) < 400:
+                if os.path.exists(output_file) and os.path.getsize(output_file) > 0:
+                    if "ics.services.jamfcloud.com" in url:
+                        r.output = output_file
                     else:
-                        r.output = file.read()
-        else:
-            self.output(f"No output from request ({output_file} not found or empty)")
+                        with open(output_file, "rb") as file:
+                            if (
+                                api_type == "jpapi"
+                                or api_type == "platform"
+                                or (
+                                    api_type == "classic"
+                                    and endpoint_type != "icon_get"
+                                    and endpoint_type != "policy_icon"
+                                )
+                            ):
+                                r.output = json.load(file)
+                            else:
+                                r.output = file.read()
+                else:
+                    self.output(
+                        f"No output from request ({output_file} not found or empty)"
+                    )
         return r()
 
     def status_check(self, r, endpoint_type, obj_name, request):
@@ -1428,7 +1454,7 @@ class JamfUploaderBase(Processor):
                     f"ERROR: Unable to get list of {object_type} from {domain}"
                 )
             self.output(f"Output:\n{r.output}", verbose_level=4)
-            object_list = r.output.get("data", [])
+            object_list = r.output.get(object_type, [])
         else:
             raise ProcessorError(f"ERROR: Unknown API type {api_type}")
 
