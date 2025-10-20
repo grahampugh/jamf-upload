@@ -58,8 +58,47 @@ case "$test_type" in
         "$DIR"/../jamf-upload.sh read \
             --prefs "$prefs" \
             --recipe-dir /Users/gpugh/sourcecode/jamf-upload/_tests \
-            --type "benchmarks" \
+            --type "benchmark" \
             --list \
+            --output "/Users/Shared/Jamf/JamfUploaderTests" \
+            --key "CLIENT_ID=a8045e45-0fef-436c-a7f8-7d6bf84522ad" \
+            "$verbosity"
+        ;;
+    list-blueprints)
+        "$DIR"/../jamf-upload.sh read \
+            --prefs "$prefs" \
+            --recipe-dir /Users/gpugh/sourcecode/jamf-upload/_tests \
+            --type "blueprint" \
+            --list \
+            --key "CLIENT_ID=a8045e45-0fef-436c-a7f8-7d6bf84522ad" \
+            --output "/Users/Shared/Jamf/JamfUploaderTests" \
+            "$verbosity"
+        ;;
+    list-groups)
+        "$DIR"/../jamf-upload.sh read \
+            --prefs "$prefs" \
+            --recipe-dir /Users/gpugh/sourcecode/jamf-upload/_tests \
+            --type "group" \
+            --list \
+            --output "/Users/Shared/Jamf/JamfUploaderTests" \
+            "$verbosity"
+        ;;
+    read-group)
+        "$DIR"/../jamf-upload.sh read \
+            --prefs "$prefs" \
+            --recipe-dir /Users/gpugh/sourcecode/jamf-upload/_tests \
+            --type "group" \
+            --name "All Managed" \
+            --output "/Users/Shared/Jamf/JamfUploaderTests" \
+            "$verbosity"
+        ;;
+    read-benchmark)
+        "$DIR"/../jamf-upload.sh read \
+            --prefs "$prefs" \
+            --recipe-dir /Users/gpugh/sourcecode/jamf-upload/_tests \
+            --type "benchmark" \
+            --id "68daad67165ba63ba7c352d5" \
+            --key "CLIENT_ID=a8045e45-0fef-436c-a7f8-7d6bf84522ad" \
             --output "/Users/Shared/Jamf/JamfUploaderTests" \
             "$verbosity"
         ;;
@@ -67,8 +106,9 @@ case "$test_type" in
         "$DIR"/../jamf-upload.sh read \
             --prefs "$prefs" \
             --recipe-dir /Users/gpugh/sourcecode/jamf-upload/_tests \
-            --type "baselines" \
+            --type "baseline" \
             --list \
+            --key "CLIENT_ID=a8045e45-0fef-436c-a7f8-7d6bf84522ad" \
             --output "/Users/Shared/Jamf/JamfUploaderTests" \
             "$verbosity"
         ;;
@@ -100,7 +140,7 @@ case "$test_type" in
             --output "/Users/Shared/Jamf/JamfUploaderTests" \
             "$verbosity"
         ;;
-    list-groups)
+    list-computer-groups)
         "$DIR"/../jamf-upload.sh read \
             --prefs "$prefs" \
             --recipe-dir /Users/gpugh/sourcecode/jamf-upload/_tests \

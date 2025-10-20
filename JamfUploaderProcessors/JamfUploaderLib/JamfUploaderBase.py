@@ -45,7 +45,7 @@ class JamfUploaderBase(Processor):
     """Common functions used by at least two JamfUploader processors."""
 
     # Global version
-    __version__ = "2025.8.6.0"
+    __version__ = "2025.10.16.0"
 
     def api_type(self, object_type):
         """Return the API type from the object type"""
@@ -67,6 +67,7 @@ class JamfUploaderBase(Processor):
             "enrollment_customization",
             "failover",
             "failover_generate_command",
+            "group",
             "icon",
             "jamf_pro_version_settings",
             "jamf_protect_plans_sync_command",
@@ -127,9 +128,10 @@ class JamfUploaderBase(Processor):
         elif object_type == "package_upload":
             return "dbfileupload"
         elif object_type in (
-            "baselines",
-            "benchmarks",
-            "rules",
+            "baseline",
+            "benchmark",
+            "blueprint",
+            "rule",
             "platform_api_token",
         ):
             return "platform"
@@ -161,8 +163,9 @@ class JamfUploaderBase(Processor):
             "app_installers_accept_t_and_c_command": (
                 "api/v1/app-installers/terms-and-conditions/accept"
             ),
-            "baselines": "api/cb/engine/v1/baselines",
-            "benchmarks": "api/cb/engine/v2/benchmarks",
+            "baseline": "api/cb/engine/v1/baselines",
+            "benchmark": "api/cb/engine/v2/benchmarks",
+            "blueprint": "api/blueprints/v1/blueprints",
             "category": "api/v1/categories",
             "check_in_settings": "api/v3/check-in",
             "cloud_ldap": "api/v2/cloud-ldaps",
@@ -180,6 +183,7 @@ class JamfUploaderBase(Processor):
             "enrollment_customization": "api/v2/enrollment-customizations",
             "failover": "api/v1/sso/failover",
             "failover_generate_command": "api/v1/sso/failover/generate",
+            "group": "api/v1/groups",
             "icon": "api/v1/icon",
             "jamf_pro_version_settings": "api/v1/jamf-pro-version",
             "jamf_protect_plans_sync_command": "api/v1/jamf-protect/plans/sync",
@@ -225,7 +229,7 @@ class JamfUploaderBase(Processor):
             "policy_icon": "JSSResource/fileuploads/policies",
             "policy_properties_settings": "api/v1/policy-properties",
             "restricted_software": "JSSResource/restrictedsoftware",
-            "rules": "api/cb/engine/v1/rules",
+            "rule": "api/cb/engine/v1/rules",
             "self_service_settings": "api/v1/self-service/settings",
             "self_service_plus_settings": "api/v1/self-service-plus/settings",
             "script": "api/v1/scripts",
@@ -269,14 +273,18 @@ class JamfUploaderBase(Processor):
             "advanced_mobile_device_search": "advanced_mobile_device_searches",
             "api_client": "api_clients",
             "api_role": "api_roles",
+            "baseline": "baselines",
+            "benchmark": "benchmarks",
+            "blueprint": "blueprints",
             "category": "categories",
             "computer": "computers",
+            "computer_extension_attribute": "computer_extension_attributes",
             "computer_group": "computer_groups",
             "computer_prestage": "computer_prestages",
             "configuration_profile": "configuration_profiles",
             "dock_item": "dock_items",
             "distribution_point": "distribution_points",
-            "computer_extension_attribute": "computer_extension_attributes",
+            "group": "groups",
             "ldap_server": "ldap_servers",
             "mac_application": "mac_applications",
             "mobile_device": "mobile_devices",
@@ -291,6 +299,7 @@ class JamfUploaderBase(Processor):
             "patch_policy": "patch_policies",
             "patch_software_title": "patch_software_titles",
             "policy": "policies",
+            "rule": "rules",
             "script": "scripts",
             "smart_computer_group_membership": "smart_computer_group_membership",
         }
@@ -312,6 +321,7 @@ class JamfUploaderBase(Processor):
         object_type_namekeys = {
             "api_client": "displayName",
             "computer_prestage": "displayName",
+            "group": "groupName",
             "mobile_device_prestage": "displayName",
             "enrollment_customization": "displayName",
             "app_installers_title": "titleName",
@@ -629,27 +639,30 @@ class JamfUploaderBase(Processor):
                         if data["access_token"]:
                             try:
                                 # check if it's expired or not
-                                # the expires_in key represents how many minutes until the token expires, from the time the file was created
+                                # the expires_in key represents how many seconds until the token expires, from the time the file was created
                                 expires_in = data["expires_in"]
                                 token_file_creation_epoch = os.path.getctime(token_file)
 
                                 token_file_expiry_epoch = token_file_creation_epoch + (
-                                    expires_in * 60
+                                    expires_in
                                 )
 
                                 now_epoch = time.time()
+                                token_file_expiry_epoch_human = datetime.fromtimestamp(
+                                    token_file_expiry_epoch, timezone.utc
+                                ).strftime("%Y-%m-%dT%H:%M:%S.%fZ")
 
                                 if token_file_expiry_epoch > now_epoch:
                                     self.output(
-                                        f"Existing token is valid ({token_file})"
+                                        f"Existing token is valid ({token_file}) - "
+                                        f"expires {token_file_expiry_epoch_human}"
                                     )
                                     token = data["access_token"]
                                 else:
                                     self.output(
-                                        f"Existing token expired - {token_file_expiry_epoch} "
-                                        f"vs {now_epoch}"
+                                        f"Existing token invalid ({token_file}) - "
+                                        f"expired {token_file_expiry_epoch}"
                                     )
-
                             except ValueError:
                                 self.output(
                                     "Token expiry could not be parsed", verbose_level=2
@@ -1127,9 +1140,9 @@ class JamfUploaderBase(Processor):
                 raise ProcessorError("No version of Jamf Pro received") from error
 
     def get_api_obj_id_from_name(
-        self, jamf_url, object_name, object_type, token, filter_name="name"
+        self, jamf_url, object_name, object_type, token, filter_name="name", id_key="id"
     ):
-        """check if a Classic API object with the same name exists on the server"""
+        """check if a Classic or Jamf Pro API object with the same name exists on the server"""
         # define the relationship between the object types and their URL
         # get api type
         api_type = self.api_type(object_type)
@@ -1163,7 +1176,7 @@ class JamfUploaderBase(Processor):
         else:
             # do JSON stuff
             url_filter = (
-                f"?page=0&page-size=100&sort=id&filter={filter_name}"
+                f"?page=0&page-size=100&sort={id_key}&filter={filter_name}"
                 f"%3D%3D%22{quote(object_name)}%22"
             )
             url = jamf_url + "/" + self.api_endpoints(object_type) + url_filter
@@ -1173,11 +1186,11 @@ class JamfUploaderBase(Processor):
                 output = r.output
                 for obj in output["results"]:
                     self.output(
-                        f"ID: {obj.get('id')} NAME: {obj.get(filter_name)}",
+                        f"ID: {obj.get(id_key)} NAME: {obj.get(filter_name)}",
                         verbose_level=3,
                     )
                     if obj[filter_name] == object_name:
-                        obj_id = obj["id"]
+                        obj_id = obj[id_key]
                         break
                 return obj_id
             elif r.status_code == 401:
@@ -1416,7 +1429,7 @@ class JamfUploaderBase(Processor):
                 # now get all objects in a loop, paginating per 100 objects
                 object_list = []
 
-                for page in range(0, total_objects, 100):
+                for page in range(0, (total_objects + 99) // 100):
                     url_filter = (
                         f"?page={page}&page-size=100&sort={namekey}&sort-order=asc"
                     )
@@ -1441,6 +1454,12 @@ class JamfUploaderBase(Processor):
                         object_list.extend(r.output["events"])
                     else:
                         object_list.extend(r.output["results"])
+                    # any null values in the output should be converted to empty strings
+                    # this is to avoid problems outputting to XML later
+                    for obj in object_list:
+                        for key, value in obj.items():
+                            if value is None:
+                                obj[key] = ""
             except (KeyError, TypeError):
                 # if not, we're not dealing with a paginated endpoint, so just return the
                 # results list
@@ -1454,7 +1473,7 @@ class JamfUploaderBase(Processor):
                     f"ERROR: Unable to get list of {object_type} from {domain}"
                 )
             self.output(f"Output:\n{r.output}", verbose_level=4)
-            object_list = r.output.get(object_type, [])
+            object_list = r.output.get(self.object_list_types(object_type), [])
         else:
             raise ProcessorError(f"ERROR: Unknown API type {api_type}")
 
@@ -1576,7 +1595,7 @@ class JamfUploaderBase(Processor):
                 return obj_content
 
     def get_api_obj_value_from_id(self, domain, object_type, obj_id, obj_path, token):
-        """get the value of an item in a Classic or Jamf Pro API object"""
+        """get the value of an item in a Classic, Jamf Pro, or Platform API object"""
         # define the relationship between the object types and their URL
         # we could make this shorter with some regex but I think this way is clearer
 
@@ -1991,12 +2010,19 @@ class JamfUploaderBase(Processor):
         """
         if client_id:
             acct = client_id
+            self.output(f"Client ID provided: {client_id}", verbose_level=3)
         elif jamf_user:
             acct = jamf_user
+            self.output(f"Account name provided: {jamf_user}", verbose_level=3)
         else:
             acct = None
+            self.output(f"Account name or Client ID not provided", verbose_level=2)
         passw = None
         if acct:
+            self.output(
+                f"Looking for service '{service}' with account '{acct}' in keychain",
+                verbose_level=2,
+            )
             try:
                 result = subprocess.run(
                     [
@@ -2014,11 +2040,12 @@ class JamfUploaderBase(Processor):
                     stdout=subprocess.PIPE,
                     stderr=subprocess.STDOUT,
                 )
-                # self.output(result.stdout, verbose_level=2)
+                self.output(result.stdout, verbose_level=3)
                 passw = self.remove_non_printable(result.stdout)
             except subprocess.CalledProcessError:
                 pass
         else:
+            self.output(f"Looking for service '{service}' in keychain", verbose_level=2)
             try:
                 result = subprocess.run(
                     [

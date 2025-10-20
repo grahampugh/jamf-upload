@@ -1,16 +1,33 @@
 #!/bin/bash
 
-: <<DOC
-Script to add the required credentials into your login keychain to allow repeated use.
+# --------------------------------------------------------------------------------
+# Script to add the required credentials into your login keychain to allow repeated use.
 
-1. Ask for the instance URL
-2. Ask for the username (show any existing value of first instance in list as default)
-3. Ask for the password (show the associated user if already existing)
-4. Loop through each selected instance, check for an existing keychain entry, create or overwrite
-5. Check the credentials are working using the API
-DOC
+# 1. Ask for the instance URL
+# 2. Ask for the username (show any existing value of first instance in list as default)
+# 3. Ask for the password (show the associated user if already existing)
+# 4. Loop through each selected instance, check for an existing keychain entry, create or overwrite
+# 5. Check the credentials are working using the API
+# --------------------------------------------------------------------------------
 
-# functions
+# --------------------------------------------------------------------------------
+# FUNCTIONS
+# --------------------------------------------------------------------------------
+
+usage() {
+    cat <<'USAGE'
+Usage:
+./set_platformapi_credentials.sh                  - set the Keychain Credentials
+
+Options:
+[no arguments]                                    - interactive mode
+-i JSS_URL                                        - perform action on a single instance
+--user | --id | --client-id CLIENT_ID             - use the specified client ID or username
+--pass | --secret | --client-secret CLIENT_SECRET - use the specified client secret or password
+-v[vvv]                                   - Set value of verbosity (default is -v)
+USAGE
+}
+
 verify_credentials() {
     local jss_url="$1"
     echo "Verifying credentials for $jss_url"
@@ -20,7 +37,7 @@ verify_credentials() {
     jss_api_user=$(/usr/bin/security find-internet-password -s "$jss_url" -g 2>/dev/null | /usr/bin/grep "acct" | /usr/bin/cut -d \" -f 4 )
 
     if [[ ! $jss_api_user ]]; then
-        echo "No keychain entry for $jss_url found. Please run the set-credentials.sh script to add the user to your keychain"
+        echo "No keychain entry for $jss_url found. Please re-run this script and supply the user/Client ID to add to your keychain"
         exit 1
     fi
 
@@ -97,71 +114,145 @@ verify_credentials() {
 
 echo
 
-# ------------------------------------------------------------------------------------
-# 1. Ask for the instance
-# ------------------------------------------------------------------------------------
+# --------------------------------------------------------------------------------
+# MAIN
+# --------------------------------------------------------------------------------
 
-echo "Welcome to the Credentials To The Keychain tool!"
+while test $# -gt 0 ; do
+    case "$1" in
+        -i|--instance)
+            shift
+            chosen_instance="$1"
+            ;;
+        --user|--id|--client-id)
+            shift
+            chosen_id="$1"
+            ;;
+        --pass|--secret|--client-secret)
+            shift
+            chosen_secret="$1"
+            ;;
+        -v*)
+            verbose=1
+            ;;
+        *)
+            echo
+            usage
+            exit 0
+            ;;
+    esac
+    shift
+done
 echo
-echo "(Please submit better names for this script as a GitHub Issue...)"
-echo
-echo "Please note that if you have multiple entries in your Keychain for the same URL"
-echo "with different usernames, this tool might get confused. If in doubt, go check"
-echo "your Keychain for multiple login passwords for the same URL and clear them out."
-echo
 
-echo "Enter Jamf Pro URL"
-read -r -p "URL : " inputted_url
-if [[ ! $inputted_url ]]; then
-    echo "No username supplied"
-    exit 1
-fi
-if [[ "$inputted_url" != *"."* ]]; then
-    inputted_url="$inputted_url.jamfcloud.com"
-fi
-if [[ "$inputted_url" != "https://"* ]]; then
-    inputted_url="https://$inputted_url"
-fi
+cat << 'EOF'
+Welcome to the Set Credentials tool!
 
-# ------------------------------------------------------------------------------------
-# 2. Ask for the username (show any existing value of first instance in list as default)
-# ------------------------------------------------------------------------------------
+(Please submit better names for this script as a GitHub Issue...)
 
-echo "Enter username or Client ID for ${inputted_url}"
-read -r -p "User/Client ID : " inputted_username
-if [[ ! $inputted_username ]]; then
-    echo "No username supplied"
-    exit 1
+This tool adds supplied credentials to your Login Keychain. 
+Please note that if you have multiple entries in your Keychain for the same URL
+with different usernames, this tool will remove them and replace them with the new credentials.
+EOF
+
+if [[ ! $chosen_instance ]]; then
+    echo "Enter Jamf Pro URL"
+    read -r -p "URL : " chosen_instance
+    if [[ ! $chosen_instance ]]; then
+        echo "No instance supplied"
+        exit 1
+    fi
 fi
 
-# check for existing service entry in login keychain
-instance_base="${inputted_url/*:\/\//}"
-kc_check=$(security find-internet-password -s "${inputted_url}" -l "$instance_base ($inputted_username)" -a "$inputted_username" -g 2>/dev/null)
+if [[ "$chosen_instance" != *"."* ]]; then
+    chosen_instance="$chosen_instance.jamfcloud.com"
+fi
+if [[ "$chosen_instance" != "https://"* ]]; then
+    chosen_instance="https://$chosen_instance"
+fi
 
-if [[ $kc_check ]]; then
-    echo "Keychain entry for $inputted_username on $instance_base found"
+instance_base="${chosen_instance/*:\/\//}"
+
+# Ask for the username (show any existing value of first instance in list as default)
+if [[ ! $chosen_id ]]; then
+    echo "Enter username or Client ID for $chosen_instance"
+    read -r -p "User/Client ID : " chosen_id
+    if [[ ! $chosen_id ]]; then
+        echo "No username/Client ID supplied"
+        exit 1
+    fi
+fi
+
+# first check if there is an entry for the server
+server_check=$(security find-internet-password -s "$chosen_instance" 2>/dev/null)
+if [[ $server_check ]]; then
+    echo "Keychain entry/ies for $instance_base found"
+    # next check if there is an entry for the user on that server
+    kc_check=$(security find-internet-password -s "$chosen_instance" -l "$instance_base ($chosen_id)" -a "$chosen_id" -g 2>/dev/null)
+
+    if [[ $kc_check ]]; then
+        echo "Keychain entry for $chosen_id found on $instance_base"
+        # check for existing password entry in login keychain
+        instance_pass=$(security find-internet-password -s "$chosen_instance" -l "$instance_base ($chosen_id)" -a "$chosen_id" -w -g 2>&1)
+        if [[ ${#instance_pass} -gt 0 && $instance_pass != "security: "* ]]; then
+            echo "Password/Client Secret for $chosen_id found on $instance_base"
+        else
+            echo "Password/Client Secret for $chosen_id not found on $instance_base"
+            instance_pass=""
+        fi
+    else
+        echo "Keychain entry for $chosen_id not found on $instance_base"
+    fi
 else
-    echo "No keychain entry for $inputted_username on $instance_base found"
+    echo "Keychain entry for $instance_base not found"
 fi
 
 echo
-# check for existing password entry in login keychain
-instance_pass=$(security find-internet-password -s "${inputted_url}" -l "$instance_base ($inputted_username)" -a "$inputted_username" -w -g 2>&1)
+# Find and delete all keychain entries for this instance_base, repeatedly until none remain
+deleted_count=0
+while true; do
+    # Find the first entry for this instance
+    entry=$(security find-internet-password -s "$chosen_instance" 2>/dev/null)
+    if [[ -z "$entry" ]]; then
+        echo "No more entries found, done with $chosen_instance"
+        break
+    fi
+    
+    # Extract the label from the entry (stored in 0x00000007 attribute)
+    label=$(echo "$entry" | grep "0x00000007" | awk -F'"' '{print $2}')
+    if [[ $label == "$instance_base ("*")" ]]; then
+        # Delete this specific entry
+        echo "Deleting password for $label"
+        if security delete-internet-password -s "$chosen_instance" -l "$label"; then
+            ((deleted_count++))
+        else
+            # If deletion failed, break to avoid infinite loop
+            break
+        fi
+    else
+        # No matching label pattern found, break the loop
+        break
+    fi
+done
 
-if [[ ${#instance_pass} -gt 0 && $instance_pass != "security: "* ]]; then
-    echo "Password / Client Secret for $inputted_username found on $instance_base"
+if [[ $deleted_count -gt 0 ]]; then
+    echo "Deleted $deleted_count existing keychain entries for $instance_base"
 else
-    echo "Password / Client Secret for $inputted_username not found on $instance_base"
+    echo "No existing keychain entries found for $instance_base"
 fi
 
-echo "Enter password or Client Secret for $inputted_username on $instance_base"
-[[ $instance_pass ]] && echo "(or press ENTER to use existing password / Client Secret from keychain for $inputted_username)"
-read -r -s -p "Password/Secret : " inputted_password
-if [[ "$inputted_password" ]]; then
-    instance_pass="$inputted_password"
-elif [[ ! $instance_pass ]]; then
-    echo "No password supplied"
-    exit 1
+echo
+
+if [[ ! "$chosen_secret" ]]; then
+    echo "Enter password/Client Secret for $chosen_id on $instance_base"
+    [[ $instance_pass ]] && echo "(or press ENTER to use existing password/Client Secret from keychain for $chosen_id)"
+    read -r -s -p "Pass : " chosen_secret
+    if [[ $instance_pass && ! "$chosen_secret" ]]; then
+        chosen_secret="$instance_pass"
+    elif [[ ! $chosen_secret ]]; then
+        echo "No password/Client Secret supplied"
+        exit 1
+    fi
 fi
 
 # ------------------------------------------------------------------------------------
@@ -169,16 +260,16 @@ fi
 # ------------------------------------------------------------------------------------
 echo
 echo
-security add-internet-password -U -s "$inputted_url" -l "$instance_base ($inputted_username)" -a "$inputted_username" -w "$instance_pass"
-echo "Credentials for $instance_base ($inputted_username) added to keychain"
+security add-internet-password -U -s "$chosen_instance" -l "$instance_base ($chosen_id)" -a "$chosen_id" -w "$chosen_secret"
+echo "Credentials for $instance_base ($chosen_id) added to keychain"
 
 # ------------------------------------------------------------------------------------
 # 4. Verify the credentials
 # ------------------------------------------------------------------------------------
 
 echo
-echo "Verifying credentials for $instance_base ($inputted_username)"
-verify_credentials "$inputted_url"
+echo "Verifying credentials for $instance_base ($chosen_id)..."
+verify_credentials "$chosen_instance"
 # print out version
 version=$(plutil -extract version raw "$output_file_record")
 if [[ $version ]]; then

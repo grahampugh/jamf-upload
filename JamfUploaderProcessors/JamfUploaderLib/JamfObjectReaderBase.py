@@ -64,8 +64,9 @@ class JamfObjectReaderBase(JamfUploaderBase):
                 object_type = "account_user"
             else:
                 object_type = "account_group"
-            output_filename = f"{subdomain}-accounts-" f"{obj_subtype}-{n}.{filetype}"
-        elif n is not None:
+            output_filename = f"{subdomain}-accounts-{obj_subtype}-{n}.{filetype}"
+        elif n is not None and n != "":
+            self.output(f"Object name is {n}", verbose_level=3)
             # escape slashes in the object name
             n = n.replace("/", "_").replace("\\", "_")
             n = n.replace(":", "_")  # also replace colons with underscores
@@ -312,12 +313,19 @@ class JamfObjectReaderBase(JamfUploaderBase):
                     if obj_id:
                         break
             else:
+                # the group object type has a different ID key
+                if object_type == "group":
+                    id_key = "groupPlatformId"
+                else:
+                    id_key = "id"
+
                 obj_id = self.get_api_obj_id_from_name(
                     jamf_url,
                     object_name,
                     object_type,
                     token=token,
                     filter_name=namekey,
+                    id_key=id_key,
                 )
 
             if obj_id:
@@ -424,6 +432,9 @@ class JamfObjectReaderBase(JamfUploaderBase):
                     if object_name:
                         # if we have an object name, use that
                         n = object_name
+                    elif obj_id and len(object_list) == 1:
+                        # if we have an object ID use the ID in the filename if only one object
+                        n = obj_id
                     else:
                         # otherwise use the name key from the object
                         if namekey not in obj:
