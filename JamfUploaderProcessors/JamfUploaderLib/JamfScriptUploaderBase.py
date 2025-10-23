@@ -183,6 +183,9 @@ class JamfScriptUploaderBase(JamfUploaderBase):
 
         script_name = self.substitute_assignable_keys(script_name)
 
+        # we also need to allow substitution of the category
+        script_category = self.substitute_assignable_keys(script_category)
+
         # get token using oauth or basic auth depending on the credentials given
         if jamf_url:
             token = self.handle_api_auth(
