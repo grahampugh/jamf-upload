@@ -1152,7 +1152,7 @@ class JamfUploaderBase(Processor):
             r = self.curl(api_type=api_type, request="GET", url=url, token=token)
 
             if r.status_code == 200:
-                object_list = json.loads(r.output)[self.object_list_types(object_type)][]
+                object_list = json.loads(r.output)[self.object_list_types(object_type)]
                 self.output(
                     object_list,
                     verbose_level=4,
