@@ -1152,7 +1152,12 @@ class JamfUploaderBase(Processor):
             r = self.curl(api_type=api_type, request="GET", url=url, token=token)
 
             if r.status_code == 200:
-                object_list = r.output[self.object_list_types(object_type)]
+                # Handle both pre-parsed JSON (dict) and raw JSON string responses
+                if isinstance(r.output, dict):
+                    response_data = r.output
+                else:
+                    response_data = json.loads(r.output)
+                object_list = response_data[self.object_list_types(object_type)]
                 self.output(
                     object_list,
                     verbose_level=4,
