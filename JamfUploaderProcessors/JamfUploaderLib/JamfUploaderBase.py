@@ -926,6 +926,7 @@ class JamfUploaderBase(Processor):
 
             # Content-Type for POST/PUT
             elif request == "POST" or request == "PUT":
+                curl_cmd.extend(["--header", "Accept: application/json"])
                 if data:
                     # jamf data upload requires upload-file argument
                     curl_cmd.extend(["--upload-file", data])
@@ -946,6 +947,7 @@ class JamfUploaderBase(Processor):
             # note: other endpoints should supply their headers via 'additional_curl_opts'
 
         elif api_type == "slack" or api_type == "teams":
+            curl_cmd.extend(["--header", "Accept: application/json"])
             # slack and teams webhooks
             curl_cmd.extend(["--silent", "--show-error"])
             if request == "POST":
@@ -970,6 +972,7 @@ class JamfUploaderBase(Processor):
                 if not data:
                     raise ProcessorError("No data supplied for Jira POST/PUT request")
                 curl_cmd.extend(["--header", "Content-type: application/json"])
+                curl_cmd.extend(["--header", "Accept: application/json"])
                 curl_cmd.extend(["--data", data])
             else:
                 raise ProcessorError(
