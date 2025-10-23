@@ -1412,7 +1412,7 @@ class JamfUploaderBase(Processor):
                     f"ERROR: Unable to get list of {object_type} from {domain}"
                 )
             self.output(f"Output:\n{r.output}", verbose_level=4)
-            object_list = json.loads(r.output)[self.object_list_types(object_type)]
+            object_list = r.output[self.object_list_types(object_type)]
         elif api_type == "jpapi":
             # Jamf Pro API: use pagination
             url_filter = "?page=0&page-size=1"
