@@ -1165,7 +1165,7 @@ class JamfUploaderBase(Processor):
                 obj_id = 0
                 if object_type == "account_user" or object_type == "account_group":
                     object_list = object_list["accounts"]
-                for obj in object_list[self.object_list_types(object_type)]:
+                for obj in object_list:
                     self.output(
                         obj,
                         verbose_level=4,
