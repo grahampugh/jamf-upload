@@ -1,5 +1,5 @@
 {
-    "name": "Update to Latest macOS By Eligibility",
+    "name": "Update to Latest macOS",
     "description": "Keep all eligible MacOS devices updated to the last major version",
     "scope": {
         "deviceGroups": [
@@ -11,8 +11,8 @@
             "components": [
                 {
                     "configuration": {
-                        "targetOSVersion": "15.6",
-                        "targetLocalDateTime": "2025-08-08T09:25:00"
+                        "targetOSVersion": "26.0.1",
+                        "targetLocalDateTime": "2025-11-08T09:25:00"
                     },
                     "identifier": "com.jamf.ddm.sw-updates"
                 }

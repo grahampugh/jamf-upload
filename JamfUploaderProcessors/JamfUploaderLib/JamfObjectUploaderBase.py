@@ -78,7 +78,6 @@ class JamfObjectUploaderBase(JamfUploaderBase):
         if (
             object_type == "volume_purchasing_location"
             or object_type == "computer_inventory_collection_settings"
-            or object_type == "blueprint"
         ):
             request = "PATCH"
         elif object_type == "jamf_protect_register_settings":
@@ -87,6 +86,8 @@ class JamfObjectUploaderBase(JamfUploaderBase):
                 "--header",
                 "Content-type: application/json",
             ]
+        elif obj_id and object_type == "blueprint":
+            request = "PATCH"
         elif obj_id or "_settings" in object_type:
             request = "PUT"
         else:

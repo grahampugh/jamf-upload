@@ -973,9 +973,10 @@ class JamfUploaderBase(Processor):
                 curl_cmd.extend(
                     ["--header", "Content-type: application/merge-patch+json"]
                 )
-                if data:
-                    # jamf data upload requires upload-file argument
-                    curl_cmd.extend(["--upload-file", data])
+            if data:
+                # jamf data upload requires upload-file argument
+                curl_cmd.extend(["--upload-file", data])
+                curl_cmd.extend(["--header", "Content-type: application/json"])
 
             # URL must match {region}.apigw.jamf.com
             if not re.match(r"^https:\/\/[a-z1-9]{2}\.apigw\.jamf\.com", url):
@@ -1223,6 +1224,9 @@ class JamfUploaderBase(Processor):
                     if obj[filter_name] == object_name:
                         obj_id = obj[id_key]
                         break
+                self.output(
+                    f"Object ID for '{object_name}' is: {obj_id}", verbose_level=2
+                )
                 return obj_id
             elif r.status_code == 401:
                 raise ProcessorError(
