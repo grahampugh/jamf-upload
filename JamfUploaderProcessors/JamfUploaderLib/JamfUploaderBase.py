@@ -917,6 +917,7 @@ class JamfUploaderBase(Processor):
                 curl_cmd.extend(["--header", "Content-type: multipart/form-data"])
                 curl_cmd.extend(["--form", f"file=@{data};type=image/png"])
 
+            # patch uploads
             elif request == "PATCH":
                 curl_cmd.extend(
                     ["--header", "Content-type: application/merge-patch+json"]
@@ -946,6 +947,39 @@ class JamfUploaderBase(Processor):
                     else:
                         curl_cmd.extend(["--header", "Content-type: application/json"])
             # note: other endpoints should supply their headers via 'additional_curl_opts'
+
+        elif api_type == "platform":
+            # platform API requests
+            curl_cmd.extend(["--silent", "--show-error"])
+            if token:
+                curl_cmd.extend(["--header", f"authorization: Bearer {token}"])
+            elif endpoint_type != "auth":
+                raise ProcessorError("No token supplied for Platform API request")
+
+            # downloads
+            # if request == "GET" or request == "DELETE":
+            #     curl_cmd.extend(["--header", "Accept: application/json"])
+            # # Content-Type for POST/PUT
+            # elif request == "POST" or request == "PUT":
+            #     curl_cmd.extend(["--header", "Accept: application/json"])
+            #     if data:
+            #         # jamf data upload requires upload-file argument
+            #         curl_cmd.extend(["--upload-file", data])
+            #     curl_cmd.extend(["--header", "Content-type: application/json"])
+
+            # patch uploads
+            if request == "PATCH":
+                curl_cmd.extend(["--header", "Accept: application/json"])
+                curl_cmd.extend(
+                    ["--header", "Content-type: application/merge-patch+json"]
+                )
+                if data:
+                    # jamf data upload requires upload-file argument
+                    curl_cmd.extend(["--upload-file", data])
+
+            # URL must match {region}.apigw.jamf.com
+            if not re.match(r"^https:\/\/[a-z1-9]{2}\.apigw\.jamf\.com", url):
+                raise ProcessorError(f"Invalid URL for Platform API request: {url}")
 
         elif api_type == "slack" or api_type == "teams":
             curl_cmd.extend(["--header", "Accept: application/json"])
@@ -979,18 +1013,6 @@ class JamfUploaderBase(Processor):
                 raise ProcessorError(
                     f"ERROR: HTTP method {request} not supported for {api_type}"
                 )
-
-        elif api_type == "platform":
-            # platform API requests
-            curl_cmd.extend(["--silent", "--show-error"])
-            if token:
-                curl_cmd.extend(["--header", f"authorization: Bearer {token}"])
-            elif endpoint_type != "auth":
-                raise ProcessorError("No token supplied for Platform API request")
-
-            # URL must match {region}.apigw.jamf.com
-            if not re.match(r"^https:\/\/[a-z1-9]{2}\.apigw\.jamf\.com", url):
-                raise ProcessorError(f"Invalid URL for Platform API request: {url}")
 
         elif api_type == "none":
             # no authentication required - for example ics.services.jamfcloud.com
@@ -1195,7 +1217,7 @@ class JamfUploaderBase(Processor):
                 output = r.output
                 for obj in output["results"]:
                     self.output(
-                        f"ID: {obj.get(id_key)} NAME: {obj.get(filter_name)}",
+                        f"ID: {obj.get(id_key)} NAME: {obj.get(filter_name)} MATCH: {object_name}",
                         verbose_level=3,
                     )
                     if obj[filter_name] == object_name:

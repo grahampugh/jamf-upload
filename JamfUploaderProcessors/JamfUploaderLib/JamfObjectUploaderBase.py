@@ -65,7 +65,7 @@ class JamfObjectUploaderBase(JamfUploaderBase):
                 url = f"{jamf_url}/{self.api_endpoints(object_type)}"
             else:
                 url = f"{jamf_url}/{self.api_endpoints(object_type)}/id/{obj_id}"
-        elif api_type == "jpapi":
+        elif api_type == "jpapi" or api_type == "platform":
             if obj_id:
                 url = f"{jamf_url}/{self.api_endpoints(object_type)}/{obj_id}"
             else:
@@ -78,6 +78,7 @@ class JamfObjectUploaderBase(JamfUploaderBase):
         if (
             object_type == "volume_purchasing_location"
             or object_type == "computer_inventory_collection_settings"
+            or object_type == "blueprint"
         ):
             request = "PATCH"
         elif object_type == "jamf_protect_register_settings":
@@ -91,11 +92,18 @@ class JamfObjectUploaderBase(JamfUploaderBase):
         else:
             request = "POST"
 
+        # temp output template file path
+        # self.output(
+        #     f"Prepared {object_type} template file '{template_file}' for upload",
+        #     verbose_level=2,
+        # )
+
         count = 0
         while True:
             count += 1
             self.output(f"{object_type} upload attempt {count}", verbose_level=2)
             r = self.curl(
+                api_type=api_type,
                 request=request,
                 url=url,
                 token=token,
@@ -158,13 +166,23 @@ class JamfObjectUploaderBase(JamfUploaderBase):
 
         # get token using oauth or basic auth depending on the credentials given
         if jamf_url:
-            token = self.handle_api_auth(
-                jamf_url,
-                jamf_user=jamf_user,
-                password=jamf_password,
-                client_id=client_id,
-                client_secret=client_secret,
-            )
+            # determine which token we need based on object type. classic and jpapi types use handle_api_auth, platform type uses handle_platform_api_auth
+            api_type = self.api_type(object_type)
+            self.output(f"API type for {object_type} is {api_type}", verbose_level=3)
+            if api_type == "platform":
+                token = self.handle_platform_api_auth(
+                    jamf_url,
+                    client_id=client_id,
+                    client_secret=client_secret,
+                )
+            else:
+                token = self.handle_api_auth(
+                    jamf_url,
+                    jamf_user=jamf_user,
+                    password=jamf_password,
+                    client_id=client_id,
+                    client_secret=client_secret,
+                )
         else:
             raise ProcessorError("ERROR: Jamf Pro URL not supplied")
 
@@ -207,12 +225,19 @@ class JamfObjectUploaderBase(JamfUploaderBase):
                 )
 
                 # get the ID from the object bearing the supplied name
+                # the group object type has a different ID key
+                if object_type == "group":
+                    id_key = "groupPlatformId"
+                else:
+                    id_key = "id"
+
                 obj_id = self.get_api_obj_id_from_name(
                     jamf_url,
                     object_name,
                     object_type,
                     token=token,
                     filter_name=namekey,
+                    id_key=id_key,
                 )
 
                 if obj_id:

@@ -252,6 +252,21 @@ case "$test_type" in
             open "/Users/Shared/Jamf/JamfUploaderTests"
         fi
         ;;
+    obj-blueprint)
+        "$DIR"/../jamf-upload.sh obj \
+            --prefs "$prefs" \
+            --recipe-dir /Users/gpugh/sourcecode/jamf-upload/_tests \
+            --type "blueprint" \
+            --name "Update to Latest macOS By Eligibility" \
+            --template "/Users/gpugh/sourcecode/jamf-upload/_Templates_Examples/blueprints-Update to Latest macOS By Eligibility.json" \
+            --output "/Users/Shared/Jamf/JamfUploaderTests" \
+            --url "https://$region.apigw.jamf.com" \
+            "$verbosity" \
+            --replace
+        if [[ $open_results ]]; then
+            open "/Users/Shared/Jamf/JamfUploaderTests"
+        fi
+        ;;
     list-groups)
         "$DIR"/../jamf-upload.sh read \
             --prefs "$prefs" \
