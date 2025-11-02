@@ -639,7 +639,8 @@ class JamfUploaderBase(Processor):
                         if data["access_token"]:
                             try:
                                 # check if it's expired or not
-                                # the expires_in key represents how many seconds until the token expires, from the time the file was created
+                                # the expires_in key represents how many seconds until the token expires,
+                                # from the time the file was created
                                 expires_in = data["expires_in"]
                                 token_file_creation_epoch = os.path.getctime(token_file)
 
@@ -1421,7 +1422,7 @@ class JamfUploaderBase(Processor):
                 )
             self.output(f"Output:\n{r.output}", verbose_level=4)
             object_list = r.output[self.object_list_types(object_type)]
-        elif api_type == "jpapi":
+        elif api_type == "jpapi" or api_type == "platform":
             # Jamf Pro API: use pagination
             url_filter = "?page=0&page-size=1"
             url = f"{domain}/{self.api_endpoints(object_type, uuid)}{url_filter}"
@@ -1472,16 +1473,16 @@ class JamfUploaderBase(Processor):
                 # if not, we're not dealing with a paginated endpoint, so just return the
                 # results list
                 object_list = r.output
-        elif api_type == "platform":
-            # Platform API: no pagination, just get all objects at once
-            url = f"{domain}/{self.api_endpoints(object_type, uuid)}"
-            r = self.curl(api_type=api_type, request="GET", url=url, token=token)
-            if r.status_code != 200:
-                raise ProcessorError(
-                    f"ERROR: Unable to get list of {object_type} from {domain}"
-                )
-            self.output(f"Output:\n{r.output}", verbose_level=4)
-            object_list = r.output.get(self.object_list_types(object_type), [])
+        # elif api_type == "platform":
+        #     # Platform API: no pagination, just get all objects at once
+        #     url = f"{domain}/{self.api_endpoints(object_type, uuid)}"
+        #     r = self.curl(api_type=api_type, request="GET", url=url, token=token)
+        #     if r.status_code != 200:
+        #         raise ProcessorError(
+        #             f"ERROR: Unable to get list of {object_type} from {domain}"
+        #         )
+        #     self.output(f"Output:\n{r.output}", verbose_level=4)
+        #     object_list = r.output.get(self.object_list_types(object_type), [])
         else:
             raise ProcessorError(f"ERROR: Unknown API type {api_type}")
 
