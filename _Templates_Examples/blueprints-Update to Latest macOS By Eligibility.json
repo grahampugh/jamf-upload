@@ -3,7 +3,7 @@
     "description": "Keep all eligible MacOS devices updated to the last major version",
     "scope": {
         "deviceGroups": [
-            "%GROUP%"
+            "%GROUP_ID%"
         ]
     },
     "steps": [

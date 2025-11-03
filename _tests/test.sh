@@ -258,7 +258,7 @@ case "$test_type" in
             --recipe-dir /Users/gpugh/sourcecode/jamf-upload/_tests \
             --type "blueprint" \
             --name "Update to Latest macOS" \
-            --key GROUP="a77b06dc-2a54-4c26-bfc7-dc96f257fbda" \
+            --key GROUP_ID="a77b06dc-2a54-4c26-bfc7-dc96f257fbda" \
             --template "/Users/gpugh/sourcecode/jamf-upload/_Templates_Examples/blueprints-Update to Latest macOS.json" \
             --output "/Users/Shared/Jamf/JamfUploaderTests" \
             --url "https://$region.apigw.jamf.com" \
