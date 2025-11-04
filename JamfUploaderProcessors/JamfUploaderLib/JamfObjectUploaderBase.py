@@ -94,6 +94,11 @@ class JamfObjectUploaderBase(JamfUploaderBase):
             ]
         elif obj_id and object_type == "blueprint":
             request = "PATCH"
+        elif obj_id and object_type in (
+            "blueprint_deploy_command",
+            "blueprint_undeploy_command",
+        ):
+            request = "POST"
         elif obj_id or "_settings" in object_type:
             request = "PUT"
         else:
