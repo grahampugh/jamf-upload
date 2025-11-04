@@ -15,5 +15,5 @@ Process:
   - Processor: com.github.grahampugh.jamf-upload.processors/JamfObjectUploader
     Arguments:
       JSS_URL: https://%REGION%.apigw.jamf.com
-      object_type: blueprint_deploy
+      object_type: blueprint_deploy_command
       replace_object: "true"
