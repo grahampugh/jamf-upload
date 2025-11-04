@@ -66,7 +66,9 @@ class JamfObjectUploaderBase(JamfUploaderBase):
             else:
                 url = f"{jamf_url}/{self.api_endpoints(object_type)}/id/{obj_id}"
         elif api_type == "jpapi" or api_type == "platform":
-            if obj_id:
+            if object_type in ("blueprint_deploy", "blueprint_undeploy") and obj_id:
+                url = f"{jamf_url}/{self.api_endpoints(object_type, uuid=obj_id)}"
+            elif obj_id:
                 url = f"{jamf_url}/{self.api_endpoints(object_type)}/{obj_id}"
             else:
                 url = f"{jamf_url}/{self.api_endpoints(object_type)}"
