@@ -277,8 +277,12 @@ class JamfObjectUploaderBase(JamfUploaderBase):
 
         else:
             object_name = ""
-            obj_id = 0
             namekey_path = ""
+            if object_type not in (
+                "blueprint_deploy_command",
+                "blueprint_undeploy_command",
+            ):
+                obj_id = 0
 
         # we need to substitute the values in the object name and template now to
         # account for version strings in the name
