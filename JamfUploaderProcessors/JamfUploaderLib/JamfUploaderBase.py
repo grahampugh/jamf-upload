@@ -1893,8 +1893,8 @@ class JamfUploaderBase(Processor):
         self,
         existing_object,
         object_type,
-        elements_to_remove=[],
-        elements_to_retain=[],
+        elements_to_remove=None,
+        elements_to_retain=None,
     ):
         """Removes or replaces instance-specific items such as ID and computer objects"""
 
@@ -1908,19 +1908,17 @@ class JamfUploaderBase(Processor):
             parsed_xml = ""
             object_xml = ET.fromstring(existing_object)
             try:
-                # # remove any id tags
-                # self.remove_elements_from_xml(object_xml, "id")
-                # # remove any self service icons
-                # self.remove_elements_from_xml(object_xml, "self_service_icon")
-                # optional array of other elements to remove
                 if elements_to_retain:
-                    all_elements = set(
-                        elem.tag for elem in object_xml.iter() if elem is not object_xml
-                    )
-                    for elem in all_elements:
-                        if elem not in elements_to_retain:
-                            self.output(f"Deleting element {elem}...", verbose_level=2)
-                            self.remove_elements_from_xml(object_xml, elem)
+                    # Only remove top-level elements not in elements_to_retain
+                    # This preserves all sub-elements of retained elements
+                    elements_to_remove_from_root = []
+                    for child in object_xml:
+                        if child.tag not in elements_to_retain:
+                            elements_to_remove_from_root.append(child)
+
+                    for elem in elements_to_remove_from_root:
+                        self.output(f"Deleting element {elem.tag}...", verbose_level=2)
+                        object_xml.remove(elem)
                 elif elements_to_remove:
                     for elem in elements_to_remove:
                         self.output(f"Deleting element {elem}...", verbose_level=2)

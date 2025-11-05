@@ -476,7 +476,7 @@ class JamfObjectReaderBase(JamfUploaderBase):
 
                     # parse the object
                     parsed_object = self.parse_downloaded_api_object(
-                        raw_object, object_type, elements_to_remove
+                        raw_object, object_type, elements_to_remove, elements_to_retain
                     )
 
                     self.output("Raw object:", verbose_level=3)
