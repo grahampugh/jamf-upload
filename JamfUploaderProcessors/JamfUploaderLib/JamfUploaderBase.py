@@ -87,9 +87,9 @@ class JamfUploaderBase(Processor):
             "oauth",
             "package_v1",
             "policy_properties_settings",
+            "script",
             "self_service_settings",
             "self_service_plus_settings",
-            "script",
             "smart_computer_group_membership",
             "smtp_server_settings",
             "sso_cert_command",
@@ -137,12 +137,6 @@ class JamfUploaderBase(Processor):
             "platform_api_token",
         ):
             return "platform"
-        elif object_type == "slack":
-            return "slack"
-        elif object_type == "teams":
-            return "teams"
-        elif object_type == "jira":
-            return "jira"
         else:
             raise ProcessorError(f"ERROR: Unknown object type {object_type}")
 
@@ -839,9 +833,6 @@ class JamfUploaderBase(Processor):
             "classic",
             "jpapi",
             "dbfileupload",
-            "slack",
-            "teams",
-            "jira",
             "platform",
             "none",
         ):
@@ -935,7 +926,7 @@ class JamfUploaderBase(Processor):
                     curl_cmd.extend(["--upload-file", data])
 
                 if api_type == "classic":
-                    # Jamf Pro API and Slack posts json, but Classic API posts xml
+                    # Jamf Pro API posts json, but Classic API posts xml
                     curl_cmd.extend(["--header", "Content-type: application/xml"])
                 else:
                     if endpoint_type == "oauth":
