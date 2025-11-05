@@ -176,7 +176,7 @@ class JamfMacAppUploaderBase(JamfUploaderBase):
             self.output(f"MAS app '{macapp_name}' already exists: ID {obj_id}")
             if replace_macapp:
                 self.output(
-                    f"Replacing existing MAS app as 'replace_macapp' is set to True",
+                    "Replacing existing MAS app as 'replace_macapp' is set to True",
                     verbose_level=1,
                 )
 
