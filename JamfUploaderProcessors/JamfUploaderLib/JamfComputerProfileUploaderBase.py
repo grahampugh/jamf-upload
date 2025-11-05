@@ -217,7 +217,7 @@ class JamfComputerProfileUploaderBase(JamfUploaderBase):
 
         self.output("Uploading Configuration Profile...")
         # write the template to temp file
-        template_xml = self.write_temp_file(template_contents)
+        template_xml = self.write_temp_file(jamf_url, template_contents)
 
         # if we find an object ID we put, if not, we post
         url = f"{jamf_url}/{self.api_endpoints(object_type)}/id/{obj_id}"

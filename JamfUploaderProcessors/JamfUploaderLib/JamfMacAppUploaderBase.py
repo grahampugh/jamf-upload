@@ -56,7 +56,7 @@ class JamfMacAppUploaderBase(JamfUploaderBase):
         else:
             self.output(f"Return code: {r.status_code}", verbose_level=2)
 
-    def prepare_macapp_template(self, macapp_name, macapp_template):
+    def prepare_macapp_template(self, jamf_url, macapp_name, macapp_template):
         """prepare the macapp contents"""
         # import template from file and replace any keys in the template
         if os.path.exists(macapp_template):
@@ -75,7 +75,7 @@ class JamfMacAppUploaderBase(JamfUploaderBase):
         self.output(template_contents, verbose_level=2)
 
         # write the template to temp file
-        template_xml = self.write_temp_file(template_contents)
+        template_xml = self.write_temp_file(jamf_url, template_contents)
         return macapp_name, template_xml
 
     def upload_macapp(
@@ -263,7 +263,7 @@ class JamfMacAppUploaderBase(JamfUploaderBase):
                 self.env["selfservice_icon_uri"] = selfservice_icon_uri
                 self.env["vpp_id"] = vpp_id
                 macapp_name, template_xml = self.prepare_macapp_template(
-                    macapp_name, macapp_template
+                    jamf_url, macapp_name, macapp_template
                 )
 
                 # upload the macapp
@@ -392,7 +392,7 @@ class JamfMacAppUploaderBase(JamfUploaderBase):
                 self.env["selfservice_icon_uri"] = selfservice_icon_uri
                 self.env["vpp_id"] = vpp_id
                 macapp_name, template_xml = self.prepare_macapp_template(
-                    macapp_name, macapp_template
+                    jamf_url, macapp_name, macapp_template
                 )
 
                 # upload the macapp

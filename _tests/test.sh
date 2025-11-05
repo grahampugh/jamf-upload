@@ -586,10 +586,10 @@ case "$test_type" in
         ;;
     read-prestage)
         "$DIR"/../jamf-upload.sh read \
-            --prefs "$prefs_alt" \
+            --prefs "$prefs" \
             --recipe-dir /Users/gpugh/sourcecode/jamf-upload/_tests \
             --type "computer_prestage" \
-            --name "1:1" \
+            --name "Test PreStage" \
             --output "/Users/Shared/Jamf/JamfUploaderTests" \
             "$verbosity"
         ;;
@@ -878,6 +878,24 @@ case "$test_type" in
             "$verbosity" \
             --replace \
             --retain-existing-scope
+        ;;
+    prestage)
+        "$DIR"/../jamf-upload.sh computerprestage \
+            --prefs "$prefs" \
+            --recipe-dir /Users/gpugh/sourcecode/jamf-upload/_tests \
+            --name "Test PreStage 3" \
+            --template "templates/computer-prestage-example.json" \
+            "$verbosity" \
+            --replace
+        ;;
+    prestage2)
+        "$DIR"/../jamf-upload.sh computerprestage \
+            --prefs "$prefs" \
+            --recipe-dir /Users/gpugh/sourcecode/jamf-upload/_tests \
+            --name "Test PreStage with Account" \
+            --template "templates/computer-prestage-example-account.json" \
+            "$verbosity" \
+            --replace
         ;;
     account)
         "$DIR"/../jamf-upload.sh account \

@@ -77,6 +77,7 @@ class JamfMSUPlanUploaderBase(JamfUploaderBase):
 
     def prepare_template(
         self,
+        jamf_url,
         device_type,
         group_id,
         version_type,
@@ -109,7 +110,7 @@ class JamfMSUPlanUploaderBase(JamfUploaderBase):
         self.output(template_contents, verbose_level=2)
 
         # write the template to temp file
-        template_file = self.write_json_file(template_contents)
+        template_file = self.write_json_file(jamf_url, template_contents)
         return template_file
 
     def upload_object(
@@ -244,6 +245,7 @@ class JamfMSUPlanUploaderBase(JamfUploaderBase):
         # we need to substitute the values in the object name and template now to
         # account for version strings in the name
         template_file = self.prepare_template(
+            jamf_url,
             device_type,
             group_id,
             version_type,

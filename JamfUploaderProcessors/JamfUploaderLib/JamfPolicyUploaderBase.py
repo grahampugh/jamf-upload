@@ -70,7 +70,7 @@ class JamfPolicyUploaderBase(JamfUploaderBase):
         self.output(template_contents, verbose_level=3)
 
         # write the template to temp file
-        template_xml = self.write_temp_file(template_contents)
+        template_xml = self.write_temp_file(jamf_url, template_contents)
         return template_xml
 
     def upload_policy(

@@ -85,7 +85,7 @@ class JamfSoftwareRestrictionUploaderBase(JamfUploaderBase):
         self.output("Uploading Software Restriction...")
 
         # write the template to temp file
-        template_xml = self.write_temp_file(template_contents)
+        template_xml = self.write_temp_file(jamf_url, template_contents)
 
         # if we find an object ID we put, if not, we post
         object_type = "restricted_software"

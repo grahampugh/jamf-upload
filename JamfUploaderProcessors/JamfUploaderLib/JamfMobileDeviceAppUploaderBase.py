@@ -77,7 +77,7 @@ class JamfMobileDeviceAppUploaderBase(JamfUploaderBase):
                 )
 
     def prepare_mobiledeviceapp_template(
-        self, mobiledeviceapp_name, mobiledeviceapp_template
+        self, jamf_url, mobiledeviceapp_name, mobiledeviceapp_template
     ):
         """prepare the mobiledeviceapp contents"""
         # import template from file and replace any keys in the template
@@ -97,7 +97,7 @@ class JamfMobileDeviceAppUploaderBase(JamfUploaderBase):
         self.output(template_contents, verbose_level=2)
 
         # write the template to temp file
-        template_xml = self.write_temp_file(template_contents)
+        template_xml = self.write_temp_file(jamf_url, template_contents)
         return mobiledeviceapp_name, template_xml
 
     def upload_mobiledeviceapp(
@@ -315,7 +315,7 @@ class JamfMobileDeviceAppUploaderBase(JamfUploaderBase):
                 self.env["appconfig"] = appconfig
                 mobiledeviceapp_name, template_xml = (
                     self.prepare_mobiledeviceapp_template(
-                        mobiledeviceapp_name, mobiledeviceapp_template
+                        jamf_url, mobiledeviceapp_name, mobiledeviceapp_template
                     )
                 )
 
@@ -467,7 +467,7 @@ class JamfMobileDeviceAppUploaderBase(JamfUploaderBase):
                 self.env["appconfig"] = appconfig
                 mobiledeviceapp_name, template_xml = (
                     self.prepare_mobiledeviceapp_template(
-                        mobiledeviceapp_name, mobiledeviceapp_template
+                        jamf_url, mobiledeviceapp_name, mobiledeviceapp_template
                     )
                 )
 

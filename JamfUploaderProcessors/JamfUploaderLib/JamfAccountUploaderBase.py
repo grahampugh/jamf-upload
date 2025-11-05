@@ -73,7 +73,7 @@ class JamfAccountUploaderBase(JamfUploaderBase):
                 "ERROR: Jamf returned status code '401' - Access denied."
             )
 
-    def prepare_account_template(self, account_name, account_template):
+    def prepare_account_template(self, jamf_url, account_name, account_template):
         """prepare the account contents"""
         # import template from file and replace any keys in the template
         if os.path.exists(account_template):
@@ -92,7 +92,7 @@ class JamfAccountUploaderBase(JamfUploaderBase):
         self.output(template_contents, verbose_level=2)
 
         # write the template to temp file
-        template_xml = self.write_temp_file(template_contents)
+        template_xml = self.write_temp_file(jamf_url, template_contents)
         return account_name, template_xml
 
     def upload_account(
@@ -220,7 +220,7 @@ class JamfAccountUploaderBase(JamfUploaderBase):
         # we need to substitute the values in the account name and template now to
         # account for version strings in the name
         account_name, template_xml = self.prepare_account_template(
-            account_name, account_template
+            jamf_url, account_name, account_template
         )
 
         if obj_id:
