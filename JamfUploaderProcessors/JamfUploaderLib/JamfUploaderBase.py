@@ -1915,7 +1915,6 @@ class JamfUploaderBase(Processor):
                     for child in object_xml:
                         if child.tag not in elements_to_retain:
                             elements_to_remove_from_root.append(child)
-
                     for elem in elements_to_remove_from_root:
                         self.output(f"Deleting element {elem.tag}...", verbose_level=2)
                         object_xml.remove(elem)
@@ -1937,15 +1936,17 @@ class JamfUploaderBase(Processor):
             if not isinstance(existing_object, dict):
                 existing_object = json.loads(existing_object)
 
-            # remove any id-type tags
-            # if "id" in existing_object:
-            #     existing_object.pop("id")
-            # if "categoryId" in existing_object:
-            #     existing_object.pop("categoryId")
-            # if "deviceEnrollmentProgramInstanceId" in existing_object:
-            #     existing_object.pop("deviceEnrollmentProgramInstanceId")
-            # now go one deep and look for more id keys. Hopefully we don't have to go deeper!
-            if elements_to_remove:
+            if elements_to_retain:
+                # Only remove top-level elements not in elements_to_retain
+                # This preserves all sub-elements of retained elements
+                elements_to_remove_from_root = []
+                for key in existing_object.keys():
+                    if key not in elements_to_retain:
+                        elements_to_remove_from_root.append(key)
+                for elem in elements_to_remove_from_root:
+                    self.output(f"Deleting element {elem}...", verbose_level=2)
+                    existing_object.pop(elem)
+            elif elements_to_remove:
                 for elem in elements_to_remove:
                     for value in existing_object.values():
                         value_check = value
