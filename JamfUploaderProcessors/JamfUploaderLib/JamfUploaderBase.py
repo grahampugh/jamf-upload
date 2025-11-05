@@ -1621,8 +1621,10 @@ class JamfUploaderBase(Processor):
             )
             if r.status_code == 200:
                 # Parse response as json
-                # obj_content = json.loads(r.output)
-                obj_content = r.output
+                if isinstance(r.output, dict):
+                    obj_content = r.output
+                else:
+                    obj_content = json.loads(r.output)
                 self.output(
                     obj_content,
                     verbose_level=4,
@@ -1645,7 +1647,11 @@ class JamfUploaderBase(Processor):
             url = f"{domain}/{self.api_endpoints(object_type)}/id/{obj_id}"
             r = self.curl(api_type=api_type, request="GET", url=url, token=token)
             if r.status_code == 200:
-                obj_content = json.loads(r.output)
+                # Handle both pre-parsed JSON (dict) and raw JSON string responses
+                if isinstance(r.output, dict):
+                    obj_content = r.output
+                else:
+                    obj_content = json.loads(r.output)
                 self.output(obj_content, verbose_level=4)
 
                 # convert an xpath to json
@@ -1854,26 +1860,26 @@ class JamfUploaderBase(Processor):
         # do json stuff
         if not isinstance(existing_object, dict):
             existing_object = json.loads(existing_object)
-            parent = existing_object
+        parent = existing_object
 
-            # Traverse the JSON structure to find the target element
-            for key in keys[:-1]:
-                if key in parent and isinstance(parent[key], dict):
-                    parent = parent[key]
-                else:
-                    raise KeyError(f"Path '{element_path}' not found.")
-
-            # Replace the element's value with the new value
-            last_key = keys[-1]
-            if last_key in parent:
-                parent[last_key] = new_value
+        # Traverse the JSON structure to find the target element
+        for key in keys[:-1]:
+            if key in parent and isinstance(parent[key], dict):
+                parent = parent[key]
             else:
-                raise KeyError(f"Key '{last_key}' not found in path '{element_path}'.")
-            self.output(
-                f"Successfully replaced '{element_path}' with '{new_value}'.",
-                verbose_level=2,
-            )
-            return json.dumps(existing_object, indent=4)
+                raise KeyError(f"Path '{element_path}' not found.")
+
+        # Replace the element's value with the new value
+        last_key = keys[-1]
+        if last_key in parent:
+            parent[last_key] = new_value
+        else:
+            raise KeyError(f"Key '{last_key}' not found in path '{element_path}'.")
+        self.output(
+            f"Successfully replaced '{element_path}' with '{new_value}'.",
+            verbose_level=2,
+        )
+        return json.dumps(existing_object, indent=4)
 
     def substitute_elements_in_xml(self, object_xml, element, replacement_value):
         """substitutes all instances of an object from XML with a provided replaceement value"""
