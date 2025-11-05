@@ -1159,6 +1159,7 @@ case "$test_type" in
             --pkg-uploaded \
             --policy-uploaded \
             --slack-user "JamfUploader Test User" \
+            --slack-url "$slack_webhook_url" \
             --icon "https://resources.jamf.com/images/logos/Jamf-Icon-color.png" \
             "$verbosity"
         ;;
