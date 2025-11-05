@@ -1083,17 +1083,11 @@ class JamfUploaderBase(Processor):
                         r.output = output_file
                     else:
                         with open(output_file, "rb") as file:
-                            if (
-                                api_type == "jpapi"
-                                or api_type == "platform"
-                                or (
-                                    api_type == "classic"
-                                    and endpoint_type != "icon_get"
-                                    and endpoint_type != "policy_icon"
-                                )
-                            ):
+                            try:
+                                file.seek(0)  # Reset file pointer to beginning
                                 r.output = json.load(file)
-                            else:
+                            except (json.JSONDecodeError, ValueError):
+                                file.seek(0)  # Reset file pointer to beginning
                                 r.output = file.read()
                 else:
                     self.output(
