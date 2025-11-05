@@ -18,26 +18,15 @@ limitations under the License.
 """
 
 import json
-import os.path
-import sys
 
 from time import sleep
-from autopkglib import ProcessorError  # pylint: disable=import-error
-
-# to use a base module in AutoPkg we need to add this path to the sys.path.
-# this violates flake8 E402 (PEP8 imports) but is unavoidable, so the following
-# imports require noqa comments for E402
-sys.path.insert(0, os.path.dirname(__file__))
-
-from JamfUploaderLib.JamfUploaderBase import (  # pylint: disable=import-error, wrong-import-position
-    JamfUploaderBase,
-)
+from autopkglib import URLGetter, ProcessorError  # pylint: disable=import-error
 
 
 __all__ = ["JamfUploaderTeamsNotifier"]
 
 
-class JamfUploaderTeamsNotifier(JamfUploaderBase):
+class JamfUploaderTeamsNotifier(URLGetter):
     description = (
         "A postprocessor for AutoPkg that will send details about a recipe run "
         "to a Microsoft Teams webhook based on the output of a "
@@ -85,14 +74,21 @@ class JamfUploaderTeamsNotifier(JamfUploaderBase):
 
     __doc__ = description
 
-    def teams_status_check(self, r):
+    def teams_status_check(self, header):
         """Return a message dependent on the HTTP response"""
-        if r.status_code == 200 or r.status_code == 201 or r.status_code == 202:
+        http_result_code = int(header.get("http_result_code"))
+        self.output(f"Response: {http_result_code}", verbose_level=2)
+        if (
+            http_result_code == 200
+            or http_result_code == 201
+            or http_result_code == 202
+        ):
             self.output("Teams webhook sent successfully")
             return "break"
-        else:
-            self.output("WARNING: Teams webhook failed to send")
-            self.output(r.output, verbose_level=2)
+        self.output(
+            f"WARNING: Teams webhook failed to send (status code {http_result_code})"
+        )
+        return None
 
     def main(self):
         """Do the main thing"""
@@ -256,6 +252,30 @@ class JamfUploaderTeamsNotifier(JamfUploaderBase):
 
         teams_json = json.dumps(webhook_text)
 
+        curl_cmd = [
+            self.curl_binary(),
+            "--silent",
+            "--show-error",
+            "--no-buffer",
+            "--dump-header",
+            "-",
+            "--speed-time",
+            "30",
+            "--location",
+            "--url",
+            teams_webhook_url,
+            "--request",
+            "POST",
+            "--data",
+            teams_json,
+        ]
+
+        headers = {
+            "Content-Type": "application/json",
+        }
+
+        self.add_curl_headers(curl_cmd, headers)
+
         count = 0
         while True:
             count += 1
@@ -263,18 +283,16 @@ class JamfUploaderTeamsNotifier(JamfUploaderBase):
                 f"Teams webhook post attempt {count}",
                 verbose_level=2,
             )
-            r = self.curl(
-                request="POST",
-                url=teams_webhook_url,
-                data=teams_json,
-                endpoint_type="teams",
-            )
+            proc_stdout, _, status_code = self.execute_curl(curl_cmd)
+            self.output(f"Curl command: {curl_cmd}", verbose_level=4)
+            header = self.parse_headers(proc_stdout)
+
             # check HTTP response
-            if self.teams_status_check(r) == "break":
+            if self.teams_status_check(header) == "break":
                 break
             if count > 5:
                 self.output("Teams webhook send did not succeed after 5 attempts")
-                self.output(f"\nHTTP POST Response Code: {r.status_code}")
+                self.output(f"\nHTTP POST Response Code: {status_code}")
                 raise ProcessorError("ERROR: Teams webhook failed to send")
             sleep(10)
 

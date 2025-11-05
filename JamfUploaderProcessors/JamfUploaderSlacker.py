@@ -22,8 +22,6 @@ https://my.slack.com/services/new/incoming-webhook/
 """
 
 import json
-import os.path
-import sys
 
 from time import sleep
 from autopkglib import URLGetter, ProcessorError  # pylint: disable=import-error
@@ -132,10 +130,10 @@ class JamfUploaderSlacker(URLGetter):
         if http_result_code == 200 or http_result_code == 201:
             self.output("Slack webhook sent successfully")
             return "break"
-        else:
-            self.output(
-                f"WARNING: Slack webhook failed to send (status code {http_result_code})"
-            )
+        self.output(
+            f"WARNING: Slack webhook failed to send (status code {http_result_code})"
+        )
+        return None
 
     def main(self):
         """Do the main thing"""
@@ -336,11 +334,15 @@ class JamfUploaderSlacker(URLGetter):
             slack_webhook_url,
             "--request",
             "POST",
-            "--header",
-            "Content-Type: application/json",
             "--data",
             slack_json,
         ]
+
+        headers = {
+            "Content-Type": "application/json",
+        }
+
+        self.add_curl_headers(curl_cmd, headers)
 
         count = 0
         while True:

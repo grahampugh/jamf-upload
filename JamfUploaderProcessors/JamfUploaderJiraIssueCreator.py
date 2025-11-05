@@ -17,26 +17,15 @@ limitations under the License.
 """
 
 import json
-import os.path
-import sys
 
 from time import sleep
-from autopkglib import ProcessorError  # pylint: disable=import-error
-
-# to use a base module in AutoPkg we need to add this path to the sys.path.
-# this violates flake8 E402 (PEP8 imports) but is unavoidable, so the following
-# imports require noqa comments for E402
-sys.path.insert(0, os.path.dirname(__file__))
-
-from JamfUploaderLib.JamfUploaderBase import (  # pylint: disable=import-error, wrong-import-position
-    JamfUploaderBase,
-)
+from autopkglib import URLGetter, ProcessorError  # pylint: disable=import-error
 
 
 __all__ = ["JamfUploaderJiraIssueCreator"]
 
 
-class JamfUploaderJiraIssueCreator(JamfUploaderBase):
+class JamfUploaderJiraIssueCreator(URLGetter):
     description = (
         "A postprocessor for AutoPkg that will create a Jira issue based on the output of a "
         "JamfUploader process."
@@ -102,13 +91,21 @@ class JamfUploaderJiraIssueCreator(JamfUploaderBase):
 
     __doc__ = description
 
-    def jira_status_check(self, r):
+    def jira_status_check(self, header):
         """Return a message dependent on the HTTP response"""
-        if r.status_code == 200 or r.status_code == 201 or r.status_code == 202:
+        http_result_code = int(header.get("http_result_code"))
+        self.output(f"Response: {http_result_code}", verbose_level=2)
+        if (
+            http_result_code == 200
+            or http_result_code == 201
+            or http_result_code == 202
+        ):
             self.output("Jira request sent successfully")
             return "break"
-        self.output("WARNING: Jira request failed to send")
-        self.output(r.output, verbose_level=2)
+        self.output(
+            f"WARNING: Jira request failed to send (status code {http_result_code})"
+        )
+        return None
 
     def main(self):
         """Do the main thing"""
@@ -231,7 +228,31 @@ class JamfUploaderJiraIssueCreator(JamfUploaderBase):
 
         jira_json = json.dumps(template_text)
 
-        enc_creds = self.get_enc_creds(jira_username, jira_api_token)
+        curl_cmd = [
+            self.curl_binary(),
+            "--silent",
+            "--show-error",
+            "--no-buffer",
+            "--dump-header",
+            "-",
+            "--speed-time",
+            "30",
+            "--location",
+            "--url",
+            jira_url + "/rest/api/3/issue/",
+            "--request",
+            "POST",
+            "--data",
+            jira_json,
+            "--user",
+            f"{jira_username}:{jira_api_token}",
+        ]
+
+        headers = {
+            "Content-Type": "application/json",
+        }
+
+        self.add_curl_headers(curl_cmd, headers)
 
         count = 0
         while True:
@@ -240,19 +261,16 @@ class JamfUploaderJiraIssueCreator(JamfUploaderBase):
                 f"Jira API request post attempt {count}",
                 verbose_level=2,
             )
-            r = self.curl(
-                request="POST",
-                url=f"{jira_url}/rest/api/3/issue/",
-                enc_creds=enc_creds,
-                data=jira_json,
-                endpoint_type="jira",
-            )
+            proc_stdout, _, status_code = self.execute_curl(curl_cmd)
+            self.output(f"Curl command: {curl_cmd}", verbose_level=4)
+            header = self.parse_headers(proc_stdout)
+
             # check HTTP response
-            if self.jira_status_check(r) == "break":
+            if self.jira_status_check(header) == "break":
                 break
             if count > 5:
                 self.output("Jira request did not succeed after 5 attempts")
-                self.output(f"\nHTTP POST Response Code: {r.status_code}")
+                self.output(f"\nHTTP POST Response Code: {status_code}")
                 raise ProcessorError("ERROR: Jira request failed to send")
             sleep(10)
 
