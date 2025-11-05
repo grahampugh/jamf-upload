@@ -531,9 +531,6 @@ class JamfUploaderBase(Processor):
         2. The Jamf Pro API. These endpoints are under the 'api'/'uapi' URL.
         3. The Jamf Pro dbfileupload endpoint, for uploading packages (v1).
         4. The Jamf Pro legacy/packages endpoint, for uploading packages (v3).
-        5. Slack webhooks.
-        6. Microsoft Teams webhooks.
-        7. Jira Cloud issue requests (REST API)
 
         For the Jamf Pro API and Classic API, basic authentication is used to obtain a
         bearer token, which we write to a file along with its expiry datetime.
@@ -626,26 +623,18 @@ class JamfUploaderBase(Processor):
 
         # Content-Type for POST/PUT
         elif request == "POST" or request == "PUT":
-            if (
-                endpoint_type == "slack"
-                or endpoint_type == "teams"
-                or endpoint_type == "jira"
-            ):
-                # jira, slack and teams require a data argument
-                curl_cmd.extend(["--data", data])
-                curl_cmd.extend(["--header", "Content-type: application/json"])
-            elif data:
+            if data:
                 # jamf data upload requires upload-file argument
                 curl_cmd.extend(["--upload-file", data])
 
             if "JSSResource" in url:
-                # Jamf Pro API and Slack posts json, but Classic API posts xml
+                # Jamf Pro API posts json, but Classic API posts xml
                 curl_cmd.extend(["--header", "Content-type: application/xml"])
             elif endpoint_type == "oauth":
                 curl_cmd.extend(
                     ["--header", "Content-Type: application/x-www-form-urlencoded"]
                 )
-            elif ("/api/" in url and endpoint_type != "jira") or "/uapi/" in url:
+            elif "/api/" in url or "/uapi/" in url:
                 curl_cmd.extend(["--header", "Content-type: application/json"])
             # note: other endpoints should supply their headers via 'additional_curl_opts'
 
@@ -659,7 +648,7 @@ class JamfUploaderBase(Processor):
 
         # write session for jamf API requests
         if (
-            ("/api/" in url and endpoint_type != "jira")
+            "/api/" in url
             or "/uapi/" in url
             or "JSSResource" in url
             or endpoint_type == "package_upload"
