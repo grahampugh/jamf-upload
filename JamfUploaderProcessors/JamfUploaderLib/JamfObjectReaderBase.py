@@ -179,8 +179,13 @@ class JamfObjectReaderBase(JamfUploaderBase):
         settings_key = self.env.get("settings_key")
         uuid = self.env.get("uuid")
         elements_to_remove = self.env.get("elements_to_remove")
-        if isinstance(elements_to_remove, str):
-            elements_to_remove = [elements_to_remove]
+        elements_to_remove = (
+            [elements_to_remove] if isinstance(elements_to_remove, str) else []
+        )
+        elements_to_retain = self.env.get("elements_to_retain")
+        elements_to_retain = (
+            [elements_to_retain] if isinstance(elements_to_retain, str) else []
+        )
 
         # check for required variables
         if not all_objects and not list_only and not "_settings" in object_type:
@@ -423,7 +428,10 @@ class JamfObjectReaderBase(JamfUploaderBase):
 
                         # parse the object
                         parsed_object = self.parse_downloaded_api_object(
-                            raw_object, object_type, elements_to_remove
+                            raw_object,
+                            object_type,
+                            elements_to_remove,
+                            elements_to_retain,
                         )
 
                         self.output(parsed_object, verbose_level=2)

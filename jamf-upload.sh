@@ -313,6 +313,10 @@ API Object Read arguments:
     --list                  Output a list all objects and nothing else
     --type <string>         The object type (e.g. policy)
     --settings-key          For settings-style endpoints, specify a key to get the value of
+    --elements-to-remove <string>
+                            Comma-separated list of XML elements to remove from the downloaded object
+    --elements-to-retain <string>
+                            Comma-separated list of XML elements to retain in the downloaded object
     --output <string>       Optional path to output the parsed XML to. Directories to path must exist.
 
 DELETE OPTIONS
@@ -1193,6 +1197,22 @@ while test $# -gt 0 ; do
                 fi
             fi
             ;;
+        --elements-to-remove) 
+            shift
+            if [[ $processor == "JamfObjectReader" ]]; then
+                if plutil -replace elements_to_remove -string "$1" "$temp_processor_plist"; then
+                    echo "   [jamf-upload] Wrote elements_to_remove='$1' into $temp_processor_plist"
+                fi
+            fi
+            ;;
+        --elements-to-retain) 
+            shift
+            if [[ $processor == "JamfObjectReader" ]]; then
+                if plutil -replace elements_to_retain -string "$1" "$temp_processor_plist"; then
+                    echo "   [jamf-upload] Wrote elements_to_retain='$1' into $temp_processor_plist"
+                fi
+            fi
+            ;; 
         --dry-run) 
             if [[ $processor == "JamfPackageCleaner" || $processor == "JamfUnusedPackageCleaner" ]]; then
                 if plutil -replace dry_run -string "True" "$temp_processor_plist"; then
