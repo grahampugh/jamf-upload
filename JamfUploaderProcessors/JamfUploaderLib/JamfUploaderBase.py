@@ -1918,7 +1918,7 @@ class JamfUploaderBase(Processor):
                     for elem in elements_to_remove_from_root:
                         self.output(f"Deleting element {elem.tag}...", verbose_level=2)
                         object_xml.remove(elem)
-                elif elements_to_remove:
+                if elements_to_remove:
                     for elem in elements_to_remove:
                         self.output(f"Deleting element {elem}...", verbose_level=2)
                         self.remove_elements_from_xml(object_xml, elem)
@@ -1946,7 +1946,7 @@ class JamfUploaderBase(Processor):
                 for elem in elements_to_remove_from_root:
                     self.output(f"Deleting element {elem}...", verbose_level=2)
                     existing_object.pop(elem)
-            elif elements_to_remove:
+            if elements_to_remove:
                 for elem in elements_to_remove:
                     for value in existing_object.values():
                         value_check = value
