@@ -44,6 +44,7 @@ class JamfObjectUploaderBase(JamfUploaderBase):
     def upload_object(
         self,
         jamf_url,
+        api_type,
         object_type,
         template_file,
         sleep_time,
@@ -57,17 +58,26 @@ class JamfObjectUploaderBase(JamfUploaderBase):
 
         # if we find an object ID or it's an endpoint without IDs, we PUT or PATCH
         # if we're creating a new object, we POST
-        if "JSSResource" in self.api_endpoints(object_type):
+
+        if api_type == "classic":
             if "_settings" in object_type:
                 # settings-style endpoints don't use IDs
                 url = f"{jamf_url}/{self.api_endpoints(object_type)}"
             else:
                 url = f"{jamf_url}/{self.api_endpoints(object_type)}/id/{obj_id}"
-        else:
-            if obj_id:
+        elif api_type == "jpapi" or api_type == "platform":
+            if (
+                object_type
+                in ("blueprint_deploy_command", "blueprint_undeploy_command")
+                and obj_id
+            ):
+                url = f"{jamf_url}/{self.api_endpoints(object_type, uuid=obj_id)}"
+            elif obj_id:
                 url = f"{jamf_url}/{self.api_endpoints(object_type)}/{obj_id}"
             else:
                 url = f"{jamf_url}/{self.api_endpoints(object_type)}"
+        else:
+            raise ProcessorError(f"ERROR: API type {api_type} not supported")
 
         additional_curl_options = []
         # settings-style endpoints require special options
@@ -82,16 +92,30 @@ class JamfObjectUploaderBase(JamfUploaderBase):
                 "--header",
                 "Content-type: application/json",
             ]
+        elif obj_id and object_type == "blueprint":
+            request = "PATCH"
+        elif obj_id and object_type in (
+            "blueprint_deploy_command",
+            "blueprint_undeploy_command",
+        ):
+            request = "POST"
         elif obj_id or "_settings" in object_type:
             request = "PUT"
         else:
             request = "POST"
+
+        # temp output template file path
+        # self.output(
+        #     f"Prepared {object_type} template file '{template_file}' for upload",
+        #     verbose_level=2,
+        # )
 
         count = 0
         while True:
             count += 1
             self.output(f"{object_type} upload attempt {count}", verbose_level=2)
             r = self.curl(
+                api_type=api_type,
                 request=request,
                 url=url,
                 token=token,
@@ -140,6 +164,9 @@ class JamfObjectUploaderBase(JamfUploaderBase):
         if "jamfobjectuploader_summary_result" in self.env:
             del self.env["jamfobjectuploader_summary_result"]
 
+        # get api type
+        api_type = self.api_type(object_type)
+
         # we need to substitute the values in the computer group name now to
         # account for version strings in the name
         # substitute user-assignable keys
@@ -151,13 +178,23 @@ class JamfObjectUploaderBase(JamfUploaderBase):
 
         # get token using oauth or basic auth depending on the credentials given
         if jamf_url:
-            token = self.handle_api_auth(
-                jamf_url,
-                jamf_user=jamf_user,
-                password=jamf_password,
-                client_id=client_id,
-                client_secret=client_secret,
-            )
+            # determine which token we need based on object type. classic and jpapi types use handle_api_auth, platform type uses handle_platform_api_auth
+            api_type = self.api_type(object_type)
+            self.output(f"API type for {object_type} is {api_type}", verbose_level=3)
+            if api_type == "platform":
+                token = self.handle_platform_api_auth(
+                    jamf_url,
+                    client_id=client_id,
+                    client_secret=client_secret,
+                )
+            else:
+                token = self.handle_api_auth(
+                    jamf_url,
+                    jamf_user=jamf_user,
+                    password=jamf_password,
+                    client_id=client_id,
+                    client_secret=client_secret,
+                )
         else:
             raise ProcessorError("ERROR: Jamf Pro URL not supplied")
 
@@ -200,12 +237,19 @@ class JamfObjectUploaderBase(JamfUploaderBase):
                 )
 
                 # get the ID from the object bearing the supplied name
+                # the group object type has a different ID key
+                if object_type == "group":
+                    id_key = "groupPlatformId"
+                else:
+                    id_key = "id"
+
                 obj_id = self.get_api_obj_id_from_name(
                     jamf_url,
                     object_name,
                     object_type,
                     token=token,
                     filter_name=namekey,
+                    id_key=id_key,
                 )
 
                 if obj_id:
@@ -238,12 +282,16 @@ class JamfObjectUploaderBase(JamfUploaderBase):
 
         else:
             object_name = ""
-            obj_id = 0
             namekey_path = ""
+            if object_type not in (
+                "blueprint_deploy_command",
+                "blueprint_undeploy_command",
+            ):
+                obj_id = 0
 
         # we need to substitute the values in the object name and template now to
         # account for version strings in the name
-        if "JSSResource" in self.api_endpoints(object_type):
+        if api_type == "classic":
             xml_escape = True
         else:
             xml_escape = False
@@ -276,6 +324,7 @@ class JamfObjectUploaderBase(JamfUploaderBase):
         # upload the object
         self.upload_object(
             jamf_url,
+            api_type,
             object_type,
             template_file,
             sleep_time,

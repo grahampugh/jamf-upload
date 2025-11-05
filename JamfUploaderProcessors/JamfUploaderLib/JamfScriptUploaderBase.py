@@ -128,7 +128,13 @@ class JamfScriptUploaderBase(JamfUploaderBase):
                 verbose_level=2,
             )
             request = "PUT" if obj_id else "POST"
-            r = self.curl(request=request, url=url, token=token, data=script_json)
+            r = self.curl(
+                api_type="jpapi",
+                request=request,
+                url=url,
+                token=token,
+                data=script_json,
+            )
             # check HTTP response
             if self.status_check(r, "Script", script_name, request) == "break":
                 break
@@ -182,6 +188,7 @@ class JamfScriptUploaderBase(JamfUploaderBase):
             script_name = os.path.basename(script_path)
 
         script_name = self.substitute_assignable_keys(script_name)
+        script_category = self.substitute_assignable_keys(script_category)
 
         # we also need to allow substitution of the category
         script_category = self.substitute_assignable_keys(script_category)

@@ -230,6 +230,7 @@ class JamfComputerProfileUploaderBase(JamfUploaderBase):
             )
             request = "PUT" if obj_id else "POST"
             r = self.curl(
+                api_type="classic",
                 request=request,
                 url=url,
                 token=token,

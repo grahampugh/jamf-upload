@@ -5,25 +5,156 @@
 # this folder
 DIR=$(dirname "$0")
 
-# which test?
-test_type="$1"
-verbosity="$2"
-url="$3"
-jira_project="$4"
-jira_user="$5"
-jira_api_token="$6"
+# Command line override for the above settings
+while [[ "$#" -gt 0 ]]; do
+    key="$1"
+    case $key in
+        -t|--test)
+            shift
+            test_type="$1"
+            ;;
+        -u|--url)
+            shift
+            url="$1"
+            ;;
+        -r|--region)
+            shift
+            region="$1"
+            ;;
+        -p|--pkg)
+            shift
+            pkg_path="${1}"
+            ;;
+        -jp|--jira-project)
+            shift
+            jira_project="$1"
+            ;;
+        -ju|--jira-user)
+            shift
+            jira_user="$1"
+            ;;
+        -jt|--jira-api-token)
+            shift
+            jira_api_token="$1"
+            ;;
+        --prefs)
+            shift
+            prefs="$1"
+            prefs_alt="$1"
+            ;;
+        --slack)
+            shift
+            slack_webhook_url="$1"
+            ;;
+        -o|--open)
+            open_results=1
+            ;;
+        -v*)
+            verbosity="$1"
+            ;;
+        -h|--help)
+            echo "Usage: test.sh -t|--test TEST_TYPE [-u|--url JAMF_URL] [-v VERBOSITY]"
+            echo "Available TEST_TYPE values:"
+            echo "  list-benchmarks"
+            echo "  list-blueprints"
+            echo "  list-groups"
+            echo "  read-group"
+            echo "  read-benchmark"
+            echo "  list-baselines"
+            echo "  list-policies"
+            echo "  list-policies-user"
+            echo "  list-scripts"
+            echo "  list-computer-groups"
+            echo "  scope"
+            echo "  ea-popup-remove"
+            echo "  ea-popup-add"
+            echo "  ldapserver"
+            echo "  enrollment"
+            echo "  inventory"
+            echo "  laps"
+            echo "  selfservice"
+            echo "  obj-category"
+            echo "  obj-profile"
+            echo "  obj-policy-id"
+            echo "  obj-script-id"
+            echo "  read-distributionpoint"
+            echo "  appinstallers-tandc"
+            echo "  read-appinstaller-id"
+            echo "  read-policy"
+            echo "  read-mobiledeviceapp"
+            echo "  read-macapp"
+            echo "  read-profile"
+            echo "  read-profiles"
+            echo "  read-ea"
+            echo "  read-ea-popup"
+            echo "  read-eas"
+            echo "  read-script"
+            echo "  read-script-id"
+            echo "  read-category"
+            echo "  read-categories"
+            echo "  read-prestage"
+            echo "  read-prestages"
+            echo "  read-device-prestages"
+            echo "  category"
+            echo "  group"
+            echo "  delete-group"
+            echo "  delete-script"
+            echo "  mobiledevicegroup"
+            echo "  msu"
+            echo "  payload"
+            echo "  profile"
+            echo "  profile2"
+            echo "  profile_retain_scope"
+            echo "  ea"
+            echo "  ea-popup"
+            echo "  mea-popup"
+            echo "  macapp"
+            echo "  macapp2"
+            echo "  mobiledeviceappauto"
+            echo "  mobiledeviceappautoconfig"
+            echo "  mobiledeviceappselfservice"
+            echo "  mobiledeviceappselfserviceconfig"
+            echo "  mobiledeviceapp-fromread"
+            echo "  mobiledeviceprofile"
+            echo "  policy"
+            echo "  policy_retain_scope"
+            echo "  account"
+            exit
+            ;;
+        *)
+            echo "Unknown option: $1"
+            exit 1
+            ;;
+    esac
+    # Shift after checking all the cases to get the next option
+    shift
+done
+
 
 # path to test items
-pkg_path="/Users/gpugh/Downloads/Workbrew-1.1.7.pkg"
+if [[ ! $pkg_path ]]; then
+    pkg_path="/Users/gpugh/Downloads/Workbrew-1.1.7.pkg"
+fi
+
+# set pkg name
 pkg_name="$(basename "$pkg_path")"
+
+# defaults
+if [[ ! $region ]]; then
+    region="eu"
+fi
+
 
 # other variables (ensure some of the temporary variables are not in the prefs)
 # These keys are required to interact with a Jamf instance
 # JSS_URL
 # API_USERNAME
 # API_PASSWORD
-prefs="$HOME/Library/Preferences/com.github.autopkg.plist"
-prefs_alt="/Users/Shared/com.github.autopkg.plist"
+# path to prefs
+if [[ ! $prefs ]]; then
+    prefs="$HOME/Library/Preferences/com.github.autopkg.plist"
+    prefs_alt="/Users/Shared/com.github.autopkg.plist"
+fi
 
 # ensure pkg upload modes are disabled
 defaults write "$prefs" jcds_mode -bool False
@@ -32,7 +163,9 @@ defaults write "$prefs" aws_cdp_mode -bool False
 defaults write "$prefs" pkg_api_mode -bool False
 
 # slack webhook url
-slack_webhook_url=$(cat /Users/gpugh/sourcecode/multitenant-jamf-tools/slack-webhooks/tst.txt)
+if [[ ! $slack_webhook_url ]]; then
+    slack_webhook_url=$(cat /Users/gpugh/sourcecode/multitenant-jamf-tools/slack-webhooks/tst.txt)
+fi
 
 if [[ ! $verbosity ]]; then
     verbosity="-v"
@@ -54,6 +187,111 @@ fi
 # script
 
 case "$test_type" in
+    list-benchmarks)
+        "$DIR"/../jamf-upload.sh read \
+            --prefs "$prefs" \
+            --recipe-dir /Users/gpugh/sourcecode/jamf-upload/_tests \
+            --type "benchmark" \
+            --list \
+            --output "/Users/Shared/Jamf/JamfUploaderTests" \
+            --url "https://$region.apigw.jamf.com" \
+            "$verbosity"
+        if [[ $open_results ]]; then
+            open "/Users/Shared/Jamf/JamfUploaderTests"
+        fi
+        ;;
+    read-benchmark)
+        "$DIR"/../jamf-upload.sh read \
+            --prefs "$prefs" \
+            --recipe-dir /Users/gpugh/sourcecode/jamf-upload/_tests \
+            --type "benchmark" \
+            --id "68daad67165ba63ba7c352d5" \
+            --url "https://$region.apigw.jamf.com" \
+            --output "/Users/Shared/Jamf/JamfUploaderTests" \
+            "$verbosity"
+        if [[ $open_results ]]; then
+            open "/Users/Shared/Jamf/JamfUploaderTests"
+        fi
+        ;;
+    list-baselines)
+        "$DIR"/../jamf-upload.sh read \
+            --prefs "$prefs" \
+            --recipe-dir /Users/gpugh/sourcecode/jamf-upload/_tests \
+            --type "baseline" \
+            --list \
+            --url "https://$region.apigw.jamf.com" \
+            --output "/Users/Shared/Jamf/JamfUploaderTests" \
+            "$verbosity"
+        if [[ $open_results ]]; then
+            open "/Users/Shared/Jamf/JamfUploaderTests"
+        fi
+        ;;
+    list-blueprints)
+        "$DIR"/../jamf-upload.sh read \
+            --prefs "$prefs" \
+            --recipe-dir /Users/gpugh/sourcecode/jamf-upload/_tests \
+            --type "blueprint" \
+            --list \
+            --output "/Users/Shared/Jamf/JamfUploaderTests" \
+            --url "https://$region.apigw.jamf.com" \
+            "$verbosity"
+        if [[ $open_results ]]; then
+            open "/Users/Shared/Jamf/JamfUploaderTests"
+        fi
+        ;;
+    read-blueprint)
+        "$DIR"/../jamf-upload.sh read \
+            --prefs "$prefs" \
+            --recipe-dir /Users/gpugh/sourcecode/jamf-upload/_tests \
+            --type "blueprint" \
+            --name "Update to Latest macOS By Eligibility" \
+            --output "/Users/Shared/Jamf/JamfUploaderTests" \
+            --url "https://$region.apigw.jamf.com" \
+            "$verbosity"
+        if [[ $open_results ]]; then
+            open "/Users/Shared/Jamf/JamfUploaderTests"
+        fi
+        ;;
+    obj-blueprint)
+        "$DIR"/../jamf-upload.sh obj \
+            --prefs "$prefs" \
+            --recipe-dir /Users/gpugh/sourcecode/jamf-upload/_tests \
+            --type "blueprint" \
+            --name "Update to Latest macOS" \
+            --key GROUP_ID="a77b06dc-2a54-4c26-bfc7-dc96f257fbda" \
+            --template "/Users/gpugh/sourcecode/jamf-upload/_Templates_Examples/blueprints-Update to Latest macOS.json" \
+            --output "/Users/Shared/Jamf/JamfUploaderTests" \
+            --url "https://$region.apigw.jamf.com" \
+            "$verbosity" \
+            --replace
+        if [[ $open_results ]]; then
+            open "/Users/Shared/Jamf/JamfUploaderTests"
+        fi
+        ;;
+    list-groups)
+        "$DIR"/../jamf-upload.sh read \
+            --prefs "$prefs" \
+            --recipe-dir /Users/gpugh/sourcecode/jamf-upload/_tests \
+            --type "group" \
+            --list \
+            --output "/Users/Shared/Jamf/JamfUploaderTests" \
+            "$verbosity"
+        if [[ $open_results ]]; then
+            open "/Users/Shared/Jamf/JamfUploaderTests"
+        fi
+        ;;
+    read-group)
+        "$DIR"/../jamf-upload.sh read \
+            --prefs "$prefs" \
+            --recipe-dir /Users/gpugh/sourcecode/jamf-upload/_tests \
+            --type "group" \
+            --name "All Managed" \
+            --output "/Users/Shared/Jamf/JamfUploaderTests" \
+            "$verbosity"
+        if [[ $open_results ]]; then
+            open "/Users/Shared/Jamf/JamfUploaderTests"
+        fi
+        ;;
     list-policies)
         "$DIR"/../jamf-upload.sh read \
             --prefs "$prefs" \
@@ -82,7 +320,7 @@ case "$test_type" in
             --output "/Users/Shared/Jamf/JamfUploaderTests" \
             "$verbosity"
         ;;
-    list-groups)
+    list-computer-groups)
         "$DIR"/../jamf-upload.sh read \
             --prefs "$prefs" \
             --recipe-dir /Users/gpugh/sourcecode/jamf-upload/_tests \

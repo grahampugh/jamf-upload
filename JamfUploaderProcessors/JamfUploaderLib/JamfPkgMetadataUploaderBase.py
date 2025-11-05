@@ -55,6 +55,7 @@ class JamfPkgMetadataUploaderBase(JamfUploaderBase):
 
         request = "GET"
         r = self.curl(
+            api_type="jpapi",
             request=request,
             url=url,
             token=token,
@@ -155,7 +156,9 @@ class JamfPkgMetadataUploaderBase(JamfUploaderBase):
                 verbose_level=2,
             )
             request = "PUT" if pkg_id else "POST"
-            r = self.curl(request=request, url=url, token=token, data=pkg_json)
+            r = self.curl(
+                api_type="jpapi", request=request, url=url, token=token, data=pkg_json
+            )
             # check HTTP response
             if self.status_check(r, "Package Metadata", pkg_name, request) == "break":
                 break

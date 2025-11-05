@@ -56,7 +56,7 @@ class JamfComputerGroupDeleterBase(JamfUploaderBase):
             count += 1
             self.output(f"Computer Group delete attempt {count}", verbose_level=2)
             request = "DELETE"
-            r = self.curl(request=request, url=url, token=token)
+            r = self.curl(api_type="classic", request=request, url=url, token=token)
 
             # check HTTP response
             if self.status_check(r, "Computer Group", obj_id, request) == "break":

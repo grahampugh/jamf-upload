@@ -97,6 +97,7 @@ class JamfSoftwareRestrictionUploaderBase(JamfUploaderBase):
             self.output(f"Software Restriction upload attempt {count}", verbose_level=1)
             request = "PUT" if obj_id else "POST"
             r = self.curl(
+                api_type="classic",
                 request=request,
                 url=url,
                 token=token,

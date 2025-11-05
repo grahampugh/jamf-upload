@@ -124,7 +124,9 @@ class JamfExtensionAttributeUploaderBase(JamfUploaderBase):
                 verbose_level=2,
             )
             request = "PUT" if obj_id else "POST"
-            r = self.curl(request=request, url=url, token=token, data=ea_json)
+            r = self.curl(
+                api_type="jpapi", request=request, url=url, token=token, data=ea_json
+            )
             # check HTTP response
             if self.status_check(r, "Extension Attribute", ea_name, request) == "break":
                 break

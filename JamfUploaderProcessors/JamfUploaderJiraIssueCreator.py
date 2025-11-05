@@ -261,6 +261,7 @@ class JamfUploaderJiraIssueCreator(URLGetter):
                 f"Jira API request post attempt {count}",
                 verbose_level=2,
             )
+            
             proc_stdout, _, status_code = self.execute_curl(curl_cmd)
             self.output(f"Curl command: {curl_cmd}", verbose_level=4)
             header = self.parse_headers(proc_stdout)

@@ -46,7 +46,7 @@ class JamfAccountUploaderBase(JamfUploaderBase):
         # define the relationship between the object types and their URL
         object_type = "account"
         url = jamf_url + "/" + self.api_endpoints(object_type)
-        r = self.curl(request="GET", url=url, token=token)
+        r = self.curl(api_type="classic", request="GET", url=url, token=token)
 
         if r.status_code == 200:
             object_list = json.loads(r.output)
@@ -118,6 +118,7 @@ class JamfAccountUploaderBase(JamfUploaderBase):
             self.output(f"{object_type} upload attempt {count}", verbose_level=2)
             request = "PUT" if obj_id else "POST"
             r = self.curl(
+                api_type="classic",
                 request=request,
                 url=url,
                 token=token,

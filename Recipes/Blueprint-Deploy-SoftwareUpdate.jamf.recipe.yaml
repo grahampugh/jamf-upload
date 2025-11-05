@@ -1,0 +1,19 @@
+Description: Recalculates the package inventory on a Jamf Cloud Distribution Server.
+Identifier: com.github.grahampugh.recipes.Blueprint-Deploy-SoftwareUpdate
+MinimumVersion: "2.3"
+
+Input:
+  REGION: eu
+
+Process:
+  - Processor: com.github.grahampugh.jamf-upload.processors/JamfObjectReader
+    Arguments:
+      JSS_URL: https://%REGION%.apigw.jamf.com
+      object_type: blueprint
+      object_name: Update to Latest macOS
+
+  - Processor: com.github.grahampugh.jamf-upload.processors/JamfObjectUploader
+    Arguments:
+      JSS_URL: https://%REGION%.apigw.jamf.com
+      object_type: blueprint_deploy_command
+      replace_object: "true"

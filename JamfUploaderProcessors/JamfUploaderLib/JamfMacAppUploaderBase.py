@@ -44,7 +44,7 @@ class JamfMacAppUploaderBase(JamfUploaderBase):
         url_filter = "?page=0&page-size=100&sort=id"
         object_type = "volume_purchasing_location"
         url = jamf_url + "/" + self.api_endpoints(object_type) + url_filter
-        r = self.curl(request="GET", url=url, token=token)
+        r = self.curl(api_type="jpapi", request="GET", url=url, token=token)
         if r.status_code == 200:
             obj_id = 0
             # output = json.loads(r.output)
@@ -101,6 +101,7 @@ class JamfMacAppUploaderBase(JamfUploaderBase):
             self.output(f"MAS app upload attempt {count}", verbose_level=2)
             request = "PUT" if obj_id else "POST"
             r = self.curl(
+                api_type="classic",
                 request=request,
                 url=url,
                 token=token,
@@ -175,7 +176,7 @@ class JamfMacAppUploaderBase(JamfUploaderBase):
             self.output(f"MAS app '{macapp_name}' already exists: ID {obj_id}")
             if replace_macapp:
                 self.output(
-                    f"Replacing existing MAS app as 'replace_macapp' is set to True",
+                    "Replacing existing MAS app as 'replace_macapp' is set to True",
                     verbose_level=1,
                 )
 
