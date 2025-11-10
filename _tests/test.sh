@@ -118,7 +118,32 @@ while [[ "$#" -gt 0 ]]; do
             echo "  mobiledeviceprofile"
             echo "  policy"
             echo "  policy_retain_scope"
+            echo "  prestage"
+            echo "  prestage2"
             echo "  account"
+            echo "  account2"
+            echo "  account3"
+            echo "  restriction"
+            echo "  script"
+            echo "  patch"
+            echo "  patch2"
+            echo "  pkg"
+            echo "  dock"
+            echo "  icon"
+            echo "  apirole"
+            echo "  apiclient"
+            echo "  policydelete"
+            echo "  policyflush"
+            echo "  pkg-noreplace"
+            echo "  pkg-jcds2"
+            echo "  pkg-aws"
+            echo "  pkgclean"
+            echo "  unusedpkg"
+            echo "  pkgcalc"
+            echo "  pkgdata"
+            echo "  jira"
+            echo "  slack"
+            echo "  teams"
             exit
             ;;
         *)
@@ -983,6 +1008,17 @@ case "$test_type" in
             "$verbosity" \
             --replace
         ;;
+    pkg)
+        "$DIR"/../jamf-upload.sh pkg \
+            --prefs "$prefs" \
+            --recipe-dir /Users/gpugh/sourcecode/jamf-upload/_tests \
+            --pkg "$pkg_path" \
+            --category "JamfUploadTest" \
+            --info "Uploaded directly by JamfPackageUploader using v1/packages" \
+            --notes "$(date)" \
+            "$verbosity" \
+            --replace
+        ;;
     dock)
         "$DIR"/../jamf-upload.sh dock \
             --prefs "$prefs" \
@@ -1031,26 +1067,13 @@ case "$test_type" in
             --name "Install Latest Adium" \
             "$verbosity"
         ;;
-    policy_flush)
+    policyflush)
         "$DIR"/../jamf-upload.sh policy_flush \
             --prefs "$prefs" \
             --recipe-dir /Users/gpugh/sourcecode/jamf-upload/_tests \
             --name "0001 - Install Rosetta 2" \
             --interval "Zero Days" \
             "$verbosity"
-        ;;
-    pkg)
-        "$DIR"/../jamf-upload.sh pkg \
-            --prefs "$prefs_alt" \
-            --recipe-dir /Users/gpugh/sourcecode/jamf-upload/_tests \
-            --pkg "$pkg_path" \
-            --pkg-name "$(basename "$pkg_path")" \
-            --name "$(basename "$pkg_path")" \
-            --category JamfUploadTest \
-            --info "Uploaded directly by JamfPackageUploader using v1/packages" \
-            --notes "$(date)" \
-            "$verbosity" \
-            --replace
         ;;
     pkg-noreplace)
         "$DIR"/../jamf-upload.sh pkg \
