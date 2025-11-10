@@ -204,7 +204,10 @@ class JamfPackageCleanerBase(JamfUploaderBase):
         obj_type = "package"
         url = f"{jamf_url}/{self.api_endpoints(obj_type)}"
         r = self.curl(api_type="classic", request="GET", url=url, token=token)
-        jamf_packages = json.loads(r.output.decode("utf-8"))["packages"]
+        if isinstance(r.output, dict):
+            jamf_packages = r.output["packages"]
+        else:
+            jamf_packages = json.loads(r.output)["packages"]
 
         # Find packages that match the name pattern
         found_packages = [

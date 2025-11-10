@@ -17,6 +17,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 """
 
+import json
 import os.path
 import sys
 
@@ -47,8 +48,10 @@ class JamfMobileDeviceAppUploaderBase(JamfUploaderBase):
         r = self.curl(api_type="jpapi", request="GET", url=url, token=token)
         if r.status_code == 200:
             obj_id = 0
-            # output = json.loads(r.output)
-            output = r.output
+            if isinstance(r.output, dict):
+                output = r.output
+            else:
+                output = json.loads(r.output)
             for obj in output["results"]:
                 self.output(f"ID: {obj['id']} NAME: {obj['name']}", verbose_level=3)
                 obj_id = obj["id"]
