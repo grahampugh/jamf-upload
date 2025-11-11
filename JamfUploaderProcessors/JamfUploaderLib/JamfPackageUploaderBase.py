@@ -572,7 +572,10 @@ class JamfPackageUploaderBase(JamfUploaderBase):
         )
 
         if r.status_code == 200:
-            obj = json.loads(r.output)
+            if isinstance(r.output, dict):
+                obj = r.output
+            else:
+                obj = json.loads(r.output)
             try:
                 obj_id = str(obj["package"]["id"])
             except KeyError:
