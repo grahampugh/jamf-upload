@@ -1068,7 +1068,7 @@ case "$test_type" in
             "$verbosity"
         ;;
     policyflush)
-        "$DIR"/../jamf-upload.sh policy_flush \
+        "$DIR"/../jamf-upload.sh policyflush \
             --prefs "$prefs" \
             --recipe-dir /Users/gpugh/sourcecode/jamf-upload/_tests \
             --name "0001 - Install Rosetta 2" \
