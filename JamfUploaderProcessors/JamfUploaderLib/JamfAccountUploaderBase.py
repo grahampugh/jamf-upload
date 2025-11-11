@@ -49,7 +49,10 @@ class JamfAccountUploaderBase(JamfUploaderBase):
         r = self.curl(api_type="classic", request="GET", url=url, token=token)
 
         if r.status_code == 200:
-            object_list = json.loads(r.output)
+            if isinstance(r.output, dict):
+                object_list = r.output
+            else:
+                object_list = json.loads(r.output)
             self.output(
                 object_list,
                 verbose_level=4,
