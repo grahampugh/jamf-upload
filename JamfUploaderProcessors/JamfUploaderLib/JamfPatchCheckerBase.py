@@ -94,7 +94,7 @@ class JamfPatchCheckerBase(JamfUploaderBase):
                 v.append(pkg_element)
                 # Print new version element for debugging reasons
                 self.output(
-                    ET.tostring(v, encoding="UTF-8", method="xml"), verbose_level=3
+                    ET.tostring(v, encoding="unicode", method="xml"), verbose_level=3
                 )
                 self.env["patch_version_found"] = patch_version_found
 

@@ -1008,6 +1008,16 @@ case "$test_type" in
             "$verbosity" \
             --replace
         ;;
+    patchcheck)
+        "$DIR"/../jamf-upload.sh patchcheck \
+            --prefs "$prefs" \
+            --recipe-dir /Users/gpugh/sourcecode/jamf-upload/_tests \
+            --title "Firefox" \
+            --pkg-name "Firefox-96.0.pkg" \
+            --version "96.0" \
+            "$verbosity" \
+            --replace
+        ;;
     pkg)
         "$DIR"/../jamf-upload.sh pkg \
             --prefs "$prefs" \
