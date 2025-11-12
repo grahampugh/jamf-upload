@@ -523,6 +523,8 @@ elif [[ $object == "policyflush" ]]; then
     processor="JamfPolicyLogFlusher"
 elif [[ $object == "patch" ]]; then
     processor="JamfPatchUploader"
+elif [[ $object == "patchcheck" ]]; then
+    processor="JamfPatchChecker"
 elif [[ $object == "read" ]]; then
     processor="JamfObjectReader"
 elif [[ $object == "restriction" || $object == "softwarerestriction" ]]; then
@@ -1161,7 +1163,7 @@ while test $# -gt 0 ; do
             ;;
         --version) 
             shift
-            if [[ $processor == "JamfMSUPlanUploader" || $processor == "JamfPatchUploader" || $processor == "JamfUploaderSlacker" || $processor == "JamfUploaderTeamsNotifier" ]]; then
+            if [[ $processor == "JamfMSUPlanUploader" || $processor == "JamfPatchChecker" || $processor == "JamfPatchUploader" || $processor == "JamfUploaderSlacker" || $processor == "JamfUploaderTeamsNotifier" ]]; then
                 if plutil -replace version -string "$1" "$temp_processor_plist"; then
                     echo "   [jamf-upload] Wrote version='$1' into $temp_processor_plist"
                 fi
@@ -1268,7 +1270,7 @@ while test $# -gt 0 ; do
             ;;
         --pkg-name|--pkg_name) 
             shift
-            if [[ $processor == "JamfPackageUploader" || $processor == "JamfPkgMetadataUploader" || $processor == "JamfUploaderJiraIssueCreator" || $processor == "JamfUploaderSlacker" || $processor == "JamfUploaderTeamsNotifier" || $processor == "JamfPatchUploader" ]]; then
+            if [[ $processor == "JamfPackageUploader" || $processor == "JamfPatchChecker" || $processor == "JamfPatchUploader" || $processor == "JamfPkgMetadataUploader" || $processor == "JamfUploaderJiraIssueCreator" || $processor == "JamfUploaderSlacker" || $processor == "JamfUploaderTeamsNotifier" ]]; then
                 if plutil -replace pkg_name -string "$1" "$temp_processor_plist"; then
                     echo "   [jamf-upload] Wrote pkg_name='$1' into $temp_processor_plist"
                 fi
@@ -1395,7 +1397,7 @@ while test $# -gt 0 ; do
             ;;
         --title)
             shift
-            if [[ $processor == "JamfPatchUploader" ]]; then
+            if [[ $processor == "JamfPatchChecker" || $processor == "JamfPatchUploader" ]]; then
                 if plutil -replace patch_softwaretitle -string "$1" "$temp_processor_plist"; then
                     echo "   [jamf-upload] Wrote patch_softwaretitle='$1' into $temp_processor_plist"
                 fi
