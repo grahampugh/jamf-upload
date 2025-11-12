@@ -63,7 +63,7 @@ verify_credentials() {
         http_response=$(
             curl --request POST \
             --silent \
-            --url "$jss_url/api/oauth/token" \
+            --url "$jss_url/api/v1/oauth/token" \
             --header 'Content-Type: application/x-www-form-urlencoded' \
             --data-urlencode "client_id=$jss_api_user" \
             --data-urlencode "grant_type=client_credentials" \

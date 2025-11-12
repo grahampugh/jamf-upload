@@ -45,7 +45,7 @@ class JamfUploaderBase(Processor):
     """Common functions used by at least two JamfUploader processors."""
 
     # Global version
-    __version__ = "2025.10.16.0"
+    __version__ = "2025.11.12.0"
 
     def api_type(self, object_type):
         """Return the API type from the object type"""
@@ -215,7 +215,7 @@ class JamfUploaderBase(Processor):
             "mobile_device_group": "JSSResource/mobiledevicegroups",
             "mobile_device_prestage": "api/v1/mobile-device-prestages",
             "network_segment": "JSSResource/networksegments",
-            "oauth": "api/oauth/token",
+            "oauth": "api/v1/oauth/token",
             "os_x_configuration_profile": "JSSResource/osxconfigurationprofiles",
             "package": "JSSResource/packages",
             "package_v1": "api/v1/packages",
@@ -859,7 +859,7 @@ class JamfUploaderBase(Processor):
                 curl_cmd.extend(["--header", f"authorization: Basic {enc_creds}"])
             elif token:
                 curl_cmd.extend(["--header", f"authorization: Bearer {token}"])
-            else:
+            elif endpoint_type != "oauth":
                 raise ProcessorError("No token or credentials supplied")
 
             # write session for jamf API requests
