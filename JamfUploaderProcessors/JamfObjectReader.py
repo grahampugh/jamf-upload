@@ -127,6 +127,13 @@ class JamfObjectReader(JamfObjectReaderBase):
                 "Note that id and self_service_icon are removed automatically."
             ),
         },
+        "elements_to_retain": {
+            "required": False,
+            "description": (
+                "A list of XML or JSON elements that should be retained from the downloaded XML. "
+                "Other keys will be removed if any value is set."
+            ),
+        },
         "all_objects": {
             "required": False,
             "description": "Download all objects of the specific object type",
