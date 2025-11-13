@@ -330,6 +330,27 @@ case "$test_type" in
             --output "/Users/Shared/Jamf/JamfUploaderTests" \
             "$verbosity"
         ;;
+    disable-app)
+        "$DIR"/../jamf-upload.sh statechange \
+            --prefs "$prefs" \
+            --recipe-dir /Users/gpugh/sourcecode/jamf-upload/_tests \
+            --type "app_installers_deployment" \
+            --name "Canva" \
+            --state "disable" \
+            --retain-data "false" \
+            --output "/Users/Shared/Jamf/JamfUploaderTests" \
+            "$verbosity"
+        ;;
+    enable-app)
+        "$DIR"/../jamf-upload.sh statechange \
+            --prefs "$prefs" \
+            --recipe-dir /Users/gpugh/sourcecode/jamf-upload/_tests \
+            --type "app_installers_deployment" \
+            --name "Canva" \
+            --state "enable" \
+            --output "/Users/Shared/Jamf/JamfUploaderTests" \
+            "$verbosity"
+        ;;
     disable-ea)
         "$DIR"/../jamf-upload.sh statechange \
             --prefs "$prefs" \
