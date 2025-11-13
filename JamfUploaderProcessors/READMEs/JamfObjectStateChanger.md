@@ -26,7 +26,7 @@ A processor for AutoPkg that will change the state of an object on a Jamf Cloud 
   - **description**: The name of the API object
 - **object_type**:
   - **required**: True
-  - **description**: The API object type. This is in the singular form - for Classic API endpoints this is the name of the key in the XML template. For JSON objects it is a construction made interally for this project. See the [Object Reference](./Object%20Reference.md) for valid objects. Valid values are `policy`, `computer_extension_attribute`, `mobile_device_extension_attribute`, `mobile_device_extension_attribute_v1`, `mac_application`, `mobile_device_application`. Note that only script-based extension attributes may be enabled or disabled.
+  - **description**: The API object type. This is in the singular form - for Classic API endpoints this is the name of the key in the XML template. For JSON objects it is a construction made interally for this project. See the [Object Reference](./Object%20Reference.md) for valid objects. Valid values are `policy`, `computer_extension_attribute`. Note that only script-based extension attributes may be enabled or disabled.
   - **default:** "policy"
 - **object_state:**
   - **required:** True

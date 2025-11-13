@@ -383,6 +383,8 @@ Object State Change arguments:
     --type <string>         The object type (e.g. policy)
     --name <string>         The name of the API object
     --state <string>        The desired state of the object, either 'enable' or 'disable'
+    --retain-data           Retain existing data when disabling the object 
+                            (only applicable to computer extension attributes)
 
 NOTIFICATION OPTIONS
 
@@ -1231,6 +1233,14 @@ while test $# -gt 0 ; do
                 fi
             fi
             ;;
+        --retain-data)
+            shift
+            if [[ $processor == "JamfObjectStateChanger" ]]; then
+                if plutil -replace retain_data -string "$1" "$temp_processor_plist"; then
+                    echo "   [jamf-upload] Wrote retain_data='$1' into $temp_processor_plist"
+                fi
+            fi
+            ;;
         --dry-run) 
             if [[ $processor == "JamfPackageCleaner" || $processor == "JamfUnusedPackageCleaner" ]]; then
                 if plutil -replace dry_run -string "True" "$temp_processor_plist"; then
@@ -1679,7 +1689,7 @@ while test $# -gt 0 ; do
 done
 
 # add the object type for items using the generic JamfObjectReader and JamfObjectUploader processors
-if [[ $processor == "JamfObjectReader" || $processor == "JamfObjectDeleter" || $processor == "JamfObjectUploader" ]]; then
+if [[ $processor == "JamfObjectReader" || $processor == "JamfObjectDeleter" || $processor == "JamfObjectUploader" || $processor == "JamfObjectStateChanger" ]]; then
     if plutil -replace object_type -string "$object" "$temp_processor_plist"; then
         echo "   [jamf-upload] Wrote object_type='$object' into $temp_processor_plist"
     fi

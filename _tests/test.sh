@@ -329,9 +329,27 @@ case "$test_type" in
             --state "enable" \
             --output "/Users/Shared/Jamf/JamfUploaderTests" \
             "$verbosity"
-        if [[ $open_results ]]; then
-            open "/Users/Shared/Jamf/JamfUploaderTests"
-        fi
+        ;;
+    disable-ea)
+        "$DIR"/../jamf-upload.sh statechange \
+            --prefs "$prefs" \
+            --recipe-dir /Users/gpugh/sourcecode/jamf-upload/_tests \
+            --type "computer_extension_attribute" \
+            --name "macOS Version Check" \
+            --state "disable" \
+            --retain-data "false" \
+            --output "/Users/Shared/Jamf/JamfUploaderTests" \
+            "$verbosity"
+        ;;
+    enable-ea)
+        "$DIR"/../jamf-upload.sh statechange \
+            --prefs "$prefs" \
+            --recipe-dir /Users/gpugh/sourcecode/jamf-upload/_tests \
+            --type "computer_extension_attribute" \
+            --name "macOS Version Check" \
+            --state "enable" \
+            --output "/Users/Shared/Jamf/JamfUploaderTests" \
+            "$verbosity"
         ;;
     list-groups)
         "$DIR"/../jamf-upload.sh read \

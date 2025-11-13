@@ -42,7 +42,15 @@ class JamfObjectStateChangerBase(JamfUploaderBase):
     """Class for functions used to flush a policy in Jamf"""
 
     def set_object_state(
-        self, jamf_url, api_type, object_type, obj_id, object_state, sleep_time, token
+        self,
+        jamf_url,
+        api_type,
+        object_type,
+        obj_id,
+        object_state,
+        retain_data,
+        sleep_time,
+        token,
     ):
         """Send request to set object end state"""
 
@@ -107,7 +115,10 @@ class JamfObjectStateChangerBase(JamfUploaderBase):
                 file.write(ET.tostring(root, encoding="utf-8"))
         elif api_type == "jpapi":
             # JPAPI expects JSON
-            obj_data = r.json()
+            if isinstance(r.output, dict):
+                obj_data = r.output
+            else:
+                obj_data = json.loads(r.output)
             if "enabled" not in obj_data:
                 raise ProcessorError(
                     f"ERROR: 'enabled' field not found in {object_type} JSON"
@@ -116,6 +127,12 @@ class JamfObjectStateChangerBase(JamfUploaderBase):
                 obj_data["enabled"] = True
             else:
                 obj_data["enabled"] = False
+            # for computer EAs, we also need to set the manageExistingData field to "RETAIN" or "DELETE" if disabling
+            if (
+                object_type == "computer_extension_attribute"
+                and object_state == "disable"
+            ):
+                obj_data["manageExistingData"] = "RETAIN" if retain_data else "DELETE"
             output_file = self.init_temp_file(url, suffix=".json")
             with open(output_file, "wb") as file:
                 file.write(json.dumps(obj_data).encode("utf-8"))
@@ -168,6 +185,7 @@ class JamfObjectStateChangerBase(JamfUploaderBase):
         object_type = self.env.get("object_type")
         object_name = self.env.get("object_name")
         object_state = self.env.get("object_state")
+        retain_data = self.to_bool(self.env.get("retain_data"))
         sleep_time = self.env.get("sleep")
 
         # object type must be one of policy, extension_attribute, mac_application,
@@ -175,10 +193,6 @@ class JamfObjectStateChangerBase(JamfUploaderBase):
         valid_object_types = [
             "policy",
             "computer_extension_attribute",
-            "mobile_device_extension_attribute",
-            "mobile_device_extension_attribute_v1",
-            "mac_application",
-            "mobile_device_application",
         ]
         if object_type not in valid_object_types:
             raise ProcessorError(
@@ -212,21 +226,13 @@ class JamfObjectStateChangerBase(JamfUploaderBase):
         if jamf_url:
             # determine which token we need based on object type. classic and jpapi types use handle_api_auth, platform type uses handle_platform_api_auth
             api_type = self.api_type(object_type)
-            self.output(f"API type for {object_type} is {api_type}", verbose_level=3)
-            if api_type == "platform":
-                token = self.handle_platform_api_auth(
-                    jamf_url,
-                    client_id=client_id,
-                    client_secret=client_secret,
-                )
-            else:
-                token = self.handle_api_auth(
-                    jamf_url,
-                    jamf_user=jamf_user,
-                    password=jamf_password,
-                    client_id=client_id,
-                    client_secret=client_secret,
-                )
+            token = self.handle_api_auth(
+                jamf_url,
+                jamf_user=jamf_user,
+                password=jamf_password,
+                client_id=client_id,
+                client_secret=client_secret,
+            )
         else:
             raise ProcessorError("ERROR: Jamf Pro URL not supplied")
 
@@ -250,6 +256,7 @@ class JamfObjectStateChangerBase(JamfUploaderBase):
                 object_type,
                 obj_id,
                 object_state,
+                retain_data,
                 sleep_time,
                 token=token,
             )

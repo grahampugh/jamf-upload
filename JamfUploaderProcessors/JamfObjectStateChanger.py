@@ -81,10 +81,7 @@ class JamfObjectStateChanger(JamfObjectStateChangerBase):
                 "Classic API endpoints this is the name of the key in the XML template. For "
                 "JSON objects it is a construction made interally for this project. See the "
                 "[Object Reference](./Object%20Reference.md) for valid objects. Valid values "
-                "are `policy`, `computer_extension_attribute`, "
-                "`mobile_device_extension_attribute`, "
-                "`mobile_device_extension_attribute_v1`, `mac_application`, "
-                "`mobile_device_application`. "
+                "are `policy`, `computer_extension_attribute`"
                 "Note that only script-based extension attributes may be enabled or disabled."
             },
             "default": "policy",
@@ -93,6 +90,18 @@ class JamfObjectStateChanger(JamfObjectStateChangerBase):
             "required": True,
             "description": "The desired state of the object, either 'enable' or 'disable'",
             "default": "disable",
+        },
+        "retain_data": {
+            "required": False,
+            "description": "When disabling a computer extension attribute, "
+            "set to true to retain existing data. "
+            "Ignored for other object types.",
+            "default": True,
+        },
+        "sleep": {
+            "required": False,
+            "description": "Pause after running this processor for specified seconds.",
+            "default": "0",
         },
     }
 
