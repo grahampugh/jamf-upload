@@ -248,6 +248,7 @@ class JamfObjectReaderBase(JamfUploaderBase):
         # declare name key
         namekey = self.get_namekey(object_type)
         namekey_path = self.get_namekey_path(object_type, namekey)
+        self.output(f"Name key for {object_type} is {namekey}", verbose_level=3)
 
         # if requesting all objects we need to generate a list of all to iterate through
         if all_objects or list_only:

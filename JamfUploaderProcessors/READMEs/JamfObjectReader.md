@@ -36,6 +36,9 @@ A processor for AutoPkg to read an API object and optionally, output to file (XM
 - **elements_to_remove**:
   - **required**: False
   - **description**: A list of XML or JSON elements that should be removed from the downloaded XML. Note that `id` and `self_service_icon` are removed automatically.
+- **elements_to_retain**:
+  - **required**: False
+  - **description**: A list of XML or JSON elements that should be retained from the downloaded XML. Other keys will be removed if any value is set.
 
 ## Output variables
 

@@ -283,9 +283,11 @@ class JamfAPIClientUploaderBase(JamfUploaderBase):
                 "report_fields": [
                     "name",
                     "api_client_id",
+                    "api_client_secret",
                 ],
                 "data": {
                     "name": object_name,
                     "api_client_id": api_client_id,
+                    "api_client_secret": api_client_secret,
                 },
             }

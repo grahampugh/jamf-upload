@@ -16,7 +16,7 @@
 usage() {
     cat <<'USAGE'
 Usage:
-./set_platformapi_credentials.sh                  - set the Keychain Credentials
+./set-platformapi-credentials.sh                  - set the Keychain Credentials
 
 Options:
 [no arguments]                                    - interactive mode

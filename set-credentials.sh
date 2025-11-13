@@ -6,7 +6,7 @@
 # 1. Ask for the instance URL
 # 2. Ask for the username (show any existing value of first instance in list as default)
 # 3. Ask for the password (show the associated user if already existing)
-# 4. Loop through each selected instance, check for an existing keychain entry, create or overwrite
+# 4. Check for an existing keychain entry, create or overwrite
 # 5. Check the credentials are working using the API
 # --------------------------------------------------------------------------------
 
@@ -17,7 +17,7 @@
 usage() {
     cat <<'USAGE'
 Usage:
-./set_platformapi_credentials.sh                  - set the Keychain Credentials
+./set-credentials.sh                  - set the Keychain Credentials
 
 Options:
 [no arguments]                                    - interactive mode
