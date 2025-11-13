@@ -319,6 +319,7 @@ class JamfUploaderBase(Processor):
     def get_namekey(self, object_type):
         """Return the name key that identifies the object"""
         object_type_namekeys = {
+            "api_role": "displayName",
             "api_client": "displayName",
             "computer_prestage": "displayName",
             "group": "groupName",
