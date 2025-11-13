@@ -45,6 +45,7 @@ Valid object types:
     read
     restriction | softwarerestriction
     scope
+    statechange
     script
     slack
     teams
@@ -378,6 +379,11 @@ Scope Adjust arguments:
     --not-stripped          Don't strip all XML tags except for general/id and scope
     --output <dir>          Optional directory to output the parsed XML to. Directory must exist.
 
+Object State Change arguments:
+    --type <string>         The object type (e.g. policy)
+    --name <string>         The name of the API object
+    --state <string>        The desired state of the object, either 'enable' or 'disable'
+
 NOTIFICATION OPTIONS
 
 Jira notifications arguments:
@@ -503,6 +509,8 @@ elif [[ $object == "mobiledeviceprofile" ]]; then
     processor="JamfMobileDeviceProfileUploader"
 elif [[ $object == "msu" || $object == "managedsoftwareupdateplan" ]]; then
     processor="JamfMSUPlanUploader"
+elif [[ $object == "statechange" ]]; then
+    processor="JamfObjectStateChanger"
 elif [[ $object == "obj"* || $object == "classicobj"* ]]; then
     processor="JamfObjectUploader"
 elif [[ $object == "pkg" || $object == "package" ]]; then
@@ -621,7 +629,7 @@ while test $# -gt 0 ; do
                 if plutil -replace ea_input_type -string "$1" "$temp_processor_plist"; then
                     echo "   [jamf-upload] Wrote ea_input_type='$1' into $temp_processor_plist"
                 fi
-            elif [[ $processor == "JamfObjectReader" || $processor == "JamfObjectDeleter" || $processor == "JamfObjectUploader" ]]; then
+            elif [[ $processor == "JamfObjectReader" || $processor == "JamfObjectDeleter" || $processor == "JamfObjectUploader" || $processor == "JamfObjectStateChanger" ]]; then
                 # override for generic items, as this key is written later, normally providing the value of $object
                 object="$1"
             elif [[ $processor == "JamfScopeAdjuster" ]]; then
@@ -787,7 +795,7 @@ while test $# -gt 0 ; do
                 if plutil -replace mobiledevicegroup_name -string "$1" "$temp_processor_plist"; then
                     echo "   [jamf-upload] Wrote mobiledevicegroup_name='$1' into $temp_processor_plist"
                 fi
-            elif [[ $processor == "JamfObjectReader" || $processor == "JamfObjectDeleter" || $processor == "JamfObjectUploader" ]]; then
+            elif [[ $processor == "JamfObjectReader" || $processor == "JamfObjectDeleter" || $processor == "JamfObjectUploader" || $processor == "JamfObjectStateChanger" ]]; then
                 if plutil -replace object_name -string "$1" "$temp_processor_plist"; then
                     echo "   [jamf-upload] Wrote object_name='$1' into $temp_processor_plist"
                 fi
@@ -1163,7 +1171,7 @@ while test $# -gt 0 ; do
             ;;
         --version) 
             shift
-            if [[ $processor == "JamfMSUPlanUploader" || $processor == "JamfPatchChecker" || $processor == "JamfPatchUploader" || $processor == "JamfUploaderSlacker" || $processor == "JamfUploaderTeamsNotifier" ]]; then
+            if [[ $processor == "JamfMSUPlanUploader" || $processor == "JamfPatchChecker" || $processor == "JamfPatchUploader" || $processor == "JamfUploaderSlacker" || $processor == "JamfUploaderTeamsNotifier" || $processor == "JamfPatchUploader" || $processor == "JamfUploaderJiraIssueCreator" || $processor == "JamfUploaderSlacker" || $processor == "JamfUploaderTeamsNotifier" ]]; then
                 if plutil -replace version -string "$1" "$temp_processor_plist"; then
                     echo "   [jamf-upload] Wrote version='$1' into $temp_processor_plist"
                 fi
@@ -1215,6 +1223,14 @@ while test $# -gt 0 ; do
                 fi
             fi
             ;; 
+        --state)
+            shift
+            if [[ $processor == "JamfObjectStateChanger" ]]; then
+                if plutil -replace object_state -string "$1" "$temp_processor_plist"; then
+                    echo "   [jamf-upload] Wrote object_state='$1' into $temp_processor_plist"
+                fi
+            fi
+            ;;
         --dry-run) 
             if [[ $processor == "JamfPackageCleaner" || $processor == "JamfUnusedPackageCleaner" ]]; then
                 if plutil -replace dry_run -string "True" "$temp_processor_plist"; then
@@ -1412,14 +1428,6 @@ while test $# -gt 0 ; do
             elif [[ $processor == "JamfUploaderJiraIssueCreator" || $processor == "JamfUploaderSlacker" || $processor == "JamfUploaderTeamsNotifier" ]]; then
                 if plutil -replace policy_name -string "$1" "$temp_processor_plist"; then
                     echo "   [jamf-upload] Wrote policy_name='$1' into $temp_processor_plist"
-                fi
-            fi
-            ;;
-        --version) 
-            shift
-            if [[ $processor == "JamfPatchUploader" || $processor == "JamfUploaderJiraIssueCreator" || $processor == "JamfUploaderSlacker" || $processor == "JamfUploaderTeamsNotifier" ]]; then
-                if plutil -replace version -string "$1" "$temp_processor_plist"; then
-                    echo "   [jamf-upload] Wrote version='$1' into $temp_processor_plist"
                 fi
             fi
             ;;

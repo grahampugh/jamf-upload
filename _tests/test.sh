@@ -141,6 +141,7 @@ while [[ "$#" -gt 0 ]]; do
             echo "  unusedpkg"
             echo "  pkgcalc"
             echo "  pkgdata"
+            echo "  statechange"
             echo "  jira"
             echo "  slack"
             echo "  teams"
@@ -289,6 +290,45 @@ case "$test_type" in
             --url "https://$region.apigw.jamf.com" \
             "$verbosity" \
             --replace
+        if [[ $open_results ]]; then
+            open "/Users/Shared/Jamf/JamfUploaderTests"
+        fi
+        ;;
+    statechange)
+        "$DIR"/../jamf-upload.sh statechange \
+            --prefs "$prefs" \
+            --recipe-dir /Users/gpugh/sourcecode/jamf-upload/_tests \
+            --type "policy" \
+            --name "JSPP - Submit Inventory - Self Service" \
+            --state "disable" \
+            --output "/Users/Shared/Jamf/JamfUploaderTests" \
+            "$verbosity"
+        if [[ $open_results ]]; then
+            open "/Users/Shared/Jamf/JamfUploaderTests"
+        fi
+        ;;
+    disable)
+        "$DIR"/../jamf-upload.sh statechange \
+            --prefs "$prefs" \
+            --recipe-dir /Users/gpugh/sourcecode/jamf-upload/_tests \
+            --type "policy" \
+            --name "JSPP - Submit Inventory - Self Service" \
+            --state "disable" \
+            --output "/Users/Shared/Jamf/JamfUploaderTests" \
+            "$verbosity"
+        if [[ $open_results ]]; then
+            open "/Users/Shared/Jamf/JamfUploaderTests"
+        fi
+        ;;
+    enable)
+        "$DIR"/../jamf-upload.sh statechange \
+            --prefs "$prefs" \
+            --recipe-dir /Users/gpugh/sourcecode/jamf-upload/_tests \
+            --type "policy" \
+            --name "JSPP - Submit Inventory - Self Service" \
+            --state "enable" \
+            --output "/Users/Shared/Jamf/JamfUploaderTests" \
+            "$verbosity"
         if [[ $open_results ]]; then
             open "/Users/Shared/Jamf/JamfUploaderTests"
         fi

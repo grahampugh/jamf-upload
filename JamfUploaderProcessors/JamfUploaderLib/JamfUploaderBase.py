@@ -1045,12 +1045,20 @@ class JamfUploaderBase(Processor):
         # Format curl command for shell execution, adding quotes where needed
         formatted_cmd = []
         for arg in curl_cmd:
-            if " " in arg or '"' in arg or "'" in arg or "&" in arg or "|" in arg:
+            # Convert bytes to string if necessary
+            arg_str = arg.decode("utf-8") if isinstance(arg, bytes) else str(arg)
+            if (
+                " " in arg_str
+                or '"' in arg_str
+                or "'" in arg_str
+                or "&" in arg_str
+                or "|" in arg_str
+            ):
                 # Escape any existing quotes and wrap in quotes
-                escaped_arg = arg.replace('"', '\\"')
+                escaped_arg = arg_str.replace('"', '\\"')
                 formatted_cmd.append(f'"{escaped_arg}"')
             else:
-                formatted_cmd.append(arg)
+                formatted_cmd.append(arg_str)
 
         self.output(f"curl command: {' '.join(formatted_cmd)}", verbose_level=3)
 
