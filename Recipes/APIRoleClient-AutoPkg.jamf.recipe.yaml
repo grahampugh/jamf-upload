@@ -1,0 +1,24 @@
+Description: |
+  Creates an API Role and Client for AutoPkg.
+  Requires the following keys to be overridden:
+    API_ROLE_NAME
+    API_CLIENT_NAME
+Identifier: com.github.grahampugh.recipes.jamf.APIRoleClient-AutoPkg
+MinimumVersion: "2.3"
+
+Input:
+  # Common Settings start here
+  API_ROLE_TEMPLATE: APIRole-AutoPkg.json
+
+Process:
+  - Processor: com.github.grahampugh.jamf-upload.processors/JamfAPIRoleUploader
+    Arguments:
+      api_role_name: "%API_ROLE_NAME%"
+      api_role_template: "%API_ROLE_TEMPLATE%"
+      replace_api_role: "True"
+
+  - Processor: com.github.grahampugh.jamf-upload.processors/JamfAPIClientUploader
+    Arguments:
+      api_client_name: "%API_CLIENT_NAME%"
+      api_client_enabled: "True"
+      replace_api_client: "True"
