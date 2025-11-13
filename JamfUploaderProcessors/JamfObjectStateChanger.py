@@ -81,7 +81,7 @@ class JamfObjectStateChanger(JamfObjectStateChangerBase):
                 "Classic API endpoints this is the name of the key in the XML template. For "
                 "JSON objects it is a construction made interally for this project. See the "
                 "[Object Reference](./Object%20Reference.md) for valid objects. Valid values "
-                "are `policy`, `computer_extension_attribute`"
+                "are `policy`, `computer_extension_attribute`, `app_installers_deployment`"
                 "Note that only script-based extension attributes may be enabled or disabled."
             },
             "default": "policy",

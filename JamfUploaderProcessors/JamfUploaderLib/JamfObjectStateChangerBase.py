@@ -193,6 +193,7 @@ class JamfObjectStateChangerBase(JamfUploaderBase):
         valid_object_types = [
             "policy",
             "computer_extension_attribute",
+            "app_installers_deployment",
         ]
         if object_type not in valid_object_types:
             raise ProcessorError(
