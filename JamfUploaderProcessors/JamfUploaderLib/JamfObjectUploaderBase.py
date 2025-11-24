@@ -48,6 +48,7 @@ class JamfObjectUploaderBase(JamfUploaderBase):
         object_type,
         template_file,
         sleep_time,
+        max_tries,
         token,
         object_name=None,
         obj_id=0,
@@ -130,16 +131,16 @@ class JamfObjectUploaderBase(JamfUploaderBase):
                     self.output(f"Failover URL: {failover_url}", verbose_level=1)
                     self.env["failover_url"] = failover_url
                 break
-            if count > 5:
+            if count >= max_tries:
                 self.output(
-                    f"WARNING: {object_type} upload did not succeed after 5 attempts"
+                    f"WARNING: {object_type} upload did not succeed after {max_tries} attempts"
                 )
                 self.output(f"\nHTTP POST Response Code: {r.status_code}")
                 raise ProcessorError(f"ERROR: {object_type} upload failed ")
-            if int(sleep_time) > 30:
+            if int(sleep_time) > 10:
                 sleep(int(sleep_time))
             else:
-                sleep(30)
+                sleep(10)
         return r
 
     def execute(self):
@@ -158,7 +159,16 @@ class JamfObjectUploaderBase(JamfUploaderBase):
         element_to_replace = self.env.get("element_to_replace")
         replacement_value = self.env.get("replacement_value")
         sleep_time = self.env.get("sleep")
+        max_tries = self.env.get("max_tries")
         object_updated = False
+
+        # verify that max_tries is an integer greater than zero and less than 10
+        try:
+            max_tries = int(max_tries)
+            if max_tries < 1 or max_tries > 10:
+                raise ValueError
+        except (ValueError, TypeError):
+            max_tries = 5
 
         # clear any pre-existing summary result
         if "jamfobjectuploader_summary_result" in self.env:
@@ -328,6 +338,7 @@ class JamfObjectUploaderBase(JamfUploaderBase):
             object_type,
             template_file,
             sleep_time,
+            max_tries=max_tries,
             token=token,
             object_name=object_name,
             obj_id=obj_id,
