@@ -93,7 +93,7 @@ class JamfMobileDeviceGroupUploaderBase(JamfUploaderBase):
                 == "break"
             ):
                 break
-            if count > max_tries:
+            if count >= max_tries:
                 self.output(
                     f"WARNING: Mobile Device Group upload did not succeed after {max_tries} attempts"
                 )
