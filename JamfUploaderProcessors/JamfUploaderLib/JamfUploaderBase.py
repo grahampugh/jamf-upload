@@ -91,6 +91,7 @@ class JamfUploaderBase(Processor):
             "self_service_settings",
             "self_service_plus_settings",
             "smart_computer_group_membership",
+            "smart_mobile_device_group_membership",
             "smtp_server_settings",
             "sso_cert_command",
             "sso_settings",
@@ -232,6 +233,7 @@ class JamfUploaderBase(Processor):
             "self_service_plus_settings": "api/v1/self-service-plus/settings",
             "script": "api/v1/scripts",
             "smart_computer_group_membership": "api/v2/computer-groups/smart-group-membership",
+            "smart_mobile_device_group_membership": "api/v1/mobile-device-groups/smart-group-membership",
             "smtp_server_settings": "api/v2/smtp-server",
             "sso_cert_command": "api/v2/sso/cert",
             "sso_settings": "api/v3/sso",
@@ -302,6 +304,7 @@ class JamfUploaderBase(Processor):
             "rule": "rules",
             "script": "scripts",
             "smart_computer_group_membership": "smart_computer_group_membership",
+            "smart_mobile_device_group_membership": "smart_mobile_device_group_membership",
         }
         if object_type in object_list_types:
             return object_list_types[object_type]
