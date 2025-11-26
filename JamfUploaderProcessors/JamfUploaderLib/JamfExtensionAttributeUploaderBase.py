@@ -54,6 +54,7 @@ class JamfExtensionAttributeUploaderBase(JamfUploaderBase):
         skip_script_key_substitution,
         sleep_time,
         token,
+        max_tries,
         obj_id=None,
     ):
         """Update extension attribute metadata."""
@@ -130,16 +131,16 @@ class JamfExtensionAttributeUploaderBase(JamfUploaderBase):
             # check HTTP response
             if self.status_check(r, "Extension Attribute", ea_name, request) == "break":
                 break
-            if count > 5:
+            if count >= max_tries:
                 self.output(
-                    "ERROR: Extension Attribute upload did not succeed after 5 attempts"
+                    f"ERROR: Extension Attribute upload did not succeed after {max_tries} attempts"
                 )
                 self.output(f"\nHTTP POST Response Code: {r.status_code}")
                 raise ProcessorError("ERROR: Extension Attribute upload failed ")
-            if int(sleep_time) > 30:
+            if int(sleep_time) > 10:
                 sleep(int(sleep_time))
             else:
-                sleep(30)
+                sleep(10)
 
     def execute(self):
         """Upload an extension attribute"""
@@ -164,6 +165,15 @@ class JamfExtensionAttributeUploaderBase(JamfUploaderBase):
         ea_enabled = self.to_bool(self.env.get("ea_enabled"))
         replace_ea = self.to_bool(self.env.get("replace_ea"))
         sleep_time = self.env.get("sleep")
+        max_tries = self.env.get("max_tries")
+
+        # verify that max_tries is an integer greater than zero and less than 10
+        try:
+            max_tries = int(max_tries)
+            if max_tries < 1 or max_tries > 10:
+                raise ValueError
+        except (ValueError, TypeError):
+            max_tries = 5
 
         # convert popup choices to list
         if ea_popup_choices:
@@ -217,7 +227,7 @@ class JamfExtensionAttributeUploaderBase(JamfUploaderBase):
                 self.output(
                     (
                         "Replacing existing Extension Attribute as 'replace_ea' is "
-                        f"set to True"
+                        "set to True"
                     ),
                     verbose_level=1,
                 )
@@ -243,6 +253,7 @@ class JamfExtensionAttributeUploaderBase(JamfUploaderBase):
             skip_script_key_substitution,
             sleep_time,
             token=token,
+            max_tries=max_tries,
             obj_id=obj_id,
         )
         ea_uploaded = True

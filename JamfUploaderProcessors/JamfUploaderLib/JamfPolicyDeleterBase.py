@@ -39,7 +39,7 @@ from JamfUploaderBase import (  # pylint: disable=import-error, wrong-import-pos
 class JamfPolicyDeleterBase(JamfUploaderBase):
     """Class for functions used to delete a policy from Jamf"""
 
-    def delete_policy(self, jamf_url, obj_id, token):
+    def delete_policy(self, jamf_url, obj_id, token, max_tries):
         """Delete policy"""
 
         self.output("Deleting Policy...")
@@ -57,11 +57,13 @@ class JamfPolicyDeleterBase(JamfUploaderBase):
             # check HTTP response
             if self.status_check(r, "Policy", obj_id, request) == "break":
                 break
-            if count > 5:
-                self.output("WARNING: Policy deletion did not succeed after 5 attempts")
+            if count >= max_tries:
+                self.output(
+                    f"WARNING: Policy deletion did not succeed after {max_tries} attempts"
+                )
                 self.output(f"\nHTTP POST Response Code: {r.status_code}")
                 raise ProcessorError("ERROR: Policy deletion failed ")
-            sleep(30)
+            sleep(10)
         return r
 
     def execute(self):
@@ -72,6 +74,15 @@ class JamfPolicyDeleterBase(JamfUploaderBase):
         client_id = self.env.get("CLIENT_ID")
         client_secret = self.env.get("CLIENT_SECRET")
         policy_name = self.env.get("policy_name")
+        max_tries = self.env.get("max_tries")
+
+        # verify that max_tries is an integer greater than zero and less than 10
+        try:
+            max_tries = int(max_tries)
+            if max_tries < 1 or max_tries > 10:
+                raise ValueError
+        except (ValueError, TypeError):
+            max_tries = 5
 
         # clear any pre-existing summary result
         if "jamfpolicydeleter_summary_result" in self.env:
@@ -112,6 +123,7 @@ class JamfPolicyDeleterBase(JamfUploaderBase):
                 jamf_url,
                 obj_id,
                 token,
+                max_tries,
             )
         else:
             self.output(

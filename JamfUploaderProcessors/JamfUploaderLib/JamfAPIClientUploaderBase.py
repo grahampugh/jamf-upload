@@ -45,8 +45,9 @@ class JamfAPIClientUploaderBase(JamfUploaderBase):
         object_name,
         object_type,
         object_data,
-        token,
         sleep_time,
+        token,
+        max_tries,
         obj_id=0,
     ):
         """Update API Client metadata."""
@@ -79,18 +80,20 @@ class JamfAPIClientUploaderBase(JamfUploaderBase):
             # check HTTP response
             if self.status_check(r, object_type, object_name, request) == "break":
                 break
-            if count > 5:
-                self.output(f"{object_type} upload did not succeed after 5 attempts")
+            if count >= max_tries:
+                self.output(
+                    f"{object_type} upload did not succeed after {max_tries} attempts"
+                )
                 self.output(f"\nHTTP POST Response Code: {r.status_code}")
                 raise ProcessorError(f"ERROR: {object_type} upload failed ")
-            if int(sleep_time) > 30:
+            if int(sleep_time) > 10:
                 sleep(int(sleep_time))
             else:
-                sleep(30)
+                sleep(10)
         return r
 
     def get_api_client_credentials(
-        self, jamf_url, object_type, token, sleep_time, obj_id
+        self, jamf_url, object_type, sleep_time, token, max_tries, obj_id
     ):
         """Generate the API Client Credentials"""
 
@@ -118,14 +121,16 @@ class JamfAPIClientUploaderBase(JamfUploaderBase):
                 == "break"
             ):
                 break
-            if count > 5:
-                self.output(f"{object_type} upload did not succeed after 5 attempts")
+            if count >= max_tries:
+                self.output(
+                    f"{object_type} upload did not succeed after {max_tries} attempts"
+                )
                 self.output(f"\nHTTP POST Response Code: {r.status_code}")
                 raise ProcessorError(f"ERROR: {object_type} upload failed ")
-            if int(sleep_time) > 30:
+            if int(sleep_time) > 10:
                 sleep(int(sleep_time))
             else:
-                sleep(30)
+                sleep(10)
 
         # get the Client ID and Secret
         if r.status_code < 300:
@@ -156,10 +161,20 @@ class JamfAPIClientUploaderBase(JamfUploaderBase):
         access_token_lifetime = self.env.get("access_token_lifetime")
         replace_object = self.to_bool(self.env.get("replace_api_client"))
         sleep_time = self.env.get("sleep")
+        max_tries = self.env.get("max_tries")
+
+        # verify that max_tries is an integer greater than zero and less than 10
+        try:
+            max_tries = int(max_tries)
+            if max_tries < 1 or max_tries > 10:
+                raise ValueError
+        except (ValueError, TypeError):
+            max_tries = 5
 
         # clear any pre-existing summary result
         if "jamfapiclientuploader_summary_result" in self.env:
             del self.env["jamfapiclientuploader_summary_result"]
+
         object_uploaded = False
 
         # get token using oauth or basic auth depending on the credentials given
@@ -240,8 +255,9 @@ class JamfAPIClientUploaderBase(JamfUploaderBase):
             object_name,
             object_type,
             object_data,
-            token,
             sleep_time,
+            token,
+            max_tries,
             obj_id,
         )
         object_uploaded = True
@@ -263,7 +279,7 @@ class JamfAPIClientUploaderBase(JamfUploaderBase):
         api_client_secret = ""
         if api_client_enabled:
             api_client_id, api_client_secret = self.get_api_client_credentials(
-                jamf_url, object_type, token, sleep_time, obj_id
+                jamf_url, object_type, sleep_time, token, max_tries, obj_id
             )
             self.output(f"Client ID: {api_client_id}")
             self.output(f"Client Secret: {api_client_secret}")

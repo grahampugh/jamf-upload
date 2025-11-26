@@ -39,7 +39,7 @@ from JamfUploaderBase import (  # pylint: disable=import-error, wrong-import-pos
 class JamfIconUploaderBase(JamfUploaderBase):
     """Class for functions used to upload an icon to Jamf"""
 
-    def get_icon(self, icon_uri, sleep_time):
+    def get_icon(self, icon_uri, sleep_time, max_tries):
         """download an icon file"""
 
         self.output(f"Downloading icon from {icon_uri}...", verbose_level=2)
@@ -58,17 +58,19 @@ class JamfIconUploaderBase(JamfUploaderBase):
             # check HTTP response
             if self.status_check(r, "Icon", icon_uri, request) == "break":
                 break
-            if count > 5:
-                self.output("ERROR: Icon download did not succeed after 5 attempts")
+            if count >= max_tries:
+                self.output(
+                    f"ERROR: Icon download did not succeed after {max_tries} attempts"
+                )
                 self.output(f"\nHTTP POST Response Code: {r.status_code}")
                 raise ProcessorError("ERROR: Icon download failed ")
-            if int(sleep_time) > 30:
+            if int(sleep_time) > 10:
                 sleep(int(sleep_time))
             else:
-                sleep(30)
+                sleep(10)
         return r
 
-    def upload_icon(self, jamf_url, icon_file, sleep_time, token):
+    def upload_icon(self, jamf_url, icon_file, sleep_time, token, max_tries):
         """Upload icon."""
 
         self.output("Uploading icon...")
@@ -98,14 +100,16 @@ class JamfIconUploaderBase(JamfUploaderBase):
             # check HTTP response
             if self.status_check(r, "Icon", icon_file, request) == "break":
                 break
-            if count > 5:
-                self.output("ERROR: Icon upload did not succeed after 5 attempts")
+            if count >= max_tries:
+                self.output(
+                    f"ERROR: Icon upload did not succeed after {max_tries} attempts"
+                )
                 self.output(f"\nHTTP POST Response Code: {r.status_code}")
                 raise ProcessorError("ERROR: Icon upload failed ")
-            if int(sleep_time) > 30:
+            if int(sleep_time) > 10:
                 sleep(int(sleep_time))
             else:
-                sleep(30)
+                sleep(10)
         return r
 
     def execute(self):
@@ -118,6 +122,15 @@ class JamfIconUploaderBase(JamfUploaderBase):
         icon_file = self.env.get("icon_file")
         icon_uri = self.env.get("icon_uri")
         sleep_time = self.env.get("sleep")
+        max_tries = self.env.get("max_tries")
+
+        # verify that max_tries is an integer greater than zero and less than 10
+        try:
+            max_tries = int(max_tries)
+            if max_tries < 1 or max_tries > 10:
+                raise ValueError
+        except (ValueError, TypeError):
+            max_tries = 5
 
         # clear any pre-existing summary result
         if "jamficonuploader_summary_result" in self.env:
@@ -137,7 +150,7 @@ class JamfIconUploaderBase(JamfUploaderBase):
 
         # obtain the icon from the URI if no file path provided
         if "https://ics.services.jamfcloud.com/icon" in icon_uri and not icon_file:
-            r = self.get_icon(icon_uri, sleep_time)
+            r = self.get_icon(icon_uri, sleep_time, max_tries)
             icon_file = r.output
 
         if not icon_file:
@@ -149,6 +162,7 @@ class JamfIconUploaderBase(JamfUploaderBase):
             icon_file,
             sleep_time,
             token,
+            max_tries,
         )
 
         # get the uri from the output

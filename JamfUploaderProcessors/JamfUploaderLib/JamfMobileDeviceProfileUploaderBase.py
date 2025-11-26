@@ -122,6 +122,7 @@ class JamfMobileDeviceProfileUploaderBase(JamfUploaderBase):
         profile_uuid,
         sleep_time,
         token,
+        max_tries,
         obj_id=0,
     ):
         """Update Configuration Profile metadata."""
@@ -189,16 +190,17 @@ class JamfMobileDeviceProfileUploaderBase(JamfUploaderBase):
                 == "break"
             ):
                 break
-            if count > 5:
+            if count >= max_tries:
                 self.output(
-                    "ERROR: Configuration Profile upload did not succeed after 5 attempts"
+                    f"ERROR: Configuration Profile upload did not succeed after {max_tries} "
+                    "attempts"
                 )
                 self.output(f"\nHTTP POST Response Code: {r.status_code}")
                 break
-            if int(sleep_time) > 30:
+            if int(sleep_time) > 10:
                 sleep(int(sleep_time))
             else:
-                sleep(30)
+                sleep(10)
 
         return r
 
@@ -218,12 +220,21 @@ class JamfMobileDeviceProfileUploaderBase(JamfUploaderBase):
         profile_mobiledevicegroup = self.env.get("profile_mobiledevicegroup")
         replace_profile = self.to_bool(self.env.get("replace_profile"))
         sleep_time = self.env.get("sleep")
+        max_tries = self.env.get("max_tries")
+
+        # verify that max_tries is an integer greater than zero and less than 10
+        try:
+            max_tries = int(max_tries)
+            if max_tries < 1 or max_tries > 10:
+                raise ValueError
+        except (ValueError, TypeError):
+            max_tries = 5
+
         profile_updated = False
 
         # clear any pre-existing summary result
-        if "jamfmobiledeviceprofilepploader_summary_result" in self.env:
-            del self.env["jamfmobiledeviceprofilepploader_summary_result"]
-
+        if "jamfmobiledeviceprofileuploader_summary_result" in self.env:
+            del self.env["jamfmobiledeviceprofileuploader_summary_result"]
         # substitute values in the profile name and category
         profile_name = self.substitute_assignable_keys(profile_name)
         profile_category = self.substitute_assignable_keys(profile_category)
@@ -357,6 +368,7 @@ class JamfMobileDeviceProfileUploaderBase(JamfUploaderBase):
                         existing_uuid,
                         sleep_time,
                         token,
+                        max_tries=max_tries,
                         obj_id=obj_id,
                     )
                     profile_updated = True
@@ -384,6 +396,7 @@ class JamfMobileDeviceProfileUploaderBase(JamfUploaderBase):
                     new_uuid,
                     sleep_time,
                     token=token,
+                    max_tries=max_tries,
                 )
                 profile_updated = True
             else:

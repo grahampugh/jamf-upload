@@ -51,6 +51,7 @@ class JamfObjectStateChangerBase(JamfUploaderBase):
         retain_data,
         sleep_time,
         token,
+        max_tries,
     ):
         """Send request to set object end state"""
 
@@ -84,16 +85,16 @@ class JamfObjectStateChangerBase(JamfUploaderBase):
             # check HTTP response
             if self.status_check(r, object_type, obj_id, request) == "break":
                 break
-            if count > 5:
+            if count >= max_tries:
                 self.output(
-                    f"WARNING: {object_type} request did not succeed after 5 attempts"
+                    f"WARNING: {object_type} request did not succeed after {max_tries} attempts"
                 )
                 self.output(f"\nHTTP GET Response Code: {r.status_code}")
                 raise ProcessorError(f"ERROR: {object_type} GET Request failed")
-            if int(sleep_time) > 30:
+            if int(sleep_time) > 10:
                 sleep(int(sleep_time))
             else:
-                sleep(30)
+                sleep(10)
 
         # now update the object state
         self.output(f"Setting {object_type} state to {object_state}...")
@@ -127,7 +128,8 @@ class JamfObjectStateChangerBase(JamfUploaderBase):
                 obj_data["enabled"] = True
             else:
                 obj_data["enabled"] = False
-            # for computer EAs, we also need to set the manageExistingData field to "RETAIN" or "DELETE" if disabling
+            # for computer EAs, we also need to set the manageExistingData field to
+            # "RETAIN" or "DELETE" if disabling
             if (
                 object_type == "computer_extension_attribute"
                 and object_state == "disable"
@@ -164,16 +166,16 @@ class JamfObjectStateChangerBase(JamfUploaderBase):
             # check HTTP response
             if self.status_check(r, object_type, obj_id, request) == "break":
                 break
-            if count > 5:
+            if count >= max_tries:
                 self.output(
-                    f"WARNING: {object_type} update did not succeed after 5 attempts"
+                    f"WARNING: {object_type} update did not succeed after {max_tries} attempts"
                 )
                 self.output(f"\nHTTP PUT Response Code: {r.status_code}")
                 raise ProcessorError(f"ERROR: {object_type} update failed ")
-            if int(sleep_time) > 30:
+            if int(sleep_time) > 10:
                 sleep(int(sleep_time))
             else:
-                sleep(30)
+                sleep(10)
 
     def execute(self):
         """Flush a policy log"""
@@ -187,6 +189,15 @@ class JamfObjectStateChangerBase(JamfUploaderBase):
         object_state = self.env.get("object_state")
         retain_data = self.to_bool(self.env.get("retain_data"))
         sleep_time = self.env.get("sleep")
+        max_tries = self.env.get("max_tries")
+
+        # verify that max_tries is an integer greater than zero and less than 10
+        try:
+            max_tries = int(max_tries)
+            if max_tries < 1 or max_tries > 10:
+                raise ValueError
+        except (ValueError, TypeError):
+            max_tries = 5
 
         # object type must be one of policy, extension_attribute, mac_application,
         # mobile_device_application
@@ -225,7 +236,8 @@ class JamfObjectStateChangerBase(JamfUploaderBase):
 
         # get token using oauth or basic auth depending on the credentials given
         if jamf_url:
-            # determine which token we need based on object type. classic and jpapi types use handle_api_auth, platform type uses handle_platform_api_auth
+            # determine which token we need based on object type. classic and jpapi
+            # types use handle_api_auth, platform type uses handle_platform_api_auth
             api_type = self.api_type(object_type)
             token = self.handle_api_auth(
                 jamf_url,
@@ -260,6 +272,7 @@ class JamfObjectStateChangerBase(JamfUploaderBase):
                 retain_data,
                 sleep_time,
                 token=token,
+                max_tries=max_tries,
             )
         else:
             self.output(

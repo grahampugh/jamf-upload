@@ -56,3 +56,7 @@ A postprocessor for AutoPkg that will create a Jira issue based on the output of
   - **required:** False
   - **description:** Jira Priority. Default is 5 (the lowest priority). See <https://support.atlassian.com/jira/kb/find-the-id-numbers-of-jira-priority-field-values-in-jira-cloud/>.
   - **default:** 5
+- **max_tries:**
+  - **required:** False
+  - **description:** Maximum number of attempts to upload the account. Must be an integer between 1 and 10.
+  - **default:** "5"

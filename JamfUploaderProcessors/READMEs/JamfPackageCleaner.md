@@ -40,6 +40,10 @@ A processor for AutoPkg that will remove packages matching a pattern from a Jamf
   - **required**: False
   - **description**: If set to True, nothing is deleted from Jamf Pro. Use together with `-vv` for detailed information. This is used for testing
   - **default**: False
+- **max_tries:**
+  - **required:** False
+  - **description:** Maximum number of attempts to upload the account. Must be an integer between 1 and 10.
+  - **default:** "5"
 
 ## Output variables
 

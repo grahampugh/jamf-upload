@@ -1,0 +1,20 @@
+Description: |
+  Recipe to delete old packages from Jamf Pro server. Requires the NAME key.
+Identifier: com.github.autopkg.grahampugh-recipes.jamf.DeleteOldPackages
+MinimumVersion: "2.3"
+
+Input:
+  PACKAGE_NAME_MATCH: "%NAME%-"
+  VERSIONS_TO_KEEP: 5
+  MINIMUM_NAME_LENGTH: 3
+  MAXIMUM_ALLOWED_PACKAGES_TO_DELETE: 20
+  DRY_RUN: "True"
+
+Process:
+  - Processor: com.github.grahampugh.jamf-upload.processors/JamfPackageCleaner
+    Arguments:
+      pkg_name_match: "%PACKAGE_NAME_MATCH%"
+      versions_to_keep: "%VERSIONS_TO_KEEP%"
+      minimum_name_length: "%MINIMUM_NAME_LENGTH%"
+      maximum_allowed_packages_to_delete: "%MAXIMUM_ALLOWED_PACKAGES_TO_DELETE%"
+      dry_run: "%DRY_RUN%"

@@ -1,0 +1,12 @@
+Description: |
+  Deletes an object from Jamf Pro.
+  Requires the object type and object name to be specified as input variables.
+Identifier: com.github.grahampugh.recipes.jamf.DeleteObject
+MinimumVersion: "2.3"
+Input: {}
+
+Process:
+  - Processor: com.github.grahampugh.jamf-upload.processors/JamfObjectDeleter
+    Arguments:
+      object_type: "%OBJECT_TYPE%"
+      object_name: "%NAME%"

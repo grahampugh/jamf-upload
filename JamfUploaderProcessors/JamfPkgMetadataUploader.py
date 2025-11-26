@@ -145,18 +145,15 @@ class JamfPkgMetadataUploader(JamfPkgMetadataUploaderBase):
             ),
             "default": "",
         },
-        "replace_pkg_metadata": {
-            "required": False,
-            "description": (
-                "Overwrite existing package metadata and continue if True, "
-                "even if the package object is not re-uploaded."
-            ),
-            "default": "False",
-        },
         "sleep": {
             "required": False,
             "description": "Pause after running this processor for specified seconds.",
             "default": "0",
+        },
+        "max_tries": {
+            "required": False,
+            "description": "Maximum number of attempts for uploading package metadata.",
+            "default": "5",
         },
     }
 

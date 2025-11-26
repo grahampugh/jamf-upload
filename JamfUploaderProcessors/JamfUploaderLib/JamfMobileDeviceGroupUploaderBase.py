@@ -46,6 +46,7 @@ class JamfMobileDeviceGroupUploaderBase(JamfUploaderBase):
         mobiledevicegroup_template,
         sleep_time,
         token,
+        max_tries,
         obj_id=0,
     ):
         """Upload Mobile Device Group"""
@@ -92,16 +93,16 @@ class JamfMobileDeviceGroupUploaderBase(JamfUploaderBase):
                 == "break"
             ):
                 break
-            if count > 5:
+            if count >= max_tries:
                 self.output(
-                    "WARNING: Mobile Device Group upload did not succeed after 5 attempts"
+                    f"WARNING: Mobile Device Group upload did not succeed after {max_tries} attempts"
                 )
                 self.output(f"\nHTTP POST Response Code: {r.status_code}")
                 raise ProcessorError("ERROR: Mobile Device Group upload failed ")
-            if int(sleep_time) > 30:
+            if int(sleep_time) > 10:
                 sleep(int(sleep_time))
             else:
-                sleep(30)
+                sleep(10)
 
     def execute(self):
         """Upload a mobile device group"""
@@ -114,7 +115,16 @@ class JamfMobileDeviceGroupUploaderBase(JamfUploaderBase):
         mobiledevicegroup_template = self.env.get("mobiledevicegroup_template")
         replace_group = self.to_bool(self.env.get("replace_group"))
         sleep_time = self.env.get("sleep")
+        max_tries = self.env.get("max_tries")
         group_uploaded = False
+
+        # verify that max_tries is an integer greater than zero and less than 10
+        try:
+            max_tries = int(max_tries)
+            if max_tries < 1 or max_tries > 10:
+                raise ValueError
+        except (ValueError, TypeError):
+            max_tries = 5
 
         # clear any pre-existing summary result
         if "JamfMobileDeviceGroupUploader_summary_result" in self.env:
@@ -184,6 +194,7 @@ class JamfMobileDeviceGroupUploaderBase(JamfUploaderBase):
             mobiledevicegroup_template,
             sleep_time,
             token=token,
+            max_tries=max_tries,
             obj_id=obj_id,
         )
         group_uploaded = True

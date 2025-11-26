@@ -24,6 +24,10 @@ A processor for AutoPkg that will delete a computer group from a Jamf Cloud or o
 - **computer_group_name:**
   - **required:** False
   - **description:** Computer Group name
+- **max_tries:**
+  - **required:** False
+  - **description:** Maximum number of attempts to upload the account. Must be an integer between 1 and 10.
+  - **default:** "5"
 
 ## Output variables
 

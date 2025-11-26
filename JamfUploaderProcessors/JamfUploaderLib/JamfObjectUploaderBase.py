@@ -49,6 +49,7 @@ class JamfObjectUploaderBase(JamfUploaderBase):
         template_file,
         sleep_time,
         token,
+        max_tries,
         object_name=None,
         obj_id=0,
     ):
@@ -130,16 +131,16 @@ class JamfObjectUploaderBase(JamfUploaderBase):
                     self.output(f"Failover URL: {failover_url}", verbose_level=1)
                     self.env["failover_url"] = failover_url
                 break
-            if count > 5:
+            if count >= max_tries:
                 self.output(
-                    f"WARNING: {object_type} upload did not succeed after 5 attempts"
+                    f"WARNING: {object_type} upload did not succeed after {max_tries} attempts"
                 )
                 self.output(f"\nHTTP POST Response Code: {r.status_code}")
                 raise ProcessorError(f"ERROR: {object_type} upload failed ")
-            if int(sleep_time) > 30:
+            if int(sleep_time) > 10:
                 sleep(int(sleep_time))
             else:
-                sleep(30)
+                sleep(10)
         return r
 
     def execute(self):
@@ -158,6 +159,16 @@ class JamfObjectUploaderBase(JamfUploaderBase):
         element_to_replace = self.env.get("element_to_replace")
         replacement_value = self.env.get("replacement_value")
         sleep_time = self.env.get("sleep")
+        max_tries = self.env.get("max_tries")
+
+        # verify that max_tries is an integer greater than zero and less than 10
+        try:
+            max_tries = int(max_tries)
+            if max_tries < 1 or max_tries > 10:
+                raise ValueError
+        except (ValueError, TypeError):
+            max_tries = 5
+
         object_updated = False
 
         # clear any pre-existing summary result
@@ -178,7 +189,9 @@ class JamfObjectUploaderBase(JamfUploaderBase):
 
         # get token using oauth or basic auth depending on the credentials given
         if jamf_url:
-            # determine which token we need based on object type. classic and jpapi types use handle_api_auth, platform type uses handle_platform_api_auth
+            # determine which token we need based on object type.
+            # classic and jpapi types use handle_api_auth,
+            # platform type uses handle_platform_api_auth
             api_type = self.api_type(object_type)
             self.output(f"API type for {object_type} is {api_type}", verbose_level=3)
             if api_type == "platform":
@@ -329,6 +342,7 @@ class JamfObjectUploaderBase(JamfUploaderBase):
             template_file,
             sleep_time,
             token=token,
+            max_tries=max_tries,
             object_name=object_name,
             obj_id=obj_id,
         )

@@ -1,5 +1,6 @@
 #!/usr/local/autopkg/python
 # pylint: disable=invalid-name
+# pylint: disable=too-many-lines
 
 """
 Copyright 2023 Graham Pugh
@@ -238,7 +239,9 @@ class JamfPackageUploaderBase(JamfUploaderBase):
     # ------------------------------------------------------------------------
     # Beginning of functions for uploading to v1/packages endpoint
 
-    def upload_pkg(self, pkg_path, pkg_name, pkg_id, sleep_time, jamf_url, token):
+    def upload_pkg(
+        self, pkg_path, pkg_name, pkg_id, sleep_time, jamf_url, token, max_tries
+    ):
         """Upload a package to a Cloud Distribution Point using the v1/packages endpoint"""
 
         # if pkg_name does not match the package name in pkg_path we copy the package locally first
@@ -280,17 +283,19 @@ class JamfPackageUploaderBase(JamfUploaderBase):
             # check HTTP response
             if self.status_check(r, "Package upload", pkg_name, request) == "break":
                 break
-            if count > 5:
-                self.output("WARNING: Package upload did not succeed after 5 attempts")
+            if count >= max_tries:
+                self.output(
+                    f"WARNING: Package upload did not succeed after {max_tries} attempts"
+                )
                 self.output(
                     f"HTTP POST Response Code: {r.status_code}",
                     verbose_level=1,
                 )
                 raise ProcessorError("ERROR: Package upload failed ")
-            if int(sleep_time) > 30:
+            if int(sleep_time) > 10:
                 sleep(int(sleep_time))
             else:
-                sleep(30)
+                sleep(10)
 
         self.output(f"HTTP response: {r.status_code}", verbose_level=1)
 
@@ -402,6 +407,7 @@ class JamfPackageUploaderBase(JamfUploaderBase):
         sleep_time,
         jamf_url,
         token,
+        max_tries,
     ):
         """get the credentials"""
         object_type = "jcds"
@@ -431,9 +437,10 @@ class JamfPackageUploaderBase(JamfUploaderBase):
                     verbose_level=1,
                 )
                 break
-            if count > 5:
+            if count >= max_tries:
                 self.output(
-                    "WARNING: JCDS2 credentials were not successfully received after 5 attempts"
+                    f"WARNING: JCDS2 credentials were not successfully received after {max_tries} "
+                    "attempts"
                 )
                 self.output(
                     f"HTTP POST Response Code: {r.status_code}",
@@ -442,10 +449,10 @@ class JamfPackageUploaderBase(JamfUploaderBase):
                 raise ProcessorError(
                     "ERROR: JCDS2 credentials were not successfully received"
                 )
-            if int(sleep_time) > 30:
+            if int(sleep_time) > 10:
                 sleep(int(sleep_time))
             else:
-                sleep(30)
+                sleep(10)
 
         return credentials
 
@@ -613,8 +620,9 @@ class JamfPackageUploaderBase(JamfUploaderBase):
         sha512string,
         md5string,
         sleep_time,
+        token,
+        max_tries,
         pkg_id=0,
-        token="",
     ):
         """Update package metadata using v1/packages endpoint. Requires 11.5+"""
 
@@ -686,14 +694,16 @@ class JamfPackageUploaderBase(JamfUploaderBase):
             # check HTTP response
             if self.status_check(r, "Package Metadata", pkg_name, request) == "break":
                 break
-            if count > 5:
-                self.output("Package metadata upload did not succeed after 5 attempts")
+            if count >= max_tries:
+                self.output(
+                    f"Package metadata upload did not succeed after {max_tries} attempts"
+                )
                 self.output(f"\nHTTP POST Response Code: {r.status_code}")
                 raise ProcessorError("ERROR: Package metadata upload failed ")
-            if int(sleep_time) > 30:
+            if int(sleep_time) > 10:
                 sleep(int(sleep_time))
             else:
-                sleep(30)
+                sleep(10)
         if r.status_code == 201:
             obj = json.loads(json.dumps(r.output))
             self.output(
@@ -718,8 +728,9 @@ class JamfPackageUploaderBase(JamfUploaderBase):
         hash_value,
         jcds2_mode,
         sleep_time,
+        token,
+        max_tries,
         pkg_id=0,
-        token="",
     ):
         """Update package metadata - legacy for older than 11.5"""
 
@@ -779,19 +790,19 @@ class JamfPackageUploaderBase(JamfUploaderBase):
             # check HTTP response
             if self.status_check(r, "Package metadata", pkg_name, request) == "break":
                 break
-            if count > 5:
+            if count >= max_tries:
                 self.output(
-                    "WARNING: Package metadata update did not succeed after 5 attempts"
+                    f"WARNING: Package metadata update did not succeed after {max_tries} attempts"
                 )
                 self.output(
                     f"HTTP POST Response Code: {r.status_code}",
                     verbose_level=1,
                 )
                 raise ProcessorError("ERROR: Package metadata upload failed ")
-            if int(sleep_time) > 30:
+            if int(sleep_time) > 10:
                 sleep(int(sleep_time))
             else:
-                sleep(30)
+                sleep(10)
 
     # End functions for uploading pkg metadata
     # ------------------------------------------------------------------------
@@ -863,6 +874,15 @@ class JamfPackageUploaderBase(JamfUploaderBase):
         recipe_cache_dir = self.env.get("RECIPE_CACHE_DIR")
         pkg_uploaded = False
         pkg_metadata_updated = False
+        max_tries = self.env.get("max_tries")
+
+        # verify that max_tries is an integer greater than zero and less than 10
+        try:
+            max_tries = int(max_tries)
+            if max_tries < 1 or max_tries > 10:
+                raise ValueError
+        except (ValueError, TypeError):
+            max_tries = 5
 
         # set pkg_name if not separately defined
         if not pkg_name:
@@ -1140,6 +1160,7 @@ class JamfPackageUploaderBase(JamfUploaderBase):
                             sleep_time,
                             jamf_url,
                             token=token,
+                            max_tries=max_tries,
                         )
 
                         # populate the credentials required for the JCDS upload
@@ -1250,8 +1271,9 @@ class JamfPackageUploaderBase(JamfUploaderBase):
                     sha512string,
                     jcds2_mode,
                     sleep_time,
-                    pkg_id=pkg_id,
                     token=token,
+                    max_tries=max_tries,
+                    pkg_id=pkg_id,
                 )
             else:
                 self.update_pkg_metadata_api(
@@ -1262,8 +1284,9 @@ class JamfPackageUploaderBase(JamfUploaderBase):
                     sha512string,
                     md5string,
                     sleep_time,
-                    pkg_id=pkg_id,
                     token=token,
+                    max_tries=max_tries,
+                    pkg_id=pkg_id,
                 )
             pkg_metadata_updated = True
         elif int(pkg_id) <= 0 and (
@@ -1285,8 +1308,9 @@ class JamfPackageUploaderBase(JamfUploaderBase):
                     sha512string,
                     md5string,
                     sleep_time,
-                    pkg_id=pkg_id,
                     token=token,
+                    max_tries=max_tries,
+                    pkg_id=pkg_id,
                 )
             else:
                 self.update_pkg_metadata(
@@ -1297,8 +1321,9 @@ class JamfPackageUploaderBase(JamfUploaderBase):
                     sha512string,
                     jcds2_mode,
                     sleep_time,
-                    pkg_id=pkg_id,
                     token=token,
+                    max_tries=max_tries,
+                    pkg_id=pkg_id,
                 )
             pkg_metadata_updated = True
         elif not skip_metadata_upload:
@@ -1330,7 +1355,9 @@ class JamfPackageUploaderBase(JamfUploaderBase):
                 "Uploading package to Cloud DP",
                 verbose_level=1,
             )
-            r = self.upload_pkg(pkg_path, pkg_name, pkg_id, sleep_time, jamf_url, token)
+            r = self.upload_pkg(
+                pkg_path, pkg_name, pkg_id, sleep_time, jamf_url, token, max_tries
+            )
             # if we get this far then there was a 200 success response so the package was uploaded
             pkg_uploaded = True
 

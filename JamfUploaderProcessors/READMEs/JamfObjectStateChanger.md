@@ -32,6 +32,10 @@ A processor for AutoPkg that will change the state of an object on a Jamf Cloud 
   - **required:** True
   - **description:** The desired state of the object, either `enable` or `disable`.
   - **default:** "disable"
+- **max_tries:**
+  - **required:** False
+  - **description:** Maximum number of attempts to upload the account. Must be an integer between 1 and 10.
+  - **default:** "5"
 
 ## Output variables
 

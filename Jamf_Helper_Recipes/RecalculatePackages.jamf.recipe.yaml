@@ -1,5 +1,5 @@
 Description: Recalculates the package inventory on a Jamf Cloud Distribution Server.
-Identifier: com.github.grahampugh.recipes.RecalculatePackages
+Identifier: com.github.grahampugh.recipes.jamf.RecalculatePackages
 MinimumVersion: "2.3"
 
 Input: {}

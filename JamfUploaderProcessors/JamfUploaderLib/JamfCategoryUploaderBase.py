@@ -40,7 +40,7 @@ class JamfCategoryUploaderBase(JamfUploaderBase):
     """Class for functions used to upload a category to Jamf"""
 
     def upload_category(
-        self, jamf_url, category_name, priority, token, sleep_time, obj_id=0
+        self, jamf_url, category_name, priority, sleep_time, token, max_tries, obj_id=0
     ):
         """Update category metadata."""
 
@@ -77,14 +77,16 @@ class JamfCategoryUploaderBase(JamfUploaderBase):
             # check HTTP response
             if self.status_check(r, "Category", category_name, request) == "break":
                 break
-            if count > 5:
-                self.output("ERROR: Category creation did not succeed after 5 attempts")
+            if count >= max_tries:
+                self.output(
+                    f"ERROR: Category creation did not succeed after {max_tries} attempts"
+                )
                 self.output(f"\nHTTP POST Response Code: {r.status_code}")
                 raise ProcessorError("ERROR: Category upload failed ")
-            if int(sleep_time) > 30:
+            if int(sleep_time) > 10:
                 sleep(int(sleep_time))
             else:
-                sleep(30)
+                sleep(10)
 
             # output the ID of the new or updated object
         if not obj_id:
@@ -104,6 +106,15 @@ class JamfCategoryUploaderBase(JamfUploaderBase):
         category_priority = self.env.get("category_priority")
         replace_category = self.to_bool(self.env.get("replace_category"))
         sleep_time = self.env.get("sleep")
+        max_tries = self.env.get("max_tries")
+
+        # verify that max_tries is an integer greater than zero and less than 10
+        try:
+            max_tries = int(max_tries)
+            if max_tries < 1 or max_tries > 10:
+                raise ValueError
+        except (ValueError, TypeError):
+            max_tries = 5
 
         # clear any pre-existing summary result
         if "jamfcategoryuploader_summary_result" in self.env:
@@ -160,8 +171,9 @@ class JamfCategoryUploaderBase(JamfUploaderBase):
             jamf_url,
             category_name,
             category_priority,
-            token,
             sleep_time,
+            token,
+            max_tries,
             obj_id,
         )
 
