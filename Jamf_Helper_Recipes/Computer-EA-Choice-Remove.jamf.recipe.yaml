@@ -1,0 +1,31 @@
+Description: Removes a choice to a computer extension attribute and removes the associated Computer Smart Group
+Comment: |
+  Requires the following keys to be set or overridden:
+  * EXTENSION_ATTRIBUTE_NAME
+  * EXTENSION_ATTRIBUTE_VALUE
+Identifier: com.github.autopkg.grahampugh-recipes.jamf.Computer-EA-Choice-Remove
+MinimumVersion: "2.3"
+
+Input:
+  COMPUTER_ROLE_EXTENSION_ATTRIBUTE_NAME: "%display_name_prefix%Role"
+  REPLACE: "True"
+
+Process:
+  - Processor: com.github.grahampugh.jamf-upload.processors/JamfObjectReader
+    Arguments:
+      object_name: "%EXTENSION_ATTRIBUTE_NAME%"
+      object_type: computer_extension_attribute
+
+  - Processor: com.github.grahampugh.jamf-upload.processors/JamfExtensionAttributePopupChoiceAdjuster
+    Arguments:
+      choice_operation: remove
+      choice_value: "%EXTENSION_ATTRIBUTE_VALUE%"
+
+  - Processor: com.github.grahampugh.jamf-upload.processors/JamfObjectUploader
+    Arguments:
+      replace_object: "%REPLACE%"
+
+  - Processor: com.github.grahampugh.jamf-upload.processors/JamfObjectDeleter
+    Arguments:
+      object_name: "%EXTENSION_ATTRIBUTE_NAME% - %EXTENSION_ATTRIBUTE_VALUE%"
+      object_type: computer_group

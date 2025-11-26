@@ -1,0 +1,23 @@
+Description: |
+  Recipe to copy objects from one Jamf Pro server to another. Requires SOURCE_URL and DESTINATION_URL keys. By default, the source URL is defined as the JSS_URL variable. Also requires the OBJECT_TYPE key to define which object type to copy, and the name of the object to copy via the NAME key. 
+
+  Credentials for each URL must be defined. These may be defined in the Keychain or via variables.
+Identifier: com.github.autopkg.grahampugh-recipes.jamf.CopyObject
+MinimumVersion: "2.3"
+
+Input:
+  SOURCE_URL: "%JSS_URL%"
+  REPLACE_OBJECT: "True"
+
+Process:
+  - Processor: com.github.grahampugh.jamf-upload.processors/JamfObjectReader
+    Arguments:
+      output_dir: /Users/Shared/Jamf/JamfUploader
+      object_type: "%OBJECT_TYPE%"
+      object_name: "%NAME%"
+      JSS_URL: "%SOURCE_URL%"
+
+  - Processor: com.github.grahampugh.jamf-upload.processors/JamfObjectUploader
+    Arguments:
+      JSS_URL: "%DESTINATION_URL%"
+      replace_object: "%REPLACE_OBJECT%"
