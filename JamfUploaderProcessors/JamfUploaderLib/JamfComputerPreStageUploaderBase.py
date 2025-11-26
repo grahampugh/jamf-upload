@@ -17,7 +17,6 @@ See the License for the specific language governing permissions and
 limitations under the License.
 """
 
-import json
 import os.path
 import sys
 
@@ -49,6 +48,7 @@ class JamfComputerPreStageUploaderBase(JamfUploaderBase):
         template_file,
         sleep_time,
         token,
+        max_tries,
         object_name,
         obj_id=0,
     ):
@@ -83,16 +83,16 @@ class JamfComputerPreStageUploaderBase(JamfUploaderBase):
             # check HTTP response
             if self.status_check(r, object_type, object_name, request) == "break":
                 break
-            if count > 5:
+            if count >= max_tries:
                 self.output(
-                    f"WARNING: {object_type} upload did not succeed after 5 attempts"
+                    f"WARNING: {object_type} upload did not succeed after {max_tries} attempts"
                 )
                 self.output(f"\nHTTP POST Response Code: {r.status_code}")
                 raise ProcessorError(f"ERROR: {object_type} upload failed ")
-            if int(sleep_time) > 30:
+            if int(sleep_time) > 10:
                 sleep(int(sleep_time))
             else:
-                sleep(30)
+                sleep(10)
         return r
 
     def execute(self):
@@ -106,16 +106,23 @@ class JamfComputerPreStageUploaderBase(JamfUploaderBase):
         client_secret = self.env.get("CLIENT_SECRET")
         prestage_name = self.env.get("prestage_name")
         prestage_template = self.env.get("prestage_template")
-        replace_prestage = self.env.get("replace_prestage")
+        replace_prestage = self.to_bool(self.env.get("replace_prestage"))
         sleep_time = self.env.get("sleep")
-        # handle setting replace in overrides
-        if not replace_prestage or replace_prestage == "False":
-            replace_prestage = False
-        prestage_updated = False
+        max_tries = self.env.get("max_tries")
+
+        # verify that max_tries is an integer greater than zero and less than 10
+        try:
+            max_tries = int(max_tries)
+            if max_tries < 1 or max_tries > 10:
+                raise ValueError
+        except (ValueError, TypeError):
+            max_tries = 5
 
         # clear any pre-existing summary result
         if "jamfcomputerprestageuploader_summary_result" in self.env:
             del self.env["jamfcomputerprestageuploader_summary_result"]
+
+        prestage_updated = False
 
         # now start the process of uploading the object
         self.output(f"Obtaining API token for {jamf_url}")
@@ -224,6 +231,7 @@ class JamfComputerPreStageUploaderBase(JamfUploaderBase):
             template_file,
             sleep_time,
             token=token,
+            max_tries=max_tries,
             object_name=prestage_name,
             obj_id=obj_id,
         )

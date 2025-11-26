@@ -50,3 +50,7 @@ Takes elements from [this gist](https://gist.github.com/devStepsize/b1b795309a21
 - **slack_icon_emoji:**
   - **required:** False
   - **description:** Sets the icon shown in the Slack notification as an emoji.
+- **max_tries:**
+  - **required:** False
+  - **description:** Maximum number of attempts to upload the account. Must be an integer between 1 and 10.
+  - **default:** "5"

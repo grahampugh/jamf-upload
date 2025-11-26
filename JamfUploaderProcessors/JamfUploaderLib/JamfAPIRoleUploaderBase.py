@@ -47,6 +47,7 @@ class JamfAPIRoleUploaderBase(JamfUploaderBase):
         template_file,
         sleep_time,
         token,
+        max_tries,
         obj_id=0,
     ):
         """Upload object"""
@@ -74,16 +75,16 @@ class JamfAPIRoleUploaderBase(JamfUploaderBase):
             # check HTTP response
             if self.status_check(r, object_type, object_name, request) == "break":
                 break
-            if count > 5:
+            if count >= max_tries:
                 self.output(
-                    f"WARNING: {object_type} upload did not succeed after 5 attempts"
+                    f"WARNING: {object_type} upload did not succeed after {max_tries} attempts"
                 )
                 self.output(f"\nHTTP POST Response Code: {r.status_code}")
                 raise ProcessorError(f"ERROR: {object_type} upload failed ")
-            if int(sleep_time) > 30:
+            if int(sleep_time) > 10:
                 sleep(int(sleep_time))
             else:
-                sleep(30)
+                sleep(10)
         return r
 
     def execute(self):
@@ -97,13 +98,23 @@ class JamfAPIRoleUploaderBase(JamfUploaderBase):
         object_template = self.env.get("api_role_template")
         replace_object = self.to_bool(self.env.get("replace_api_role"))
         sleep_time = self.env.get("sleep")
-        object_updated = False
+        max_tries = self.env.get("max_tries")
+
+        # verify that max_tries is an integer greater than zero and less than 10
+        try:
+            max_tries = int(max_tries)
+            if max_tries < 1 or max_tries > 10:
+                raise ValueError
+        except (ValueError, TypeError):
+            max_tries = 5
 
         object_type = "api_role"
 
         # clear any pre-existing summary result
         if "jamfapiroleuploader_summary_result" in self.env:
             del self.env["jamfapiroleuploader_summary_result"]
+
+        object_updated = False
 
         # handle files with a relative path
         if not object_template.startswith("/"):
@@ -163,6 +174,7 @@ class JamfAPIRoleUploaderBase(JamfUploaderBase):
             template_file,
             sleep_time,
             token=token,
+            max_tries=max_tries,
             obj_id=obj_id,
         )
         object_updated = True

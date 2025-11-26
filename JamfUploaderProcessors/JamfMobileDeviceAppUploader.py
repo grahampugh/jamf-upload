@@ -104,6 +104,14 @@ class JamfMobileDeviceAppUploader(JamfMobileDeviceAppUploaderBase):
             "description": "Pause after running this processor for specified seconds.",
             "default": "0",
         },
+        "max_tries": {
+            "required": False,
+            "description": (
+                "Maximum number of attempts to upload the account. "
+                "Must be an integer between 1 and 10."
+            ),
+            "default": "5",
+        },
     }
 
     output_variables = {
@@ -113,7 +121,9 @@ class JamfMobileDeviceAppUploader(JamfMobileDeviceAppUploaderBase):
         "mobiledeviceapp_name": {
             "description": "Jamf object name of the newly created or modified Mobile device app.",
         },
-        "mobiledeviceapp_updated": {"description": "Boolean - True if the Mobile device app was changed."},
+        "mobiledeviceapp_updated": {
+            "description": "Boolean - True if the Mobile device app was changed."
+        },
         "changed_mobiledeviceapp_id": {
             "description": "Jamf object ID of the newly created or modified Mobile device app.",
         },

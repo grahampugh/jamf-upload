@@ -30,6 +30,7 @@ class JamfUploaderJiraIssueCreator(URLGetter):
         "A postprocessor for AutoPkg that will create a Jira issue based on the output of a "
         "JamfUploader process."
     )
+    # pylint: disable=line-too-long
     input_variables = {
         "JSS_URL": {"required": False, "description": ("JSS_URL.")},
         "POLICY_CATEGORY": {"required": False, "description": ("Policy Category.")},
@@ -75,14 +76,24 @@ class JamfUploaderJiraIssueCreator(URLGetter):
         "jira_issuetype_id": {
             "required": False,
             "description": (
-                "Jira Issue Type. Default is 'Story'. See https://support.atlassian.com/jira/kb/finding-the-id-for-issue-types-in-jira-server-or-data-center/"
+                "Jira Issue Type. Default is 'Story'. See "
+                "https://support.atlassian.com/jira/kb/finding-the-id-for-issue-types-in-jira-server-or-data-center/"
             ),
             "default": "10001",
         },
         "jira_priority_id": {
             "required": False,
             "description": (
-                "Jira Priority. Default is the lowest priority. See https://support.atlassian.com/jira/kb/find-the-id-numbers-of-jira-priority-field-values-in-jira-cloud/"
+                "Jira Priority. Default is the lowest priority. See "
+                "https://support.atlassian.com/jira/kb/find-the-id-numbers-of-jira-priority-field-values-in-jira-cloud/"
+            ),
+            "default": "5",
+        },
+        "max_tries": {
+            "required": False,
+            "description": (
+                "Maximum number of attempts to upload the account. "
+                "Must be an integer between 1 and 10."
             ),
             "default": "5",
         },
@@ -127,6 +138,15 @@ class JamfUploaderJiraIssueCreator(URLGetter):
         jamfpolicyuploader_summary_result = self.env.get(
             "jamfpolicyuploader_summary_result"
         )
+        max_tries = self.env.get("max_tries")
+
+        # verify that max_tries is an integer greater than zero and less than 10
+        try:
+            max_tries = int(max_tries)
+            if max_tries < 1 or max_tries > 10:
+                raise ValueError
+        except (ValueError, TypeError):
+            max_tries = 5
 
         if policy_category and jamfpolicyuploader_summary_result:
             category = policy_category
@@ -261,7 +281,7 @@ class JamfUploaderJiraIssueCreator(URLGetter):
                 f"Jira API request post attempt {count}",
                 verbose_level=2,
             )
-            
+
             proc_stdout, _, status_code = self.execute_curl(curl_cmd)
             self.output(f"Curl command: {curl_cmd}", verbose_level=4)
             header = self.parse_headers(proc_stdout)
@@ -269,8 +289,8 @@ class JamfUploaderJiraIssueCreator(URLGetter):
             # check HTTP response
             if self.jira_status_check(header) == "break":
                 break
-            if count > 5:
-                self.output("Jira request did not succeed after 5 attempts")
+            if count >= max_tries:
+                self.output(f"Jira request did not succeed after {max_tries} attempts")
                 self.output(f"\nHTTP POST Response Code: {status_code}")
                 raise ProcessorError("ERROR: Jira request failed to send")
             sleep(10)

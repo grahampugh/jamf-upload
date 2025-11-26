@@ -78,8 +78,9 @@ class JamfPolicyUploaderBase(JamfUploaderBase):
         jamf_url,
         policy_name,
         template_xml,
-        token,
         sleep_time,
+        token,
+        max_tries,
         obj_id=0,
     ):
         """Upload policy"""
@@ -105,14 +106,16 @@ class JamfPolicyUploaderBase(JamfUploaderBase):
             # check HTTP response
             if self.status_check(r, "Policy", policy_name, request) == "break":
                 break
-            if count > 5:
-                self.output("WARNING: Policy upload did not succeed after 5 attempts")
+            if count >= max_tries:
+                self.output(
+                    f"WARNING: Policy upload did not succeed after {max_tries} attempts"
+                )
                 self.output(f"\nHTTP POST Response Code: {r.status_code}")
                 raise ProcessorError("ERROR: Policy upload failed ")
-            if int(sleep_time) > 30:
+            if int(sleep_time) > 10:
                 sleep(int(sleep_time))
             else:
-                sleep(30)
+                sleep(10)
         return r
 
     def upload_policy_icon(
@@ -121,8 +124,9 @@ class JamfPolicyUploaderBase(JamfUploaderBase):
         policy_name,
         policy_icon_path,
         replace_icon,
-        token,
         sleep_time,
+        token,
+        max_tries,
         obj_id=None,
     ):
         """Upload an icon to the policy that was just created"""
@@ -185,14 +189,16 @@ class JamfPolicyUploaderBase(JamfUploaderBase):
                 # check HTTP response
                 if self.status_check(r, "Icon", policy_icon_name, request) == "break":
                     break
-                if count > 5:
-                    print("WARNING: Icon upload did not succeed after 5 attempts")
+                if count >= max_tries:
+                    print(
+                        f"WARNING: Icon upload did not succeed after {max_tries} attempts"
+                    )
                     print(f"\nHTTP POST Response Code: {r.status_code}")
                     raise ProcessorError("ERROR: Icon upload failed")
-                if int(sleep_time) > 30:
+                if int(sleep_time) > 10:
                     sleep(int(sleep_time))
                 else:
-                    sleep(30)
+                    sleep(10)
         else:
             self.output("Not replacing icon. Set replace_icon='True' to enforce...")
         return policy_icon_name
@@ -211,6 +217,16 @@ class JamfPolicyUploaderBase(JamfUploaderBase):
         retain_scope = self.to_bool(self.env.get("retain_scope"))
         sleep_time = self.env.get("sleep")
         replace_icon = self.to_bool(self.env.get("replace_icon"))
+        max_tries = self.env.get("max_tries")
+
+        # verify that max_tries is an integer greater than zero and less than 10
+        try:
+            max_tries = int(max_tries)
+            if max_tries < 1 or max_tries > 10:
+                raise ValueError
+        except (ValueError, TypeError):
+            max_tries = 5
+
         policy_updated = False
 
         # clear any pre-existing summary result
@@ -265,7 +281,7 @@ class JamfPolicyUploaderBase(JamfUploaderBase):
             self.output(f"Policy '{policy_name}' already exists: ID {obj_id}")
             if replace_policy:
                 self.output(
-                    f"Replacing existing policy as 'replace_policy' is set to True",
+                    "Replacing existing policy as 'replace_policy' is set to True",
                     verbose_level=1,
                 )
             else:
@@ -280,8 +296,9 @@ class JamfPolicyUploaderBase(JamfUploaderBase):
             jamf_url,
             policy_name,
             template_xml,
-            token,
             sleep_time,
+            token,
+            max_tries=max_tries,
             obj_id=obj_id,
         )
         policy_updated = True
@@ -323,8 +340,9 @@ class JamfPolicyUploaderBase(JamfUploaderBase):
                     policy_name,
                     icon,
                     replace_icon,
-                    token,
                     sleep_time,
+                    token,
+                    max_tries=max_tries,
                 )
 
         # output the summary

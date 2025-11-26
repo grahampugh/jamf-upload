@@ -173,7 +173,7 @@ class JamfUnusedPackageCleanerBase(JamfUploaderBase):
                 verbose_level=2,
             )
 
-    def delete_package(self, jamf_url, obj_id, token):
+    def delete_package(self, jamf_url, obj_id, token, max_tries):
         """Cleaning Packages"""
 
         self.output("Deleting package...")
@@ -191,13 +191,13 @@ class JamfUnusedPackageCleanerBase(JamfUploaderBase):
             # check HTTP response
             if self.status_check(r, "Package", obj_id, request) == "break":
                 break
-            if count > 5:
+            if count >= max_tries:
                 self.output(
-                    "WARNING: Package deletion did not succeed after 5 attempts"
+                    f"WARNING: Package deletion did not succeed after {max_tries} attempts"
                 )
                 self.output(f"\nHTTP DELETE Response Code: {r.status_code}")
                 raise ProcessorError("ERROR: Package deletion failed")
-            sleep(30)
+            sleep(10)
         return r
 
     def write_csv_file(self, file, fields, data):
@@ -220,6 +220,7 @@ class JamfUnusedPackageCleanerBase(JamfUploaderBase):
         chosen_api_obj_name,
         api_obj_action,
         status_code,
+        max_tries,
     ):
         """Send a Slack notification"""
 
@@ -259,8 +260,10 @@ class JamfUnusedPackageCleanerBase(JamfUploaderBase):
             # check HTTP response
             if self.slack_status_check(r) == "break":
                 break
-            if count > 5:
-                self.output("Slack webhook send did not succeed after 5 attempts")
+            if count >= max_tries:
+                self.output(
+                    f"Slack webhook send did not succeed after {max_tries} attempts"
+                )
                 self.output(f"\nHTTP POST Response Code: {r.status_code}")
                 raise ProcessorError("ERROR: Slack webhook failed to send")
             sleep(10)
@@ -286,6 +289,15 @@ class JamfUnusedPackageCleanerBase(JamfUploaderBase):
         dry_run = self.to_bool(self.env.get("dry_run"))
         output_dir = self.env.get("output_dir")
         slack_webhook_url = self.env.get("slack_webhook_url")
+        max_tries = self.env.get("max_tries")
+
+        # verify that max_tries is an integer greater than zero and less than 10
+        try:
+            max_tries = int(max_tries)
+            if max_tries < 1 or max_tries > 10:
+                raise ValueError
+        except (ValueError, TypeError):
+            max_tries = 5
 
         object_type = "package"
 
@@ -526,6 +538,7 @@ class JamfUnusedPackageCleanerBase(JamfUploaderBase):
                         pkg_name,
                         "delete",
                         status_code,
+                        max_tries,
                     )
 
         # Save a summary of the package cleaning in the environment

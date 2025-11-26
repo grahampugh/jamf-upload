@@ -118,6 +118,14 @@ class JamfUploaderSlacker(URLGetter):
             "required": False,
             "description": ("Slack display emoji markup."),
         },
+        "max_tries": {
+            "required": False,
+            "description": (
+                "Maximum number of attempts to upload the account. "
+                "Must be an integer between 1 and 10."
+            ),
+            "default": "5",
+        },
     }
     output_variables = {}
 
@@ -178,6 +186,15 @@ class JamfUploaderSlacker(URLGetter):
         jamfobjectuploader_summary_result = self.env.get(
             "jamfobjectuploader_summary_result"
         )
+        max_tries = self.env.get("max_tries")
+
+        # verify that max_tries is an integer greater than zero and less than 10
+        try:
+            max_tries = int(max_tries)
+            if max_tries < 1 or max_tries > 10:
+                raise ValueError
+        except (ValueError, TypeError):
+            max_tries = 5
 
         slack_username = self.env.get("slack_username")
         slack_icon_url = self.env.get("slack_icon_url") or ""
@@ -359,8 +376,10 @@ class JamfUploaderSlacker(URLGetter):
             # check HTTP response
             if self.slack_status_check(header) == "break":
                 break
-            if count > 5:
-                self.output("Slack webhook send did not succeed after 5 attempts")
+            if count >= max_tries:
+                self.output(
+                    f"Slack webhook send did not succeed after {max_tries} attempts"
+                )
                 self.output(f"\nHTTP POST Response Code: {status_code}")
                 raise ProcessorError("ERROR: Slack webhook failed to send")
             sleep(10)

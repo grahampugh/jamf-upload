@@ -51,6 +51,7 @@ class JamfMobileDeviceExtensionAttributeUploaderBase(JamfUploaderBase):
         ea_inventory_display,
         sleep_time,
         token,
+        max_tries,
         obj_id=None,
     ):
         """Update extension attribute metadata."""
@@ -82,6 +83,7 @@ class JamfMobileDeviceExtensionAttributeUploaderBase(JamfUploaderBase):
                 ea_data += f"<choice>{choice}</choice>"
             ea_data += "</popup_choices>"
         elif ea_input_type == "ldap":
+            # pylint: disable=line-too-long
             ea_data += f"<attribute_mapping>{ea_directory_service_attribute_mapping}</attribute_mapping>"
         ea_data += "</input_type>" + "</mobile_device_extension_attribute>"
 
@@ -120,16 +122,16 @@ class JamfMobileDeviceExtensionAttributeUploaderBase(JamfUploaderBase):
             # check HTTP response
             if self.status_check(r, "Extension Attribute", ea_name, request) == "break":
                 break
-            if count > 5:
+            if count >= max_tries:
                 self.output(
-                    "ERROR: Extension Attribute upload did not succeed after 5 attempts"
+                    f"ERROR: Extension Attribute upload did not succeed after {max_tries} attempts"
                 )
                 self.output(f"\nHTTP POST Response Code: {r.status_code}")
                 raise ProcessorError("ERROR: Extension Attribute upload failed ")
-            if int(sleep_time) > 30:
+            if int(sleep_time) > 10:
                 sleep(int(sleep_time))
             else:
-                sleep(30)
+                sleep(10)
 
     def execute(self):
         """Upload an extension attribute"""
@@ -149,6 +151,16 @@ class JamfMobileDeviceExtensionAttributeUploaderBase(JamfUploaderBase):
         )
         replace_ea = self.to_bool(self.env.get("replace_ea"))
         sleep_time = self.env.get("sleep")
+        max_tries = self.env.get("max_tries")
+
+        # verify that max_tries is an integer greater than zero and less than 10
+        try:
+            max_tries = int(max_tries)
+            if max_tries < 1 or max_tries > 10:
+                raise ValueError
+        except (ValueError, TypeError):
+            max_tries = 5
+
         ea_uploaded = False
 
         # convert popup choices to list
@@ -216,6 +228,7 @@ class JamfMobileDeviceExtensionAttributeUploaderBase(JamfUploaderBase):
             ea_inventory_display,
             sleep_time,
             token=token,
+            max_tries=max_tries,
             obj_id=obj_id,
         )
         ea_uploaded = True

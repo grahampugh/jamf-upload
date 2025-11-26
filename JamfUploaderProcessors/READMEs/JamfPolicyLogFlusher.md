@@ -28,6 +28,10 @@ A processor for AutoPkg that will flush logs for a policy on a Jamf Cloud or on-
   - **required:** False
   - **description:** Log interval to be flushed
   - **default:** "Zero Days"
+- **max_tries:**
+  - **required:** False
+  - **description:** Maximum number of attempts to upload the account. Must be an integer between 1 and 10.
+  - **default:** "5"
 
 ## Output variables
 

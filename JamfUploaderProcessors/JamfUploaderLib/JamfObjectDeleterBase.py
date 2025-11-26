@@ -20,8 +20,6 @@ limitations under the License.
 import os.path
 import sys
 
-from time import sleep
-
 from autopkglib import (  # pylint: disable=import-error
     ProcessorError,
 )

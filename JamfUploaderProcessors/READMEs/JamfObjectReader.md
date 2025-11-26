@@ -51,6 +51,10 @@ A processor for AutoPkg to read an API object and optionally, output to file (XM
 - **elements_to_retain**:
   - **required**: False
   - **description**: A list of XML or JSON elements that should be retained from the downloaded XML. Other keys will be removed if any value is set.
+- **max_tries:**
+  - **required:** False
+  - **description:** Maximum number of attempts to upload the account. Must be an integer between 1 and 10.
+  - **default:** "5"
 
 ## Output variables
 

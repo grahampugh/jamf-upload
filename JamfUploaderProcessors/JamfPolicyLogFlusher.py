@@ -79,6 +79,14 @@ class JamfPolicyLogFlusher(JamfPolicyLogFlusherBase):
             "description": "Log interval to be flushed",
             "default": "Zero Days",
         },
+        "max_tries": {
+            "required": False,
+            "description": (
+                "Maximum number of attempts to upload the account. "
+                "Must be an integer between 1 and 10."
+            ),
+            "default": "5",
+        },
     }
 
     output_variables = {

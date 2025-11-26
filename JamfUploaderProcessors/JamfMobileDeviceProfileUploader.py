@@ -111,10 +111,18 @@ class JamfMobileDeviceProfileUploader(JamfMobileDeviceProfileUploaderBase):
             "description": "Pause after running this processor for specified seconds.",
             "default": "0",
         },
+        "max_tries": {
+            "required": False,
+            "description": (
+                "Maximum number of attempts to upload the account. "
+                "Must be an integer between 1 and 10."
+            ),
+            "default": "5",
+        },
     }
 
     output_variables = {
-        "jamfmobiledeviceprofilepploader_summary_result": {
+        "jamfmobiledeviceprofileuploader_summary_result": {
             "description": "Description of interesting results.",
         },
     }

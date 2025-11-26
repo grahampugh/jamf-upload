@@ -1,7 +1,7 @@
 #!/usr/local/autopkg/python
 
 """
-JamfPatchChecker processor for checking if a patch definition exists for the given 
+JamfPatchChecker processor for checking if a patch definition exists for the given
 pkg name and version in Jamf Pro.
 
 Made by Jerker Adolfsson based on the other JamfUploader processors.
@@ -81,6 +81,14 @@ class JamfPatchChecker(JamfPatchCheckerBase):
             "required": False,
             "description": "Pause after running this processor for specified seconds.",
             "default": "0",
+        },
+        "max_tries": {
+            "required": False,
+            "description": (
+                "Maximum number of attempts to upload the account. "
+                "Must be an integer between 1 and 10."
+            ),
+            "default": "5",
         },
     }
 

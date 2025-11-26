@@ -48,8 +48,8 @@ class JamfObjectUploaderBase(JamfUploaderBase):
         object_type,
         template_file,
         sleep_time,
-        max_tries,
         token,
+        max_tries,
         object_name=None,
         obj_id=0,
     ):
@@ -160,7 +160,6 @@ class JamfObjectUploaderBase(JamfUploaderBase):
         replacement_value = self.env.get("replacement_value")
         sleep_time = self.env.get("sleep")
         max_tries = self.env.get("max_tries")
-        object_updated = False
 
         # verify that max_tries is an integer greater than zero and less than 10
         try:
@@ -169,6 +168,8 @@ class JamfObjectUploaderBase(JamfUploaderBase):
                 raise ValueError
         except (ValueError, TypeError):
             max_tries = 5
+
+        object_updated = False
 
         # clear any pre-existing summary result
         if "jamfobjectuploader_summary_result" in self.env:
@@ -188,7 +189,9 @@ class JamfObjectUploaderBase(JamfUploaderBase):
 
         # get token using oauth or basic auth depending on the credentials given
         if jamf_url:
-            # determine which token we need based on object type. classic and jpapi types use handle_api_auth, platform type uses handle_platform_api_auth
+            # determine which token we need based on object type.
+            # classic and jpapi types use handle_api_auth,
+            # platform type uses handle_platform_api_auth
             api_type = self.api_type(object_type)
             self.output(f"API type for {object_type} is {api_type}", verbose_level=3)
             if api_type == "platform":
@@ -338,8 +341,8 @@ class JamfObjectUploaderBase(JamfUploaderBase):
             object_type,
             template_file,
             sleep_time,
-            max_tries=max_tries,
             token=token,
+            max_tries=max_tries,
             object_name=object_name,
             obj_id=obj_id,
         )

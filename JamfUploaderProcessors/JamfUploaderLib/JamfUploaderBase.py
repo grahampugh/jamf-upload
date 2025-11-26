@@ -233,7 +233,9 @@ class JamfUploaderBase(Processor):
             "self_service_plus_settings": "api/v1/self-service-plus/settings",
             "script": "api/v1/scripts",
             "smart_computer_group_membership": "api/v2/computer-groups/smart-group-membership",
-            "smart_mobile_device_group_membership": "api/v1/mobile-device-groups/smart-group-membership",
+            "smart_mobile_device_group_membership": (
+                "api/v1/mobile-device-groups/smart-group-membership"
+            ),
             "smtp_server_settings": "api/v2/smtp-server",
             "sso_cert_command": "api/v2/sso/cert",
             "sso_settings": "api/v3/sso",
@@ -644,8 +646,8 @@ class JamfUploaderBase(Processor):
                         )
                         if data["access_token"]:
                             try:
-                                # check if it's expired or not
-                                # the expires_in key represents how many seconds until the token expires,
+                                # check if it's expired or not -  the expires_in key represents
+                                # how many seconds until the token expires,
                                 # from the time the file was created
                                 expires_in = data["expires_in"]
                                 token_file_creation_epoch = os.path.getctime(token_file)
@@ -1703,7 +1705,7 @@ class JamfUploaderBase(Processor):
             self.output(f"Value of '{obj_path}': {value}", verbose_level=2)
         return value
 
-    def delete_object(self, jamf_url, object_type, obj_id, token):
+    def delete_object(self, jamf_url, object_type, obj_id, token, max_tries=5):
         """Delete API object"""
 
         # get api type
@@ -1726,13 +1728,13 @@ class JamfUploaderBase(Processor):
             # check HTTP response
             if self.status_check(r, object_type, obj_id, "DELETE") == "break":
                 break
-            if count > 5:
+            if count >= max_tries:
                 self.output(
-                    f"WARNING: {object_type} deletion did not succeed after 5 attempts"
+                    f"WARNING: {object_type} deletion did not succeed after {max_tries} attempts"
                 )
                 self.output(f"\nHTTP POST Response Code: {r.status_code}")
                 raise ProcessorError(f"ERROR: {object_type} deletion failed ")
-            sleep(30)
+            sleep(10)
         return r.status_code
 
     def pretty_print_xml(self, xml):

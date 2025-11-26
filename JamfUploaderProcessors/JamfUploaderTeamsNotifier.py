@@ -69,6 +69,14 @@ class JamfUploaderTeamsNotifier(URLGetter):
             "description": ("Teams display icon URL."),
             "default": "https://resources.jamf.com/images/logos/Jamf-Icon-color.png",
         },
+        "max_tries": {
+            "required": False,
+            "description": (
+                "Maximum number of attempts to upload the account. "
+                "Must be an integer between 1 and 10."
+            ),
+            "default": "5",
+        },
     }
     output_variables = {}
 
@@ -109,6 +117,15 @@ class JamfUploaderTeamsNotifier(URLGetter):
         jamfpolicyuploader_summary_result = self.env.get(
             "jamfpolicyuploader_summary_result"
         )
+        max_tries = self.env.get("max_tries")
+
+        # verify that max_tries is an integer greater than zero and less than 10
+        try:
+            max_tries = int(max_tries)
+            if max_tries < 1 or max_tries > 10:
+                raise ValueError
+        except (ValueError, TypeError):
+            max_tries = 5
 
         if not category and jamfpackageuploader_summary_result:
             category = jamfpackageuploader_summary_result["data"]["category"]
@@ -283,7 +300,7 @@ class JamfUploaderTeamsNotifier(URLGetter):
                 f"Teams webhook post attempt {count}",
                 verbose_level=2,
             )
-            
+
             proc_stdout, _, status_code = self.execute_curl(curl_cmd)
             self.output(f"Curl command: {curl_cmd}", verbose_level=4)
             header = self.parse_headers(proc_stdout)
@@ -291,8 +308,10 @@ class JamfUploaderTeamsNotifier(URLGetter):
             # check HTTP response
             if self.teams_status_check(header) == "break":
                 break
-            if count > 5:
-                self.output("Teams webhook send did not succeed after 5 attempts")
+            if count >= max_tries:
+                self.output(
+                    f"Teams webhook send did not succeed after {max_tries} attempts"
+                )
                 self.output(f"\nHTTP POST Response Code: {status_code}")
                 raise ProcessorError("ERROR: Teams webhook failed to send")
             sleep(10)

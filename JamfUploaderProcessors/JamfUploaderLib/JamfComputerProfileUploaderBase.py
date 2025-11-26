@@ -168,6 +168,7 @@ class JamfComputerProfileUploaderBase(JamfUploaderBase):
         profile_uuid,
         sleep_time,
         token,
+        max_tries,
         retain_scope=False,
         obj_id=0,
     ):
@@ -245,16 +246,16 @@ class JamfComputerProfileUploaderBase(JamfUploaderBase):
                 == "break"
             ):
                 break
-            if count > 5:
+            if count >= max_tries:
                 self.output(
-                    "ERROR: Configuration Profile upload did not succeed after 5 attempts"
+                    f"ERROR: Configuration Profile upload did not succeed after {max_tries} attempts"
                 )
                 self.output(f"\nHTTP POST Response Code: {r.status_code}")
                 break
-            if int(sleep_time) > 30:
+            if int(sleep_time) > 10:
                 sleep(int(sleep_time))
             else:
-                sleep(30)
+                sleep(10)
 
         return r
 
@@ -277,6 +278,15 @@ class JamfComputerProfileUploaderBase(JamfUploaderBase):
         replace_profile = self.to_bool(self.env.get("replace_profile"))
         retain_scope = self.to_bool(self.env.get("retain_scope"))
         sleep_time = self.env.get("sleep")
+        max_tries = self.env.get("max_tries")
+
+        # verify that max_tries is an integer greater than zero and less than 10
+        try:
+            max_tries = int(max_tries)
+            if max_tries < 1 or max_tries > 10:
+                raise ValueError
+        except (ValueError, TypeError):
+            max_tries = 5
 
         # clear any pre-existing summary result
         if "jamfcomputerprofileuploader_summary_result" in self.env:
@@ -506,6 +516,7 @@ class JamfComputerProfileUploaderBase(JamfUploaderBase):
                     new_uuid,
                     sleep_time,
                     token,
+                    max_tries,
                 )
                 profile_updated = True
             else:

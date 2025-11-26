@@ -106,6 +106,7 @@ class JamfAccountUploaderBase(JamfUploaderBase):
         template_xml,
         token,
         sleep_time,
+        max_tries,
         obj_id=0,
     ):
         """Upload account"""
@@ -130,16 +131,16 @@ class JamfAccountUploaderBase(JamfUploaderBase):
             # check HTTP response
             if self.status_check(r, object_type, account_name, request) == "break":
                 break
-            if count > 5:
+            if count >= max_tries:
                 self.output(
-                    f"WARNING: {object_type} upload did not succeed after 5 attempts"
+                    f"WARNING: {object_type} upload did not succeed after {max_tries} attempts"
                 )
                 self.output(f"\nHTTP POST Response Code: {r.status_code}")
                 raise ProcessorError(f"ERROR: {object_type} upload failed ")
-            if int(sleep_time) > 30:
+            if int(sleep_time) > 10:
                 sleep(int(sleep_time))
             else:
-                sleep(30)
+                sleep(10)
         return r
 
     def execute(self):
@@ -155,7 +156,17 @@ class JamfAccountUploaderBase(JamfUploaderBase):
         group = self.env.get("group")
         account_template = self.env.get("account_template")
         replace_account = self.to_bool(self.env.get("replace_account"))
+        max_tries = self.env.get("max_tries")
         sleep_time = self.env.get("sleep")
+
+        # verify that max_tries is an integer greater than zero and less than 10
+        try:
+            max_tries = int(max_tries)
+            if max_tries < 1 or max_tries > 10:
+                raise ValueError
+        except (ValueError, TypeError):
+            max_tries = 5
+
         account_updated = False
 
         # clear any pre-existing summary result
@@ -248,6 +259,7 @@ class JamfAccountUploaderBase(JamfUploaderBase):
             template_xml,
             token,
             sleep_time,
+            max_tries=max_tries,
             obj_id=obj_id,
         )
         account_updated = True
