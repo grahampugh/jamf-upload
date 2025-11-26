@@ -33,6 +33,18 @@ A processor for AutoPkg to read an API object and optionally, output to file (XM
 - **output_dir**:
   - **required**: False
   - **description**: Output directory to dump the xml or json file.
+- **settings_key**:
+  - **required**: False
+  - **description**: For settings-style endpoints, specify a key from which to get the value.
+- **uuid**:
+  - **required**: False
+  - **description**: For the managed software update events endpoint, specify a `uuid` value from which to get the events.
+- **all_objects**:
+  - **required**: False
+  - **description**: Download all objects of the specific object type.
+- **list_only**:
+  - **required**: False
+  - **description**: Only output a variable with a list of all objects - ID and name (depending on the endpoint, more keys may exist in the outputted list).
 - **elements_to_remove**:
   - **required**: False
   - **description**: A list of XML or JSON elements that should be removed from the downloaded XML. Note that `id` and `self_service_icon` are removed automatically.
