@@ -177,7 +177,7 @@ class JamfUploaderBase(Processor):
             ),
             "computer_prestage": "api/v3/computer-prestages",
             "configuration_profile": "JSSResource/mobiledeviceconfigurationprofiles",
-            "device_communication_settings": "api/v1/device-communication",
+            "device_communication_settings": "api/v1/device-communication-settings",
             "distribution_point": "JSSResource/distributionpoints",
             "dock_item": "JSSResource/dockitems",
             "enrollment_settings": "api/v4/enrollment",
