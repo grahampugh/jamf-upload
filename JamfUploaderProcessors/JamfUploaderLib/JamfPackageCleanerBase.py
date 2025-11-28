@@ -65,13 +65,13 @@ class JamfPackageCleanerBase(JamfUploaderBase):
                 verbose_level=2,
             )
 
-    def delete_package(self, jamf_url, obj_id, token, max_tries):
+    def delete_package(self, jamf_url, object_id, token, max_tries):
         """Cleaning Packages"""
 
         self.output("Deleting package...")
 
         object_type = "package"
-        url = f"{jamf_url}/{self.api_endpoints(object_type)}/id/{obj_id}"
+        url = f"{jamf_url}/{self.api_endpoints(object_type)}/id/{object_id}"
 
         count = 0
         while True:
@@ -81,7 +81,7 @@ class JamfPackageCleanerBase(JamfUploaderBase):
             r = self.curl(api_type="classic", request=request, url=url, token=token)
 
             # check HTTP response
-            if self.status_check(r, "Package", obj_id, request) == "break":
+            if self.status_check(r, "Package", object_id, request) == "break":
                 break
             if count >= max_tries:
                 self.output(
@@ -210,8 +210,8 @@ class JamfPackageCleanerBase(JamfUploaderBase):
             raise ProcessorError("ERROR: Jamf Pro URL not supplied")
 
         # check for existing
-        obj_type = "package"
-        url = f"{jamf_url}/{self.api_endpoints(obj_type)}"
+        object_type = "package"
+        url = f"{jamf_url}/{self.api_endpoints(object_type)}"
         r = self.curl(api_type="classic", request="GET", url=url, token=token)
         if isinstance(r.output, dict):
             jamf_packages = r.output["packages"]
@@ -283,7 +283,7 @@ class JamfPackageCleanerBase(JamfUploaderBase):
                 raise ProcessorError("ERROR: Jamf Pro URL not supplied")
             self.delete_package(
                 jamf_url=jamf_url,
-                obj_id=package["id"],
+                object_id=package["id"],
                 token=token,
                 max_tries=max_tries,
             )

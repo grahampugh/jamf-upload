@@ -1105,7 +1105,7 @@ class JamfUploaderBase(Processor):
                     )
         return r()
 
-    def status_check(self, r, endpoint_type, obj_name, request):
+    def status_check(self, r, endpoint_type, object_name, request):
         """Return a message dependent on the HTTP response"""
         if request == "DELETE":
             action = "deletion"
@@ -1122,8 +1122,8 @@ class JamfUploaderBase(Processor):
         if r.status_code < 400:
             if endpoint_type == "jcds":
                 self.output("JCDS2 credentials successfully received", verbose_level=2)
-            elif obj_name:
-                self.output(f"{endpoint_type} '{obj_name}' {action} successful")
+            elif object_name:
+                self.output(f"{endpoint_type} '{object_name}' {action} successful")
             else:
                 self.output(f"{endpoint_type} {action} successful")
             return "break"
@@ -1146,9 +1146,9 @@ class JamfUploaderBase(Processor):
                     error_lines = []
                 if error_lines:
                     error_message = error_lines[0].strip()
-                    if obj_name:
+                    if object_name:
                         raise ProcessorError(
-                            f"ERROR: {endpoint_type} '{obj_name}' {action} failed - "
+                            f"ERROR: {endpoint_type} '{object_name}' {action} failed - "
                             f"{error_message} (status code {r.status_code})"
                         )
                     else:
@@ -1176,8 +1176,8 @@ class JamfUploaderBase(Processor):
                 self.output(f"ERROR: No version of Jamf Pro received.  Error:\n{error}")
                 raise ProcessorError("No version of Jamf Pro received") from error
 
-    def get_api_obj_id_from_name(
-        self, jamf_url, object_name, object_type, token, filter_name="name", id_key="id"
+    def get_api_object_id_from_name(
+        self, jamf_url, object_type, object_name, token, filter_name="name", id_key="id"
     ):
         """check if a Classic or Jamf Pro API object with the same name exists on the server"""
         # define the relationship between the object types and their URL
@@ -1199,7 +1199,7 @@ class JamfUploaderBase(Processor):
                     object_list,
                     verbose_level=4,
                 )
-                obj_id = 0
+                object_id = 0
                 if object_type == "account_user" or object_type == "account_group":
                     object_list = object_list["accounts"]
                 for obj in object_list:
@@ -1209,9 +1209,9 @@ class JamfUploaderBase(Processor):
                     )
                     # we need to check for a case-insensitive match
                     if obj["name"].lower() == object_name.lower():
-                        obj_id = obj["id"]
+                        object_id = obj["id"]
                         break
-                return obj_id
+                return object_id
             else:
                 raise ProcessorError(
                     f"ERROR: Unable to get {object_type} list from server - "
@@ -1226,7 +1226,7 @@ class JamfUploaderBase(Processor):
             url = jamf_url + "/" + self.api_endpoints(object_type) + url_filter
             r = self.curl(api_type=api_type, request="GET", url=url, token=token)
             if r.status_code == 200:
-                obj_id = 0
+                object_id = 0
                 output = r.output
                 for obj in output["results"]:
                     self.output(
@@ -1234,12 +1234,12 @@ class JamfUploaderBase(Processor):
                         verbose_level=3,
                     )
                     if obj[filter_name] == object_name:
-                        obj_id = obj[id_key]
+                        object_id = obj[id_key]
                         break
                 self.output(
-                    f"Object ID for '{object_name}' is: {obj_id}", verbose_level=2
+                    f"Object ID for '{object_name}' is: {object_id}", verbose_level=2
                 )
-                return obj_id
+                return object_id
             else:
                 raise ProcessorError(
                     f"ERROR: Unable to get {object_type} list from server - "
@@ -1557,14 +1557,16 @@ class JamfUploaderBase(Processor):
             )
             # Parse response as xml
             try:
-                obj_xml = ET.fromstring(r.output)
+                object_xml = ET.fromstring(r.output)
             except ET.ParseError as xml_error:
                 raise ProcessorError from xml_error
             else:
-                ET.indent(obj_xml)
-                obj_content = ET.tostring(obj_xml, encoding="UTF-8").decode("UTF-8")
+                ET.indent(object_xml)
+                object_content = ET.tostring(object_xml, encoding="UTF-8").decode(
+                    "UTF-8"
+                )
             self.output(
-                obj_content,
+                object_content,
                 verbose_level=4,
             )
 
@@ -1577,16 +1579,16 @@ class JamfUploaderBase(Processor):
                 token=token,
                 accept_header="json",
             )
-            obj_content = r.output
+            object_content = r.output
             self.output(
-                obj_content,
+                object_content,
                 verbose_level=4,
             )
 
-        return obj_content
+        return object_content
 
-    def get_api_obj_contents_from_id(
-        self, jamf_url, object_type, obj_id, obj_path="", token=""
+    def get_api_object_contents_from_id(
+        self, jamf_url, object_type, object_id, object_path="", token=""
     ):
         """get the full contents or the value of an item in a Classic or Jamf Pro API object"""
 
@@ -1597,12 +1599,14 @@ class JamfUploaderBase(Processor):
         if api_type == "classic":
             # do XML stuff
             if object_type == "account_user":
-                url = f"{jamf_url}/{self.api_endpoints(object_type)}/userid/{obj_id}"
+                url = f"{jamf_url}/{self.api_endpoints(object_type)}/userid/{object_id}"
             elif object_type == "account_group":
-                url = f"{jamf_url}/{self.api_endpoints(object_type)}/groupid/{obj_id}"
+                url = (
+                    f"{jamf_url}/{self.api_endpoints(object_type)}/groupid/{object_id}"
+                )
             else:
                 # for all other Classic API objects, we use the ID
-                url = f"{jamf_url}/{self.api_endpoints(object_type)}/id/{obj_id}"
+                url = f"{jamf_url}/{self.api_endpoints(object_type)}/id/{object_id}"
             r = self.curl(
                 api_type=api_type,
                 request="GET",
@@ -1613,18 +1617,20 @@ class JamfUploaderBase(Processor):
             if r.status_code == 200:
                 # Parse response as xml
                 try:
-                    obj_xml = ET.fromstring(r.output)
+                    object_xml = ET.fromstring(r.output)
                 except ET.ParseError as xml_error:
                     raise ProcessorError from xml_error
-                if obj_path:
-                    obj_content = obj_xml.find(obj_path)
+                if object_path:
+                    object_content = object_xml.find(object_path)
                 else:
-                    ET.indent(obj_xml)
-                    obj_content = ET.tostring(obj_xml, encoding="UTF-8").decode("UTF-8")
-                return obj_content
+                    ET.indent(object_xml)
+                    object_content = ET.tostring(object_xml, encoding="UTF-8").decode(
+                        "UTF-8"
+                    )
+                return object_content
         else:
             # do JSON stuff
-            url = f"{jamf_url}/{self.api_endpoints(object_type)}/{obj_id}"
+            url = f"{jamf_url}/{self.api_endpoints(object_type)}/{object_id}"
             r = self.curl(
                 api_type=api_type,
                 request="GET",
@@ -1635,16 +1641,18 @@ class JamfUploaderBase(Processor):
             if r.status_code == 200:
                 # Parse response as json
                 if isinstance(r.output, dict):
-                    obj_content = r.output
+                    object_content = r.output
                 else:
-                    obj_content = json.loads(r.output)
+                    object_content = json.loads(r.output)
                 self.output(
-                    obj_content,
+                    object_content,
                     verbose_level=4,
                 )
-                return obj_content
+                return object_content
 
-    def get_api_obj_value_from_id(self, domain, object_type, obj_id, obj_path, token):
+    def get_api_object_value_from_id(
+        self, domain, object_type, object_id, object_path, token
+    ):
         """get the value of an item in a Classic, Jamf Pro, or Platform API object"""
         # define the relationship between the object types and their URL
         # we could make this shorter with some regex but I think this way is clearer
@@ -1657,19 +1665,19 @@ class JamfUploaderBase(Processor):
         value = ""
         if api_type == "classic":
             # do XML stuff
-            url = f"{domain}/{self.api_endpoints(object_type)}/id/{obj_id}"
+            url = f"{domain}/{self.api_endpoints(object_type)}/id/{object_id}"
             r = self.curl(api_type=api_type, request="GET", url=url, token=token)
             if r.status_code == 200:
                 # Handle both pre-parsed JSON (dict) and raw JSON string responses
                 if isinstance(r.output, dict):
-                    obj_content = r.output
+                    object_content = r.output
                 else:
-                    obj_content = json.loads(r.output)
-                self.output(obj_content, verbose_level=4)
+                    object_content = json.loads(r.output)
+                self.output(object_content, verbose_level=4)
 
                 # convert an xpath to json
-                xpath_list = obj_path.split("/")
-                value = obj_content[object_type]
+                xpath_list = object_path.split("/")
+                value = object_content[object_type]
 
                 for _, xpath in enumerate(xpath_list):
                     if xpath:
@@ -1680,17 +1688,19 @@ class JamfUploaderBase(Processor):
                             value = ""
                             break
             else:
-                raise ProcessorError(f"ERROR: {object_type} of ID {obj_id} not found.")
+                raise ProcessorError(
+                    f"ERROR: {object_type} of ID {object_id} not found."
+                )
         elif api_type == "jpapi" or api_type == "platform":
-            url = f"{domain}/{self.api_endpoints(object_type)}/{obj_id}"
+            url = f"{domain}/{self.api_endpoints(object_type)}/{object_id}"
             r = self.curl(api_type=api_type, request="GET", url=url, token=token)
             if r.status_code == 200:
-                obj_content = r.output
-                self.output(obj_content, verbose_level=4)
+                object_content = r.output
+                self.output(object_content, verbose_level=4)
 
                 # convert an xpath to json
-                xpath_list = obj_path.split("/")
-                value = obj_content
+                xpath_list = object_path.split("/")
+                value = object_content
 
                 for _, xpath in enumerate(xpath_list):
                     if xpath:
@@ -1702,12 +1712,14 @@ class JamfUploaderBase(Processor):
                             break
 
             else:
-                raise ProcessorError(f"ERROR: {object_type} of ID {obj_id} not found.")
+                raise ProcessorError(
+                    f"ERROR: {object_type} of ID {object_id} not found."
+                )
         if value:
-            self.output(f"Value of '{obj_path}': {value}", verbose_level=2)
+            self.output(f"Value of '{object_path}': {value}", verbose_level=2)
         return value
 
-    def delete_object(self, jamf_url, object_type, obj_id, token, max_tries=5):
+    def delete_object(self, jamf_url, object_type, object_id, token, max_tries=5):
         """Delete API object"""
 
         # get api type
@@ -1717,9 +1729,9 @@ class JamfUploaderBase(Processor):
 
         if api_type == "classic":
             # do XML stuff
-            url = f"{jamf_url}/{self.api_endpoints(object_type)}/id/{obj_id}"
+            url = f"{jamf_url}/{self.api_endpoints(object_type)}/id/{object_id}"
         else:
-            url = f"{jamf_url}/{self.api_endpoints(object_type)}/{obj_id}"
+            url = f"{jamf_url}/{self.api_endpoints(object_type)}/{object_id}"
 
         count = 0
         while True:
@@ -1728,7 +1740,7 @@ class JamfUploaderBase(Processor):
             r = self.curl(api_type=api_type, request="DELETE", url=url, token=token)
 
             # check HTTP response
-            if self.status_check(r, object_type, obj_id, "DELETE") == "break":
+            if self.status_check(r, object_type, object_id, "DELETE") == "break":
                 break
             if count >= max_tries:
                 self.output(
@@ -1749,12 +1761,12 @@ class JamfUploaderBase(Processor):
         (output, _) = proc.communicate(xml)
         return output
 
-    def get_existing_scope(self, jamf_url, obj_type, obj_id, token):
+    def get_existing_scope(self, jamf_url, object_type, object_id, token):
         """return the existing scope"""
-        existing_scope_xml = self.get_api_obj_contents_from_id(
+        existing_scope_xml = self.get_api_object_contents_from_id(
             jamf_url,
-            obj_type,
-            obj_id,
+            object_type,
+            object_id,
             "scope",
             token,
         )
@@ -1968,14 +1980,14 @@ class JamfUploaderBase(Processor):
         return ""
 
     def substitute_existing_version_locks(
-        self, jamf_url, object_type, obj_id, object_template, token
+        self, jamf_url, object_type, object_id, object_template, token
     ):
         """replace the existing version lock to ensure we don't change it"""
         # first grab the payload from the json object
-        existing_object = self.get_api_obj_contents_from_id(
+        existing_object = self.get_api_object_contents_from_id(
             jamf_url,
             object_type,
-            obj_id,
+            object_id,
             "",
             token=token,
         )

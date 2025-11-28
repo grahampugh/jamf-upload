@@ -42,23 +42,21 @@ class JamfAPIClientUploaderBase(JamfUploaderBase):
     def upload_object(
         self,
         jamf_url,
-        object_name,
         object_type,
-        object_data,
+        object_name,
+        object_template,
         sleep_time,
         token,
         max_tries,
-        obj_id=0,
+        object_id=0,
     ):
         """Update API Client metadata."""
-
-        template_file = self.write_json_file(jamf_url, object_data)
 
         self.output(f"Uploading {object_type}...")
 
         # if we find an object ID we put, if not, we post
-        if obj_id:
-            url = f"{jamf_url}/{self.api_endpoints(object_type)}/{obj_id}"
+        if object_id:
+            url = f"{jamf_url}/{self.api_endpoints(object_type)}/{object_id}"
         else:
             url = f"{jamf_url}/{self.api_endpoints(object_type)}"
 
@@ -69,13 +67,13 @@ class JamfAPIClientUploaderBase(JamfUploaderBase):
                 f"{object_type} upload attempt {count}",
                 verbose_level=2,
             )
-            request = "PUT" if obj_id else "POST"
+            request = "PUT" if object_id else "POST"
             r = self.curl(
                 api_type="jpapi",
                 request=request,
                 url=url,
                 token=token,
-                data=template_file,
+                data=object_template,
             )
             # check HTTP response
             if self.status_check(r, object_type, object_name, request) == "break":
@@ -93,15 +91,13 @@ class JamfAPIClientUploaderBase(JamfUploaderBase):
         return r
 
     def get_api_client_credentials(
-        self, jamf_url, object_type, sleep_time, token, max_tries, obj_id
+        self, jamf_url, object_type, sleep_time, token, max_tries, object_id
     ):
         """Generate the API Client Credentials"""
 
         self.output("Getting API Client credentials...")
 
-        url = (
-            f"{jamf_url}/{self.api_endpoints(object_type)}/{obj_id}/client-credentials"
-        )
+        url = f"{jamf_url}/{self.api_endpoints(object_type)}/{object_id}/client-credentials"
 
         api_client_id = ""
         api_client_secret = ""
@@ -135,13 +131,13 @@ class JamfAPIClientUploaderBase(JamfUploaderBase):
         # get the Client ID and Secret
         if r.status_code < 300:
             # Parse response as json
-            obj_content = r.output
+            object_content = r.output
             self.output(
-                obj_content,
+                object_content,
                 verbose_level=3,
             )
-            api_client_id = obj_content["clientId"]
-            api_client_secret = obj_content["clientSecret"]
+            api_client_id = object_content["clientId"]
+            api_client_secret = object_content["clientSecret"]
         else:
             raise ProcessorError("ERROR: Could not obtain API Client information")
 
@@ -192,27 +188,34 @@ class JamfAPIClientUploaderBase(JamfUploaderBase):
         # now start the process of uploading the object
         # check for existing object
         # prioritise checking for API Client ID before Display Name
+        object_type = "api_client"
         if api_client_id:
             self.output(f"Checking for existing '{object_name}' on {jamf_url}")
-            object_type = "api_client"
-            obj_id = self.get_api_obj_id_from_name(
-                jamf_url, object_name, object_type, token, filter_name="clientId"
+            object_id = self.get_api_object_id_from_name(
+                jamf_url,
+                object_type=object_type,
+                object_name=object_name,
+                token=token,
+                filter_name="clientId",
             )
         else:
             self.output(f"Checking for existing '{object_name}' on {jamf_url}")
-            object_type = "api_client"
-            obj_id = self.get_api_obj_id_from_name(
-                jamf_url, object_name, object_type, token, filter_name="displayName"
+            object_id = self.get_api_object_id_from_name(
+                jamf_url,
+                object_type=object_type,
+                object_name=object_name,
+                token=token,
+                filter_name="displayName",
             )
 
-        if obj_id:
+        if object_id:
             if api_client_id:
                 self.output(
-                    f"{object_type} '{api_client_id}' already exists: ID {obj_id}"
+                    f"{object_type} '{api_client_id}' already exists: ID {object_id}"
                 )
             else:
                 self.output(
-                    f"{object_type} '{object_name}' already exists: ID {obj_id}"
+                    f"{object_type} '{object_name}' already exists: ID {object_id}"
                 )
             if replace_object:
                 self.output(
@@ -232,6 +235,7 @@ class JamfAPIClientUploaderBase(JamfUploaderBase):
             "enabled": api_client_enabled,
             "accessTokenLifetimeSeconds": int(access_token_lifetime),
         }
+        template_file = self.write_json_file(jamf_url, object_data)
 
         # add either API client ID and/or Display Name
         # this should fail if both are provided and there's a conflict with either
@@ -252,25 +256,25 @@ class JamfAPIClientUploaderBase(JamfUploaderBase):
         # post the script
         r = self.upload_object(
             jamf_url,
-            object_name,
-            object_type,
-            object_data,
-            sleep_time,
-            token,
-            max_tries,
-            obj_id,
+            object_name=object_name,
+            object_type=object_type,
+            object_template=template_file,
+            sleep_time=sleep_time,
+            token=token,
+            max_tries=max_tries,
+            object_id=object_id,
         )
         object_uploaded = True
 
         # get the Client ID and Secret
         if r.status_code < 300:
             # Parse response as json
-            obj_content = r.output
+            object_content = r.output
             self.output(
-                obj_content,
+                object_content,
                 verbose_level=3,
             )
-            obj_id = obj_content["id"]
+            object_id = object_content["id"]
         else:
             raise ProcessorError("ERROR: Could not obtain API Client information")
 
@@ -279,7 +283,7 @@ class JamfAPIClientUploaderBase(JamfUploaderBase):
         api_client_secret = ""
         if api_client_enabled:
             api_client_id, api_client_secret = self.get_api_client_credentials(
-                jamf_url, object_type, sleep_time, token, max_tries, obj_id
+                jamf_url, object_type, sleep_time, token, max_tries, object_id
             )
             self.output(f"Client ID: {api_client_id}")
             self.output(f"Client Secret: {api_client_secret}")

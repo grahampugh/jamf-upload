@@ -42,7 +42,7 @@ class JamfExtensionAttributeUploaderBase(JamfUploaderBase):
     def upload_ea(
         self,
         jamf_url,
-        ea_name,
+        object_name,
         ea_description,
         ea_data_type,
         ea_input_type,
@@ -55,7 +55,7 @@ class JamfExtensionAttributeUploaderBase(JamfUploaderBase):
         sleep_time,
         token,
         max_tries,
-        obj_id=None,
+        object_id=None,
     ):
         """Update extension attribute metadata."""
         # import script from file and replace any keys in the script
@@ -82,7 +82,7 @@ class JamfExtensionAttributeUploaderBase(JamfUploaderBase):
 
         # build the object
         ea_data = {
-            "name": ea_name,
+            "name": object_name,
             "description": ea_description,
             "dataType": ea_data_type,
             "inventoryDisplayType": ea_inventory_display,
@@ -112,8 +112,8 @@ class JamfExtensionAttributeUploaderBase(JamfUploaderBase):
 
         # if we find an object ID we put, if not, we post
         object_type = "computer_extension_attribute"
-        if obj_id:
-            url = f"{jamf_url}/{self.api_endpoints(object_type)}/{obj_id}"
+        if object_id:
+            url = f"{jamf_url}/{self.api_endpoints(object_type)}/{object_id}"
         else:
             url = f"{jamf_url}/{self.api_endpoints(object_type)}"
 
@@ -124,12 +124,15 @@ class JamfExtensionAttributeUploaderBase(JamfUploaderBase):
                 f"Extension Attribute upload attempt {count}",
                 verbose_level=2,
             )
-            request = "PUT" if obj_id else "POST"
+            request = "PUT" if object_id else "POST"
             r = self.curl(
                 api_type="jpapi", request=request, url=url, token=token, data=ea_json
             )
             # check HTTP response
-            if self.status_check(r, "Extension Attribute", ea_name, request) == "break":
+            if (
+                self.status_check(r, "Extension Attribute", object_name, request)
+                == "break"
+            ):
                 break
             if count >= max_tries:
                 self.output(
@@ -211,18 +214,18 @@ class JamfExtensionAttributeUploaderBase(JamfUploaderBase):
         else:
             raise ProcessorError("ERROR: Jamf Pro URL not supplied")
 
-        # check for existing - requires obj_name
-        obj_type = "computer_extension_attribute"
-        obj_name = ea_name
-        obj_id = self.get_api_obj_id_from_name(
+        # check for existing - requires object_name
+        object_id = self.get_api_object_id_from_name(
             jamf_url,
-            obj_name,
-            obj_type,
-            token,
+            object_type="computer_extension_attribute",
+            object_name=ea_name,
+            token=token,
         )
 
-        if obj_id:
-            self.output(f"Extension Attribute '{ea_name}' already exists: ID {obj_id}")
+        if object_id:
+            self.output(
+                f"Extension Attribute '{ea_name}' already exists: ID {object_id}"
+            )
             if replace_ea:
                 self.output(
                     (
@@ -241,20 +244,20 @@ class JamfExtensionAttributeUploaderBase(JamfUploaderBase):
         # upload the EA
         self.upload_ea(
             jamf_url,
-            ea_name,
-            ea_description,
-            ea_data_type,
-            ea_input_type,
-            ea_popup_choices,
-            ea_directory_service_attribute_mapping,
-            ea_enabled,
-            ea_inventory_display,
-            ea_script_path,
-            skip_script_key_substitution,
-            sleep_time,
+            object_name=ea_name,
+            ea_description=ea_description,
+            ea_data_type=ea_data_type,
+            ea_input_type=ea_input_type,
+            ea_popup_choices=ea_popup_choices,
+            ea_directory_service_attribute_mapping=ea_directory_service_attribute_mapping,
+            ea_enabled=ea_enabled,
+            ea_inventory_display=ea_inventory_display,
+            script_path=ea_script_path,
+            skip_script_key_substitution=skip_script_key_substitution,
+            sleep_time=sleep_time,
             token=token,
             max_tries=max_tries,
-            obj_id=obj_id,
+            object_id=object_id,
         )
         ea_uploaded = True
 

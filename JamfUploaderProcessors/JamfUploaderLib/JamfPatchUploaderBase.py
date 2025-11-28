@@ -90,12 +90,10 @@ class JamfPatchUploaderBase(JamfUploaderBase):
                 f"Attempt '{count}' of fetching package id of '{pkg_name}'.",
                 verbose_level=2,
             )
-            obj_type = "package"
-            obj_name = pkg_name
-            pkg_id = self.get_api_obj_id_from_name(
+            pkg_id = self.get_api_object_id_from_name(
                 jamf_url,
-                obj_name,
-                obj_type,
+                object_type="package",
+                object_name=pkg_name,
                 token=token,
             )
             if pkg_id:
@@ -207,12 +205,12 @@ class JamfPatchUploaderBase(JamfUploaderBase):
     def upload_patch(
         self,
         jamf_url,
-        patch_name,
+        object_name,
+        object_template,
         patch_softwaretitle_id,
         sleep_time,
         token,
         max_tries,
-        patch_template,
         patch_id=0,
     ):
         """Uploads the patch policy"""
@@ -238,10 +236,10 @@ class JamfPatchUploaderBase(JamfUploaderBase):
                 request=request,
                 url=url,
                 token=token,
-                data=patch_template,
+                data=object_template,
             )
             # check HTTP response
-            if self.status_check(r, "Patch", patch_name, request) == "break":
+            if self.status_check(r, "Patch", object_name, request) == "break":
                 break
             if count >= max_tries:
                 self.output(
@@ -324,24 +322,19 @@ class JamfPatchUploaderBase(JamfUploaderBase):
         # to extract the icon from a specified policy (if desired).
 
         if patch_icon_policy_name:
-            obj_type = "policy"
-            obj_name = patch_icon_policy_name
-            patch_icon_policy_id = self.get_api_obj_id_from_name(
+            patch_icon_policy_id = self.get_api_object_id_from_name(
                 jamf_url,
-                obj_name,
-                obj_type,
+                object_type="policy",
+                object_name=patch_icon_policy_name,
                 token=token,
             )
             if patch_icon_policy_id:
                 # Only try to extract an icon, if a policy with the given name was found.
-                obj_type = "policy"
-                obj_id = patch_icon_policy_id
-                obj_path = "self_service/self_service_icon/id"
-                patch_icon_id = self.get_api_obj_value_from_id(
+                patch_icon_id = self.get_api_object_value_from_id(
                     jamf_url,
-                    obj_type,
-                    obj_id,
-                    obj_path,
+                    object_type="policy",
+                    object_id=patch_icon_policy_id,
+                    object_path="self_service/self_service_icon/id",
                     token=token,
                 )
                 if patch_icon_id:
@@ -374,12 +367,10 @@ class JamfPatchUploaderBase(JamfUploaderBase):
             )
 
         # Patch Software Title
-        obj_type = "patch_software_title"
-        obj_name = patch_softwaretitle
-        patch_softwaretitle_id = self.get_api_obj_id_from_name(
+        patch_softwaretitle_id = self.get_api_object_id_from_name(
             jamf_url,
-            obj_name,
-            obj_type,
+            object_type="patch_software_title",
+            object_name=patch_softwaretitle,
             token=token,
         )
 
@@ -421,12 +412,10 @@ class JamfPatchUploaderBase(JamfUploaderBase):
                 jamf_url, patch_name, patch_template
             )
 
-            obj_type = "patch_policy"
-            obj_name = patch_name
-            patch_id = self.get_api_obj_id_from_name(
+            patch_id = self.get_api_object_id_from_name(
                 jamf_url,
-                obj_name,
-                obj_type,
+                object_type="patch_policy",
+                object_name=patch_name,
                 token=token,
             )
 
@@ -447,12 +436,12 @@ class JamfPatchUploaderBase(JamfUploaderBase):
             # Upload the patch
             r = self.upload_patch(
                 jamf_url,
-                patch_name,
-                patch_softwaretitle_id,
-                sleep_time,
-                token,
+                object_name=patch_name,
+                object_template=patch_template_xml,
+                patch_softwaretitle_id=patch_softwaretitle_id,
+                sleep_time=sleep_time,
+                token=token,
                 max_tries=max_tries,
-                patch_template=patch_template_xml,
                 patch_id=patch_id,
             )
 

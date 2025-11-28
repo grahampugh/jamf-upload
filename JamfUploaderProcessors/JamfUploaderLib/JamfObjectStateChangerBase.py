@@ -46,7 +46,7 @@ class JamfObjectStateChangerBase(JamfUploaderBase):
         jamf_url,
         api_type,
         object_type,
-        obj_id,
+        object_id,
         object_state,
         retain_data,
         sleep_time,
@@ -60,10 +60,10 @@ class JamfObjectStateChangerBase(JamfUploaderBase):
 
         accept_header = "json"
         if api_type == "classic":
-            url = f"{jamf_url}/{self.api_endpoints(object_type)}/id/{obj_id}"
+            url = f"{jamf_url}/{self.api_endpoints(object_type)}/id/{object_id}"
             accept_header = "xml"
         elif api_type == "jpapi":
-            url = f"{jamf_url}/{self.api_endpoints(object_type)}/{obj_id}"
+            url = f"{jamf_url}/{self.api_endpoints(object_type)}/{object_id}"
         else:
             raise ProcessorError(f"ERROR: API type {api_type} not supported")
 
@@ -83,7 +83,7 @@ class JamfObjectStateChangerBase(JamfUploaderBase):
             )
 
             # check HTTP response
-            if self.status_check(r, object_type, obj_id, request) == "break":
+            if self.status_check(r, object_type, object_id, request) == "break":
                 break
             if count >= max_tries:
                 self.output(
@@ -117,27 +117,29 @@ class JamfObjectStateChangerBase(JamfUploaderBase):
         elif api_type == "jpapi":
             # JPAPI expects JSON
             if isinstance(r.output, dict):
-                obj_data = r.output
+                object_data = r.output
             else:
-                obj_data = json.loads(r.output)
-            if "enabled" not in obj_data:
+                object_data = json.loads(r.output)
+            if "enabled" not in object_data:
                 raise ProcessorError(
                     f"ERROR: 'enabled' field not found in {object_type} JSON"
                 )
             if object_state == "enable":
-                obj_data["enabled"] = True
+                object_data["enabled"] = True
             else:
-                obj_data["enabled"] = False
+                object_data["enabled"] = False
             # for computer EAs, we also need to set the manageExistingData field to
             # "RETAIN" or "DELETE" if disabling
             if (
                 object_type == "computer_extension_attribute"
                 and object_state == "disable"
             ):
-                obj_data["manageExistingData"] = "RETAIN" if retain_data else "DELETE"
+                object_data["manageExistingData"] = (
+                    "RETAIN" if retain_data else "DELETE"
+                )
             output_file = self.init_temp_file(url, suffix=".json")
             with open(output_file, "wb") as file:
-                file.write(json.dumps(obj_data).encode("utf-8"))
+                file.write(json.dumps(object_data).encode("utf-8"))
         else:
             raise ProcessorError(f"ERROR: API type {api_type} not supported")
 
@@ -164,7 +166,7 @@ class JamfObjectStateChangerBase(JamfUploaderBase):
             )
 
             # check HTTP response
-            if self.status_check(r, object_type, obj_id, request) == "break":
+            if self.status_check(r, object_type, object_id, request) == "break":
                 break
             if count >= max_tries:
                 self.output(
@@ -249,16 +251,16 @@ class JamfObjectStateChangerBase(JamfUploaderBase):
         else:
             raise ProcessorError("ERROR: Jamf Pro URL not supplied")
 
-        # check for existing - requires obj_name
-        obj_id = self.get_api_obj_id_from_name(
+        # check for existing - requires object_name
+        object_id = self.get_api_object_id_from_name(
             jamf_url,
-            object_name,
-            object_type,
+            object_type=object_type,
+            object_name=object_name,
             token=token,
         )
 
-        if obj_id:
-            self.output(f"{object_type} '{object_name}' exists: ID {obj_id}")
+        if object_id:
+            self.output(f"{object_type} '{object_name}' exists: ID {object_id}")
             self.output(
                 f"Setting object state to {object_state}",
                 verbose_level=1,
@@ -267,7 +269,7 @@ class JamfObjectStateChangerBase(JamfUploaderBase):
                 jamf_url,
                 api_type,
                 object_type,
-                obj_id,
+                object_id,
                 object_state,
                 retain_data,
                 sleep_time,

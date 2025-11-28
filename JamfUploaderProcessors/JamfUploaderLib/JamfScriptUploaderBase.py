@@ -42,62 +42,62 @@ class JamfScriptUploaderBase(JamfUploaderBase):
     def upload_script(
         self,
         jamf_url,
-        script_name,
-        script_path,
+        object_name,
+        file_path,
         category_id,
-        script_category,
-        script_info,
-        script_notes,
-        script_priority,
-        script_parameter4,
-        script_parameter5,
-        script_parameter6,
-        script_parameter7,
-        script_parameter8,
-        script_parameter9,
-        script_parameter10,
-        script_parameter11,
-        script_os_requirements,
-        skip_script_key_substitution,
+        category,
+        info,
+        notes,
+        priority,
+        parameter4,
+        parameter5,
+        parameter6,
+        parameter7,
+        parameter8,
+        parameter9,
+        parameter10,
+        parameter11,
+        os_requirements,
+        skip_key_substitution,
         sleep_time,
         token,
         max_tries,
-        obj_id=0,
+        object_id=0,
     ):
         """Update script metadata."""
 
         # import script from file and replace any keys in the script
-        if os.path.exists(script_path):
-            with open(script_path, "r", encoding="utf-8") as file:
+        if os.path.exists(file_path):
+            with open(file_path, "r", encoding="utf-8") as file:
                 script_contents = file.read()
         else:
             raise ProcessorError("Script does not exist!")
 
-        if not skip_script_key_substitution:
+        if not skip_key_substitution:
             # substitute user-assignable keys
             script_contents = self.substitute_assignable_keys(script_contents)
 
         # priority has to be in upper case. Let's make it nice for the user
-        if script_priority:
-            script_priority = script_priority.upper()
+        if priority:
+            priority = priority.upper()
 
         # build the object
         script_data = {
-            "name": script_name,
-            "info": script_info,
-            "notes": script_notes,
-            "priority": script_priority,
+            "name": object_name,
+            "info": info,
+            "notes": notes,
+            "priority": priority,
             "categoryId": category_id,
-            "categoryName": script_category,
-            "parameter4": script_parameter4,
-            "parameter5": script_parameter5,
-            "parameter6": script_parameter6,
-            "parameter7": script_parameter7,
-            "parameter8": script_parameter8,
-            "parameter9": script_parameter9,
-            "parameter10": script_parameter10,
-            "parameter11": script_parameter11,
-            "osRequirements": script_os_requirements,
+            "categoryName": category,
+            "parameter4": parameter4,
+            "parameter5": parameter5,
+            "parameter6": parameter6,
+            "parameter7": parameter7,
+            "parameter8": parameter8,
+            "parameter9": parameter9,
+            "parameter10": parameter10,
+            "parameter11": parameter11,
+            "osRequirements": os_requirements,
             "scriptContents": script_contents,
         }
 
@@ -116,8 +116,8 @@ class JamfScriptUploaderBase(JamfUploaderBase):
 
         # if we find an object ID we put, if not, we post
         object_type = "script"
-        if obj_id:
-            url = f"{jamf_url}/{self.api_endpoints(object_type)}/{obj_id}"
+        if object_id:
+            url = f"{jamf_url}/{self.api_endpoints(object_type)}/{object_id}"
         else:
             url = f"{jamf_url}/{self.api_endpoints(object_type)}"
 
@@ -128,7 +128,7 @@ class JamfScriptUploaderBase(JamfUploaderBase):
                 f"Script upload attempt {count}",
                 verbose_level=2,
             )
-            request = "PUT" if obj_id else "POST"
+            request = "PUT" if object_id else "POST"
             r = self.curl(
                 api_type="jpapi",
                 request=request,
@@ -137,7 +137,7 @@ class JamfScriptUploaderBase(JamfUploaderBase):
                 data=script_json,
             )
             # check HTTP response
-            if self.status_check(r, "Script", script_name, request) == "break":
+            if self.status_check(r, "Script", object_name, request) == "break":
                 break
             if count >= max_tries:
                 self.output(f"Script upload did not succeed after {max_tries} attempts")
@@ -160,7 +160,7 @@ class JamfScriptUploaderBase(JamfUploaderBase):
         script_name = self.env.get("script_name")
         script_category = self.env.get("script_category")
         script_priority = self.env.get("script_priority")
-        osrequirements = self.env.get("osrequirements")
+        os_requirements = self.env.get("osrequirements")
         script_info = self.env.get("script_info")
         script_notes = self.env.get("script_notes")
         script_parameter4 = self.env.get("script_parameter4")
@@ -219,14 +219,12 @@ class JamfScriptUploaderBase(JamfUploaderBase):
         if script_category:
             self.output(f"Checking categories for {script_category}")
 
-            # check for existing category - requires obj_name
-            obj_type = "category"
-            obj_name = script_category
-            category_id = self.get_api_obj_id_from_name(
+            # check for existing category - requires object_name
+            category_id = self.get_api_object_id_from_name(
                 jamf_url,
-                obj_name,
-                obj_type,
-                token,
+                object_type="category",
+                object_name=script_category,
+                token=token,
             )
 
             if not category_id:
@@ -253,17 +251,15 @@ class JamfScriptUploaderBase(JamfUploaderBase):
             f"Full path: {script_path}",
             verbose_level=2,
         )
-        obj_type = "script"
-        obj_name = script_name
-        obj_id = self.get_api_obj_id_from_name(
+        object_id = self.get_api_object_id_from_name(
             jamf_url,
-            obj_name,
-            obj_type,
-            token,
+            object_type="script",
+            object_name=script_name,
+            token=token,
         )
 
-        if obj_id:
-            self.output(f"Script '{script_name}' already exists: ID {obj_id}")
+        if object_id:
+            self.output(f"Script '{script_name}' already exists: ID {object_id}")
             if replace_script:
                 self.output(
                     "Replacing existing script as 'replace_script' is set to True",
@@ -279,27 +275,27 @@ class JamfScriptUploaderBase(JamfUploaderBase):
         # post the script
         self.upload_script(
             jamf_url,
-            script_name,
-            script_path,
-            category_id,
-            script_category,
-            script_info,
-            script_notes,
-            script_priority,
-            script_parameter4,
-            script_parameter5,
-            script_parameter6,
-            script_parameter7,
-            script_parameter8,
-            script_parameter9,
-            script_parameter10,
-            script_parameter11,
-            osrequirements,
-            skip_script_key_substitution,
-            sleep_time,
+            object_name=script_name,
+            file_path=script_path,
+            category_id=category_id,
+            category=script_category,
+            info=script_info,
+            notes=script_notes,
+            priority=script_priority,
+            parameter4=script_parameter4,
+            parameter5=script_parameter5,
+            parameter6=script_parameter6,
+            parameter7=script_parameter7,
+            parameter8=script_parameter8,
+            parameter9=script_parameter9,
+            parameter10=script_parameter10,
+            parameter11=script_parameter11,
+            os_requirements=os_requirements,
+            skip_key_substitution=skip_script_key_substitution,
+            sleep_time=sleep_time,
             token=token,
             max_tries=max_tries,
-            obj_id=obj_id,
+            object_id=object_id,
         )
         script_uploaded = True
 
@@ -332,7 +328,7 @@ class JamfScriptUploaderBase(JamfUploaderBase):
                     "category": script_category,
                     "priority": str(script_priority),
                     "info": script_info,
-                    "os_req": osrequirements,
+                    "os_req": os_requirements,
                     "notes": script_notes,
                     "P4": script_parameter4,
                     "P5": script_parameter5,

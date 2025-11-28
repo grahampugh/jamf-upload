@@ -42,18 +42,18 @@ class JamfMobileDeviceGroupUploaderBase(JamfUploaderBase):
     def upload_mobiledevicegroup(
         self,
         jamf_url,
-        mobiledevicegroup_name,
-        mobiledevicegroup_template,
+        object_name,
+        object_template,
         sleep_time,
         token,
         max_tries,
-        obj_id=0,
+        object_id=0,
     ):
         """Upload Mobile Device Group"""
 
         # import template from file and replace any keys in the template
-        if os.path.exists(mobiledevicegroup_template):
-            with open(mobiledevicegroup_template, "r", encoding="utf-8") as file:
+        if os.path.exists(object_template):
+            with open(object_template, "r", encoding="utf-8") as file:
                 template_contents = file.read()
         else:
             raise ProcessorError("Template does not exist!")
@@ -70,13 +70,13 @@ class JamfMobileDeviceGroupUploaderBase(JamfUploaderBase):
 
         # if we find an object ID we put, if not, we post
         object_type = "mobile_device_group"
-        url = f"{jamf_url}/{self.api_endpoints(object_type)}/id/{obj_id}"
+        url = f"{jamf_url}/{self.api_endpoints(object_type)}/id/{object_id}"
 
         count = 0
         while True:
             count += 1
             self.output(f"Mobile Device Group upload attempt {count}", verbose_level=2)
-            request = "PUT" if obj_id else "POST"
+            request = "PUT" if object_id else "POST"
             r = self.curl(
                 api_type="classic",
                 request=request,
@@ -87,9 +87,7 @@ class JamfMobileDeviceGroupUploaderBase(JamfUploaderBase):
 
             # check HTTP response
             if (
-                self.status_check(
-                    r, "Mobile Device Group", mobiledevicegroup_name, request
-                )
+                self.status_check(r, "Mobile Device Group", object_name, request)
                 == "break"
             ):
                 break
@@ -160,19 +158,17 @@ class JamfMobileDeviceGroupUploaderBase(JamfUploaderBase):
         else:
             raise ProcessorError("ERROR: Jamf Pro URL not supplied")
 
-        # check for existing - requires obj_name
-        obj_type = "mobile_device_group"
-        obj_name = mobiledevicegroup_name
-        obj_id = self.get_api_obj_id_from_name(
+        # check for existing - requires object_name
+        object_id = self.get_api_object_id_from_name(
             jamf_url,
-            obj_name,
-            obj_type,
+            object_type="mobile_device_group",
+            object_name=mobiledevicegroup_name,
             token=token,
         )
 
-        if obj_id:
+        if object_id:
             self.output(
-                f"Mobile Device Group '{mobiledevicegroup_name}' already exists: ID {obj_id}"
+                f"Mobile Device Group '{mobiledevicegroup_name}' already exists: ID {object_id}"
             )
             if replace_group:
                 self.output(
@@ -190,12 +186,12 @@ class JamfMobileDeviceGroupUploaderBase(JamfUploaderBase):
         # upload the group
         self.upload_mobiledevicegroup(
             jamf_url,
-            mobiledevicegroup_name,
-            mobiledevicegroup_template,
-            sleep_time,
+            object_name=mobiledevicegroup_name,
+            object_template=mobiledevicegroup_template,
+            sleep_time=sleep_time,
             token=token,
             max_tries=max_tries,
-            obj_id=obj_id,
+            object_id=object_id,
         )
         group_uploaded = True
 

@@ -144,12 +144,10 @@ class JamfPatchCheckerBase(JamfUploaderBase):
             raise ProcessorError("ERROR: Jamf Pro URL not supplied")
 
         # Patch Softwaretitle
-        obj_type = "patch_software_title"
-        obj_name = patch_softwaretitle
-        patch_softwaretitle_id = self.get_api_obj_id_from_name(
+        patch_softwaretitle_id = self.get_api_object_id_from_name(
             jamf_url,
-            obj_name,
-            obj_type,
+            object_type="patch_software_title",
+            object_name=patch_softwaretitle,
             token=token,
         )
 

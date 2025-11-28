@@ -46,21 +46,21 @@ class JamfDockItemUploaderBase(JamfUploaderBase):
     def upload_dock_item(
         self,
         jamf_url,
-        dock_item_name,
+        object_name,
         dock_item_type,
         dock_item_path,
         sleep_time,
         token,
         max_tries,
-        obj_id=0,
+        object_id=0,
     ):
         """Update dock item metadata."""
 
         # Build the xml object
         dock_item_xml_root = ET.Element("dock_item")
         # Converted integer to text, to avoid TypeError while xml dumping
-        ET.SubElement(dock_item_xml_root, "id").text = str(obj_id)
-        ET.SubElement(dock_item_xml_root, "name").text = dock_item_name
+        ET.SubElement(dock_item_xml_root, "id").text = str(object_id)
+        ET.SubElement(dock_item_xml_root, "name").text = object_name
         ET.SubElement(dock_item_xml_root, "type").text = dock_item_type
         ET.SubElement(dock_item_xml_root, "path").text = dock_item_path
 
@@ -69,7 +69,7 @@ class JamfDockItemUploaderBase(JamfUploaderBase):
         self.output("Uploading dock item..")
 
         object_type = "dock_item"
-        url = f"{jamf_url}/{self.api_endpoints(object_type)}/id/{obj_id}"
+        url = f"{jamf_url}/{self.api_endpoints(object_type)}/id/{object_id}"
 
         count = 0
         while True:
@@ -78,7 +78,7 @@ class JamfDockItemUploaderBase(JamfUploaderBase):
                 f"Dock Item upload attempt {count}",
                 verbose_level=2,
             )
-            request = "PUT" if obj_id else "POST"
+            request = "PUT" if object_id else "POST"
             r = self.curl(
                 api_type="classic",
                 request=request,
@@ -87,7 +87,7 @@ class JamfDockItemUploaderBase(JamfUploaderBase):
                 data=dock_item_xml,
             )
             # check HTTP response
-            if self.status_check(r, "Dock Item", dock_item_name, request) == "break":
+            if self.status_check(r, "Dock Item", object_name, request) == "break":
                 break
             if count >= max_tries:
                 self.output(
@@ -143,17 +143,15 @@ class JamfDockItemUploaderBase(JamfUploaderBase):
         # Check for existing dock item
         self.output(f"Checking for existing '{dock_item_name}' on {jamf_url}")
 
-        obj_type = "dock_item"
-        obj_name = dock_item_name
-        obj_id = self.get_api_obj_id_from_name(
+        object_id = self.get_api_object_id_from_name(
             jamf_url,
-            obj_name,
-            obj_type,
+            object_type="dock_item",
+            object_name=dock_item_name,
             token=token,
         )
 
-        if obj_id:
-            self.output(f"Dock Item '{dock_item_name}' already exists: ID {obj_id}")
+        if object_id:
+            self.output(f"Dock Item '{dock_item_name}' already exists: ID {object_id}")
             if replace_dock_item:
                 self.output(
                     "Replacing existing dock item as 'replace_dock_item' is set to True",
@@ -168,13 +166,13 @@ class JamfDockItemUploaderBase(JamfUploaderBase):
         # Upload the dock item
         self.upload_dock_item(
             jamf_url,
-            dock_item_name,
-            dock_item_type,
-            dock_item_path,
-            sleep_time,
-            token,
-            max_tries,
-            obj_id=obj_id,
+            object_name=dock_item_name,
+            dock_item_type=dock_item_type,
+            dock_item_path=dock_item_path,
+            sleep_time=sleep_time,
+            token=token,
+            max_tries=max_tries,
+            object_id=object_id,
         )
 
         # output the summary
@@ -188,7 +186,7 @@ class JamfDockItemUploaderBase(JamfUploaderBase):
                 "dock_item_path",
             ],
             "data": {
-                "dock_item_id": str(obj_id),
+                "dock_item_id": str(object_id),
                 "dock_item_name": dock_item_name,
                 "dock_item_type": dock_item_type,
                 "dock_item_path": dock_item_path,

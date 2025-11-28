@@ -46,12 +46,12 @@ class JamfObjectUploaderBase(JamfUploaderBase):
         jamf_url,
         api_type,
         object_type,
-        template_file,
+        object_template,
         sleep_time,
         token,
         max_tries,
         object_name=None,
-        obj_id=0,
+        object_id=0,
     ):
         """Upload object"""
 
@@ -65,16 +65,16 @@ class JamfObjectUploaderBase(JamfUploaderBase):
                 # settings-style endpoints don't use IDs
                 url = f"{jamf_url}/{self.api_endpoints(object_type)}"
             else:
-                url = f"{jamf_url}/{self.api_endpoints(object_type)}/id/{obj_id}"
+                url = f"{jamf_url}/{self.api_endpoints(object_type)}/id/{object_id}"
         elif api_type == "jpapi" or api_type == "platform":
             if (
                 object_type
                 in ("blueprint_deploy_command", "blueprint_undeploy_command")
-                and obj_id
+                and object_id
             ):
-                url = f"{jamf_url}/{self.api_endpoints(object_type, uuid=obj_id)}"
-            elif obj_id:
-                url = f"{jamf_url}/{self.api_endpoints(object_type)}/{obj_id}"
+                url = f"{jamf_url}/{self.api_endpoints(object_type, uuid=object_id)}"
+            elif object_id:
+                url = f"{jamf_url}/{self.api_endpoints(object_type)}/{object_id}"
             else:
                 url = f"{jamf_url}/{self.api_endpoints(object_type)}"
         else:
@@ -93,14 +93,14 @@ class JamfObjectUploaderBase(JamfUploaderBase):
                 "--header",
                 "Content-type: application/json",
             ]
-        elif obj_id and object_type == "blueprint":
+        elif object_id and object_type == "blueprint":
             request = "PATCH"
-        elif obj_id and object_type in (
+        elif object_id and object_type in (
             "blueprint_deploy_command",
             "blueprint_undeploy_command",
         ):
             request = "POST"
-        elif obj_id or "_settings" in object_type:
+        elif object_id or "_settings" in object_type:
             request = "PUT"
         else:
             request = "POST"
@@ -120,7 +120,7 @@ class JamfObjectUploaderBase(JamfUploaderBase):
                 request=request,
                 url=url,
                 token=token,
-                data=template_file,
+                data=object_template,
                 additional_curl_opts=additional_curl_options,
             )
             # check HTTP response
@@ -150,7 +150,7 @@ class JamfObjectUploaderBase(JamfUploaderBase):
         jamf_password = self.env.get("API_PASSWORD")
         client_id = self.env.get("CLIENT_ID")
         client_secret = self.env.get("CLIENT_SECRET")
-        obj_id = self.env.get("object_id")
+        object_id = self.env.get("object_id")
         object_name = self.env.get("object_name")
         object_type = self.env.get("object_type")
         object_template = self.env.get("object_template")
@@ -217,19 +217,23 @@ class JamfObjectUploaderBase(JamfUploaderBase):
 
         # check for an existing object except for settings-related endpoints
         if not any(suffix in object_type for suffix in ("_settings", "_command")):
-            if obj_id:
+            if object_id:
                 # if an ID has been passed into the recipe, look for object based on ID
                 # rather than name
                 self.output(
-                    f"Checking for existing {object_type} with ID '{obj_id}' on {jamf_url}"
+                    f"Checking for existing {object_type} with ID '{object_id}' on {jamf_url}"
                 )
 
-                existing_object_name = self.get_api_obj_value_from_id(
-                    jamf_url, object_type, obj_id, obj_path=namekey_path, token=token
+                existing_object_name = self.get_api_object_value_from_id(
+                    jamf_url,
+                    object_type=object_type,
+                    object_id=object_id,
+                    object_path=namekey_path,
+                    token=token,
                 )
                 if existing_object_name:
                     self.output(
-                        f"{object_type} '{obj_id}' already exists ('{existing_object_name}')"
+                        f"{object_type} '{object_id}' already exists ('{existing_object_name}')"
                     )
                     if replace_object:
                         self.output(
@@ -256,18 +260,18 @@ class JamfObjectUploaderBase(JamfUploaderBase):
                 else:
                     id_key = "id"
 
-                obj_id = self.get_api_obj_id_from_name(
+                object_id = self.get_api_object_id_from_name(
                     jamf_url,
-                    object_name,
-                    object_type,
+                    object_type=object_type,
+                    object_name=object_name,
                     token=token,
                     filter_name=namekey,
                     id_key=id_key,
                 )
 
-                if obj_id:
+                if object_id:
                     self.output(
-                        f"{object_type} '{object_name}' already exists: ID {obj_id}"
+                        f"{object_type} '{object_name}' already exists: ID {object_id}"
                     )
                     if replace_object:
                         self.output(
@@ -300,7 +304,7 @@ class JamfObjectUploaderBase(JamfUploaderBase):
                 "blueprint_deploy_command",
                 "blueprint_undeploy_command",
             ):
-                obj_id = 0
+                object_id = 0
 
         # we need to substitute the values in the object name and template now to
         # account for version strings in the name
@@ -337,14 +341,14 @@ class JamfObjectUploaderBase(JamfUploaderBase):
         # upload the object
         self.upload_object(
             jamf_url,
-            api_type,
-            object_type,
-            template_file,
-            sleep_time,
+            api_type=api_type,
+            object_type=object_type,
+            object_template=template_file,
+            sleep_time=sleep_time,
             token=token,
             max_tries=max_tries,
             object_name=object_name,
-            obj_id=obj_id,
+            object_id=object_id,
         )
         object_updated = True
 

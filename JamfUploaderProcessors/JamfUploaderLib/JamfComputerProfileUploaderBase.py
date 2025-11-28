@@ -41,15 +41,14 @@ from JamfUploaderBase import (  # pylint: disable=import-error, wrong-import-pos
 class JamfComputerProfileUploaderBase(JamfUploaderBase):
     """Class for functions used to upload a computer configuration profile to Jamf"""
 
-    def get_existing_uuid_and_identifier(self, jamf_url, obj_id, token):
+    def get_existing_uuid_and_identifier(self, jamf_url, object_id, token):
         """return the existing UUID to ensure we don't change it"""
         # first grab the payload from the xml object
-        obj_type = "os_x_configuration_profile"
-        existing_plist = self.get_api_obj_value_from_id(
+        existing_plist = self.get_api_object_value_from_id(
             jamf_url,
-            obj_type,
-            obj_id,
-            "general/payloads",
+            object_type="os_x_configuration_profile",
+            object_id=object_id,
+            object_path="general/payloads",
             token=token,
         )
 
@@ -159,7 +158,7 @@ class JamfComputerProfileUploaderBase(JamfUploaderBase):
     def upload_mobileconfig(
         self,
         jamf_url,
-        mobileconfig_name,
+        object_name,
         description,
         category,
         mobileconfig_plist,
@@ -170,7 +169,7 @@ class JamfComputerProfileUploaderBase(JamfUploaderBase):
         token,
         max_tries,
         retain_scope=False,
-        obj_id=0,
+        object_id=0,
     ):
         """Update Configuration Profile metadata."""
         # remove newlines, tabs, leading spaces, and XML-escape the payload
@@ -182,7 +181,7 @@ class JamfComputerProfileUploaderBase(JamfUploaderBase):
 
         # substitute user-assignable keys
         replaceable_keys = {
-            "mobileconfig_name": mobileconfig_name,
+            "mobileconfig_name": object_name,
             "description": description,
             "category": category,
             "payload": mobileconfig,
@@ -208,10 +207,10 @@ class JamfComputerProfileUploaderBase(JamfUploaderBase):
 
         # get existing scope if --retain-existing-scope is set
         object_type = "os_x_configuration_profile"
-        if retain_scope and obj_id > 0:
+        if retain_scope and object_id > 0:
             self.output("Substituting existing scope into template", verbose_level=1)
             existing_scope = self.get_existing_scope(
-                jamf_url, object_type, obj_id, token
+                jamf_url, object_type, object_id, token
             )
             # substitute pre-existing scope
             template_contents = self.replace_scope(template_contents, existing_scope)
@@ -221,7 +220,7 @@ class JamfComputerProfileUploaderBase(JamfUploaderBase):
         template_xml = self.write_temp_file(jamf_url, template_contents)
 
         # if we find an object ID we put, if not, we post
-        url = f"{jamf_url}/{self.api_endpoints(object_type)}/id/{obj_id}"
+        url = f"{jamf_url}/{self.api_endpoints(object_type)}/id/{object_id}"
 
         count = 0
         while True:
@@ -229,7 +228,7 @@ class JamfComputerProfileUploaderBase(JamfUploaderBase):
             self.output(
                 f"Configuration Profile upload attempt {count}", verbose_level=1
             )
-            request = "PUT" if obj_id else "POST"
+            request = "PUT" if object_id else "POST"
             r = self.curl(
                 api_type="classic",
                 request=request,
@@ -240,9 +239,7 @@ class JamfComputerProfileUploaderBase(JamfUploaderBase):
 
             # check HTTP response
             if (
-                self.status_check(
-                    r, "Configuration Profile", mobileconfig_name, request
-                )
+                self.status_check(r, "Configuration Profile", object_name, request)
                 == "break"
             ):
                 break
@@ -416,17 +413,15 @@ class JamfComputerProfileUploaderBase(JamfUploaderBase):
         else:
             raise ProcessorError("ERROR: Jamf Pro URL not supplied")
 
-        obj_type = "os_x_configuration_profile"
-        obj_name = mobileconfig_name
-        obj_id = self.get_api_obj_id_from_name(
+        object_id = self.get_api_object_id_from_name(
             jamf_url,
-            obj_name,
-            obj_type,
+            object_type="os_x_configuration_profile",
+            object_name=mobileconfig_name,
             token=token,
         )
-        if obj_id:
+        if object_id:
             self.output(
-                f"Configuration Profile '{mobileconfig_name}' already exists: ID {obj_id}"
+                f"Configuration Profile '{mobileconfig_name}' already exists: ID {object_id}"
             )
             if replace_profile:
                 self.output(
@@ -437,7 +432,7 @@ class JamfComputerProfileUploaderBase(JamfUploaderBase):
                 (
                     existing_uuid,
                     existing_identifier,
-                ) = self.get_existing_uuid_and_identifier(jamf_url, obj_id, token)
+                ) = self.get_existing_uuid_and_identifier(jamf_url, object_id, token)
 
                 if mobileconfig:
                     # need to inject the existing payload identifier to prevent ghost profiles
@@ -463,17 +458,18 @@ class JamfComputerProfileUploaderBase(JamfUploaderBase):
                 if mobileconfig_plist:
                     self.upload_mobileconfig(
                         jamf_url,
-                        mobileconfig_name,
-                        profile_description,
-                        profile_category,
-                        mobileconfig_plist,
-                        profile_computergroup,
-                        template_contents,
-                        existing_uuid,
-                        sleep_time,
-                        token,
-                        retain_scope,
-                        obj_id=obj_id,
+                        object_name=mobileconfig_name,
+                        description=profile_description,
+                        category=profile_category,
+                        mobileconfig_plist=mobileconfig_plist,
+                        computergroup_name=profile_computergroup,
+                        template_contents=template_contents,
+                        profile_uuid=existing_uuid,
+                        sleep_time=sleep_time,
+                        token=token,
+                        max_tries=max_tries,
+                        retain_scope=retain_scope,
+                        object_id=object_id,
                     )
                     profile_updated = True
                 else:
@@ -507,16 +503,17 @@ class JamfComputerProfileUploaderBase(JamfUploaderBase):
             if mobileconfig_plist:
                 self.upload_mobileconfig(
                     jamf_url,
-                    mobileconfig_name,
-                    profile_description,
-                    profile_category,
-                    mobileconfig_plist,
-                    profile_computergroup,
-                    template_contents,
-                    new_uuid,
-                    sleep_time,
-                    token,
-                    max_tries,
+                    object_name=mobileconfig_name,
+                    description=profile_description,
+                    category=profile_category,
+                    mobileconfig_plist=mobileconfig_plist,
+                    computergroup_name=profile_computergroup,
+                    template_contents=template_contents,
+                    profile_uuid=new_uuid,
+                    sleep_time=sleep_time,
+                    token=token,
+                    max_tries=max_tries,
+                    retain_scope=retain_scope,
                 )
                 profile_updated = True
             else:

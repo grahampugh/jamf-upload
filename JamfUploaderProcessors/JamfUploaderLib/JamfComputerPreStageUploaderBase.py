@@ -45,12 +45,12 @@ class JamfComputerPreStageUploaderBase(JamfUploaderBase):
         self,
         jamf_url,
         object_type,
-        template_file,
+        object_name,
+        object_template,
         sleep_time,
         token,
         max_tries,
-        object_name,
-        obj_id=0,
+        object_id=0,
     ):
         """Upload object"""
 
@@ -58,13 +58,13 @@ class JamfComputerPreStageUploaderBase(JamfUploaderBase):
 
         # if we find an object ID or it's an endpoint without IDs, we PUT or PATCH
         # if we're creating a new object, we POST
-        if obj_id:
-            url = f"{jamf_url}/{self.api_endpoints(object_type)}/{obj_id}"
+        if object_id:
+            url = f"{jamf_url}/{self.api_endpoints(object_type)}/{object_id}"
         else:
             url = f"{jamf_url}/{self.api_endpoints(object_type)}"
 
         additional_curl_options = []
-        if obj_id:
+        if object_id:
             request = "PUT"
         else:
             request = "POST"
@@ -77,7 +77,7 @@ class JamfComputerPreStageUploaderBase(JamfUploaderBase):
                 request=request,
                 url=url,
                 token=token,
-                data=template_file,
+                data=object_template,
                 additional_curl_opts=additional_curl_options,
             )
             # check HTTP response
@@ -97,8 +97,6 @@ class JamfComputerPreStageUploaderBase(JamfUploaderBase):
 
     def execute(self):
         """Upload an API object"""
-        object_type = "computer_prestage"
-
         jamf_url = self.env.get("JSS_URL").rstrip("/")
         jamf_user = self.env.get("API_USERNAME")
         jamf_password = self.env.get("API_PASSWORD")
@@ -109,6 +107,7 @@ class JamfComputerPreStageUploaderBase(JamfUploaderBase):
         replace_prestage = self.to_bool(self.env.get("replace_prestage"))
         sleep_time = self.env.get("sleep")
         max_tries = self.env.get("max_tries")
+        object_type = "computer_prestage"
 
         # verify that max_tries is an integer greater than zero and less than 10
         try:
@@ -149,16 +148,18 @@ class JamfComputerPreStageUploaderBase(JamfUploaderBase):
         namekey_path = self.get_namekey_path(object_type, namekey)
 
         # get the ID from the object bearing the supplied name
-        obj_id = self.get_api_obj_id_from_name(
+        object_id = self.get_api_object_id_from_name(
             jamf_url,
-            prestage_name,
-            object_type,
+            object_type=object_type,
+            object_name=prestage_name,
             token=token,
             filter_name=namekey,
         )
 
-        if obj_id:
-            self.output(f"{object_type} '{prestage_name}' already exists: ID {obj_id}")
+        if object_id:
+            self.output(
+                f"{object_type} '{prestage_name}' already exists: ID {object_id}"
+            )
             if replace_prestage:
                 self.output(
                     f"Replacing existing {object_type} as replace_prestage is "
@@ -185,7 +186,7 @@ class JamfComputerPreStageUploaderBase(JamfUploaderBase):
         # we need to substitute the values in the object name and template now to
         # account for version strings in the name
         elements_to_remove = []
-        if obj_id:
+        if object_id:
             elements_to_remove = ["id"]
 
         xml_escape = False
@@ -198,10 +199,10 @@ class JamfComputerPreStageUploaderBase(JamfUploaderBase):
             namekey_path=namekey_path,
         )
 
-        if obj_id:
+        if object_id:
             # PreStages need to match any existing versionLock values
             self.substitute_existing_version_locks(
-                jamf_url, object_type, obj_id, template_file, token
+                jamf_url, object_type, object_id, template_file, token
             )
         else:
             # new prestages need an id of -1
@@ -227,13 +228,13 @@ class JamfComputerPreStageUploaderBase(JamfUploaderBase):
         # upload the object
         self.upload_prestage(
             jamf_url,
-            object_type,
-            template_file,
-            sleep_time,
+            object_type=object_type,
+            object_name=prestage_name,
+            object_template=template_file,
+            sleep_time=sleep_time,
             token=token,
             max_tries=max_tries,
-            object_name=prestage_name,
-            obj_id=obj_id,
+            object_id=object_id,
         )
         prestage_updated = True
 
