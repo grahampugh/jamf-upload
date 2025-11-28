@@ -197,7 +197,7 @@ class JamfSoftwareRestrictionUploaderBase(JamfUploaderBase):
 
         object_id = self.get_api_object_id_from_name(
             jamf_url,
-            object_type="restricted_softwareq",
+            object_type="restricted_software",
             object_name=restriction_name,
             token=token,
         )
