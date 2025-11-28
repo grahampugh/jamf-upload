@@ -315,7 +315,7 @@ class JamfPkgMetadataUploaderBase(JamfUploaderBase):
                 "Creating package metadata",
                 verbose_level=1,
             )
-            object_id = self.update_pkg_metadata_api(
+            self.update_pkg_metadata_api(
                 jamf_url,
                 pkg_name,
                 pkg_display_name,
