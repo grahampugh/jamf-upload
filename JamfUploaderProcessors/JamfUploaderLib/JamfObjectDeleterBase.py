@@ -75,12 +75,16 @@ class JamfObjectDeleterBase(JamfUploaderBase):
         namekey = self.get_namekey(object_type)
 
         # get the ID from the object bearing the supplied name
-        obj_id = self.get_api_obj_id_from_name(
-            jamf_url, object_name, object_type, token=token, filter_name=namekey
+        object_id = self.get_api_object_id_from_name(
+            jamf_url,
+            object_type=object_type,
+            object_name=object_name,
+            token=token,
+            filter_name=namekey,
         )
 
-        if obj_id:
-            self.output(f"{object_type} '{object_name}' exists: ID {obj_id}")
+        if object_id:
+            self.output(f"{object_type} '{object_name}' exists: ID {object_id}")
             self.output(
                 f"Deleting existing {object_type}",
                 verbose_level=1,
@@ -88,7 +92,7 @@ class JamfObjectDeleterBase(JamfUploaderBase):
             self.delete_object(
                 jamf_url,
                 object_type,
-                obj_id,
+                object_id,
                 token,
             )
         else:

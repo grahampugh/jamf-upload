@@ -40,14 +40,14 @@ from JamfUploaderBase import (  # pylint: disable=import-error, wrong-import-pos
 class JamfPolicyLogFlusherBase(JamfUploaderBase):
     """Class for functions used to flush a policy in Jamf"""
 
-    def flush_policy(self, jamf_url, obj_id, interval, sleep_time, token, max_tries):
+    def flush_policy(self, jamf_url, object_id, interval, sleep_time, token, max_tries):
         """Send policy log flush request"""
 
         self.output("Sending policy log flush request...")
 
         object_type = "logflush"
         # pylint: disable=line-too-long
-        url = f"{jamf_url}/{self.api_endpoints(object_type)}/policy/id/{obj_id}/interval/{quote(interval)}"
+        url = f"{jamf_url}/{self.api_endpoints(object_type)}/policy/id/{object_id}/interval/{quote(interval)}"
 
         count = 0
         while True:
@@ -62,7 +62,7 @@ class JamfPolicyLogFlusherBase(JamfUploaderBase):
             )
 
             # check HTTP response
-            if self.status_check(r, "Log Flush Request", obj_id, request) == "break":
+            if self.status_check(r, "Log Flush Request", object_id, request) == "break":
                 break
             if count >= max_tries:
                 self.output(
@@ -115,25 +115,23 @@ class JamfPolicyLogFlusherBase(JamfUploaderBase):
         else:
             raise ProcessorError("ERROR: Jamf Pro URL not supplied")
 
-        # check for existing - requires obj_name
-        obj_type = "policy"
-        obj_name = policy_name
-        obj_id = self.get_api_obj_id_from_name(
+        # check for existing - requires object_name
+        object_id = self.get_api_object_id_from_name(
             jamf_url,
-            obj_name,
-            obj_type,
+            object_type="policy",
+            object_name=policy_name,
             token=token,
         )
 
-        if obj_id:
-            self.output(f"Policy '{policy_name}' exists: ID {obj_id}")
+        if object_id:
+            self.output(f"Policy '{policy_name}' exists: ID {object_id}")
             self.output(
                 "Flushing existing policy",
                 verbose_level=1,
             )
             self.flush_policy(
                 jamf_url,
-                obj_id,
+                object_id,
                 logflush_interval,
                 sleep_time,
                 token=token,

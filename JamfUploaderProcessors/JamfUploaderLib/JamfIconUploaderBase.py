@@ -159,10 +159,10 @@ class JamfIconUploaderBase(JamfUploaderBase):
         # upload the icon
         r = self.upload_icon(
             jamf_url,
-            icon_file,
-            sleep_time,
-            token,
-            max_tries,
+            icon_file=icon_file,
+            sleep_time=sleep_time,
+            token=token,
+            max_tries=max_tries,
         )
 
         # get the uri from the output
