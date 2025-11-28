@@ -42,7 +42,7 @@ class JamfMobileDeviceExtensionAttributeUploaderBase(JamfUploaderBase):
     def upload_ea(
         self,
         jamf_url,
-        ea_name,
+        object_name,
         ea_description,
         ea_data_type,
         ea_input_type,
@@ -52,7 +52,7 @@ class JamfMobileDeviceExtensionAttributeUploaderBase(JamfUploaderBase):
         sleep_time,
         token,
         max_tries,
-        obj_id=None,
+        object_id=None,
     ):
         """Update extension attribute metadata."""
 
@@ -68,7 +68,7 @@ class JamfMobileDeviceExtensionAttributeUploaderBase(JamfUploaderBase):
         # build the object
         ea_data = (
             "<mobile_device_extension_attribute>"
-            + f"<name>{ea_name}</name>"
+            + f"<name>{object_name}</name>"
             + "<enabled>true</enabled>"
             + f"<description>{ea_description}</description>"
             + f"<data_type>{ea_data_type}</data_type>"
@@ -93,7 +93,7 @@ class JamfMobileDeviceExtensionAttributeUploaderBase(JamfUploaderBase):
 
         # if we find an object ID we put, if not, we post
         object_type = "mobile_device_extension_attribute"
-        url = f"{jamf_url}/{self.api_endpoints(object_type)}/id/{obj_id}"
+        url = f"{jamf_url}/{self.api_endpoints(object_type)}/id/{object_id}"
 
         self.output(
             "Extension Attribute data:",
@@ -111,7 +111,7 @@ class JamfMobileDeviceExtensionAttributeUploaderBase(JamfUploaderBase):
                 f"Extension Attribute upload attempt {count}",
                 verbose_level=2,
             )
-            request = "PUT" if obj_id else "POST"
+            request = "PUT" if object_id else "POST"
             r = self.curl(
                 api_type="classic",
                 request=request,
@@ -120,7 +120,10 @@ class JamfMobileDeviceExtensionAttributeUploaderBase(JamfUploaderBase):
                 data=template_xml,
             )
             # check HTTP response
-            if self.status_check(r, "Extension Attribute", ea_name, request) == "break":
+            if (
+                self.status_check(r, "Extension Attribute", object_name, request)
+                == "break"
+            ):
                 break
             if count >= max_tries:
                 self.output(
@@ -190,18 +193,18 @@ class JamfMobileDeviceExtensionAttributeUploaderBase(JamfUploaderBase):
         else:
             raise ProcessorError("ERROR: Jamf Pro URL not supplied")
 
-        # check for existing - requires obj_name
-        obj_type = "mobile_device_extension_attribute"
-        obj_name = ea_name
-        obj_id = self.get_api_obj_id_from_name(
+        # check for existing - requires object_name
+        object_id = self.get_api_object_id_from_name(
             jamf_url,
-            obj_name,
-            obj_type,
-            token,
+            object_type="mobile_device_extension_attribute",
+            object_name=ea_name,
+            token=token,
         )
 
-        if obj_id:
-            self.output(f"Extension Attribute '{ea_name}' already exists: ID {obj_id}")
+        if object_id:
+            self.output(
+                f"Extension Attribute '{ea_name}' already exists: ID {object_id}"
+            )
             if replace_ea:
                 self.output(
                     (
@@ -219,17 +222,17 @@ class JamfMobileDeviceExtensionAttributeUploaderBase(JamfUploaderBase):
         # upload the EA
         self.upload_ea(
             jamf_url,
-            ea_name,
-            ea_description,
-            ea_data_type,
-            ea_input_type,
-            ea_popup_choices,
-            ea_directory_service_attribute_mapping,
-            ea_inventory_display,
-            sleep_time,
+            object_name=ea_name,
+            ea_description=ea_description,
+            ea_data_type=ea_data_type,
+            ea_input_type=ea_input_type,
+            ea_popup_choices=ea_popup_choices,
+            ea_directory_service_attribute_mapping=ea_directory_service_attribute_mapping,
+            ea_inventory_display=ea_inventory_display,
+            sleep_time=sleep_time,
             token=token,
             max_tries=max_tries,
-            obj_id=obj_id,
+            object_id=object_id,
         )
         ea_uploaded = True
 
