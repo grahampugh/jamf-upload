@@ -118,7 +118,7 @@ class JamfMSUPlanUploaderBase(JamfUploaderBase):
         self,
         jamf_url,
         object_type,
-        template_file,
+        object_template,
         sleep_time,
         token,
         max_tries,
@@ -142,7 +142,7 @@ class JamfMSUPlanUploaderBase(JamfUploaderBase):
                 request=request,
                 url=url,
                 token=token,
-                data=template_file,
+                data=object_template,
             )
             # check HTTP response
             if self.status_check(r, object_type, object_name, request) == "break":
@@ -230,8 +230,8 @@ class JamfMSUPlanUploaderBase(JamfUploaderBase):
 
         # get the group ID from the group name
         group_id = ""
-        group_id = self.get_api_obj_id_from_name(
-            jamf_url, group_name, object_type, token
+        group_id = self.get_api_object_id_from_name(
+            jamf_url, object_type=object_type, object_name=group_name, token=token
         )
         if not group_id:
             raise ProcessorError(f"ERROR: Group {group_name} not found")
@@ -271,9 +271,9 @@ class JamfMSUPlanUploaderBase(JamfUploaderBase):
         # upload the object
         self.upload_object(
             jamf_url,
-            object_type,
-            template_file,
-            sleep_time,
+            object_type=object_type,
+            object_template=template_file,
+            sleep_time=sleep_time,
             token=token,
             max_tries=max_tries,
         )

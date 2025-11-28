@@ -200,7 +200,7 @@ class JamfPackageUploaderBase(JamfUploaderBase):
     # ------------------------------------------------------------------------
     # Beginning of function for upload to deprecated dbfileupload endpoint
 
-    def pkg_dbfileupload(self, pkg_name, pkg_path, jamf_url, enc_creds, obj_id=-1):
+    def pkg_dbfileupload(self, pkg_name, pkg_path, jamf_url, enc_creds, object_id=-1):
         """uploads the package using the legacy dbfileupload method.
         Note: endpoint removed in Jamf Pro 11.5."""
 
@@ -212,7 +212,7 @@ class JamfPackageUploaderBase(JamfUploaderBase):
             "--header",
             "DESTINATION: 0",
             "--header",
-            f"OBJECT_ID: {obj_id}",
+            f"OBJECT_ID: {object_id}",
             "--header",
             "FILE_TYPE: 0",
             "--header",
@@ -240,7 +240,7 @@ class JamfPackageUploaderBase(JamfUploaderBase):
     # Beginning of functions for uploading to v1/packages endpoint
 
     def upload_pkg(
-        self, pkg_path, pkg_name, pkg_id, sleep_time, jamf_url, token, max_tries
+        self, jamf_url, pkg_path, pkg_name, pkg_id, sleep_time, token, max_tries
     ):
         """Upload a package to a Cloud Distribution Point using the v1/packages endpoint"""
 
@@ -584,29 +584,27 @@ class JamfPackageUploaderBase(JamfUploaderBase):
             else:
                 obj = json.loads(r.output)
             try:
-                obj_id = str(obj["package"]["id"])
+                object_id = str(obj["package"]["id"])
             except KeyError:
-                obj_id = "-1"
+                object_id = "-1"
         else:
-            obj_id = "-1"
-        return obj_id
+            object_id = "-1"
+        return object_id
 
     def get_category_id(self, jamf_url, category_name, token=""):
         """Get the category ID from the name, or abort if ID not found"""
         # check for existing category
         self.output(f"Checking for '{category_name}' on {jamf_url}")
-        obj_type = "category"
-        obj_name = category_name
-        obj_id = self.get_api_obj_id_from_name(
+        object_id = self.get_api_object_id_from_name(
             jamf_url,
-            obj_name,
-            obj_type,
-            token,
+            object_type="category",
+            object_name=category_name,
+            token=token,
         )
 
-        if obj_id:
-            self.output(f"Category '{category_name}' exists: ID {obj_id}")
-            return obj_id
+        if object_id:
+            self.output(f"Category '{category_name}' exists: ID {object_id}")
+            return object_id
         else:
             self.output(f"Category '{category_name}' not found")
             raise ProcessorError("Supplied package category does not exist")
@@ -712,12 +710,12 @@ class JamfPackageUploaderBase(JamfUploaderBase):
             )
 
             try:
-                obj_id = obj["id"]
+                object_id = obj["id"]
             except KeyError:
-                obj_id = "-1"
+                object_id = "-1"
         else:
-            obj_id = "-1"
-        return obj_id
+            object_id = "-1"
+        return object_id
 
     def update_pkg_metadata(  # pylint: disable=too-many-arguments, too-many-locals
         self,
@@ -1042,30 +1040,30 @@ class JamfPackageUploaderBase(JamfUploaderBase):
 
         # check for existing pkg (use new API if 11.5+)
         if legacy_mode:
-            obj_id = self.check_pkg(pkg_name, jamf_url, token=token)
-            self.output(f"Package ID: {obj_id}", verbose_level=3)  # TEMP
-            if obj_id and obj_id != "-1":
-                self.output(f"Package '{pkg_name}' already exists: ID {obj_id}")
-                pkg_id = obj_id  # assign pkg_id for smb runs - JCDS runs get it from the pkg upload
+            object_id = self.check_pkg(pkg_name, jamf_url, token=token)
+            self.output(f"Package ID: {object_id}", verbose_level=3)  # TEMP
+            if object_id and object_id != "-1":
+                self.output(f"Package '{pkg_name}' already exists: ID {object_id}")
+                pkg_id = object_id  # assign pkg_id for smb runs - JCDS runs get it from the pkg upload
             else:
                 self.output(f"Package '{pkg_name}' not found on server")
                 pkg_id = 0
         else:
             filter_name = "packageName"
-            obj_id = self.get_api_obj_id_from_name(
+            object_id = self.get_api_object_id_from_name(
                 jamf_url,
-                pkg_name,
-                "package_v1",
+                object_type="package_v1",
+                object_name=pkg_name,
                 token=token,
                 filter_name=filter_name,
             )
-            if obj_id:
-                self.output(f"Package '{pkg_name}' already exists: ID {obj_id}")
-                pkg_id = obj_id  # assign pkg_id for smb runs - JCDS runs get it from the pkg upload
+            if object_id:
+                self.output(f"Package '{pkg_name}' already exists: ID {object_id}")
+                pkg_id = object_id  # assign pkg_id for smb runs - JCDS runs get it from the pkg upload
             else:
                 self.output(f"Package '{pkg_name}' not found on server")
                 pkg_id = 0
-            self.output(f"Package ID: {obj_id}", verbose_level=3)  # TEMP
+            self.output(f"Package ID: {object_id}", verbose_level=3)  # TEMP
 
         # Process for SMB shares if defined
         self.output(
@@ -1194,7 +1192,7 @@ class JamfPackageUploaderBase(JamfUploaderBase):
 
                     # post the package (won't run if the pkg exists and replace is False)
                     r = self.pkg_dbfileupload(
-                        pkg_name, pkg_path, jamf_url, enc_creds, obj_id
+                        pkg_name, pkg_path, jamf_url, enc_creds, object_id
                     )
                     try:
                         pkg_id = ElementTree.fromstring(r.output).findtext("id")
@@ -1300,7 +1298,7 @@ class JamfPackageUploaderBase(JamfUploaderBase):
                 verbose_level=1,
             )
             if APLooseVersion(jamf_pro_version) >= APLooseVersion("11.5"):
-                obj_id = self.update_pkg_metadata_api(
+                object_id = self.update_pkg_metadata_api(
                     jamf_url,
                     pkg_name,
                     pkg_display_name,
@@ -1342,10 +1340,10 @@ class JamfPackageUploaderBase(JamfUploaderBase):
             and (not smb_shares or cloud_dp)
             and pkg_metadata_updated
         ):
-            self.output(f"ID: {obj_id}", verbose_level=3)  # TEMP
-            if obj_id != "-1":
-                self.output(f"Package '{pkg_name}' metadata exists: ID {obj_id}")
-                pkg_id = obj_id  # assign pkg_id for v1/packages runs
+            self.output(f"ID: {object_id}", verbose_level=3)  # TEMP
+            if object_id != "-1":
+                self.output(f"Package '{pkg_name}' metadata exists: ID {object_id}")
+                pkg_id = object_id  # assign pkg_id for v1/packages runs
             else:
                 raise ProcessorError(
                     "ERROR: Package ID not obtained so cannot upload package"
@@ -1356,7 +1354,13 @@ class JamfPackageUploaderBase(JamfUploaderBase):
                 verbose_level=1,
             )
             r = self.upload_pkg(
-                pkg_path, pkg_name, pkg_id, sleep_time, jamf_url, token, max_tries
+                jamf_url=jamf_url,
+                pkg_path=pkg_path,
+                pkg_name=pkg_name,
+                pkg_id=pkg_id,
+                sleep_time=sleep_time,
+                token=token,
+                max_tries=max_tries,
             )
             # if we get this far then there was a 200 success response so the package was uploaded
             pkg_uploaded = True

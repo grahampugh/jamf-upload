@@ -42,18 +42,18 @@ class JamfComputerGroupUploaderBase(JamfUploaderBase):
     def upload_computergroup(
         self,
         jamf_url,
-        computergroup_name,
-        computergroup_template,
+        object_name,
+        object_template,
         sleep_time,
         token,
         max_tries,
-        obj_id=0,
+        object_id=0,
     ):
         """Upload computer group"""
 
         # import template from file and replace any keys in the template
-        if os.path.exists(computergroup_template):
-            with open(computergroup_template, "r", encoding="utf-8") as file:
+        if os.path.exists(object_template):
+            with open(object_template, "r", encoding="utf-8") as file:
                 template_contents = file.read()
         else:
             raise ProcessorError("Template does not exist!")
@@ -91,13 +91,13 @@ class JamfComputerGroupUploaderBase(JamfUploaderBase):
 
         # if we find an object ID we put, if not, we post
         object_type = "computer_group"
-        url = f"{jamf_url}/{self.api_endpoints(object_type)}/id/{obj_id}"
+        url = f"{jamf_url}/{self.api_endpoints(object_type)}/id/{object_id}"
 
         count = 0
         while True:
             count += 1
             self.output(f"Computer Group upload attempt {count}", verbose_level=2)
-            request = "PUT" if obj_id else "POST"
+            request = "PUT" if object_id else "POST"
             r = self.curl(
                 api_type="classic",
                 request=request,
@@ -107,10 +107,7 @@ class JamfComputerGroupUploaderBase(JamfUploaderBase):
             )
 
             # check HTTP response
-            if (
-                self.status_check(r, "Computer Group", computergroup_name, request)
-                == "break"
-            ):
+            if self.status_check(r, "Computer Group", object_name, request) == "break":
                 break
             if count >= max_tries:
                 self.output(
@@ -179,19 +176,17 @@ class JamfComputerGroupUploaderBase(JamfUploaderBase):
         else:
             raise ProcessorError("ERROR: Jamf Pro URL not supplied")
 
-        # check for existing - requires obj_name
-        obj_type = "computer_group"
-        obj_name = computergroup_name
-        obj_id = self.get_api_obj_id_from_name(
+        # check for existing - requires object_name
+        object_id = self.get_api_object_id_from_name(
             jamf_url,
-            obj_name,
-            obj_type,
+            object_type="computer_group",
+            object_name=computergroup_name,
             token=token,
         )
 
-        if obj_id:
+        if object_id:
             self.output(
-                f"Computer group '{computergroup_name}' already exists: ID {obj_id}"
+                f"Computer group '{computergroup_name}' already exists: ID {object_id}"
             )
             if replace_group:
                 self.output(
@@ -208,12 +203,12 @@ class JamfComputerGroupUploaderBase(JamfUploaderBase):
         # upload the group
         self.upload_computergroup(
             jamf_url,
-            computergroup_name,
-            computergroup_template,
-            sleep_time,
+            object_name=computergroup_name,
+            object_template=computergroup_template,
+            sleep_time=sleep_time,
             token=token,
             max_tries=max_tries,
-            obj_id=obj_id,
+            object_id=object_id,
         )
         group_uploaded = True
 

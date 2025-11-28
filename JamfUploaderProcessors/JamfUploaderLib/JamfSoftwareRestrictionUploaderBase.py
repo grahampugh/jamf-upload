@@ -42,7 +42,7 @@ class JamfSoftwareRestrictionUploaderBase(JamfUploaderBase):
     def upload_restriction(
         self,
         jamf_url,
-        restriction_name,
+        object_name,
         process_name,
         display_message,
         match_exact_process_name,
@@ -54,13 +54,13 @@ class JamfSoftwareRestrictionUploaderBase(JamfUploaderBase):
         sleep_time,
         token,
         max_tries,
-        obj_id=0,
+        object_id=0,
     ):
         """Update Software Restriction metadata."""
 
         # # substitute user-assignable keys
         replaceable_keys = {
-            "restriction_name": restriction_name,
+            "restriction_name": object_name,
             "process_name": process_name,
             "display_message": display_message,
             "match_exact_process_name": match_exact_process_name,
@@ -90,13 +90,13 @@ class JamfSoftwareRestrictionUploaderBase(JamfUploaderBase):
 
         # if we find an object ID we put, if not, we post
         object_type = "restricted_software"
-        url = f"{jamf_url}/{self.api_endpoints(object_type)}/id/{obj_id}"
+        url = f"{jamf_url}/{self.api_endpoints(object_type)}/id/{object_id}"
 
         count = 0
         while True:
             count += 1
             self.output(f"Software Restriction upload attempt {count}", verbose_level=1)
-            request = "PUT" if obj_id else "POST"
+            request = "PUT" if object_id else "POST"
             r = self.curl(
                 api_type="classic",
                 request=request,
@@ -107,7 +107,7 @@ class JamfSoftwareRestrictionUploaderBase(JamfUploaderBase):
 
             # check HTTP response
             if (
-                self.status_check(r, "Software Restriction", restriction_name, request)
+                self.status_check(r, "Software Restriction", object_name, request)
                 == "break"
             ):
                 break
@@ -195,17 +195,15 @@ class JamfSoftwareRestrictionUploaderBase(JamfUploaderBase):
         else:
             raise ProcessorError("ERROR: Jamf Pro URL not supplied")
 
-        obj_type = "restricted_software"
-        obj_name = restriction_name
-        obj_id = self.get_api_obj_id_from_name(
+        object_id = self.get_api_object_id_from_name(
             jamf_url,
-            obj_name,
-            obj_type,
+            object_type="restricted_software",
+            object_name=restriction_name,
             token=token,
         )
-        if obj_id:
+        if object_id:
             self.output(
-                f"Software Restriction '{restriction_name}' already exists: ID {obj_id}"
+                f"Software Restriction '{restriction_name}' already exists: ID {object_id}"
             )
             if replace_restriction:
                 self.output(
@@ -226,19 +224,19 @@ class JamfSoftwareRestrictionUploaderBase(JamfUploaderBase):
 
         self.upload_restriction(
             jamf_url,
-            restriction_name,
-            process_name,
-            display_message,
-            match_exact_process_name,
-            restriction_send_notification,
-            kill_process,
-            delete_executable,
-            restriction_computergroup,
-            template_contents,
-            sleep_time,
+            object_name=restriction_name,
+            process_name=process_name,
+            display_message=display_message,
+            match_exact_process_name=match_exact_process_name,
+            send_notification=restriction_send_notification,
+            kill_process=kill_process,
+            delete_executable=delete_executable,
+            computergroup_name=restriction_computergroup,
+            template_contents=template_contents,
+            sleep_time=sleep_time,
             token=token,
             max_tries=max_tries,
-            obj_id=obj_id,
+            object_id=object_id,
         )
         restriction_updated = True
 

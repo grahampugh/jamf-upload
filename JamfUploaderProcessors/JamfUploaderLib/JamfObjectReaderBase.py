@@ -45,7 +45,7 @@ class JamfObjectReaderBase(JamfUploaderBase):
         output_dir,
         object_content,
         subdomain,
-        obj_subtype=None,
+        object_subtype=None,
         n=None,
     ):
         """output the file"""
@@ -60,11 +60,11 @@ class JamfObjectReaderBase(JamfUploaderBase):
             filetype = "json"
 
         if object_type == "account":
-            if obj_subtype == "users":
+            if object_subtype == "users":
                 object_type = "account_user"
             else:
                 object_type = "account_group"
-            output_filename = f"{subdomain}-accounts-{obj_subtype}-{n}.{filetype}"
+            output_filename = f"{subdomain}-accounts-{object_subtype}-{n}.{filetype}"
         elif n is not None and n != "":
             self.output(f"Object name is {n}", verbose_level=3)
             # escape slashes in the object name
@@ -126,10 +126,10 @@ class JamfObjectReaderBase(JamfUploaderBase):
             or object_type == "configuration_profile"
         ):
             try:
-                obj_xml = ET.fromstring(parsed_object)
+                object_xml = ET.fromstring(parsed_object)
             except ET.ParseError as xml_error:
                 raise ProcessorError from xml_error
-            payload_value = obj_xml.find("general/payloads")
+            payload_value = object_xml.find("general/payloads")
             payload = self.pretty_print_xml(payload_value.text.encode()).decode("UTF-8")
             payload_filetype = "mobileconfig"
 
@@ -170,7 +170,7 @@ class JamfObjectReaderBase(JamfUploaderBase):
         jamf_password = self.env.get("API_PASSWORD")
         client_id = self.env.get("CLIENT_ID")
         client_secret = self.env.get("CLIENT_SECRET")
-        obj_id = self.env.get("object_id")
+        object_id = self.env.get("object_id")
         object_name = self.env.get("object_name")
         all_objects = self.to_bool(self.env.get("all_objects"))
         list_only = self.to_bool(self.env.get("list_only"))
@@ -189,7 +189,7 @@ class JamfObjectReaderBase(JamfUploaderBase):
 
         # check for required variables
         if not all_objects and not list_only and not "_settings" in object_type:
-            if not object_name and not obj_id:
+            if not object_name and not object_id:
                 raise ProcessorError(
                     "ERROR: no object name or ID provided, and all_objects is False"
                 )
@@ -293,20 +293,24 @@ class JamfObjectReaderBase(JamfUploaderBase):
             if not output_dir:
                 raise ProcessorError("ERROR: no output path provided")
 
-        elif obj_id:
+        elif object_id:
             if object_name:
                 self.output(
-                    f"Object ID {obj_id} and name {object_name} provided, "
+                    f"Object ID {object_id} and name {object_name} provided, "
                     "using object ID to get object contents"
                 )
             else:
                 self.output(
-                    f"Object ID {obj_id} provided, using object ID to get object contents"
+                    f"Object ID {object_id} provided, using object ID to get object contents"
                 )
-                object_name = self.get_api_obj_value_from_id(
-                    jamf_url, object_type, obj_id, obj_path=namekey_path, token=token
+                object_name = self.get_api_object_value_from_id(
+                    jamf_url,
+                    object_type=object_type,
+                    object_id=object_id,
+                    object_path=namekey_path,
+                    token=token,
                 )
-            object_list = [{"id": obj_id, namekey: object_name}]
+            object_list = [{"id": object_id, namekey: object_name}]
             self.output(f"Name: {object_name}", verbose_level=3)
 
         elif object_name:
@@ -316,22 +320,22 @@ class JamfObjectReaderBase(JamfUploaderBase):
             # exception for accounts
             if object_type == "account":
                 # for accounts we need to split the object list into users and groups
-                for obj_subtype in ["users", "groups"]:
+                for object_subtype in ["users", "groups"]:
 
                     # get the object
-                    if obj_subtype == "users":
+                    if object_subtype == "users":
                         object_type = "account_user"
                     else:
                         object_type = "account_group"
 
-                    obj_id = self.get_api_obj_id_from_name(
+                    object_id = self.get_api_object_id_from_name(
                         jamf_url,
-                        object_name,
-                        object_type,
+                        object_type=object_type,
+                        object_name=object_name,
                         token=token,
                         filter_name=namekey,
                     )
-                    if obj_id:
+                    if object_id:
                         break
             else:
                 # the group object type has a different ID key
@@ -340,21 +344,21 @@ class JamfObjectReaderBase(JamfUploaderBase):
                 else:
                     id_key = "id"
 
-                obj_id = self.get_api_obj_id_from_name(
+                object_id = self.get_api_object_id_from_name(
                     jamf_url,
-                    object_name,
-                    object_type,
+                    object_type=object_type,
+                    object_name=object_name,
                     token=token,
                     filter_name=namekey,
                     id_key=id_key,
                 )
 
-            if obj_id:
+            if object_id:
                 self.output(
-                    f"{object_type} '{object_name}' exists: ID {obj_id}",
+                    f"{object_type} '{object_name}' exists: ID {object_id}",
                     verbose_level=2,
                 )
-                object_list = [{"id": obj_id, namekey: object_name}]
+                object_list = [{"id": object_id, namekey: object_name}]
             else:
                 self.output(f"{object_type} '{object_name}' not found on {jamf_url}")
 
@@ -406,12 +410,12 @@ class JamfObjectReaderBase(JamfUploaderBase):
             # exception for accounts
             if object_type == "account":
                 # for accounts we need to split the object list into users and groups
-                for obj_subtype in ["users", "groups"]:
+                for object_subtype in ["users", "groups"]:
                     self.output(
-                        f"Iterating through {obj_subtype} in {object_type} object list",
+                        f"Iterating through {object_subtype} in {object_type} object list",
                         verbose_level=1,
                     )
-                    for obj in object_list[obj_subtype]:
+                    for obj in object_list[object_subtype]:
                         i = obj["id"]
                         n = obj["name"]
                         raw_object = ""
@@ -419,12 +423,12 @@ class JamfObjectReaderBase(JamfUploaderBase):
                         payload = ""
 
                         # get the object
-                        if obj_subtype == "users":
+                        if object_subtype == "users":
                             object_type = "account_user"
                         else:
                             object_type = "account_group"
-                        raw_object = self.get_api_obj_contents_from_id(
-                            jamf_url, object_type, i, obj_path="", token=token
+                        raw_object = self.get_api_object_contents_from_id(
+                            jamf_url, object_type, i, object_path="", token=token
                         )
 
                         # parse the object
@@ -445,7 +449,7 @@ class JamfObjectReaderBase(JamfUploaderBase):
                                 output_dir,
                                 parsed_object,
                                 subdomain,
-                                obj_subtype=obj_subtype,
+                                object_subtype=object_subtype,
                                 n=n,
                             )
             else:
@@ -456,9 +460,9 @@ class JamfObjectReaderBase(JamfUploaderBase):
                     if object_name:
                         # if we have an object name, use that
                         n = object_name
-                    elif obj_id and len(object_list) == 1:
+                    elif object_id and len(object_list) == 1:
                         # if we have an object ID use the ID in the filename if only one object
-                        n = obj_id
+                        n = object_id
                     else:
                         # otherwise use the name key from the object
                         if namekey not in obj:
@@ -471,8 +475,8 @@ class JamfObjectReaderBase(JamfUploaderBase):
                     payload = ""
 
                     # get the object
-                    raw_object = self.get_api_obj_contents_from_id(
-                        jamf_url, object_type, i, obj_path="", token=token
+                    raw_object = self.get_api_object_contents_from_id(
+                        jamf_url, object_type, i, object_path="", token=token
                     )
 
                     # parse the object
@@ -490,7 +494,7 @@ class JamfObjectReaderBase(JamfUploaderBase):
                             output_dir,
                             parsed_object,
                             subdomain,
-                            obj_subtype=None,
+                            object_subtype=None,
                             n=n,
                         )
 
@@ -529,7 +533,7 @@ class JamfObjectReaderBase(JamfUploaderBase):
             self.env["output_filename"] = output_filename
             self.env["output_path"] = file_path
             self.env["object_name"] = object_name
-            self.env["object_id"] = str(obj_id)
+            self.env["object_id"] = str(object_id)
             self.env["raw_object"] = str(raw_object)
             self.env["parsed_object"] = str(parsed_object)
 
