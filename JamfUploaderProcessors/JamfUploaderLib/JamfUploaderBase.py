@@ -1194,23 +1194,28 @@ class JamfUploaderBase(Processor):
                     response_data = r.output
                 else:
                     response_data = json.loads(r.output)
-                object_list = response_data[self.object_list_types(object_type)]
+                if object_type == "account_user":
+                    object_list = response_data.get("accounts", {}).get("users", [])
+                elif object_type == "account_group":
+                    object_list = response_data.get("accounts", {}).get("groups", [])
+                else:
+                    object_list = response_data[self.object_list_types(object_type)]
+                
                 self.output(
                     object_list,
                     verbose_level=4,
                 )
                 object_id = 0
-                if object_type == "account_user" or object_type == "account_group":
-                    object_list = object_list["accounts"]
                 for obj in object_list:
                     self.output(
                         obj,
                         verbose_level=4,
                     )
                     # we need to check for a case-insensitive match
-                    if obj["name"].lower() == object_name.lower():
-                        object_id = obj["id"]
-                        break
+                    if isinstance(obj, dict) and "name" in obj:
+                        if obj["name"].lower() == object_name.lower():
+                            object_id = obj["id"]
+                            break
                 return object_id
             else:
                 raise ProcessorError(
@@ -1729,7 +1734,12 @@ class JamfUploaderBase(Processor):
 
         if api_type == "classic":
             # do XML stuff
-            url = f"{jamf_url}/{self.api_endpoints(object_type)}/id/{object_id}"
+            if object_type == "account_user":
+                url = f"{jamf_url}/{self.api_endpoints(object_type)}/userid/{object_id}"
+            elif object_type == "account_group":
+                url = f"{jamf_url}/{self.api_endpoints(object_type)}/groupid/{object_id}"
+            else:
+                url = f"{jamf_url}/{self.api_endpoints(object_type)}/id/{object_id}"
         else:
             url = f"{jamf_url}/{self.api_endpoints(object_type)}/{object_id}"
 
