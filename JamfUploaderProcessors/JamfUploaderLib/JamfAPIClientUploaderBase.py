@@ -232,6 +232,7 @@ class JamfAPIClientUploaderBase(JamfUploaderBase):
         # build the object
         object_data = {
             "authorizationScopes": [api_role_name],
+            "displayName": object_name,
             "enabled": api_client_enabled,
             "accessTokenLifetimeSeconds": int(access_token_lifetime),
         }
