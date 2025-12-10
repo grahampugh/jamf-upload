@@ -22,8 +22,7 @@ Made by Jerker Adolfsson based on the other JamfUploader processors.
 
 import os.path
 import sys
-
-import xml.etree.ElementTree as ET
+import json
 
 from autopkglib import (  # pylint: disable=import-error
     ProcessorError,
@@ -51,65 +50,60 @@ class JamfPatchCheckerBase(JamfUploaderBase):
         pkg_name,
         token="",
     ):
-        """Checks for a patch softwaretitle including the linked pkg"""
+        """Checks for a patch software title including the linked pkg"""
 
-        self.output("Linking pkg versions in patch softwaretitle...")
+        self.output("Linking pkg versions in patch software title...")
 
-        # Get current softwaretitle
-        object_type = "patch_software_title"
-        url = (
-            f"{jamf_url}/{self.api_endpoints(object_type)}/id/{patch_softwaretitle_id}"
-        )
+        # Get current software title
+        object_type = "patch_software_title_configuration"
+        url = f"{jamf_url}/{self.api_endpoints(object_type)}/{patch_softwaretitle_id}"
 
         # No need to loop over curl function, since we only make a "GET" request.
         r = self.curl(
-            api_type="classic",
+            api_type="jpapi",
             request="GET",
             url=url,
             token=token,
-            endpoint_type="patch_software_title",
         )
 
         if r.status_code != 200:
-            raise ProcessorError("ERROR: Could not fetch patch softwaretitle.")
+            raise ProcessorError("ERROR: Could not fetch patch software title.")
 
-        # Parse response as xml
+        # Parse response as json
         try:
-            patch_softwaretitle_xml = ET.fromstring(r.output)
-        except ET.ParseError as xml_error:
-            raise ProcessorError from xml_error
-
+            patch_softwaretitle_json = r.output.json()
+        except ValueError as json_error:
+            raise ProcessorError from json_error
         patch_version_found = False
         # Replace matching version string, with version string including package name
-        for v in patch_softwaretitle_xml.findall("versions/version"):
-            if v.find("software_version").text == pkg_version:
+        for version in patch_softwaretitle_json.get("versions", {}).get("version", []):
+            if version.get("software_version") == pkg_version:
                 patch_version_found = True
                 # Remove old, probably empty package element
-                v.remove(v.find("package"))
+                version.remove(version.get("package"))
                 # Create new package element including given pkg information
-                pkg_element = ET.Element("package")
-                pkg_element_name = ET.SubElement(pkg_element, "name")
-                pkg_element_name.text = pkg_name
-                # Inject package element into version element
-                v.append(pkg_element)
+                # Create new package dictionary
+                pkg_dict = {"name": pkg_name}
+                # Add package dictionary to version
+                version["package"] = pkg_dict
                 # Print new version element for debugging reasons
-                self.output(
-                    ET.tostring(v, encoding="unicode", method="xml"), verbose_level=3
-                )
+                self.output(json.dumps(version, indent=2), verbose_level=3)
                 self.env["patch_version_found"] = patch_version_found
 
         if not patch_version_found:
             # Get first match of all the versions listed in the
-            # softwaretitle to report the 'latest version'.
+            # software title to report the 'latest version'.
             # That's helpful if e.g. AutoPKG uploaded a new version,
-            # which is not yet listed in the patch softwaretitle list.
-            latest_version = patch_softwaretitle_xml.find(
-                "versions/version/software_version"
-            ).text
+            # which is not yet listed in the patch software title list.
+            latest_version = (
+                patch_softwaretitle_json.get("versions", {})
+                .get("version", [{}])[0]
+                .get("software_version", "")
+            )
             self.env["patch_version_found"] = patch_version_found
             self.output(
                 "WARNING: Could not find matching version "
-                + f"'{pkg_version}' in patch softwaretitle '{patch_softwaretitle_name}'. "
+                + f"'{pkg_version}' in patch software title '{patch_softwaretitle_name}'. "
                 + f"Latest reported version is '{latest_version}'."
             )
             return latest_version
@@ -153,9 +147,9 @@ class JamfPatchCheckerBase(JamfUploaderBase):
 
         if not patch_softwaretitle_id:
             raise ProcessorError(
-                f"ERROR: Couldn't find patch softwaretitle with name '{patch_softwaretitle}'.",
-                "You need to create the patch softwaretitle by hand in Jamf Pro.",
-                "There is currently no way to create a patch softwaretitle via API.",
+                f"ERROR: Couldn't find patch software title with name '{patch_softwaretitle}'.",
+                "You need to create the patch software title by hand in Jamf Pro.",
+                "There is currently no way to create a patch software title via API.",
             )
         self.env["patch_softwaretitle_id"] = patch_softwaretitle_id
 
