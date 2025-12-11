@@ -113,14 +113,12 @@ class JamfObjectReaderBase(JamfUploaderBase):
         # for certain types we also want to extract the payload
         payload_filetype = "sh"
         payload = None
-        if object_type == "computer_extension_attribute":
+        if object_type == "computer_extension_attribute" or object_type == "script":
             payload = json.loads(parsed_object)["scriptContents"]
             if payload is not None:
                 # determine the script type
                 if "python" in payload.partition("\n")[0]:
                     payload_filetype = "py"
-        elif object_type == "script":
-            payload = json.loads(parsed_object)["scriptContents"]
         elif (
             object_type == "os_x_configuration_profile"
             or object_type == "configuration_profile"
@@ -143,7 +141,7 @@ class JamfObjectReaderBase(JamfUploaderBase):
         try:
             payload_output_filename = (
                 f"{subdomain}-{self.object_list_types(object_type)}-{n}"
-                f".{payload_filetype}".replace(".sh.sh", ".sh")
+                f".{payload_filetype}".replace(".sh.sh", ".sh").replace(".py.py", ".py")
             )
             # ensure the filename is safe from slashes
             payload_output_filename = payload_output_filename.replace("/", "_").replace(
