@@ -141,7 +141,7 @@ class JamfObjectReaderBase(JamfUploaderBase):
         try:
             payload_output_filename = (
                 f"{subdomain}-{self.object_list_types(object_type)}-{n}"
-                f".{payload_filetype}".replace(".sh.sh", ".sh")
+                f".{payload_filetype}".replace(".sh.sh", ".sh").replace(".py.py", ".py")
             )
             # ensure the filename is safe from slashes
             payload_output_filename = payload_output_filename.replace("/", "_").replace(
