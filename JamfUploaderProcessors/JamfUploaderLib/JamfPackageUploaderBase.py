@@ -235,7 +235,7 @@ class JamfPackageUploaderBase(JamfUploaderBase):
         self.output(f"HTTP response: {r.status_code}", verbose_level=1)
         return r
 
-    # End of function for uploading to Local Fileshare Distribution Points
+    # End of function for upload to deprecated dbfileupload endpoint
     # ------------------------------------------------------------------------
     # Beginning of functions for uploading to v1/packages endpoint
 
@@ -1236,7 +1236,7 @@ class JamfPackageUploaderBase(JamfUploaderBase):
         # check token again using oauth or basic auth depending on the credentials given
         # as package upload may have taken some time
         # (not required for standard mode)
-        if not smb_shares and not aws_cdp_mode and not jcds2_mode and not legacy_mode:
+        if smb_shares or aws_cdp_mode or jcds2_mode or legacy_mode:
             # get token using oauth or basic auth depending on the credentials given
             if jamf_url:
                 token = self.handle_api_auth(
