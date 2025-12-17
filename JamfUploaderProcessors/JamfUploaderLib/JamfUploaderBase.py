@@ -2202,7 +2202,7 @@ class JamfUploaderBase(Processor):
                     text=True,
                     check=True,
                 )
-                self.output(result.stdout, verbose_level=3)
+                self.output(result.stdout, verbose_level=4)
 
                 # if result is not empty, parse the keychain dump to find entries matching this instance
                 # Split on 'keychain:' to separate entries, then process each entry
