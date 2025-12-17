@@ -1200,7 +1200,7 @@ class JamfUploaderBase(Processor):
                     object_list = response_data.get("accounts", {}).get("groups", [])
                 else:
                     object_list = response_data[self.object_list_types(object_type)]
-                
+
                 self.output(
                     object_list,
                     verbose_level=4,
@@ -1737,7 +1737,9 @@ class JamfUploaderBase(Processor):
             if object_type == "account_user":
                 url = f"{jamf_url}/{self.api_endpoints(object_type)}/userid/{object_id}"
             elif object_type == "account_group":
-                url = f"{jamf_url}/{self.api_endpoints(object_type)}/groupid/{object_id}"
+                url = (
+                    f"{jamf_url}/{self.api_endpoints(object_type)}/groupid/{object_id}"
+                )
             else:
                 url = f"{jamf_url}/{self.api_endpoints(object_type)}/id/{object_id}"
         else:
@@ -2151,9 +2153,11 @@ class JamfUploaderBase(Processor):
             acct = None
             self.output("Account name or Client ID not provided", verbose_level=2)
         passw = None
+        service_basename = service.lstrip("https://").rstrip("/")
         if acct:
             self.output(
-                f"Looking for service '{service}' with account '{acct}' in keychain",
+                f"Looking for service '{service}' with account '{acct}' in keychain "
+                f"where the label matches '{service_basename} ({acct})'",
                 verbose_level=2,
             )
             try:
@@ -2165,6 +2169,8 @@ class JamfUploaderBase(Processor):
                         service,
                         "-a",
                         acct,
+                        "-l",
+                        f"{service_basename} ({acct})",
                         "-w",
                         "-g",
                     ],
@@ -2178,48 +2184,103 @@ class JamfUploaderBase(Processor):
             except subprocess.CalledProcessError:
                 pass
         else:
-            self.output(f"Looking for service '{service}' in keychain", verbose_level=2)
+            self.output(
+                f"Looking for service '{service}' in keychain "
+                f"where the label matches '{service_basename} (*)'",
+                verbose_level=2,
+            )
+
+            # first we must dump the keychain into a variable so that we may process it
             try:
                 result = subprocess.run(
                     [
                         "/usr/bin/security",
-                        "find-internet-password",
-                        "-s",
-                        service,
-                        "-g",
+                        "dump-keychain",
+                        "login.keychain-db",
                     ],
                     capture_output=True,
                     text=True,
                     check=True,
                 )
                 self.output(result.stdout, verbose_level=3)
-                for line in result.stdout.splitlines():
-                    if "acct" in line:
-                        acct = line.split('"')[3]
+
+                # if result is not empty, parse the keychain dump to find entries matching this instance
+                # Split on 'keychain:' to separate entries, then process each entry
+                matching_labels = []
+                if result.stdout:
+
+                    # Split the keychain dump into individual entries using 'keychain:' as separator
+                    entries = result.stdout.split("keychain:")
+
+                    for entry in entries:
+                        # Check if this entry contains our target service
+                        if f'"srvr"<blob>="{service}"' in entry:
+                            # Look for the 0x00000007 line which contains the label
+                            lines = entry.split("\n")
+                            for line in lines:
+                                if "0x00000007" in line and "=" in line:
+                                    # Extract the value between quotes
+                                    match = re.search(r'"([^"]*)"', line)
+                                    if match:
+                                        label = match.group(1)
+                                        # Check if the label matches the expected pattern
+                                        pattern = f"{service_basename} ("
+                                        if label.startswith(pattern) and label.endswith(
+                                            ")"
+                                        ):
+                                            matching_labels.append(label)
+                                            self.output(
+                                                f"Found keychain entry with label: {label}",
+                                                verbose_level=2,
+                                            )
+
+                    self.output(
+                        f"Found {len(matching_labels)} keychain entries for {service_basename}",
+                        verbose_level=2,
+                    )
+
+                    # For now, if we found any matching entries, use the first one to extract account
+                    if matching_labels:
+                        # Extract account name from the first matching label
+                        first_label = matching_labels[0]
+                        # Extract the account name between parentheses
+                        account_match = re.search(
+                            rf"{re.escape(service_basename)} \(([^)]+)\)", first_label
+                        )
+                        if account_match:
+                            acct = account_match.group(1)
+                            self.output(
+                                f"Using account '{acct}' from keychain label",
+                                verbose_level=2,
+                            )
+
+                            # Now try to get the password using the extracted account
+                            try:
+                                result = subprocess.run(
+                                    [
+                                        "/usr/bin/security",
+                                        "find-internet-password",
+                                        "-s",
+                                        service,
+                                        "-a",
+                                        acct,
+                                        "-l",
+                                        first_label,
+                                        "-w",
+                                        "-g",
+                                    ],
+                                    text=True,
+                                    check=True,
+                                    stdout=subprocess.PIPE,
+                                    stderr=subprocess.STDOUT,
+                                )
+                                self.output(result.stdout, verbose_level=3)
+                                passw = self.remove_non_printable(result.stdout)
+                            except subprocess.CalledProcessError:
+                                pass
+
             except subprocess.CalledProcessError:
                 pass
-            if acct:
-                try:
-                    result = subprocess.run(
-                        [
-                            "/usr/bin/security",
-                            "find-internet-password",
-                            "-s",
-                            service,
-                            "-a",
-                            acct,
-                            "-w",
-                            "-g",
-                        ],
-                        text=True,
-                        check=True,
-                        stdout=subprocess.PIPE,
-                        stderr=subprocess.STDOUT,
-                    )
-                    # self.output(result.stdout, verbose_level=2)
-                    passw = self.remove_non_printable(result.stdout)
-                except subprocess.CalledProcessError:
-                    pass
 
         return acct, passw
 
