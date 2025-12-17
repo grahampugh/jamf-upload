@@ -2185,8 +2185,8 @@ class JamfUploaderBase(Processor):
                 pass
         else:
             self.output(
-                f"Looking for service '{service}' in keychain"
-                f"where the label matches '{service_basename} (any account name)'",
+                f"Looking for service '{service}' in keychain "
+                f"where the label matches '{service_basename} (*)'",
                 verbose_level=2,
             )
 
