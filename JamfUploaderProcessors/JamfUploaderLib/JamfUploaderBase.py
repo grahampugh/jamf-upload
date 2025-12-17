@@ -45,7 +45,7 @@ class JamfUploaderBase(Processor):
     """Common functions used by at least two JamfUploader processors."""
 
     # Global version
-    __version__ = "2025.12.01.0"
+    __version__ = "2025.12.17.0"
 
     def api_type(self, object_type):
         """Return the API type from the object type"""
