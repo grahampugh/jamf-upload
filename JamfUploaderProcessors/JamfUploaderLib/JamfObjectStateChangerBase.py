@@ -39,7 +39,7 @@ from JamfUploaderBase import (  # pylint: disable=import-error, wrong-import-pos
 
 
 class JamfObjectStateChangerBase(JamfUploaderBase):
-    """Class for functions used to flush a policy in Jamf"""
+    """Class for functions used to enable or disable Jamf objects"""
 
     def set_object_state(
         self,
