@@ -67,40 +67,54 @@ class JamfObjectDeleterBase(JamfUploaderBase):
             self.output(f"Object of type {object_type} cannot be deleted")
             return
 
-        self.output(
-            f"Checking for existing {object_type} '{object_name}' on {jamf_url}"
-        )
-
-        # declare name key
-        namekey = self.get_namekey(object_type)
-
-        # get the ID from the object bearing the supplied name
-        object_id = self.get_api_object_id_from_name(
-            jamf_url,
-            object_type=object_type,
-            object_name=object_name,
-            token=token,
-            filter_name=namekey,
-        )
-
-        if object_id:
-            self.output(f"{object_type} '{object_name}' exists: ID {object_id}")
+        # cloud_distribution_point endpoint doesn't use IDs or names
+        if object_type == "cloud_distribution_point":
             self.output(
-                f"Deleting existing {object_type}",
+                f"Deleting singleton {object_type} on {jamf_url}",
                 verbose_level=1,
             )
             self.delete_object(
                 jamf_url,
                 object_type,
-                object_id,
-                token,
+                object_id=0,
+                token=token,
             )
+            object_name = object_type
         else:
             self.output(
-                f"{object_type} '{object_name}' not found on {jamf_url}.",
-                verbose_level=1,
+                f"Checking for existing {object_type} '{object_name}' on {jamf_url}"
             )
-            return
+
+            # declare name key
+            namekey = self.get_namekey(object_type)
+
+            # get the ID from the object bearing the supplied name
+            object_id = self.get_api_object_id_from_name(
+                jamf_url,
+                object_type=object_type,
+                object_name=object_name,
+                token=token,
+                filter_name=namekey,
+            )
+
+            if object_id:
+                self.output(f"{object_type} '{object_name}' exists: ID {object_id}")
+                self.output(
+                    f"Deleting existing {object_type}",
+                    verbose_level=1,
+                )
+                self.delete_object(
+                    jamf_url,
+                    object_type,
+                    object_id,
+                    token,
+                )
+            else:
+                self.output(
+                    f"{object_type} '{object_name}' not found on {jamf_url}.",
+                    verbose_level=1,
+                )
+                return
 
         # output the summary
 

@@ -58,6 +58,7 @@ class JamfUploaderBase(Processor):
             "app_installers_accept_t_and_c_command",
             "category",
             "check_in_settings",
+            "cloud_distribution_point",
             "cloud_ldap",
             "computer",
             "computer_extension_attribute",
@@ -168,6 +169,7 @@ class JamfUploaderBase(Processor):
             "blueprint_undeploy_command": f"api/blueprints/v1/blueprints/{uuid}/undeploy",
             "category": "api/v1/categories",
             "check_in_settings": "api/v3/check-in",
+            "cloud_distribution_point": "api/v1/cloud-distribution-point",
             "cloud_ldap": "api/v2/cloud-ldaps",
             "computer": "api/preview/computers",
             "computer_extension_attribute": "api/v1/computer-extension-attributes",
@@ -1742,6 +1744,9 @@ class JamfUploaderBase(Processor):
                 )
             else:
                 url = f"{jamf_url}/{self.api_endpoints(object_type)}/id/{object_id}"
+        elif object_type == "cloud_distribution_point":
+            # cloud_distribution_point endpoint doesn't use IDs in the URL
+            url = f"{jamf_url}/{self.api_endpoints(object_type)}"
         else:
             url = f"{jamf_url}/{self.api_endpoints(object_type)}/{object_id}"
 
