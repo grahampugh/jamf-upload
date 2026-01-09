@@ -100,6 +100,21 @@ class JamfObjectUploaderBase(JamfUploaderBase):
             "blueprint_undeploy_command",
         ):
             request = "POST"
+        elif object_type == "cloud_distribution_point":
+            get_r = self.curl(
+                api_type=api_type,
+                request="GET",
+                url=url,
+                token=token,
+            )
+            if get_r.status_code == 200 and isinstance(get_r.output, dict):
+                cdn_type = get_r.output.get("cdnType")
+                if cdn_type and cdn_type != "NONE":
+                    request = "PATCH"
+                else:
+                    request = "POST"
+            else:
+                request = "POST"
         elif object_id or "_settings" in object_type:
             request = "PUT"
         else:
@@ -215,8 +230,8 @@ class JamfObjectUploaderBase(JamfUploaderBase):
         namekey = self.get_namekey(object_type)
         namekey_path = self.get_namekey_path(object_type, namekey)
 
-        # check for an existing object except for settings-related endpoints
-        if not any(suffix in object_type for suffix in ("_settings", "_command")):
+        # check for an existing object except for settings-related endpoints and cloud_distribution_point
+        if not any(suffix in object_type for suffix in ("_settings", "_command")) and object_type != "cloud_distribution_point":
             if object_id:
                 # if an ID has been passed into the recipe, look for object based on ID
                 # rather than name
