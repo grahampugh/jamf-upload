@@ -2153,7 +2153,7 @@ class JamfUploaderBase(Processor):
             acct = None
             self.output("Account name or Client ID not provided", verbose_level=2)
         passw = None
-        service_basename = service.lstrip("https://").rstrip("/")
+        service_basename = service.removeprefix("https://").removesuffix("/")
         if acct:
             self.output(
                 f"Looking for service '{service}' with account '{acct}' in keychain "
