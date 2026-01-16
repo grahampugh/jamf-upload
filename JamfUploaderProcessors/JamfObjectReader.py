@@ -171,7 +171,7 @@ class JamfObjectReader(JamfObjectReaderBase):
         "file_path": {
             "description": "Path of outputted results",
         },
-        "payload_path": {
+        "payload_file_path": {
             "description": "Path of outputted payload",
         },
     }
