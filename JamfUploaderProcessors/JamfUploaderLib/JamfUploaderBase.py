@@ -2279,7 +2279,7 @@ class JamfUploaderBase(Processor):
                                     stdout=subprocess.PIPE,
                                     stderr=subprocess.STDOUT,
                                 )
-                                self.output(result.stdout, verbose_level=3)
+                                # self.output(result.stdout, verbose_level=3) # this shows the password
                                 passw = self.remove_non_printable(result.stdout)
                             except subprocess.CalledProcessError:
                                 pass
