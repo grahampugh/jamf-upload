@@ -45,7 +45,7 @@ class JamfUploaderBase(Processor):
     """Common functions used by at least two JamfUploader processors."""
 
     # Global version
-    __version__ = "2026.01.12.0"
+    __version__ = "2026.01.28.0"
 
     def api_type(self, object_type):
         """Return the API type from the object type"""
@@ -2186,7 +2186,7 @@ class JamfUploaderBase(Processor):
                 )
                 self.output(result.stdout, verbose_level=4)
                 passw = self.remove_non_printable(result.stdout)
-            except subprocess.CalledProcessError:
+            except (subprocess.CalledProcessError, FileNotFoundError):
                 pass
         else:
             self.output(
@@ -2281,10 +2281,10 @@ class JamfUploaderBase(Processor):
                                 )
                                 # self.output(result.stdout, verbose_level=3) # this shows the password
                                 passw = self.remove_non_printable(result.stdout)
-                            except subprocess.CalledProcessError:
+                            except (subprocess.CalledProcessError, FileNotFoundError):
                                 pass
 
-            except subprocess.CalledProcessError:
+            except (subprocess.CalledProcessError, FileNotFoundError):
                 pass
 
         return acct, passw
