@@ -1,4 +1,5 @@
 #!/usr/local/autopkg/python
+# pylint: disable=invalid-name
 
 """
 Copyright 2026 Graham Pugh, Neil Martin
