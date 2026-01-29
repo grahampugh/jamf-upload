@@ -144,7 +144,7 @@ class AppStoreInfoProvider(URLGetter):
             header = self.parse_headers(proc_stdout)
 
             # check HTTP response
-            if self.slack_status_check(header) == "break":
+            if self.status_check(header) == "break":
                 break
             if count >= max_tries:
                 self.output(
@@ -190,6 +190,16 @@ class AppStoreInfoProvider(URLGetter):
         return Response(
             headers=headers_list, status_code=status_code, output=output_data
         )
+
+    def status_check(self, header):
+        """Return a message dependent on the HTTP response"""
+        http_result_code = int(header.get("http_result_code"))
+        self.output(f"Response: {http_result_code}", verbose_level=2)
+        if http_result_code == 200 or http_result_code == 201:
+            self.output("Request sent successfully")
+            return "break"
+        self.output(f"WARNING: Request failed (status code {http_result_code})")
+        return None
 
     def download_artwork(self, artwork_url, track_id, max_tries):
         """Download artwork and save it as PNG."""
