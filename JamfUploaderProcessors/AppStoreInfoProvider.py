@@ -21,9 +21,7 @@ This processor was originally developed by Neil Martin
 
 import json
 import os
-import subprocess
 from collections import namedtuple
-import re
 import tempfile
 
 from time import sleep
@@ -34,6 +32,8 @@ from autopkglib import (  # pylint: disable=import-error
 )
 
 __all__ = ["AppStoreInfoProvider"]
+
+Response = namedtuple("Response", ["headers", "status_code", "output"])
 
 
 class AppStoreInfoProvider(URLGetter):
@@ -101,8 +101,6 @@ class AppStoreInfoProvider(URLGetter):
 
     def curl_request(self, url, accept="application/json", max_tries=5, binary=False):
         """Make a curl request and return the response."""
-        tmp_dir = self.make_tmp_dir()
-        headers_file = os.path.join(tmp_dir, "curl_headers.txt")
         output_file = self.init_temp_file(prefix="appstore_", suffix=".txt")
 
         curl_cmd = [
@@ -110,8 +108,6 @@ class AppStoreInfoProvider(URLGetter):
             "--silent",
             "--show-error",
             "--no-buffer",
-            "--dump-header",
-            headers_file,
             "--speed-time",
             "30",
             "--location",
@@ -147,33 +143,13 @@ class AppStoreInfoProvider(URLGetter):
             if self.status_check(header) == "break":
                 break
             if count >= max_tries:
-                self.output(
-                    f"Slack webhook send did not succeed after {max_tries} attempts"
-                )
+                self.output(f"Request did not succeed after {max_tries} attempts")
                 self.output(f"\nHTTP POST Response Code: {status_code}")
-                raise ProcessorError("ERROR: Slack webhook failed to send")
+                raise ProcessorError("ERROR: Request failed")
             sleep(10)
 
-        Response = namedtuple(
-            "Response",
-            ["headers", "status_code", "output"],
-            defaults=(None, None, None),
-        )
-
-        headers_list = None
-        status_code = None
-        output_data = None
-
-        try:
-            with open(headers_file, "r", encoding="utf-8") as file:
-                headers = file.readlines()
-            headers_list = [x.strip() for x in headers]
-            for header in headers_list:
-                if re.match(r"HTTP/(1.1|2)", header) and "Continue" not in header:
-                    status_code = int(header.split()[1])
-        except IOError as e:
-            raise ProcessorError(f"Warning: {headers_file} not found") from e
-
+        # predefine output_data
+        output_data = ""
         if os.path.exists(output_file) and os.path.getsize(output_file) > 0:
             if binary:
                 with open(output_file, "rb") as file:
@@ -187,9 +163,7 @@ class AppStoreInfoProvider(URLGetter):
         else:
             self.output(f"No output from request ({output_file} not found or empty)")
 
-        return Response(
-            headers=headers_list, status_code=status_code, output=output_data
-        )
+        return Response(headers=header, status_code=status_code, output=output_data)
 
     def status_check(self, header):
         """Return a message dependent on the HTTP response"""
