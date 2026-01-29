@@ -1,0 +1,9 @@
+Identifier: com.github.grahampugh.recipes.AppStoreInfoProvider
+Description: Recipe stub for AppStoreInfoProvider Processor.
+MinimumVersion: "2.3"
+Input: {}
+
+Process:
+  - Processor: com.github.grahampugh.jamf-upload.processors/AppStoreInfoProvider
+    Arguments:
+      app_store_id: "718509958"
