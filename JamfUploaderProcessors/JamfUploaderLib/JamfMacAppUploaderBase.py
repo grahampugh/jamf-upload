@@ -135,6 +135,7 @@ class JamfMacAppUploaderBase(JamfUploaderBase):
         client_secret = self.env.get("CLIENT_SECRET")
         macapp_name = self.env.get("macapp_name")
         clone_from = self.env.get("clone_from")
+        allow_new = self.to_bool(self.env.get("allow_new"))
         selfservice_icon_uri = self.env.get("selfservice_icon_uri")
         macapp_template = self.env.get("macapp_template")
         replace_macapp = self.to_bool(self.env.get("replace_macapp"))
@@ -304,11 +305,53 @@ class JamfMacAppUploaderBase(JamfUploaderBase):
                         },
                     }
             else:
-                self.output(
-                    "Not replacing existing MAS app. Use replace_macapp='True' to enforce.",
-                    verbose_level=1,
-                )
-                return
+                if allow_new:
+                    # obtain the VPP location
+                    self.output("Obtaining VPP ID", verbose_level=2)
+                    vpp_id = self.get_vpp_id(jamf_url, token)
+                    if vpp_id:
+                        self.output(
+                            f"Existing VPP ID is '{vpp_id}'",
+                            verbose_level=1,
+                        )
+                    else:
+                        self.output("Didn't retrieve a VPP ID", verbose_level=2)
+
+                    self.env["vpp_id"] = vpp_id
+                    macapp_name, template_xml = self.prepare_macapp_template(
+                        jamf_url, macapp_name, macapp_template
+                    )
+
+                    # upload the macapp
+                    self.upload_macapp(
+                        jamf_url,
+                        object_name=macapp_name,
+                        object_template=template_xml,
+                        sleep_time=sleep_time,
+                        token=token,
+                        max_tries=max_tries,
+                        object_id=0,
+                    )
+                    macapp_updated = True
+
+                    # output the summary
+                    self.env["macapp_name"] = macapp_name
+                    self.env["macapp_updated"] = macapp_updated
+                    if macapp_updated:
+                        self.env["jamfmacappuploader_summary_result"] = {
+                            "summary_text": "The following MAS apps were updated in Jamf Pro:",
+                            "report_fields": ["macapp", "template"],
+                            "data": {
+                                "macapp": macapp_name,
+                                "template": macapp_template,
+                            },
+                        }
+                else:
+                    self.output(
+                        "Not replacing existing MAS app. Use replace_macapp='True' to enforce.",
+                        verbose_level=1,
+                    )
+                    return
         elif clone_from:
             # check for existing - requires object_name
             object_id = self.get_api_object_id_from_name(
