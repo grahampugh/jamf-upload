@@ -21,10 +21,10 @@ This processor was originally developed by Neil Martin
 
 import json
 import os
+import subprocess
 from collections import namedtuple
+import re
 import tempfile
-
-from time import sleep
 
 from autopkglib import (  # pylint: disable=import-error
     URLGetter,
@@ -32,8 +32,6 @@ from autopkglib import (  # pylint: disable=import-error
 )
 
 __all__ = ["AppStoreInfoProvider"]
-
-Response = namedtuple("Response", ["headers", "status_code", "output"])
 
 
 class AppStoreInfoProvider(URLGetter):
@@ -48,14 +46,6 @@ class AppStoreInfoProvider(URLGetter):
         "app_store_id": {
             "required": False,
             "description": "App Store ID (e.g., 284882215)",
-        },
-        "max_tries": {
-            "required": False,
-            "description": (
-                "Maximum number of attempts to request the info. "
-                "Must be an integer between 1 and 10."
-            ),
-            "default": "5",
         },
     }
 
@@ -99,57 +89,52 @@ class AppStoreInfoProvider(URLGetter):
             text=text,
         )[1]
 
-    def curl_request(self, url, accept="application/json", max_tries=5, binary=False):
+    def curl_request(self, url, accept="application/json", binary=False):
         """Make a curl request and return the response."""
+        tmp_dir = self.make_tmp_dir()
+        headers_file = os.path.join(tmp_dir, "curl_headers.txt")
         output_file = self.init_temp_file(prefix="appstore_", suffix=".txt")
 
         curl_cmd = [
-            self.curl_binary(),
-            "--silent",
-            "--show-error",
-            "--no-buffer",
-            "--speed-time",
-            "30",
+            "/usr/bin/curl",
             "--location",
-            "--url",
+            "--dump-header",
+            headers_file,
             url,
-            "--request",
-            "GET",
-            "--output",
-            output_file,
         ]
 
-        headers = {
-            "Content-Type": "application/json",
-            "User-Agent": "AutoPkg/1.0",
-            "Accept": accept,
-        }
+        curl_cmd.extend(["--header", "User-Agent: AutoPkg/1.0"])
+        curl_cmd.extend(["--header", f"Accept: {accept}"])
+        curl_cmd.extend(["--request", "GET"])
+        curl_cmd.extend(["--output", output_file])
 
-        self.add_curl_headers(curl_cmd, headers)
+        self.output(f"Curl command: {' '.join(curl_cmd)}", verbose_level=3)
 
-        count = 0
-        while True:
-            count += 1
-            self.output(
-                f"GET request attempt {count}",
-                verbose_level=2,
-            )
+        try:
+            subprocess.check_output(curl_cmd)
+        except subprocess.CalledProcessError as e:
+            raise ProcessorError(f"Curl request failed: {e}") from e
 
-            proc_stdout, _, status_code = self.execute_curl(curl_cmd)
-            self.output(f"Curl command: {curl_cmd}", verbose_level=4)
-            header = self.parse_headers(proc_stdout)
+        Response = namedtuple(
+            "Response",
+            ["headers", "status_code", "output"],
+            defaults=(None, None, None),
+        )
 
-            # check HTTP response
-            if self.status_check(header) == "break":
-                break
-            if count >= max_tries:
-                self.output(f"Request did not succeed after {max_tries} attempts")
-                self.output(f"\nHTTP POST Response Code: {status_code}")
-                raise ProcessorError("ERROR: Request failed")
-            sleep(10)
+        headers_list = None
+        status_code = None
+        output_data = None
 
-        # predefine output_data
-        output_data = ""
+        try:
+            with open(headers_file, "r", encoding="utf-8") as file:
+                headers = file.readlines()
+            headers_list = [x.strip() for x in headers]
+            for header in headers_list:
+                if re.match(r"HTTP/(1.1|2)", header) and "Continue" not in header:
+                    status_code = int(header.split()[1])
+        except IOError as e:
+            raise ProcessorError(f"Warning: {headers_file} not found") from e
+
         if os.path.exists(output_file) and os.path.getsize(output_file) > 0:
             if binary:
                 with open(output_file, "rb") as file:
@@ -163,19 +148,11 @@ class AppStoreInfoProvider(URLGetter):
         else:
             self.output(f"No output from request ({output_file} not found or empty)")
 
-        return Response(headers=header, status_code=status_code, output=output_data)
+        return Response(
+            headers=headers_list, status_code=status_code, output=output_data
+        )
 
-    def status_check(self, header):
-        """Return a message dependent on the HTTP response"""
-        http_result_code = int(header.get("http_result_code"))
-        self.output(f"Response: {http_result_code}", verbose_level=2)
-        if http_result_code == 200 or http_result_code == 201:
-            self.output("Request sent successfully")
-            return "break"
-        self.output(f"WARNING: Request failed (status code {http_result_code})")
-        return None
-
-    def download_artwork(self, artwork_url, track_id, max_tries):
+    def download_artwork(self, artwork_url, track_id):
         """Download artwork and save it as PNG."""
         if not artwork_url:
             return None
@@ -191,9 +168,7 @@ class AppStoreInfoProvider(URLGetter):
             if not os.path.exists(cache_dir):
                 os.makedirs(cache_dir)
 
-            response = self.curl_request(
-                artwork_url, accept="image/png", max_tries=max_tries
-            )
+            response = self.curl_request(artwork_url, accept="image/png", binary=True)
 
             if response.status_code == 200:
                 with open(artwork_path, "wb") as artwork_file:
@@ -258,19 +233,8 @@ class AppStoreInfoProvider(URLGetter):
             f"id={app_id}&country={country}&entity=software"
         )
 
-        # set max tries
-        max_tries = self.env.get("max_tries")
-
-        # verify that max_tries is an integer greater than zero and less than 10
         try:
-            max_tries = int(max_tries)
-            if max_tries < 1 or max_tries > 10:
-                raise ValueError
-        except (ValueError, TypeError):
-            max_tries = 5
-
-        try:
-            response = self.curl_request(lookup_url, max_tries)
+            response = self.curl_request(lookup_url)
 
             if response.status_code != 200:
                 raise ProcessorError(
@@ -295,9 +259,7 @@ class AppStoreInfoProvider(URLGetter):
 
             artwork_url = result.get("artworkUrl512")
             if artwork_url:
-                artwork_path = self.download_artwork(
-                    artwork_url, self.env["track_id"], max_tries
-                )
+                artwork_path = self.download_artwork(artwork_url, self.env["track_id"])
                 if artwork_path:
                     self.env["artwork_path"] = artwork_path
                 else:
