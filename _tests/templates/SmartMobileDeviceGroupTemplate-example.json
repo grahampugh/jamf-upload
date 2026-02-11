@@ -1,0 +1,20 @@
+{
+  "name": "%GROUP_NAME%",
+  "description": "%GROUP_DESCRIPTION%",
+  "criteria": [
+    {
+      "name": "Application Bundle ID",
+      "priority": 0,
+      "andOr": "and",
+      "searchType": "is",
+      "value": "%APP_BUNDLE_ID%"
+    },
+    {
+      "name": "Mobile Device Group",
+      "priority": 1,
+      "andOr": "and",
+      "searchType": "member of",
+      "value": "%TESTING_STATIC_GROUP%"
+    }
+  ]
+}

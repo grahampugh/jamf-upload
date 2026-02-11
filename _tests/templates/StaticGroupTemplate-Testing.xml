@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <computer_group>
-    <name>Testing</name>
-	<is_smart>false</is_smart>
+    <name>%GROUP_NAME%</name>
+    <is_smart>false</is_smart>
 </computer_group>

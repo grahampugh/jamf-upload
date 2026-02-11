@@ -1,0 +1,27 @@
+{
+  "name": "%GROUP_NAME%",
+  "description": "%GROUP_DESCRIPTION%",
+  "criteria": [
+    {
+      "name": "Application Title",
+      "priority": 0,
+      "andOr": "and",
+      "searchType": "is",
+      "value": "%JSS_INVENTORY_NAME%"
+    },
+    {
+      "name": "%VERSION_CRITERION%",
+      "priority": 1,
+      "andOr": "and",
+      "searchType": "is",
+      "value": "%version%"
+    },
+    {
+      "name": "Computer Group",
+      "priority": 2,
+      "andOr": "and",
+      "searchType": "member of",
+      "value": "%TESTING_STATIC_GROUP%"
+    }
+  ]
+}

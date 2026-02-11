@@ -74,6 +74,10 @@ while [[ "$#" -gt 0 ]]; do
             echo "  laps"
             echo "  selfservice"
             echo "  obj-category"
+            echo "  obj-smartgroup-computer"
+            echo "  obj-staticgroup-computer"
+            echo "  obj-smartgroup-mobile"
+            echo "  obj-staticgroup-mobile"
             echo "  obj-profile"
             echo "  obj-policy-id"
             echo "  obj-script-id"
@@ -519,6 +523,59 @@ case "$test_type" in
             --type "category" \
             --name "Testing" \
             --template "templates/Category-Template-Testing.json" \
+            "$verbosity" \
+            --replace
+        ;;
+    obj-smartgroup-computer)
+        "$DIR"/../jamf-upload.sh obj \
+            --prefs "$prefs" \
+            --recipe-dir /Users/gpugh/sourcecode/jamf-upload/_tests \
+            --type "smart-computer-group" \
+            --name "Firefox-update-smart" \
+            --template "templates/SmartGroupTemplate-example-update-smart.json" \
+            --key GROUP_NAME="Firefox-update-smart" \
+            --key JSS_INVENTORY_NAME="Firefox.app" \
+            --key VERSION_CRITERION="Application Version" \
+            --key version="99.99" \
+            --key TESTING_STATIC_GROUP="Testing" \
+            --key GROUP_DESCRIPTION="Created using test.sh" \
+            "$verbosity" \
+            --replace
+        ;;
+    obj-staticgroup-computer)
+        "$DIR"/../jamf-upload.sh obj \
+            --prefs "$prefs" \
+            --recipe-dir /Users/gpugh/sourcecode/jamf-upload/_tests \
+            --type "static-computer-group" \
+            --name "Testing" \
+            --template "templates/StaticGroupTemplate-Testing.json" \
+            --key GROUP_NAME="Testing" \
+            --key GROUP_DESCRIPTION="Created using test.sh" \
+            "$verbosity" \
+            --replace
+        ;;
+    obj-smartgroup-mobile)
+        "$DIR"/../jamf-upload.sh obj \
+            --prefs "$prefs" \
+            --recipe-dir /Users/gpugh/sourcecode/jamf-upload/_tests \
+            --type "smart-mobile-device-group" \
+            --name "Safari Is Installed" \
+            --template "templates/SmartMobileDeviceGroupTemplate-example.json" \
+            --key GROUP_NAME="Safari Is Installed" \
+            --key TESTING_STATIC_GROUP="Testing" \
+            --key GROUP_DESCRIPTION="Created using test.sh" \
+            "$verbosity" \
+            --replace
+        ;;
+    obj-staticgroup-mobile)
+        "$DIR"/../jamf-upload.sh obj \
+            --prefs "$prefs" \
+            --recipe-dir /Users/gpugh/sourcecode/jamf-upload/_tests \
+            --type "static-mobile-device-group" \
+            --name "Testing" \
+            --template "templates/StaticGroupTemplate-Testing.json" \
+            --key GROUP_NAME="Testing" \
+            --key GROUP_DESCRIPTION="Created using test.sh" \
             "$verbosity" \
             --replace
         ;;
