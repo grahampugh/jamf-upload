@@ -4,11 +4,11 @@ Identifier: com.github.autopkg.grahampugh-recipes.jamf.DeleteOldPackages
 MinimumVersion: "2.3"
 
 Input:
-  PACKAGE_NAME_MATCH: "gen-pkg-datajar-datajardotmobiicon-1.0.pkg"
-  VERSIONS_TO_KEEP: "0"
-  MINIMUM_NAME_LENGTH: "3"
-  MAXIMUM_ALLOWED_PACKAGES_TO_DELETE: "20"
-  DRY_RUN: "False"
+  PACKAGE_NAME_MATCH: "%NAME%-"
+  VERSIONS_TO_KEEP: 5
+  MINIMUM_NAME_LENGTH: 3
+  MAXIMUM_ALLOWED_PACKAGES_TO_DELETE: 20
+  DRY_RUN: "True"
 
 Process:
   - Processor: com.github.grahampugh.jamf-upload.processors/JamfPackageCleaner
