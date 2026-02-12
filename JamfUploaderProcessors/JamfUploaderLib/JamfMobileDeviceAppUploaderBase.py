@@ -57,7 +57,7 @@ class JamfMobileDeviceAppUploaderBase(JamfUploaderBase):
             return locations
         preferred_lower = preferred_location.lower()
         for index, location in enumerate(locations):
-            location_name = location.get("name", "")
+            location_name = location.get("locationName") or location.get("name", "")
             if preferred_lower in location_name.lower():
                 return [location] + locations[:index] + locations[index + 1 :]
         return locations
@@ -80,7 +80,11 @@ class JamfMobileDeviceAppUploaderBase(JamfUploaderBase):
             output = json.loads(r.output)
         locations = output.get("results", [])
         for obj in locations:
-            self.output(f"VPP Location ID: {obj.get('id')} NAME: {obj.get('name')}", verbose_level=3)
+            location_name = obj.get("locationName") or obj.get("name")
+            self.output(
+                f"VPP Location ID: {obj.get('id')} NAME: {location_name}",
+                verbose_level=3,
+            )
         return locations
 
     def _location_contains_app_content(
