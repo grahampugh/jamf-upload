@@ -1,4 +1,5 @@
 #!/usr/local/autopkg/python
+# pylint: disable=invalid-name
 
 """
 Copyright 2023 Graham Pugh
@@ -27,7 +28,7 @@ import sys
 # imports require noqa comments for E402
 sys.path.insert(0, os.path.dirname(__file__))
 
-from JamfUploaderLib.JamfMacAppUploaderBase import (  # noqa: E402
+from JamfUploaderLib.JamfMacAppUploaderBase import (  # pylint: disable=import-error, wrong-import-position
     JamfMacAppUploaderBase,
 )
 
@@ -41,6 +42,8 @@ class JamfMacAppUploader(JamfMacAppUploaderBase):
         "Note that an icon can only be successsfully injected into a Mac App Store app "
         "item if Cloud Services Connection is enabled."
     )
+
+    __doc__ = description
 
     input_variables = {
         "JSS_URL": {
@@ -89,6 +92,14 @@ class JamfMacAppUploader(JamfMacAppUploaderBase):
         "macapp_template": {
             "required": False,
             "description": "Full path to the XML template",
+        },
+        "preferred_volume_purchase_location": {
+            "required": False,
+            "description": (
+                "Text to match within the Volume Purchasing Location name when "
+                "prioritizing app content."
+            ),
+            "default": "",
         },
         "replace_macapp": {
             "required": False,

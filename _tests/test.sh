@@ -869,10 +869,11 @@ case "$test_type" in
         "$DIR"/../jamf-upload.sh macapp \
             --prefs "$prefs" \
             --recipe-dir /Users/gpugh/sourcecode/jamf-upload/_tests \
-            --name "Bitwarden" \
+            --name "Keynote: Design Presentations" \
             --template "templates/MacApp-allcomputers.xml" \
-            --key CATEGORY="JSPP - Applications" \
+            --key CATEGORY="Applications" \
             --key DEPLOYMENT_TYPE="Make Available in Self Service" \
+            --key "preferred_volume_purchase_location=Graham - jamfsalesegrahampugh" \
             "$verbosity" \
             --replace
         ;;
@@ -883,7 +884,7 @@ case "$test_type" in
             --name "Bitwarden - auto-install" \
             --clone-from "Bitwarden" \
             --template "templates/MacApp-noscope-autoinstall.xml" \
-            --key CATEGORY="JSPP - Applications" \
+            --key CATEGORY="Applications" \
             --key DEPLOYMENT_TYPE="Install Automatically/Prompt Users to Install" \
             "$verbosity" \
             --replace
