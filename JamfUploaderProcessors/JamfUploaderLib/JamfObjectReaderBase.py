@@ -336,11 +336,8 @@ class JamfObjectReaderBase(JamfUploaderBase):
                     if object_id:
                         break
             else:
-                # the group object type has a different ID key
-                if object_type == "group":
-                    id_key = "groupPlatformId"
-                else:
-                    id_key = "id"
+                # some group object types have a different ID key
+                id_key = self.get_idkey(object_type)
 
                 object_id = self.get_api_object_id_from_name(
                     jamf_url,

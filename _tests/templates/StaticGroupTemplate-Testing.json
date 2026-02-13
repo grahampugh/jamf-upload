@@ -1,4 +1,5 @@
 {
   "name": "%GROUP_NAME%",
-  "description": "%GROUP_DESCRIPTION%"
+  "description": "%GROUP_DESCRIPTION%",
+  "assignments": []
 }

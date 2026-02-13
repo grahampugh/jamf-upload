@@ -530,7 +530,7 @@ case "$test_type" in
         "$DIR"/../jamf-upload.sh obj \
             --prefs "$prefs" \
             --recipe-dir /Users/gpugh/sourcecode/jamf-upload/_tests \
-            --type "smart-computer-group" \
+            --type "smart_computer_group" \
             --name "Firefox-update-smart" \
             --template "templates/SmartGroupTemplate-example-update-smart.json" \
             --key GROUP_NAME="Firefox-update-smart" \
@@ -546,19 +546,18 @@ case "$test_type" in
         "$DIR"/../jamf-upload.sh obj \
             --prefs "$prefs" \
             --recipe-dir /Users/gpugh/sourcecode/jamf-upload/_tests \
-            --type "static-computer-group" \
+            --type "static_computer_group" \
             --name "Testing" \
             --template "templates/StaticGroupTemplate-Testing.json" \
             --key GROUP_NAME="Testing" \
             --key GROUP_DESCRIPTION="Created using test.sh" \
-            "$verbosity" \
-            --replace
+            "$verbosity"
         ;;
     obj-smartgroup-mobile)
         "$DIR"/../jamf-upload.sh obj \
             --prefs "$prefs" \
             --recipe-dir /Users/gpugh/sourcecode/jamf-upload/_tests \
-            --type "smart-mobile-device-group" \
+            --type "smart_mobile_device_group" \
             --name "Safari Is Installed" \
             --template "templates/SmartMobileDeviceGroupTemplate-example.json" \
             --key GROUP_NAME="Safari Is Installed" \
@@ -571,9 +570,9 @@ case "$test_type" in
         "$DIR"/../jamf-upload.sh obj \
             --prefs "$prefs" \
             --recipe-dir /Users/gpugh/sourcecode/jamf-upload/_tests \
-            --type "static-mobile-device-group" \
+            --type "static_mobile_device_group" \
             --name "Testing" \
-            --template "templates/StaticGroupTemplate-Testing.json" \
+            --template "templates/StaticMobileDeviceGroupTemplate-Testing.json" \
             --key GROUP_NAME="Testing" \
             --key GROUP_DESCRIPTION="Created using test.sh" \
             "$verbosity" \

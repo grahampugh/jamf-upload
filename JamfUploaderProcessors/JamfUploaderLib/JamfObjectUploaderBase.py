@@ -231,7 +231,10 @@ class JamfObjectUploaderBase(JamfUploaderBase):
         namekey_path = self.get_namekey_path(object_type, namekey)
 
         # check for an existing object except for settings-related endpoints and cloud_distribution_point
-        if not any(suffix in object_type for suffix in ("_settings", "_command")) and object_type != "cloud_distribution_point":
+        if (
+            not any(suffix in object_type for suffix in ("_settings", "_command"))
+            and object_type != "cloud_distribution_point"
+        ):
             if object_id:
                 # if an ID has been passed into the recipe, look for object based on ID
                 # rather than name
@@ -270,10 +273,7 @@ class JamfObjectUploaderBase(JamfUploaderBase):
 
                 # get the ID from the object bearing the supplied name
                 # the group object type has a different ID key
-                if object_type == "group":
-                    id_key = "groupPlatformId"
-                else:
-                    id_key = "id"
+                id_key = self.get_idkey(object_type)
 
                 object_id = self.get_api_object_id_from_name(
                     jamf_url,

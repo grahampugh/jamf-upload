@@ -350,6 +350,8 @@ class JamfUploaderBase(Processor):
             "managed_software_updates_available_updates": "availableUpdates",
             "managed_software_updates_plans": "planUuid",
             "managed_software_updates_plans_events": "id",
+            "static_mobile_device_group": "groupName",
+            "smart_mobile_device_group": "groupName",
         }
 
         if object_type in object_type_namekeys:
@@ -357,6 +359,19 @@ class JamfUploaderBase(Processor):
         else:
             namekey = "name"
         return namekey
+
+    def get_idkey(self, object_type):
+        """Return the ID key that identifies the object"""
+        object_type_idkeys = {
+            "group": "groupPlatformId",
+            "smart_mobile_device_group": "groupId",
+            "static_mobile_device_group": "groupId",
+        }
+        if object_type in object_type_idkeys:
+            idkey = object_type_idkeys[object_type]
+        else:
+            idkey = "id"
+        return idkey
 
     def get_namekey_path(self, object_type, namekey):
         """Return the namekey path in Xpath format"""
