@@ -19,6 +19,7 @@ limitations under the License.
 
 import json
 import os.path
+import re
 import sys
 
 from time import sleep
@@ -40,24 +41,121 @@ from JamfUploaderBase import (  # pylint: disable=import-error, wrong-import-pos
 class JamfMacAppUploaderBase(JamfUploaderBase):
     """Class for functions used to upload a mac app to Jamf"""
 
-    def get_vpp_id(self, jamf_url, token):
-        """Get the first Volume Purchasing Location ID."""
-        url_filter = "?page=0&page-size=100&sort=id"
+    def _extract_adam_id(self, store_url):
+        """Return the adamId component from an App Store URL."""
+        if not store_url:
+            return None
+        match = re.search(r"id(\d+)", store_url)
+        if match:
+            return match.group(1)
+        cleaned_value = store_url.strip()
+        return cleaned_value or None
+
+    def _prioritize_vpp_locations(self, locations, preferred_location):
+        """Return the locations list with preferred location matches first."""
+        if not preferred_location:
+            return locations
+        preferred_lower = preferred_location.lower()
+        for index, location in enumerate(locations):
+            location_name = location.get("locationName") or location.get("name", "")
+            if preferred_lower in location_name.lower():
+                return [location] + locations[:index] + locations[index + 1 :]
+        return locations
+
+    def _get_volume_purchasing_locations(self, jamf_url, token):
+        """Retrieve all Volume Purchasing Locations from Jamf Pro."""
+        url_filter = "?page=0&page-size=200&sort=id"
         object_type = "volume_purchasing_location"
         url = jamf_url + "/" + self.api_endpoints(object_type) + url_filter
         r = self.curl(api_type="jpapi", request="GET", url=url, token=token)
-        if r.status_code == 200:
-            object_id = 0
-            if isinstance(r.output, dict):
-                output = r.output
-            else:
-                output = json.loads(r.output)
-            for obj in output["results"]:
-                self.output(f"ID: {obj['id']} NAME: {obj['name']}", verbose_level=3)
-                object_id = obj["id"]
-            return object_id
+        if r.status_code != 200:
+            self.output(
+                f"Unable to retrieve VPP locations (status {r.status_code})",
+                verbose_level=2,
+            )
+            return []
+        if isinstance(r.output, dict):
+            output = r.output
         else:
-            self.output(f"Return code: {r.status_code}", verbose_level=2)
+            output = json.loads(r.output)
+        locations = output.get("results", [])
+        for obj in locations:
+            location_name = obj.get("locationName") or obj.get("name")
+            self.output(
+                f"VPP Location ID: {obj.get('id')} NAME: {location_name}",
+                verbose_level=3,
+            )
+        return locations
+
+    def _location_contains_app_content(
+        self, jamf_url, token, location_id, target_adam_id
+    ):
+        """Return True if the supplied location contains content for the adam ID."""
+        if not location_id or not target_adam_id:
+            return False
+        object_type = "volume_purchasing_location"
+        endpoint = f"{jamf_url}/{self.api_endpoints(object_type)}/{location_id}/content"
+        url = f"{endpoint}?page=0&page-size=200"
+        r = self.curl(api_type="jpapi", request="GET", url=url, token=token)
+        if r.status_code != 200:
+            self.output(
+                f"Unable to retrieve VPP content for location {location_id} (status {r.status_code})",
+                verbose_level=2,
+            )
+            return False
+        if isinstance(r.output, dict):
+            output = r.output
+        else:
+            output = json.loads(r.output)
+        for content_item in output.get("results", []):
+            adam_id = str(content_item.get("adamId") or "").strip()
+            if not adam_id:
+                continue
+            if (
+                adam_id == target_adam_id
+                or adam_id in target_adam_id
+                or target_adam_id in adam_id
+            ):
+                self.output(
+                    f"Matched adam ID {target_adam_id} in location {location_id}",
+                    verbose_level=2,
+                )
+                return True
+        return False
+
+    def get_vpp_id(
+        self, jamf_url, token, store_url=None, preferred_location=None
+    ):
+        """Determine the Volume Purchasing Location ID that hosts the app's content."""
+        locations = self._get_volume_purchasing_locations(jamf_url, token)
+        if not locations:
+            return None
+        ordered_locations = self._prioritize_vpp_locations(
+            locations, preferred_location
+        )
+        target_adam_id = self._extract_adam_id(store_url)
+        if not target_adam_id:
+            self.output(
+                "Unable to determine adam ID from App Store URL; skipping VPP match",
+                verbose_level=2,
+            )
+            return None
+        for location in ordered_locations:
+            location_id = location.get("id")
+            location_name = location.get("name")
+            self.output(
+                f"Checking VPP location '{location_name}' (ID {location_id}) for adam ID {target_adam_id}",
+                verbose_level=3,
+            )
+            if self._location_contains_app_content(
+                jamf_url, token, location_id, target_adam_id
+            ):
+                return location_id
+        self.output(
+            f"No VPP location contains content for adam ID '{target_adam_id}'",
+            verbose_level=2,
+        )
+        return None
 
     def prepare_macapp_template(self, jamf_url, macapp_name, macapp_template):
         """prepare the macapp contents"""
@@ -137,6 +235,9 @@ class JamfMacAppUploaderBase(JamfUploaderBase):
         clone_from = self.env.get("clone_from")
         selfservice_icon_uri = self.env.get("selfservice_icon_uri")
         macapp_template = self.env.get("macapp_template")
+        preferred_vpp_location = self.env.get(
+            "preferred_volume_purchase_location"
+        )
         replace_macapp = self.to_bool(self.env.get("replace_macapp"))
         sleep_time = self.env.get("sleep")
         macapp_updated = False
@@ -257,7 +358,12 @@ class JamfMacAppUploaderBase(JamfUploaderBase):
                         )
                 # obtain the VPP location
                 self.output("Obtaining VPP ID", verbose_level=2)
-                vpp_id = self.get_vpp_id(jamf_url, token)
+                vpp_id = self.get_vpp_id(
+                    jamf_url,
+                    token,
+                    store_url=appstore_url,
+                    preferred_location=preferred_vpp_location,
+                )
                 if vpp_id:
                     self.output(
                         f"Existing VPP ID is '{vpp_id}'",
@@ -265,6 +371,21 @@ class JamfMacAppUploaderBase(JamfUploaderBase):
                     )
                 else:
                     self.output("Didn't retrieve a VPP ID", verbose_level=2)
+                    adam_id = self._extract_adam_id(appstore_url)
+                    preferred_note = (
+                        f" matching '{preferred_vpp_location}'"
+                        if preferred_vpp_location
+                        else ""
+                    )
+                    detail = (
+                        f"for adam ID '{adam_id}'"
+                        if adam_id
+                        else "for the supplied app"
+                    )
+                    raise ProcessorError(
+                        "ERROR: No Volume Purchasing content found "
+                        f"{detail}{preferred_note}."
+                    )
 
                 # we need to substitute the values in the MAS app name and template now to
                 # account for URL and Bundle ID
@@ -385,7 +506,12 @@ class JamfMacAppUploaderBase(JamfUploaderBase):
 
                 # obtain the VPP location
                 self.output("Obtaining VPP ID", verbose_level=2)
-                vpp_id = self.get_vpp_id(jamf_url, token)
+                vpp_id = self.get_vpp_id(
+                    jamf_url,
+                    token,
+                    store_url=appstore_url,
+                    preferred_location=preferred_vpp_location,
+                )
                 if vpp_id:
                     self.output(
                         f"Existing VPP ID is '{vpp_id}'",
@@ -393,6 +519,21 @@ class JamfMacAppUploaderBase(JamfUploaderBase):
                     )
                 else:
                     self.output("Didn't retrieve a VPP ID", verbose_level=2)
+                    adam_id = self._extract_adam_id(appstore_url)
+                    preferred_note = (
+                        f" matching '{preferred_vpp_location}'"
+                        if preferred_vpp_location
+                        else ""
+                    )
+                    detail = (
+                        f"for adam ID '{adam_id}'"
+                        if adam_id
+                        else "for the supplied app"
+                    )
+                    raise ProcessorError(
+                        "ERROR: No Volume Purchasing content found "
+                        f"{detail}{preferred_note}."
+                    )
 
                 # we need to substitute the values in the MAS app name and template now to
                 # account for URL and Bundle ID

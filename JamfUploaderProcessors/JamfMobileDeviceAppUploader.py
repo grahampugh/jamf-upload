@@ -94,6 +94,14 @@ class JamfMobileDeviceAppUploader(JamfMobileDeviceAppUploaderBase):
             "required": False,
             "description": "Full path to the AppConfig XML template",
         },
+        "preferred_volume_purchase_location": {
+            "required": False,
+            "description": (
+                "Text to match within the Volume Purchasing Location name when "
+                "prioritizing app content."
+            ),
+            "default": "",
+        },
         "replace_mobiledeviceapp": {
             "required": False,
             "description": "Overwrite an existing Mobile device app if True.",
