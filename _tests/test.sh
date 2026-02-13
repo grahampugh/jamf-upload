@@ -869,10 +869,11 @@ case "$test_type" in
         "$DIR"/../jamf-upload.sh macapp \
             --prefs "$prefs" \
             --recipe-dir /Users/gpugh/sourcecode/jamf-upload/_tests \
-            --name "Swift Playground" \
+            --name "Keynote: Design Presentations" \
             --template "templates/MacApp-allcomputers.xml" \
             --key CATEGORY="Applications" \
             --key DEPLOYMENT_TYPE="Make Available in Self Service" \
+            --key "preferred_volume_purchase_location=Graham - jamfsalesegrahampugh" \
             "$verbosity" \
             --replace
         ;;
