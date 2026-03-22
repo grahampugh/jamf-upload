@@ -116,7 +116,7 @@ class JamfSchemaListerBase(JamfUploaderBase):
                 lines.append("JPAPI: no endpoints discovered")
 
         output_text = "\n".join(lines)
-        self.output(output_text, verbose_level=0)
+        self.output(output_text, verbose_level=1)
 
         # Set output variables
         self.env["schema_lister_output"] = output_text
