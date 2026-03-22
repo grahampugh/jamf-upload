@@ -51,7 +51,7 @@ class JamfSchemaListerBase(JamfUploaderBase):
             raise ProcessorError("ERROR: JSS_URL is required")
 
         # Authenticate
-        self.output(f"Connecting to {jamf_url}")
+        self.output(f"Connecting to {jamf_url}", verbose_level=1)
         token = self.handle_api_auth(
             jamf_url,
             jamf_user=jamf_user,
@@ -116,7 +116,7 @@ class JamfSchemaListerBase(JamfUploaderBase):
                 lines.append("JPAPI: no endpoints discovered")
 
         output_text = "\n".join(lines)
-        self.output(output_text)
+        self.output(output_text, verbose_level=0)
 
         # Set output variables
         self.env["schema_lister_output"] = output_text

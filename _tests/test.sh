@@ -55,6 +55,7 @@ while [[ "$#" -gt 0 ]]; do
     -h | --help)
         echo "Usage: test.sh -t|--test TEST_TYPE [-u|--url JAMF_URL] [-v VERBOSITY]"
         echo "Available TEST_TYPE values:"
+        echo "  list-types"
         echo "  list-benchmarks"
         echo "  list-blueprints"
         echo "  list-groups"
@@ -215,6 +216,16 @@ fi
 # script
 
 case "$test_type" in
+list-types)
+    "$DIR"/../jamf-upload.sh list-types \
+        --prefs "$prefs" \
+        --recipe-dir /Users/gpugh/sourcecode/jamf-upload/_tests \
+        --output "/Users/Shared/Jamf/JamfUploaderTests" \
+        "$verbosity"
+    if [[ $open_results ]]; then
+        open "/Users/Shared/Jamf/JamfUploaderTests"
+    fi
+    ;;
 list-benchmarks)
     "$DIR"/../jamf-upload.sh read \
         --prefs "$prefs" \

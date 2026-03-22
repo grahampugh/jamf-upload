@@ -14,7 +14,7 @@ sys.path.insert(
     ),
 )
 
-from JamfSchemaRegistry import (
+from JamfSchemaRegistry import (  # pylint: disable=import-error, wrong-import-position
     JamfSchemaRegistry,
     JPAPI_ALIAS_TABLE,
     JPAPI_KEY_OVERRIDES,
