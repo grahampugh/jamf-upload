@@ -335,6 +335,7 @@ LIST-TYPES OPTIONS
 Schema Lister arguments:
     --api-filter <string>   Filter by API type: 'all', 'classic', or 'jpapi' (default: 'all')
     --show-deprecated       Include deprecated endpoints in the output
+    --output <dir>          Optional directory to output the schema listing to a file. Directory must exist.
 
 DELETE OPTIONS
 
@@ -1069,7 +1070,7 @@ while test $# -gt 0; do
         ;;
     --output)
         shift
-        if [[ $processor == "JamfExtensionAttributePopupChoiceAdjuster" || $processor == "JamfObjectReader" || $processor == "JamfUnusedPackageCleaner" || $processor == "JamfScopeAdjuster" ]]; then
+        if [[ $processor == "JamfExtensionAttributePopupChoiceAdjuster" || $processor == "JamfObjectReader" || $processor == "JamfSchemaLister" || $processor == "JamfUnusedPackageCleaner" || $processor == "JamfScopeAdjuster" ]]; then
             if plutil -replace output_dir -string "$1" "$temp_processor_plist"; then
                 echo "   [jamf-upload] Wrote output_dir='$1' into $temp_processor_plist"
             fi

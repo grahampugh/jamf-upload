@@ -94,6 +94,13 @@ class JamfSchemaLister(JamfSchemaListerBase):
             "description": ("Show deprecated endpoints in the output. Default: False."),
             "default": "False",
         },
+        "output_dir": {
+            "required": False,
+            "description": (
+                "Optional directory to write the schema listing to a file. "
+                "Directory must exist."
+            ),
+        },
     }
 
     output_variables = {

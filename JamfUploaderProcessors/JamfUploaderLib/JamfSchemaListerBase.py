@@ -46,6 +46,7 @@ class JamfSchemaListerBase(JamfUploaderBase):
         client_secret = self.env.get("CLIENT_SECRET")
         api_filter = self.env.get("api_filter", "all").lower()
         show_deprecated = self.to_bool(self.env.get("show_deprecated", "False"))
+        output_dir = self.env.get("output_dir")
 
         if not jamf_url:
             raise ProcessorError("ERROR: JSS_URL is required")
@@ -116,7 +117,30 @@ class JamfSchemaListerBase(JamfUploaderBase):
                 lines.append("JPAPI: no endpoints discovered")
 
         output_text = "\n".join(lines)
-        self.output(output_text, verbose_level=1)
+        self.output(output_text, verbose_level=0)
+
+        # Write to file if output_dir is provided
+        if output_dir:
+            host = jamf_url.partition("://")[2]
+            subdomain = host.partition(".")[0]
+            output_filename = f"{subdomain}-schema-listing.txt"
+            file_path = os.path.join(output_dir, output_filename)
+            if os.path.isdir(output_dir):
+                try:
+                    with open(file_path, "w", encoding="utf-8") as fp:
+                        fp.write(output_text)
+                    self.output(
+                        f"Schema listing written to {file_path}",
+                        verbose_level=1,
+                    )
+                except IOError as e:
+                    raise ProcessorError(
+                        f"Could not write to {file_path} - {str(e)}"
+                    ) from e
+            else:
+                raise ProcessorError(
+                    f"Cannot write to {output_dir} as the folder doesn't exist"
+                )
 
         # Set output variables
         self.env["schema_lister_output"] = output_text
