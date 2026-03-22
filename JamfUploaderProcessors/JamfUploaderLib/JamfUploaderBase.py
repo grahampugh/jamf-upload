@@ -59,12 +59,18 @@ class JamfUploaderBase(Processor):
     _registry = None
 
     def _get_registry(self, jamf_url):
-        """Return the shared JamfSchemaRegistry, creating it on first use."""
+        """Return the shared JamfSchemaRegistry, creating it on first use.
+
+        Uses a deterministic cache directory so that schema files are shared
+        across all processor invocations for the same Jamf Pro instance.
+        """
         if self._registry is None or self._registry.jamf_url != jamf_url.rstrip("/"):
-            tmp_dir = self.make_tmp_dir(jamf_url)
+            instance_id = self.get_netloc(jamf_url)
+            cache_dir = os.path.join("/tmp/jamf_upload", "schema_cache", instance_id)
+            os.makedirs(cache_dir, exist_ok=True)
             self._registry = JamfSchemaRegistry(
                 jamf_url=jamf_url,
-                cache_dir=tmp_dir,
+                cache_dir=cache_dir,
                 log_fn=lambda msg, verbose_level=2: self.output(
                     msg, verbose_level=verbose_level
                 ),
@@ -76,19 +82,28 @@ class JamfUploaderBase(Processor):
         registry = self._get_registry(jamf_url)
         if not registry.schemas_loaded:
 
-            def _schema_fetch(url):
-                """Fetch a URL via curl and return (status, data)."""
-                try:
-                    r = self.curl(api_type="jpapi", request="GET", url=url, token=token)
-                    data = r.output
-                    if isinstance(data, (bytes, str)):
-                        pass  # raw string — registry will parse
-                    return (r.status_code, data)
-                except Exception as e:
-                    self.output(
-                        f"WARNING: Schema fetch failed for {url}: {e}",
-                        verbose_level=1,
-                    )
+            if token:
+
+                def _schema_fetch(url):
+                    """Fetch a URL via curl and return (status, data)."""
+                    try:
+                        r = self.curl(
+                            api_type="jpapi", request="GET", url=url, token=token
+                        )
+                        data = r.output
+                        if isinstance(data, (bytes, str)):
+                            pass  # raw string — registry will parse
+                        return (r.status_code, data)
+                    except Exception as e:
+                        self.output(
+                            f"WARNING: Schema fetch failed for {url}: {e}",
+                            verbose_level=1,
+                        )
+                        return (0, None)
+
+            else:
+                # No token available — only disk cache will be used
+                def _schema_fetch(url):
                     return (0, None)
 
             registry.load_schemas(_schema_fetch)
@@ -99,6 +114,8 @@ class JamfUploaderBase(Processor):
 
         Uses the alias tables for offline resolution (needed pre-auth),
         with schema registry as a final fallback for unknown types.
+        If the type is unknown and not platform, authenticates first to
+        enable live schema fetching.
         """
         # 1. Classic alias table
         if object_type in CLASSIC_ALIAS_TABLE:
@@ -123,10 +140,27 @@ class JamfUploaderBase(Processor):
         #    has an entry, which implies it's a known JPAPI type.
         if object_type in JPAPI_KEY_OVERRIDES:
             return "jpapi"
-        # 5. Schema registry fallback (requires auth token)
+        # 5. Schema registry fallback — since the type is not in the
+        #    platform list (step 3), it must be classic or JPAPI.
+        #    Authenticate if needed so the registry can fetch live schemas.
         jamf_url = self.env.get("JSS_URL", self.env.get("jamf_url", ""))
         token = self.env.get("token", "")
-        if jamf_url and token:
+        if jamf_url:
+            if not token:
+                try:
+                    token = self.handle_api_auth(
+                        jamf_url,
+                        jamf_user=self.env.get("API_USERNAME"),
+                        password=self.env.get("API_PASSWORD"),
+                        client_id=self.env.get("CLIENT_ID"),
+                        client_secret=self.env.get("CLIENT_SECRET"),
+                    )
+                    self.env["token"] = token
+                except Exception as e:
+                    self.output(
+                        f"WARNING: Could not authenticate for schema lookup: {e}",
+                        verbose_level=2,
+                    )
             try:
                 registry = self._ensure_registry_loaded(jamf_url, token)
                 resolved = registry.resolve(object_type)
@@ -194,10 +228,10 @@ class JamfUploaderBase(Processor):
                 endpoint = endpoint.replace("{id}", uuid)
             return endpoint
 
-        # Schema registry fallback
+        # Schema registry fallback (works from cache without token)
         jamf_url = self.env.get("JSS_URL", self.env.get("jamf_url", ""))
         token = self.env.get("token", "")
-        if jamf_url and token:
+        if jamf_url:
             try:
                 registry = self._ensure_registry_loaded(jamf_url, token)
                 resolved = registry.resolve(object_type)
@@ -234,7 +268,7 @@ class JamfUploaderBase(Processor):
         # JPAPI / other: try registry, then auto-derive
         jamf_url = self.env.get("JSS_URL", self.env.get("jamf_url", ""))
         token = self.env.get("token", "")
-        if jamf_url and token:
+        if jamf_url:
             try:
                 registry = self._ensure_registry_loaded(jamf_url, token)
                 resolved = registry.resolve(object_type)
@@ -275,10 +309,10 @@ class JamfUploaderBase(Processor):
         if "name_key" in overrides:
             return overrides["name_key"]
 
-        # Schema registry fallback
+        # Schema registry fallback (works from cache without token)
         jamf_url = self.env.get("JSS_URL", self.env.get("jamf_url", ""))
         token = self.env.get("token", "")
-        if jamf_url and token:
+        if jamf_url:
             try:
                 registry = self._ensure_registry_loaded(jamf_url, token)
                 resolved = registry.resolve(object_type)
@@ -297,10 +331,10 @@ class JamfUploaderBase(Processor):
         if "id_key" in overrides:
             return overrides["id_key"]
 
-        # Schema registry fallback
+        # Schema registry fallback (works from cache without token)
         jamf_url = self.env.get("JSS_URL", self.env.get("jamf_url", ""))
         token = self.env.get("token", "")
-        if jamf_url and token:
+        if jamf_url:
             try:
                 registry = self._ensure_registry_loaded(jamf_url, token)
                 resolved = registry.resolve(object_type)
