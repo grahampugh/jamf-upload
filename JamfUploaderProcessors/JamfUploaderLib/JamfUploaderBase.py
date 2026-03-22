@@ -40,6 +40,14 @@ from autopkglib import (  # pylint: disable=import-error
     ProcessorError,
 )
 
+from JamfSchemaRegistry import (  # pylint: disable=import-error
+    CLASSIC_ALIAS_TABLE,
+    CLASSIC_LIST_KEY_OVERRIDES,
+    JPAPI_ALIAS_TABLE,
+    JPAPI_KEY_OVERRIDES,
+    JamfSchemaRegistry,
+)
+
 
 class JamfUploaderBase(Processor):
     """Common functions used by at least two JamfUploader processors."""
@@ -47,95 +55,59 @@ class JamfUploaderBase(Processor):
     # Global version
     __version__ = "2026.01.28.0"
 
+    # Schema registry instance — lazily initialised per processor run
+    _registry = None
+
+    def _get_registry(self, jamf_url):
+        """Return the shared JamfSchemaRegistry, creating it on first use."""
+        if self._registry is None or self._registry.jamf_url != jamf_url.rstrip("/"):
+            tmp_dir = self.make_tmp_dir(jamf_url)
+            self._registry = JamfSchemaRegistry(
+                jamf_url=jamf_url,
+                cache_dir=tmp_dir,
+                log_fn=lambda msg, verbose_level=2: self.output(
+                    msg, verbose_level=verbose_level
+                ),
+            )
+        return self._registry
+
+    def _ensure_registry_loaded(self, jamf_url, token):
+        """Ensure the schema registry has loaded its schemas."""
+        registry = self._get_registry(jamf_url)
+        if not registry.schemas_loaded:
+
+            def _schema_fetch(url):
+                """Fetch a URL via curl and return (status, data)."""
+                try:
+                    r = self.curl(api_type="jpapi", request="GET", url=url, token=token)
+                    data = r.output
+                    if isinstance(data, (bytes, str)):
+                        pass  # raw string — registry will parse
+                    return (r.status_code, data)
+                except Exception as e:
+                    self.output(
+                        f"WARNING: Schema fetch failed for {url}: {e}",
+                        verbose_level=1,
+                    )
+                    return (0, None)
+
+            registry.load_schemas(_schema_fetch)
+        return registry
+
     def api_type(self, object_type):
-        """Return the API type from the object type"""
-        if object_type in (
-            "api_client",
-            "api_role",
-            "app_installers_deployment",
-            "app_installers_title",
-            "app_installers_t_and_c_settings",
-            "app_installers_accept_t_and_c_command",
-            "category",
-            "check_in_settings",
-            "cloud_distribution_point",
-            "cloud_ldap",
-            "computer",
-            "computer_extension_attribute",
-            "computer_group_v1",
-            "computer_inventory_collection_settings",
-            "computer_prestage",
-            "device_communication_settings",
-            "enrollment_settings",
-            "enrollment_customization",
-            "failover",
-            "failover_generate_command",
-            "group",
-            "icon",
-            "impact_alert_notification_settings",
-            "jamf_pro_version_settings",
-            "jamf_protect_plans_sync_command",
-            "jamf_protect_register_settings",
-            "jamf_protect_settings",
-            "jcds",
-            "laps_settings",
-            "managed_software_updates_available_updates",
-            "managed_software_updates_feature_toggle_settings",
-            "managed_software_updates_plans",
-            "managed_software_updates_plans_events",
-            "managed_software_updates_plans_group_settings",
-            "managed_software_updates_update_statuses",
-            "mobile_device",
-            "mobile_device_extension_attribute_v1",
-            "mobile_device_group_v1",
-            "mobile_device_prestage",
-            "oauth",
-            "package_v1",
-            "policy_properties_settings",
-            "script",
-            "self_service_settings",
-            "self_service_plus_settings",
-            "smart_computer_group",
-            "smart_computer_group_membership",
-            "smart_mobile_device_group",
-            "smart_mobile_device_group_membership",
-            "smtp_server_settings",
-            "sso_cert_command",
-            "sso_settings",
-            "static_computer_group",
-            "static_mobile_device_group",
-            "token",
-            "volume_purchasing_location",
-        ):
-            return "jpapi"
-        elif object_type in (
-            "account",
-            "account_user",
-            "account_group",
-            "activation_code_settings",
-            "advanced_computer_search",
-            "advanced_mobile_device_search",
-            "computer_group",
-            "configuration_profile",
-            "distribution_point",
-            "dock_item",
-            "ldap_server",
-            "logflush",
-            "mac_application",
-            "mobile_device_application",
-            "mobile_device_extension_attribute",
-            "mobile_device_group",
-            "network_segment",
-            "os_x_configuration_profile",
-            "package",
-            "patch_policy",
-            "patch_software_title",
-            "policy",
-            "policy_icon",
-            "restricted_software",
-        ):
+        """Return the API type from the object type.
+
+        Uses the alias tables for offline resolution (needed pre-auth),
+        with schema registry as a final fallback for unknown types.
+        """
+        # 1. Classic alias table
+        if object_type in CLASSIC_ALIAS_TABLE:
             return "classic"
-        elif object_type in (
+        # 2. JPAPI alias table
+        if object_type in JPAPI_ALIAS_TABLE:
+            return "jpapi"
+        # 3. Platform API types (no schema available)
+        if object_type in (
             "baseline",
             "benchmark",
             "blueprint",
@@ -145,188 +117,146 @@ class JamfUploaderBase(Processor):
             "platform_api_token",
         ):
             return "platform"
-        else:
-            raise ProcessorError(f"ERROR: Unknown object type {object_type}")
+        # 4. JPAPI auto-resolve types (those not in the alias table but
+        #    that resolve via simple hyphenation + pluralisation)
+        #    We can check this offline by seeing if JPAPI_KEY_OVERRIDES
+        #    has an entry, which implies it's a known JPAPI type.
+        if object_type in JPAPI_KEY_OVERRIDES:
+            return "jpapi"
+        # 5. Schema registry fallback (requires auth token)
+        jamf_url = self.env.get("JSS_URL", self.env.get("jamf_url", ""))
+        token = self.env.get("token", "")
+        if jamf_url and token:
+            try:
+                registry = self._ensure_registry_loaded(jamf_url, token)
+                resolved = registry.resolve(object_type)
+                if resolved:
+                    if resolved.get("deprecated"):
+                        dep_date = resolved.get("deprecation_date", "")
+                        date_msg = (
+                            f" (deprecated {dep_date})" if dep_date else " (deprecated)"
+                        )
+                        self.output(
+                            f"WARNING: {object_type} is a deprecated endpoint{date_msg}",
+                            verbose_level=1,
+                        )
+                    return resolved["api_type"]
+            except Exception as e:
+                self.output(
+                    f"WARNING: Schema registry lookup failed: {e}",
+                    verbose_level=2,
+                )
+        raise ProcessorError(f"ERROR: Unknown object type {object_type}")
 
     def api_endpoints(self, object_type, uuid=""):
-        """Return the endpoint URL from the object type"""
-        api_endpoints = {
-            "account": "JSSResource/accounts",
-            "account_user": "JSSResource/accounts",
-            "account_group": "JSSResource/accounts",
-            "activation_code_settings": "JSSResource/activationcode",
-            "advanced_computer_search": "JSSResource/advancedcomputersearches",
-            "advanced_mobile_device_search": "JSSResource/advancedmobiledevicesearches",
-            "api_client": "api/v1/api-integrations",
-            "api_role": "api/v1/api-roles",
-            "app_installers_deployment": "api/v1/app-installers/deployments",
-            "app_installers_title": "api/v1/app-installers/titles",
-            "app_installers_t_and_c_settings": (
-                "api/v1/app-installers/terms-and-conditions"
-            ),
-            "app_installers_accept_t_and_c_command": (
-                "api/v1/app-installers/terms-and-conditions/accept"
-            ),
+        """Return the endpoint URL from the object type.
+
+        Uses alias tables for derivation. Platform endpoints and a few
+        special cases (uuid interpolation, non-standard paths) are kept
+        inline; everything else is derived from the alias tables or the
+        schema registry.
+        """
+        # Pre-auth / auth-flow endpoints
+        if object_type == "oauth":
+            return "api/v1/oauth/token"
+        if object_type == "token":
+            return "api/v1/auth/token"
+        if object_type == "platform_api_token":
+            return "auth/token"
+
+        # Platform API endpoints (no schema available)
+        platform_endpoints = {
             "baseline": "api/cb/engine/v1/baselines",
             "benchmark": "api/cb/engine/v2/benchmarks",
             "blueprint": "api/blueprints/v1/blueprints",
-            "blueprint_deploy_command": f"api/blueprints/v1/blueprints/{uuid}/deploy",
-            "blueprint_undeploy_command": f"api/blueprints/v1/blueprints/{uuid}/undeploy",
-            "category": "api/v1/categories",
-            "check_in_settings": "api/v3/check-in",
-            "cloud_distribution_point": "api/v1/cloud-distribution-point",
-            "cloud_ldap": "api/v2/cloud-ldaps",
-            "computer": "api/preview/computers",
-            "computer_extension_attribute": "api/v1/computer-extension-attributes",
-            "computer_group": "JSSResource/computergroups",
-            "computer_group_v1": "api/v1/computer-groups",
-            "computer_inventory_collection_settings": (
-                "api/v1/computer-inventory-collection-settings"
+            "blueprint_deploy_command": (f"api/blueprints/v1/blueprints/{uuid}/deploy"),
+            "blueprint_undeploy_command": (
+                f"api/blueprints/v1/blueprints/{uuid}/undeploy"
             ),
-            "computer_prestage": "api/v3/computer-prestages",
-            "configuration_profile": "JSSResource/mobiledeviceconfigurationprofiles",
-            "device_communication_settings": "api/v1/device-communication-settings",
-            "distribution_point": "JSSResource/distributionpoints",
-            "dock_item": "JSSResource/dockitems",
-            "enrollment_settings": "api/v4/enrollment",
-            "enrollment_customization": "api/v2/enrollment-customizations",
-            "failover": "api/v1/sso/failover",
-            "failover_generate_command": "api/v1/sso/failover/generate",
-            "group": "api/v1/groups",
-            "icon": "api/v1/icon",
-            "impact_alert_notification_settings": "api/v1/impact-alert-notification-settings",
-            "jamf_pro_version_settings": "api/v1/jamf-pro-version",
-            "jamf_protect_plans_sync_command": "api/v1/jamf-protect/plans/sync",
-            "jamf_protect_register_settings": "api/v1/jamf-protect/register",
-            "jamf_protect_settings": "api/v1/jamf-protect",
-            "jcds": "api/v1/jcds",
-            "laps_settings": "api/v2/local-admin-password/settings",
-            "ldap_server": "JSSResource/ldapservers",
-            "logflush": "JSSResource/logflush",
-            "mac_application": "JSSResource/macapplications",
-            "managed_software_updates_available_updates": (
-                "api/v1/managed-software-updates/available-updates"
-            ),
-            "managed_software_updates_feature_toggle_settings": (
-                "api/v1/managed-software-updates/plans/feature-toggle"
-            ),
-            "managed_software_updates_plans": "api/v1/managed-software-updates/plans",
-            "managed_software_updates_plans_events": (
-                f"api/v1/managed-software-updates/plans/{uuid}/events"
-            ),
-            "managed_software_updates_plans_group_settings": (
-                "api/v1/managed-software-updates/plans/group"
-            ),
-            "managed_software_updates_update_statuses": (
-                "api/v1/managed-software-updates/update-statuses"
-            ),
-            "mobile_device": "api/v2/mobile-devices",
-            "mobile_device_application": "JSSResource/mobiledeviceapplications",
-            "mobile_device_extension_attribute": "JSSResource/mobiledeviceextensionattributes",
-            "mobile_device_extension_attribute_v1": "api/v1/mobile-device-extension-attributes",
-            "mobile_device_group": "JSSResource/mobiledevicegroups",
-            "mobile_device_group_v1": "api/v1/mobile-device-groups",
-            "mobile_device_prestage": "api/v1/mobile-device-prestages",
-            "network_segment": "JSSResource/networksegments",
-            "oauth": "api/v1/oauth/token",
-            "os_x_configuration_profile": "JSSResource/osxconfigurationprofiles",
-            "package": "JSSResource/packages",
-            "package_v1": "api/v1/packages",
-            "patch_policy": "JSSResource/patchpolicies",
-            "patch_software_title": "JSSResource/patchsoftwaretitles",
-            "platform_api_token": "auth/token",
-            "policy": "JSSResource/policies",
-            "policy_icon": "JSSResource/fileuploads/policies",
-            "policy_properties_settings": "api/v1/policy-properties",
-            "restricted_software": "JSSResource/restrictedsoftware",
             "rule": "api/cb/engine/v1/rules",
-            "self_service_settings": "api/v1/self-service/settings",
-            "self_service_plus_settings": "api/v1/self-service-plus/settings",
-            "script": "api/v1/scripts",
-            "smart_computer_group": "api/v2/computer-groups/smart-groups",
-            "smart_computer_group_membership": "api/v2/computer-groups/smart-group-membership",
-            "smart_mobile_device_group": ("api/v1/mobile-device-groups/smart-groups"),
-            "smart_mobile_device_group_membership": (
-                "api/v1/mobile-device-groups/smart-group-membership"
-            ),
-            "smtp_server_settings": "api/v2/smtp-server",
-            "sso_cert_command": "api/v2/sso/cert",
-            "sso_settings": "api/v3/sso",
-            "static_computer_group": "api/v2/computer-groups/static-groups",
-            "static_mobile_device_group": ("api/v1/mobile-device-groups/static-groups"),
-            "token": "api/v1/auth/token",
-            "volume_purchasing_location": "api/v1/volume-purchasing-locations",
         }
-        return api_endpoints[object_type]
+        if object_type in platform_endpoints:
+            return platform_endpoints[object_type]
 
-    def object_types(self, object_type):
-        """Return a URL object type from the object type"""
-        object_types = {
-            "advanced_computer_search": "advancedcomputersearches",
-            "advanced_mobile_device_search": "advancedmobiledevicesearches",
-            "package": "packages",
-            "computer_group": "computergroups",
-            "configuration_profile": "mobiledeviceconfigurationprofiles",
-            "distribution_point": "distributionpoints",
-            "dock_item": "dockitems",
-            "mobile_device_group": "mobiledevicegroups",
-            "network_segment": "networksegments",
-            "policy": "policies",
-            "computer_extension_attribute": "computerextensionattributes",
-            "mobile_device_extension_attribute": "mobiledeviceextensionattributes",
-            "mobile_device_extension_attribute_v1": "mobiledeviceextensionattributes",
-            "restricted_software": "restrictedsoftware",
-            "os_x_configuration_profile": "osxconfigurationprofiles",
-        }
-        return object_types[object_type]
+        # Special cases: non-standard path not derivable from alias tables
+        if object_type == "policy_icon":
+            return "JSSResource/fileuploads/policies"
+
+        # Classic API: derive from alias table
+        if object_type in CLASSIC_ALIAS_TABLE:
+            return f"JSSResource/{CLASSIC_ALIAS_TABLE[object_type]}"
+
+        # JPAPI: derive from alias table (with {id} → uuid substitution)
+        if object_type in JPAPI_ALIAS_TABLE:
+            base_path = JPAPI_ALIAS_TABLE[object_type]
+            endpoint = f"api/{base_path}"
+            if "{id}" in endpoint:
+                endpoint = endpoint.replace("{id}", uuid)
+            return endpoint
+
+        # Schema registry fallback
+        jamf_url = self.env.get("JSS_URL", self.env.get("jamf_url", ""))
+        token = self.env.get("token", "")
+        if jamf_url and token:
+            try:
+                registry = self._ensure_registry_loaded(jamf_url, token)
+                resolved = registry.resolve(object_type)
+                if resolved:
+                    return resolved["endpoint"]
+            except Exception as e:
+                self.output(
+                    f"WARNING: Schema registry endpoint lookup failed: {e}",
+                    verbose_level=2,
+                )
+        raise ProcessorError(f"ERROR: Unknown endpoint for object type {object_type}")
 
     def object_list_types(self, object_type):
-        """Return a XML dictionary type from the object type"""
-        object_list_types = {
-            "account": "accounts",
+        """Return the list wrapper key for the object type.
+
+        Derives the key from alias tables and the schema registry
+        instead of a large hardcoded dict.
+        """
+        # Special overrides that can't be derived
+        special = {
             "account_user": "users",
             "account_group": "groups",
-            "advanced_computer_search": "advanced_computer_searches",
-            "advanced_mobile_device_search": "advanced_mobile_device_searches",
-            "api_client": "api_clients",
-            "api_role": "api_roles",
-            "baseline": "baselines",
-            "benchmark": "benchmarks",
-            "blueprint": "blueprints",
             "blueprint_deploy_command": "blueprints",
             "blueprint_undeploy_command": "blueprints",
-            "category": "categories",
-            "computer": "computers",
-            "computer_extension_attribute": "computer_extension_attributes",
-            "computer_group": "computer_groups",
-            "computer_prestage": "computer_prestages",
-            "configuration_profile": "configuration_profiles",
-            "dock_item": "dock_items",
-            "distribution_point": "distribution_points",
-            "group": "groups",
-            "ldap_server": "ldap_servers",
-            "mac_application": "mac_applications",
-            "mobile_device": "mobile_devices",
-            "mobile_device_application": "mobile_device_applications",
-            "mobile_device_extension_attribute": "mobile_device_extension_attributes",
-            "mobile_device_extension_attribute_v1": "mobile_device_extension_attributes",
-            "mobile_device_group": "mobile_device_groups",
-            "mobile_device_prestage": "mobile_device_prestages",
-            "network_segment": "network_segments",
-            "os_x_configuration_profile": "os_x_configuration_profiles",
-            "package": "packages",
-            "patch_policy": "patch_policies",
-            "patch_software_title": "patch_software_titles",
-            "policy": "policies",
-            "rule": "rules",
-            "script": "scripts",
-            "smart_computer_group_membership": "smart_computer_group_membership",
-            "smart_mobile_device_group_membership": "smart_mobile_device_group_membership",
         }
-        if object_type in object_list_types:
-            return object_list_types[object_type]
-        # if the object type is not in the list, return the object type itself
-        return object_type
+        if object_type in special:
+            return special[object_type]
+
+        # Classic API: use CLASSIC_LIST_KEY_OVERRIDES via the alias table
+        if object_type in CLASSIC_ALIAS_TABLE:
+            resource = CLASSIC_ALIAS_TABLE[object_type]
+            return CLASSIC_LIST_KEY_OVERRIDES.get(resource, resource)
+
+        # JPAPI / other: try registry, then auto-derive
+        jamf_url = self.env.get("JSS_URL", self.env.get("jamf_url", ""))
+        token = self.env.get("token", "")
+        if jamf_url and token:
+            try:
+                registry = self._ensure_registry_loaded(jamf_url, token)
+                resolved = registry.resolve(object_type)
+                if resolved:
+                    return resolved.get("list_key", object_type)
+            except Exception:
+                pass
+
+        # Auto-derive: strip version suffix, then pluralise
+        base = object_type
+        # strip _v1, _v2 etc.
+        if re.match(r".*_v\d+$", base):
+            base = re.sub(r"_v\d+$", "", base)
+        # _membership types stay as-is
+        if base.endswith("_membership"):
+            return base
+        # pluralise: y → ies, otherwise + s (if not already plural)
+        if base.endswith("y"):
+            return base[:-1] + "ies"
+        if not base.endswith("s"):
+            return base + "s"
+        return base
 
     def to_bool(self, value):
         """Convert a value to a boolean"""
@@ -337,40 +267,86 @@ class JamfUploaderBase(Processor):
         raise ValueError(f"Cannot convert {value!r} to boolean")
 
     def get_namekey(self, object_type):
-        """Return the name key that identifies the object"""
-        object_type_namekeys = {
-            "api_role": "displayName",
-            "api_client": "displayName",
-            "computer_prestage": "displayName",
-            "group": "groupName",
-            "mobile_device_prestage": "displayName",
-            "enrollment_customization": "displayName",
-            "app_installers_title": "titleName",
-            "managed_software_updates_available_updates": "availableUpdates",
-            "managed_software_updates_plans": "planUuid",
-            "managed_software_updates_plans_events": "id",
-            "static_mobile_device_group": "groupName",
-            "smart_mobile_device_group": "groupName",
-        }
+        """Return the name key that identifies the object.
 
-        if object_type in object_type_namekeys:
-            namekey = object_type_namekeys[object_type]
-        else:
-            namekey = "name"
-        return namekey
+        Uses JPAPI_KEY_OVERRIDES, then schema registry, defaulting to 'name'.
+        """
+        overrides = JPAPI_KEY_OVERRIDES.get(object_type, {})
+        if "name_key" in overrides:
+            return overrides["name_key"]
+
+        # Schema registry fallback
+        jamf_url = self.env.get("JSS_URL", self.env.get("jamf_url", ""))
+        token = self.env.get("token", "")
+        if jamf_url and token:
+            try:
+                registry = self._ensure_registry_loaded(jamf_url, token)
+                resolved = registry.resolve(object_type)
+                if resolved:
+                    return resolved.get("name_key", "name")
+            except Exception:
+                pass
+        return "name"
 
     def get_idkey(self, object_type):
-        """Return the ID key that identifies the object"""
-        object_type_idkeys = {
-            "group": "groupPlatformId",
-            "smart_mobile_device_group": "groupId",
-            "static_mobile_device_group": "groupId",
-        }
-        if object_type in object_type_idkeys:
-            idkey = object_type_idkeys[object_type]
-        else:
-            idkey = "id"
-        return idkey
+        """Return the ID key that identifies the object.
+
+        Uses JPAPI_KEY_OVERRIDES, then schema registry, defaulting to 'id'.
+        """
+        overrides = JPAPI_KEY_OVERRIDES.get(object_type, {})
+        if "id_key" in overrides:
+            return overrides["id_key"]
+
+        # Schema registry fallback
+        jamf_url = self.env.get("JSS_URL", self.env.get("jamf_url", ""))
+        token = self.env.get("token", "")
+        if jamf_url and token:
+            try:
+                registry = self._ensure_registry_loaded(jamf_url, token)
+                resolved = registry.resolve(object_type)
+                if resolved:
+                    return resolved.get("id_key", "id")
+            except Exception:
+                pass
+        return "id"
+
+    def determine_request_method(self, object_type, object_id=None):
+        """Determine the HTTP method (PUT, PATCH, or POST) for an upload.
+
+        Uses schema-resolved methods when available, otherwise falls back to
+        the standard convention:
+          - Classic: PUT if updating (object_id), POST if creating
+          - JPAPI:   PATCH if available and updating, else PUT, else POST
+          - Default: PUT if object_id or _settings suffix, else POST
+        """
+        # Try registry first
+        jamf_url = self.env.get("JSS_URL", self.env.get("jamf_url", ""))
+        token = self.env.get("token", "")
+        resolved = None
+        if jamf_url and token:
+            try:
+                registry = self._ensure_registry_loaded(jamf_url, token)
+                resolved = registry.resolve(object_type)
+            except Exception:  # pylint: disable=broad-except
+                pass
+
+        if resolved:
+            methods = resolved.get("methods", set())
+            api = resolved["api_type"]
+            if api == "classic":
+                return "PUT" if object_id else "POST"
+            if api in ("jpapi", "platform"):
+                if object_id or "_settings" in object_type:
+                    if "patch" in methods:
+                        return "PATCH"
+                    if "put" in methods:
+                        return "PUT"
+                return "POST"
+
+        # Fallback: no schema data
+        if object_id or "_settings" in object_type:
+            return "PUT"
+        return "POST"
 
     def get_namekey_path(self, object_type, namekey):
         """Return the namekey path in Xpath format"""

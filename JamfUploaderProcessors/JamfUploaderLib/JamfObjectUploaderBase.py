@@ -81,20 +81,16 @@ class JamfObjectUploaderBase(JamfUploaderBase):
             raise ProcessorError(f"ERROR: API type {api_type} not supported")
 
         additional_curl_options = []
-        # settings-style endpoints require special options
-        if (
-            object_type == "volume_purchasing_location"
-            or object_type == "computer_inventory_collection_settings"
-        ):
-            request = "PATCH"
-        elif object_type == "jamf_protect_register_settings":
+        # Determine the HTTP method.
+        # Special cases that can't be derived from the schema come first;
+        # everything else delegates to determine_request_method which consults
+        # the schema registry.
+        if object_type == "jamf_protect_register_settings":
             request = "POST"
             additional_curl_options = [
                 "--header",
                 "Content-type: application/json",
             ]
-        elif object_id and object_type == "blueprint":
-            request = "PATCH"
         elif object_id and object_type in (
             "blueprint_deploy_command",
             "blueprint_undeploy_command",
@@ -115,10 +111,8 @@ class JamfObjectUploaderBase(JamfUploaderBase):
                     request = "POST"
             else:
                 request = "POST"
-        elif object_id or "_settings" in object_type:
-            request = "PUT"
         else:
-            request = "POST"
+            request = self.determine_request_method(object_type, object_id)
 
         # temp output template file path
         # self.output(
