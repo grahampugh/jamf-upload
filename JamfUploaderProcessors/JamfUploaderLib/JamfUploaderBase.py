@@ -82,28 +82,24 @@ class JamfUploaderBase(Processor):
         registry = self._get_registry(jamf_url)
         if not registry.schemas_loaded:
 
-            if token:
-
-                def _schema_fetch(url):
-                    """Fetch a URL via curl and return (status, data)."""
-                    try:
-                        r = self.curl(
-                            api_type="jpapi", request="GET", url=url, token=token
-                        )
-                        data = r.output
-                        if isinstance(data, (bytes, str)):
-                            pass  # raw string — registry will parse
-                        return (r.status_code, data)
-                    except Exception as e:
-                        self.output(
-                            f"WARNING: Schema fetch failed for {url}: {e}",
-                            verbose_level=1,
-                        )
-                        return (0, None)
-
-            else:
-                # No token available — only disk cache will be used
-                def _schema_fetch(url):
+            def _schema_fetch(url):
+                """Fetch a URL via curl and return (status, data).
+                Schema endpoints are public and do not require auth."""
+                try:
+                    r = self.curl(
+                        api_type="none",
+                        request="GET",
+                        url=url,
+                    )
+                    data = r.output
+                    if isinstance(data, (bytes, str)):
+                        pass  # raw string — registry will parse
+                    return (r.status_code, data)
+                except Exception as e:
+                    self.output(
+                        f"WARNING: Schema fetch failed for {url}: {e}",
+                        verbose_level=1,
+                    )
                     return (0, None)
 
             registry.load_schemas(_schema_fetch)
