@@ -40,11 +40,6 @@ class JamfSchemaListerBase(JamfUploaderBase):
     def execute(self):
         """List all discoverable API endpoints."""
         jamf_url = self.env.get("JSS_URL", "").rstrip("/")
-        jamf_user = self.env.get("API_USERNAME")
-        jamf_password = self.env.get("API_PASSWORD")
-        client_id = self.env.get("CLIENT_ID")
-        client_secret = self.env.get("CLIENT_SECRET")
-        bearer_token = self.env.get("BEARER_TOKEN")
         api_filter = self.env.get("api_filter", "all").lower()
         show_deprecated = self.to_bool(self.env.get("show_deprecated", "False"))
         output_dir = self.env.get("output_dir")
@@ -52,19 +47,9 @@ class JamfSchemaListerBase(JamfUploaderBase):
         if not jamf_url:
             raise ProcessorError("ERROR: JSS_URL is required")
 
-        # Authenticate
+        # Load schemas via the registry (public endpoints, no auth needed)
         self.output(f"Connecting to {jamf_url}", verbose_level=1)
-        token = self.handle_api_auth(
-            jamf_url,
-            jamf_user=jamf_user,
-            password=jamf_password,
-            client_id=client_id,
-            client_secret=client_secret,
-            token=bearer_token,
-        )
-
-        # Load schemas via the registry
-        registry = self._ensure_registry_loaded(jamf_url, token)
+        registry = self._ensure_registry_loaded(jamf_url)
 
         lines = []
 

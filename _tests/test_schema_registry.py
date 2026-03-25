@@ -546,11 +546,11 @@ assert "def _get_registry(self, jamf_url):" in base_source
 print("  _get_registry method exists: PASS")
 
 # Test 28: Verify _ensure_registry_loaded method exists
-assert "def _ensure_registry_loaded(self, jamf_url, token):" in base_source
+assert "def _ensure_registry_loaded(self, jamf_url):" in base_source
 print("  _ensure_registry_loaded method exists: PASS")
 
 # Test 29: Verify api_type has registry fallback
-assert "registry = self._ensure_registry_loaded(jamf_url, token)" in base_source
+assert "registry = self._ensure_registry_loaded(jamf_url)" in base_source
 assert 'return resolved["api_type"]' in base_source
 print("  api_type registry fallback: PASS")
 

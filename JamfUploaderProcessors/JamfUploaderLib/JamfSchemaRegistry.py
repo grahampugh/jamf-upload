@@ -250,7 +250,7 @@ class JamfSchemaRegistry:
         # --- 1. Try Classic alias table (explicit Classic types) ---
         classic_key = CLASSIC_ALIAS_TABLE.get(object_type)
         if classic_key and classic_key in self._classic_resources:
-            return self._build_classic_result(classic_key, object_type)
+            return self._build_classic_result(classic_key)
 
         # --- 2. Try JPAPI alias table (explicit JPAPI types) ---
         jpapi_alias_key = JPAPI_ALIAS_TABLE.get(object_type)
@@ -263,7 +263,7 @@ class JamfSchemaRegistry:
 
         # --- 3. Direct Classic resource name (e.g. "policies") ---
         if object_type in self._classic_resources:
-            return self._build_classic_result(object_type, object_type)
+            return self._build_classic_result(object_type)
 
         # --- 4. Try JPAPI auto-resolution for non-aliased types ---
         jpapi_hit = self._find_jpapi_resource(object_type)
@@ -280,12 +280,12 @@ class JamfSchemaRegistry:
             if object_type.startswith("JSSResource/"):
                 resource = object_type.split("/")[1]
                 if resource in self._classic_resources:
-                    return self._build_classic_result(resource, object_type)
+                    return self._build_classic_result(resource)
 
         # --- 6. Fall back to Classic normalisation ---
         normalised = self._normalise_to_classic(object_type)
         if normalised and normalised in self._classic_resources:
-            return self._build_classic_result(normalised, object_type)
+            return self._build_classic_result(normalised)
 
         return None
 
@@ -601,7 +601,7 @@ class JamfSchemaRegistry:
             if self._jpapi_resources is None:
                 self._jpapi_resources = {}
 
-    def _build_classic_result(self, resource_name, object_type):
+    def _build_classic_result(self, resource_name):
         """Build a resolved result dict from a Classic schema resource."""
         info = self._classic_resources[resource_name]
 

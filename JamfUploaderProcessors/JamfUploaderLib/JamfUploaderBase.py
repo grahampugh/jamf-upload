@@ -53,7 +53,7 @@ class JamfUploaderBase(Processor):
     """Common functions used by at least two JamfUploader processors."""
 
     # Global version
-    __version__ = "2026.03.22.0"
+    __version__ = "2026.03.25.0"
 
     # Schema registry instance — lazily initialised per processor run
     _registry = None
@@ -77,7 +77,7 @@ class JamfUploaderBase(Processor):
             )
         return self._registry
 
-    def _ensure_registry_loaded(self, jamf_url, token):
+    def _ensure_registry_loaded(self, jamf_url):
         """Ensure the schema registry has loaded its schemas."""
         registry = self._get_registry(jamf_url)
         if not registry.schemas_loaded:
@@ -95,7 +95,7 @@ class JamfUploaderBase(Processor):
                     if isinstance(data, (bytes, str)):
                         pass  # raw string — registry will parse
                     return (r.status_code, data)
-                except Exception as e:
+                except (OSError, ProcessorError) as e:
                     self.output(
                         f"WARNING: Schema fetch failed for {url}: {e}",
                         verbose_level=1,
@@ -153,13 +153,13 @@ class JamfUploaderBase(Processor):
                         token=self.env.get("BEARER_TOKEN", ""),
                     )
                     self.env["token"] = token
-                except Exception as e:
+                except ProcessorError as e:
                     self.output(
                         f"WARNING: Could not authenticate for schema lookup: {e}",
                         verbose_level=2,
                     )
             try:
-                registry = self._ensure_registry_loaded(jamf_url, token)
+                registry = self._ensure_registry_loaded(jamf_url)
                 resolved = registry.resolve(object_type)
                 if resolved:
                     if resolved.get("deprecated"):
@@ -172,7 +172,7 @@ class JamfUploaderBase(Processor):
                             verbose_level=1,
                         )
                     return resolved["api_type"]
-            except Exception as e:
+            except (KeyError, ProcessorError) as e:
                 self.output(
                     f"WARNING: Schema registry lookup failed: {e}",
                     verbose_level=2,
@@ -227,14 +227,13 @@ class JamfUploaderBase(Processor):
 
         # Schema registry fallback (works from cache without token)
         jamf_url = self.env.get("JSS_URL", self.env.get("jamf_url", ""))
-        token = self.env.get("token", "")
         if jamf_url:
             try:
-                registry = self._ensure_registry_loaded(jamf_url, token)
+                registry = self._ensure_registry_loaded(jamf_url)
                 resolved = registry.resolve(object_type)
                 if resolved:
                     return resolved["endpoint"]
-            except Exception as e:
+            except (KeyError, ProcessorError) as e:
                 self.output(
                     f"WARNING: Schema registry endpoint lookup failed: {e}",
                     verbose_level=2,
@@ -264,14 +263,13 @@ class JamfUploaderBase(Processor):
 
         # JPAPI / other: try registry, then auto-derive
         jamf_url = self.env.get("JSS_URL", self.env.get("jamf_url", ""))
-        token = self.env.get("token", "")
         if jamf_url:
             try:
-                registry = self._ensure_registry_loaded(jamf_url, token)
+                registry = self._ensure_registry_loaded(jamf_url)
                 resolved = registry.resolve(object_type)
                 if resolved:
                     return resolved.get("list_key", object_type)
-            except Exception:
+            except (KeyError, ProcessorError):
                 pass
 
         # Auto-derive: strip version suffix, then pluralise
@@ -308,14 +306,13 @@ class JamfUploaderBase(Processor):
 
         # Schema registry fallback (works from cache without token)
         jamf_url = self.env.get("JSS_URL", self.env.get("jamf_url", ""))
-        token = self.env.get("token", "")
         if jamf_url:
             try:
-                registry = self._ensure_registry_loaded(jamf_url, token)
+                registry = self._ensure_registry_loaded(jamf_url)
                 resolved = registry.resolve(object_type)
                 if resolved:
                     return resolved.get("name_key", "name")
-            except Exception:
+            except (KeyError, ProcessorError):
                 pass
         return "name"
 
@@ -330,14 +327,13 @@ class JamfUploaderBase(Processor):
 
         # Schema registry fallback (works from cache without token)
         jamf_url = self.env.get("JSS_URL", self.env.get("jamf_url", ""))
-        token = self.env.get("token", "")
         if jamf_url:
             try:
-                registry = self._ensure_registry_loaded(jamf_url, token)
+                registry = self._ensure_registry_loaded(jamf_url)
                 resolved = registry.resolve(object_type)
                 if resolved:
                     return resolved.get("id_key", "id")
-            except Exception:
+            except (KeyError, ProcessorError):
                 pass
         return "id"
 
@@ -352,13 +348,12 @@ class JamfUploaderBase(Processor):
         """
         # Try registry first
         jamf_url = self.env.get("JSS_URL", self.env.get("jamf_url", ""))
-        token = self.env.get("token", "")
         resolved = None
-        if jamf_url and token:
+        if jamf_url:
             try:
-                registry = self._ensure_registry_loaded(jamf_url, token)
+                registry = self._ensure_registry_loaded(jamf_url)
                 resolved = registry.resolve(object_type)
-            except Exception:  # pylint: disable=broad-except
+            except (KeyError, ProcessorError):
                 pass
 
         if resolved:
@@ -626,7 +621,7 @@ class JamfUploaderBase(Processor):
                     verbose_level=1,
                 )
                 return False
-        except Exception as e:
+        except (OSError, ProcessorError) as e:
             self.output(
                 f"Bearer token validation error: {e}",
                 verbose_level=1,

@@ -51,42 +51,6 @@ class JamfSchemaLister(JamfSchemaListerBase):
                 "the com.github.autopkg preference file."
             ),
         },
-        "API_USERNAME": {
-            "required": False,
-            "description": (
-                "Username of account with appropriate access to "
-                "jss, optionally set as a key in the com.github.autopkg "
-                "preference file."
-            ),
-        },
-        "API_PASSWORD": {
-            "required": False,
-            "description": (
-                "Password of api user, optionally set as a key in "
-                "the com.github.autopkg preference file."
-            ),
-        },
-        "CLIENT_ID": {
-            "required": False,
-            "description": (
-                "Client ID with access to "
-                "jss, optionally set as a key in the com.github.autopkg "
-                "preference file."
-            ),
-        },
-        "CLIENT_SECRET": {
-            "required": False,
-            "description": (
-                "Secret associated with the Client ID, optionally set as a key in "
-                "the com.github.autopkg preference file."
-            ),
-        },
-        "BEARER_TOKEN": {
-            "required": False,
-            "description": "A pre-existing bearer token for the Jamf Pro API. "
-            "If provided, the token will be validated and used directly, "
-            "bypassing credential-based authentication.",
-        },
         "api_filter": {
             "required": False,
             "description": (
