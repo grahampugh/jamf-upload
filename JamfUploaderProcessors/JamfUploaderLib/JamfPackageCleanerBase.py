@@ -101,6 +101,7 @@ class JamfPackageCleanerBase(JamfUploaderBase):
         jamf_password = self.env.get("API_PASSWORD")
         client_id = self.env.get("CLIENT_ID")
         client_secret = self.env.get("CLIENT_SECRET")
+        bearer_token = self.env.get("BEARER_TOKEN")
         pkg_name_match = self.env.get("pkg_name_match") or f"{self.env.get('NAME')}-"
         versions_to_keep = int(self.env.get("versions_to_keep"))
         minimum_name_length = int(self.env.get("minimum_name_length"))
@@ -205,6 +206,7 @@ class JamfPackageCleanerBase(JamfUploaderBase):
                 password=jamf_password,
                 client_id=client_id,
                 client_secret=client_secret,
+                token=bearer_token,
             )
         else:
             raise ProcessorError("ERROR: Jamf Pro URL not supplied")
@@ -282,6 +284,7 @@ class JamfPackageCleanerBase(JamfUploaderBase):
                     password=jamf_password,
                     client_id=client_id,
                     client_secret=client_secret,
+                    token=bearer_token,
                 )
             else:
                 raise ProcessorError("ERROR: Jamf Pro URL not supplied")

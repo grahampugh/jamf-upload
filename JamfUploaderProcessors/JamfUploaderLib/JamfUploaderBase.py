@@ -154,6 +154,7 @@ class JamfUploaderBase(Processor):
                         password=self.env.get("API_PASSWORD"),
                         client_id=self.env.get("CLIENT_ID"),
                         client_secret=self.env.get("CLIENT_SECRET"),
+                        token=self.env.get("BEARER_TOKEN", ""),
                     )
                     self.env["token"] = token
                 except Exception as e:
@@ -609,10 +610,52 @@ class JamfUploaderBase(Processor):
         else:
             self.output(f"ERROR: No token received (HTTP response {r.status_code})")
 
+    def validate_existing_token(self, jamf_url, token):
+        """Validate an existing bearer token by making a request to api/v1/auth.
+        Returns True if the token is valid, False otherwise."""
+        url = jamf_url + "/api/v1/auth"
+        try:
+            r = self.curl(
+                api_type="jpapi",
+                request="GET",
+                url=url,
+                token=token,
+            )
+            if r.status_code == 200:
+                self.output("Existing bearer token is valid", verbose_level=1)
+                return True
+            else:
+                self.output(
+                    f"Bearer token validation failed (HTTP {r.status_code})",
+                    verbose_level=1,
+                )
+                return False
+        except Exception as e:
+            self.output(
+                f"Bearer token validation error: {e}",
+                verbose_level=1,
+            )
+            return False
+
     def handle_api_auth(
-        self, jamf_url, jamf_user="", password="", client_id="", client_secret=""
+        self,
+        jamf_url,
+        jamf_user="",
+        password="",
+        client_id="",
+        client_secret="",
+        token="",
     ):
-        """obtain token using basic auth"""
+        """obtain token using basic auth or use a pre-existing token"""
+
+        # if a pre-existing token has been supplied, validate it and return
+        if token:
+            self.output("Using pre-existing bearer token", verbose_level=1)
+            if self.validate_existing_token(jamf_url, token):
+                return token
+            raise ProcessorError(
+                "Supplied bearer token is invalid or expired, cannot continue"
+            )
 
         # first try to get the account and password from the Keychain
         user_from_kc, pass_from_kc = self.keychain_get_creds(
@@ -769,8 +812,21 @@ class JamfUploaderBase(Processor):
         else:
             self.output(f"ERROR: No token received (HTTP response {r.status_code})")
 
-    def handle_platform_api_auth(self, api_url, client_id="", client_secret=""):
+    def handle_platform_api_auth(
+        self, api_url, client_id="", client_secret="", token=""
+    ):
         """obtain token for Platform API"""
+
+        # if a pre-existing token has been supplied, validate it and return
+        if token:
+            self.output(
+                "Using pre-existing bearer token for Platform API", verbose_level=1
+            )
+            if self.validate_existing_token(api_url, token):
+                return token
+            raise ProcessorError(
+                "Supplied bearer token is invalid or expired, cannot continue"
+            )
 
         # first try to get the account and password from the Keychain
         id_from_kc, pass_from_kc = self.keychain_get_creds(api_url, client_id=client_id)

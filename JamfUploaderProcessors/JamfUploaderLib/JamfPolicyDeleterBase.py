@@ -73,6 +73,7 @@ class JamfPolicyDeleterBase(JamfUploaderBase):
         jamf_password = self.env.get("API_PASSWORD")
         client_id = self.env.get("CLIENT_ID")
         client_secret = self.env.get("CLIENT_SECRET")
+        bearer_token = self.env.get("BEARER_TOKEN")
         policy_name = self.env.get("policy_name")
         max_tries = self.env.get("max_tries")
 
@@ -99,6 +100,7 @@ class JamfPolicyDeleterBase(JamfUploaderBase):
                 password=jamf_password,
                 client_id=client_id,
                 client_secret=client_secret,
+                token=bearer_token,
             )
         else:
             raise ProcessorError("ERROR: Jamf Pro URL not supplied")

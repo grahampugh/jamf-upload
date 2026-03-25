@@ -102,6 +102,7 @@ class JamfComputerPreStageUploaderBase(JamfUploaderBase):
         jamf_password = self.env.get("API_PASSWORD")
         client_id = self.env.get("CLIENT_ID")
         client_secret = self.env.get("CLIENT_SECRET")
+        bearer_token = self.env.get("BEARER_TOKEN")
         prestage_name = self.env.get("prestage_name")
         prestage_template = self.env.get("prestage_template")
         replace_prestage = self.to_bool(self.env.get("replace_prestage"))
@@ -134,6 +135,7 @@ class JamfComputerPreStageUploaderBase(JamfUploaderBase):
                 password=jamf_password,
                 client_id=client_id,
                 client_secret=client_secret,
+                token=bearer_token,
             )
         else:
             raise ProcessorError("ERROR: Jamf Pro URL not supplied")

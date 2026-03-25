@@ -127,6 +127,7 @@ class JamfComputerGroupUploaderBase(JamfUploaderBase):
         jamf_password = self.env.get("API_PASSWORD")
         client_id = self.env.get("CLIENT_ID")
         client_secret = self.env.get("CLIENT_SECRET")
+        bearer_token = self.env.get("BEARER_TOKEN")
         computergroup_name = self.env.get("computergroup_name")
         computergroup_template = self.env.get("computergroup_template")
         replace_group = self.to_bool(self.env.get("replace_group"))
@@ -172,6 +173,7 @@ class JamfComputerGroupUploaderBase(JamfUploaderBase):
                 password=jamf_password,
                 client_id=client_id,
                 client_secret=client_secret,
+                token=bearer_token,
             )
         else:
             raise ProcessorError("ERROR: Jamf Pro URL not supplied")

@@ -107,6 +107,7 @@ class JamfDockItemUploaderBase(JamfUploaderBase):
         jamf_password = self.env.get("API_PASSWORD")
         client_id = self.env.get("CLIENT_ID")
         client_secret = self.env.get("CLIENT_SECRET")
+        bearer_token = self.env.get("BEARER_TOKEN")
         dock_item_name = self.env.get("dock_item_name")
         dock_item_type = self.env.get("dock_item_type")
         dock_item_path = self.env.get("dock_item_path")
@@ -136,6 +137,7 @@ class JamfDockItemUploaderBase(JamfUploaderBase):
                 password=jamf_password,
                 client_id=client_id,
                 client_secret=client_secret,
+                token=bearer_token,
             )
         else:
             raise ProcessorError("ERROR: Jamf Pro URL not supplied")

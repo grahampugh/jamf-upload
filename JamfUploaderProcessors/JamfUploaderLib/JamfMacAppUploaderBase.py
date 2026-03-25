@@ -231,6 +231,7 @@ class JamfMacAppUploaderBase(JamfUploaderBase):
         jamf_password = self.env.get("API_PASSWORD")
         client_id = self.env.get("CLIENT_ID")
         client_secret = self.env.get("CLIENT_SECRET")
+        bearer_token = self.env.get("BEARER_TOKEN")
         macapp_name = self.env.get("macapp_name")
         clone_from = self.env.get("clone_from")
         selfservice_icon_uri = self.env.get("selfservice_icon_uri")
@@ -274,6 +275,7 @@ class JamfMacAppUploaderBase(JamfUploaderBase):
                 password=jamf_password,
                 client_id=client_id,
                 client_secret=client_secret,
+                token=bearer_token,
             )
         else:
             raise ProcessorError("ERROR: Jamf Pro URL not supplied")

@@ -77,6 +77,12 @@ class JamfObjectUploader(JamfObjectUploaderBase):
             "description": "Secret associated with the Client ID, optionally set as a key in "
             "the com.github.autopkg preference file.",
         },
+        "BEARER_TOKEN": {
+            "required": False,
+            "description": "A pre-existing bearer token for the Jamf Pro API. "
+            "If provided, the token will be validated and used directly, "
+            "bypassing credential-based authentication.",
+        },
         "object_name": {
             "required": False,
             "description": "Name of the object. Required except for settings-related objects.",

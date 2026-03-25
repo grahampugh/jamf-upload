@@ -186,6 +186,7 @@ class JamfObjectStateChangerBase(JamfUploaderBase):
         jamf_password = self.env.get("API_PASSWORD")
         client_id = self.env.get("CLIENT_ID")
         client_secret = self.env.get("CLIENT_SECRET")
+        bearer_token = self.env.get("BEARER_TOKEN")
         object_type = self.env.get("object_type")
         object_name = self.env.get("object_name")
         object_state = self.env.get("object_state")
@@ -247,6 +248,7 @@ class JamfObjectStateChangerBase(JamfUploaderBase):
                 password=jamf_password,
                 client_id=client_id,
                 client_secret=client_secret,
+                token=bearer_token,
             )
         else:
             raise ProcessorError("ERROR: Jamf Pro URL not supplied")

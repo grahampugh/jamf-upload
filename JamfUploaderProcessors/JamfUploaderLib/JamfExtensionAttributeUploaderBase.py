@@ -152,6 +152,7 @@ class JamfExtensionAttributeUploaderBase(JamfUploaderBase):
         jamf_password = self.env.get("API_PASSWORD")
         client_id = self.env.get("CLIENT_ID")
         client_secret = self.env.get("CLIENT_SECRET")
+        bearer_token = self.env.get("BEARER_TOKEN")
         ea_script_path = self.env.get("ea_script_path")
         ea_name = self.env.get("ea_name")
         ea_description = self.env.get("ea_description")
@@ -210,6 +211,7 @@ class JamfExtensionAttributeUploaderBase(JamfUploaderBase):
                 password=jamf_password,
                 client_id=client_id,
                 client_secret=client_secret,
+                token=bearer_token,
             )
         else:
             raise ProcessorError("ERROR: Jamf Pro URL not supplied")

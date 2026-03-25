@@ -83,6 +83,7 @@ class JamfPolicyLogFlusherBase(JamfUploaderBase):
         jamf_password = self.env.get("API_PASSWORD")
         client_id = self.env.get("CLIENT_ID")
         client_secret = self.env.get("CLIENT_SECRET")
+        bearer_token = self.env.get("BEARER_TOKEN")
         policy_name = self.env.get("policy_name")
         logflush_interval = self.env.get("logflush_interval")
         sleep_time = self.env.get("sleep")
@@ -111,6 +112,7 @@ class JamfPolicyLogFlusherBase(JamfUploaderBase):
                 password=jamf_password,
                 client_id=client_id,
                 client_secret=client_secret,
+                token=bearer_token,
             )
         else:
             raise ProcessorError("ERROR: Jamf Pro URL not supplied")

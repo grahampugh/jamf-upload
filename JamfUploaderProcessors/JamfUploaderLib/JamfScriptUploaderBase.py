@@ -156,6 +156,7 @@ class JamfScriptUploaderBase(JamfUploaderBase):
         jamf_password = self.env.get("API_PASSWORD")
         client_id = self.env.get("CLIENT_ID")
         client_secret = self.env.get("CLIENT_SECRET")
+        bearer_token = self.env.get("BEARER_TOKEN")
         script_path = self.env.get("script_path")
         script_name = self.env.get("script_name")
         script_category = self.env.get("script_category")
@@ -211,6 +212,7 @@ class JamfScriptUploaderBase(JamfUploaderBase):
                 password=jamf_password,
                 client_id=client_id,
                 client_secret=client_secret,
+                token=bearer_token,
             )
         else:
             raise ProcessorError("ERROR: Jamf Pro URL not supplied")

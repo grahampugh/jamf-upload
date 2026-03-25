@@ -528,6 +528,7 @@ class JamfPackageUploaderBase(JamfUploaderBase):
         jamf_password = self.env.get("API_PASSWORD")
         client_id = self.env.get("CLIENT_ID")
         client_secret = self.env.get("CLIENT_SECRET")
+        bearer_token = self.env.get("BEARER_TOKEN")
         cloud_dp = self.to_bool(self.env.get("CLOUD_DP"))
         recipe_cache_dir = self.env.get("RECIPE_CACHE_DIR")
         pkg_uploaded = False
@@ -685,6 +686,7 @@ class JamfPackageUploaderBase(JamfUploaderBase):
                 password=jamf_password,
                 client_id=client_id,
                 client_secret=client_secret,
+                token=bearer_token,
             )
         else:
             raise ProcessorError("ERROR: Jamf Pro URL not supplied")
@@ -801,6 +803,7 @@ class JamfPackageUploaderBase(JamfUploaderBase):
                     password=jamf_password,
                     client_id=client_id,
                     client_secret=client_secret,
+                    token=bearer_token,
                 )
             else:
                 raise ProcessorError("ERROR: Jamf Pro URL not supplied")
@@ -902,6 +905,7 @@ class JamfPackageUploaderBase(JamfUploaderBase):
                     password=jamf_password,
                     client_id=client_id,
                     client_secret=client_secret,
+                    token=bearer_token,
                 )
             else:
                 raise ProcessorError("ERROR: Jamf Pro URL not supplied")

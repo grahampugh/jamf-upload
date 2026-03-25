@@ -77,6 +77,12 @@ class JamfMSUPlanUploader(JamfMSUPlanUploaderBase):
             "description": "Secret associated with the Client ID, optionally set as a key in "
             "the com.github.autopkg preference file.",
         },
+        "BEARER_TOKEN": {
+            "required": False,
+            "description": "A pre-existing bearer token for the Jamf Pro API. "
+            "If provided, the token will be validated and used directly, "
+            "bypassing credential-based authentication.",
+        },
         "days_until_force_install": {
             "required": False,
             "description": "Days until forced installation of planned managed software update.",

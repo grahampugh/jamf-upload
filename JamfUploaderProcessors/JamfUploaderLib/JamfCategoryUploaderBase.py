@@ -109,6 +109,7 @@ class JamfCategoryUploaderBase(JamfUploaderBase):
         jamf_password = self.env.get("API_PASSWORD")
         client_id = self.env.get("CLIENT_ID")
         client_secret = self.env.get("CLIENT_SECRET")
+        bearer_token = self.env.get("BEARER_TOKEN")
         category_name = self.env.get("category_name")
         category_priority = self.env.get("category_priority")
         replace_category = self.to_bool(self.env.get("replace_category"))
@@ -140,6 +141,7 @@ class JamfCategoryUploaderBase(JamfUploaderBase):
                 password=jamf_password,
                 client_id=client_id,
                 client_secret=client_secret,
+                token=bearer_token,
             )
         else:
             raise ProcessorError("ERROR: Jamf Pro URL not supplied")

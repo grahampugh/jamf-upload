@@ -68,6 +68,12 @@ class JamfComputerGroupDeleter(JamfComputerGroupDeleterBase):
             "description": "Secret associated with the Client ID, optionally set as a key in "
             "the com.github.autopkg preference file.",
         },
+        "BEARER_TOKEN": {
+            "required": False,
+            "description": "A pre-existing bearer token for the Jamf Pro API. "
+            "If provided, the token will be validated and used directly, "
+            "bypassing credential-based authentication.",
+        },
         "computergroup_name": {
             "required": True,
             "description": "Computer Group to delete",

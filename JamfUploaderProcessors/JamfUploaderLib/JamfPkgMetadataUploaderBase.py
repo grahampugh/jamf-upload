@@ -191,6 +191,7 @@ class JamfPkgMetadataUploaderBase(JamfUploaderBase):
         jamf_password = self.env.get("API_PASSWORD")
         client_id = self.env.get("CLIENT_ID")
         client_secret = self.env.get("CLIENT_SECRET")
+        bearer_token = self.env.get("BEARER_TOKEN")
         pkg_name = self.env.get("pkg_name")
         pkg_display_name = self.env.get("pkg_display_name")
         pkg_category = self.env.get("pkg_category")
@@ -249,6 +250,7 @@ class JamfPkgMetadataUploaderBase(JamfUploaderBase):
                 password=jamf_password,
                 client_id=client_id,
                 client_secret=client_secret,
+                token=bearer_token,
             )
         else:
             raise ProcessorError("ERROR: Jamf Pro URL not supplied")
@@ -268,6 +270,7 @@ class JamfPkgMetadataUploaderBase(JamfUploaderBase):
                 password=jamf_password,
                 client_id=client_id,
                 client_secret=client_secret,
+                token=bearer_token,
             )
         else:
             raise ProcessorError("ERROR: Jamf Pro URL not supplied")

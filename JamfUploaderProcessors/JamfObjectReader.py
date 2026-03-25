@@ -84,6 +84,12 @@ class JamfObjectReader(JamfObjectReaderBase):
                 "the com.github.autopkg preference file."
             ),
         },
+        "BEARER_TOKEN": {
+            "required": False,
+            "description": "A pre-existing bearer token for the Jamf Pro API. "
+            "If provided, the token will be validated and used directly, "
+            "bypassing credential-based authentication.",
+        },
         "object_id": {
             "required": False,
             "description": "ID of an object. May be used instead of supplying an object name.",
