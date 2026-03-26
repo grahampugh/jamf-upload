@@ -151,6 +151,7 @@ class JamfAccountUploaderBase(JamfUploaderBase):
         client_id = self.env.get("CLIENT_ID")
         client_secret = self.env.get("CLIENT_SECRET")
         bearer_token = self.env.get("BEARER_TOKEN")
+        use_jcm = self.to_bool(self.env.get("jamf_credentials_manager"))
         account_name = self.env.get("account_name")
         account_type = self.env.get("account_type")
         domain = self.env.get("domain")
@@ -194,6 +195,7 @@ class JamfAccountUploaderBase(JamfUploaderBase):
                 client_id=client_id,
                 client_secret=client_secret,
                 token=bearer_token,
+                use_jamf_credentials_manager=use_jcm,
             )
         else:
             raise ProcessorError("ERROR: Jamf Pro URL not supplied")

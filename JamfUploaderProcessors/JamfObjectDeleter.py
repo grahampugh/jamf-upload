@@ -77,6 +77,13 @@ class JamfObjectDeleter(JamfObjectDeleterBase):
             "If provided, the token will be validated and used directly, "
             "bypassing credential-based authentication.",
         },
+        "jamf_credentials_manager": {
+            "required": False,
+            "description": "Use JamfCredentialsManager to obtain a bearer token. "
+            "Requires JamfCredentialsManager to be installed at "
+            "/usr/local/lib/JamfCredentialsManager. Set to 'True' to enable.",
+            "default": "",
+        },
         "object_name": {
             "required": True,
             "description": "Object to delete",

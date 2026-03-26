@@ -151,6 +151,9 @@ class JamfUploaderBase(Processor):
                         client_id=self.env.get("CLIENT_ID"),
                         client_secret=self.env.get("CLIENT_SECRET"),
                         token=self.env.get("BEARER_TOKEN", ""),
+                        use_jamf_credentials_manager=self.to_bool(
+                            self.env.get("jamf_credentials_manager")
+                        ),
                     )
                     self.env["token"] = token
                 except ProcessorError as e:
@@ -601,6 +604,82 @@ class JamfUploaderBase(Processor):
         else:
             self.output(f"ERROR: No token received (HTTP response {r.status_code})")
 
+    def get_token_from_jamf_credentials_manager(
+        self, jamf_url, jamf_user="", client_id=""
+    ):
+        """Get a bearer token using JamfCredentialsManager.
+
+        Calls /usr/local/bin/JamfCredentialsManager --token with the supplied
+        URL and username/client_id. The output matches the Jamf Pro API token
+        responses and is handled the same way as get_api_token_from_oauth and
+        get_api_token_from_basic_auth."""
+        jcm_path = "/usr/local/bin/JamfCredentialsManager"
+        if not os.path.isfile(jcm_path):
+            raise ProcessorError(f"JamfCredentialsManager not found at {jcm_path}")
+
+        username = client_id if client_id else jamf_user
+        if not username:
+            raise ProcessorError(
+                "A username or client ID is required for JamfCredentialsManager"
+            )
+
+        cmd = [jcm_path, "--token", "--url", jamf_url, "--username", username]
+        self.output(
+            f"Requesting token from JamfCredentialsManager for {username}",
+            verbose_level=1,
+        )
+
+        result = subprocess.run(cmd, capture_output=True, text=True, timeout=60)
+        if result.returncode != 0:
+            raise ProcessorError(
+                f"JamfCredentialsManager failed (exit {result.returncode}): "
+                f"{result.stderr.strip()}"
+            )
+
+        try:
+            output = json.loads(result.stdout)
+        except json.JSONDecodeError as e:
+            raise ProcessorError(
+                f"JamfCredentialsManager returned invalid JSON: {e}"
+            ) from e
+
+        # OAuth response (client_id was used) — has "access_token" and "expires_in"
+        if "access_token" in output:
+            try:
+                token = str(output["access_token"])
+                expires_in = output["expires_in"]
+                expires_timestamp = datetime.now(timezone.utc) + timedelta(
+                    seconds=expires_in
+                )
+                expires_str = datetime.strptime(
+                    str(expires_timestamp).removesuffix("+00:00"),
+                    "%Y-%m-%d %H:%M:%S.%f",
+                )
+                expires = expires_str.strftime("%Y-%m-%dT%H:%M:%S.%fZ")
+
+                self.write_token_to_json_file(jamf_url, client_id or jamf_user, output)
+                self.output("Session token received via JamfCredentialsManager")
+                self.output(f"Token: {token}", verbose_level=2)
+                self.output(f"Expires: {expires}", verbose_level=2)
+                return token
+            except KeyError:
+                self.output("ERROR: No token received from JamfCredentialsManager")
+        # Basic auth response (username was used) — has "token" and "expires"
+        elif "token" in output:
+            try:
+                token = str(output["token"])
+                expires = str(output["expires"])
+
+                self.write_token_to_json_file(jamf_url, jamf_user or client_id, output)
+                self.output("Session token received via JamfCredentialsManager")
+                self.output(f"Token: {token}", verbose_level=2)
+                self.output(f"Expires: {expires}", verbose_level=2)
+                return token
+            except KeyError:
+                self.output("ERROR: No token received from JamfCredentialsManager")
+        else:
+            self.output("ERROR: Unexpected response from JamfCredentialsManager")
+
     def validate_existing_token(self, jamf_url, token):
         """Validate an existing bearer token by making a request to api/v1/auth.
         Returns True if the token is valid, False otherwise."""
@@ -636,6 +715,7 @@ class JamfUploaderBase(Processor):
         client_id="",
         client_secret="",
         token="",
+        use_jamf_credentials_manager=False,
     ):
         """obtain token using basic auth or use a pre-existing token"""
 
@@ -647,6 +727,22 @@ class JamfUploaderBase(Processor):
             raise ProcessorError(
                 "Supplied bearer token is invalid or expired, cannot continue"
             )
+
+        # if JamfCredentialsManager is requested, use it to get a token
+        if use_jamf_credentials_manager:
+            # check for existing token first
+            username = client_id if client_id else jamf_user
+            if username:
+                token = self.check_api_token(jamf_url, username)
+            if not token:
+                token = self.get_token_from_jamf_credentials_manager(
+                    jamf_url, jamf_user=jamf_user, client_id=client_id
+                )
+            if not token:
+                raise ProcessorError(
+                    "No token received from JamfCredentialsManager, cannot continue"
+                )
+            return token
 
         # first try to get the account and password from the Keychain
         user_from_kc, pass_from_kc = self.keychain_get_creds(
@@ -804,7 +900,12 @@ class JamfUploaderBase(Processor):
             self.output(f"ERROR: No token received (HTTP response {r.status_code})")
 
     def handle_platform_api_auth(
-        self, api_url, client_id="", client_secret="", token=""
+        self,
+        api_url,
+        client_id="",
+        client_secret="",
+        token="",
+        use_jamf_credentials_manager=False,
     ):
         """obtain token for Platform API"""
 
@@ -818,6 +919,20 @@ class JamfUploaderBase(Processor):
             raise ProcessorError(
                 "Supplied bearer token is invalid or expired, cannot continue"
             )
+
+        # if JamfCredentialsManager is requested, use it to get a token
+        if use_jamf_credentials_manager:
+            if client_id:
+                token = self.check_platform_api_token(api_url, client_id)
+            if not token:
+                token = self.get_token_from_jamf_credentials_manager(
+                    api_url, client_id=client_id
+                )
+            if not token:
+                raise ProcessorError(
+                    "No token received from JamfCredentialsManager, cannot continue"
+                )
+            return token
 
         # first try to get the account and password from the Keychain
         id_from_kc, pass_from_kc = self.keychain_get_creds(api_url, client_id=client_id)

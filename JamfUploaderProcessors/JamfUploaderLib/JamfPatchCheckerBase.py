@@ -122,6 +122,7 @@ class JamfPatchCheckerBase(JamfUploaderBase):
         client_id = self.env.get("CLIENT_ID")
         client_secret = self.env.get("CLIENT_SECRET")
         bearer_token = self.env.get("BEARER_TOKEN")
+        use_jcm = self.to_bool(self.env.get("jamf_credentials_manager"))
         pkg_name = self.env.get("pkg_name")
         version = self.env.get("version")
         patch_softwaretitle = self.env.get("patch_softwaretitle")
@@ -141,6 +142,7 @@ class JamfPatchCheckerBase(JamfUploaderBase):
                 client_id=client_id,
                 client_secret=client_secret,
                 token=bearer_token,
+                use_jamf_credentials_manager=use_jcm,
             )
         else:
             raise ProcessorError("ERROR: Jamf Pro URL not supplied")

@@ -62,6 +62,9 @@ Arguments:
     --pass <API_PASSWORD>   The API user's password
     --clientid <ID>         An API Client ID
     --clientsecret <string> An API Client Secret
+    --token <string>        A pre-existing bearer token for the Jamf Pro API
+    --jamf-credentials-manager
+                            Use JamfCredentialsManager to obtain a bearer token
     --recipe-dir <RECIPE_DIR>
 
 UPLOAD OPTIONS
@@ -636,6 +639,17 @@ while test $# -gt 0; do
         shift
         if plutil -replace CLIENT_SECRET -string "$1" "$temp_processor_plist"; then
             echo "   [jamf-upload] Wrote CLIENT_SECRET='$1' into $temp_processor_plist"
+        fi
+        ;;
+    --token)
+        shift
+        if plutil -replace BEARER_TOKEN -string "$1" "$temp_processor_plist"; then
+            echo "   [jamf-upload] Wrote BEARER_TOKEN='[redacted]' into $temp_processor_plist"
+        fi
+        ;;
+    --jamf-credentials-manager)
+        if plutil -replace jamf_credentials_manager -string "True" "$temp_processor_plist"; then
+            echo "   [jamf-upload] Wrote jamf_credentials_manager='True' into $temp_processor_plist"
         fi
         ;;
     --type)
