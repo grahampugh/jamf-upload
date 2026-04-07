@@ -149,7 +149,7 @@ JPAPI_ALIAS_TABLE = {
     "mobile_device": "v2/mobile-devices",
     "mobile_device_extension_attribute_v1": "v1/mobile-device-extension-attributes",
     "mobile_device_group_v1": "v1/mobile-device-groups",
-    "mobile_device_prestage": "v1/mobile-device-prestages",
+    "mobile_device_prestage": "v3/mobile-device-prestages",
     "oauth": "v1/oauth/token",
     "package_v1": "v1/packages",
     "policy_properties_settings": "v1/policy-properties",
