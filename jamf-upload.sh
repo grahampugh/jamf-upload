@@ -594,8 +594,17 @@ while test $# -gt 0 ; do
             ;;
         --url) 
             shift
-            if plutil -replace JSS_URL -string "$1" "$temp_processor_plist"; then
-                echo "   [jamf-upload] Wrote JSS_URL='$1' into $temp_processor_plist"
+            # expand a url input without any protocol or with a missing protocol to include https:// and a trailing slash, since that's the most likely intended format and the format required for the JSS_URL key in the processor plist, and add .jamfcloud.com if the input looks like a cloud instance without the full domain
+            if [[ "$1" =~ ^https?:// ]]; then
+                jss_url="$1"
+            elif [[ "$1" =~ ^[a-zA-Z0-9_-]+$ ]]; then
+                jss_url="https://$1.jamfcloud.com"
+            else
+                jss_url="https://$1"
+            fi
+
+            if plutil -replace JSS_URL -string "$jss_url" "$temp_processor_plist"; then
+                echo "   [jamf-upload] Wrote JSS_URL='$jss_url' into $temp_processor_plist"
             fi
             ;;
         --recipe-dir) 
