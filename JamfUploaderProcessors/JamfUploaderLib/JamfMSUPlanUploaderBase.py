@@ -44,21 +44,22 @@ class JamfMSUPlanUploaderBase(JamfUploaderBase):
 
     def check_feature_toggle(
         self,
-        jamf_url,
+        api_url,
         token,
+        tenant_id="",
     ):
         """Check if the feature toggle is enabled and raise processor error
         if toggle is set to false"""
         object_type = "managed_software_updates_feature_toggle_settings"
-        object_content = self.get_settings_object(jamf_url, object_type, token)
+        object_content = self.get_settings_object(api_url, object_type, token, tenant_id=tenant_id)
         if object_content:
             self.output(
-                f"{object_type} content on {jamf_url}: {object_content}",
+                f"{object_type} content on {api_url}: {object_content}",
                 verbose_level=3,
             )
             toggle_value = object_content["toggle"]
         else:
-            raise ProcessorError(f"{object_type} has no content on {jamf_url}")
+            raise ProcessorError(f"{object_type} has no content on {api_url}")
 
         return toggle_value
 
@@ -78,7 +79,7 @@ class JamfMSUPlanUploaderBase(JamfUploaderBase):
 
     def prepare_template(
         self,
-        jamf_url,
+        api_url,
         device_type,
         group_id,
         version_type,
@@ -111,26 +112,28 @@ class JamfMSUPlanUploaderBase(JamfUploaderBase):
         self.output(template_contents, verbose_level=2)
 
         # write the template to temp file
-        template_file = self.write_json_file(jamf_url, template_contents)
+        template_file = self.write_json_file(api_url, template_contents)
         return template_file
 
     def upload_object(
         self,
-        jamf_url,
+        api_url,
         object_type,
         object_template,
         sleep_time,
         token,
         max_tries,
         object_name=None,
+        tenant_id="",
     ):
         """Upload object"""
 
         self.output(f"Uploading {object_type}...")
 
+        endpoint = self.api_endpoints(object_type, tenant_id=tenant_id)
         # if we find an object ID or it's an endpoint without IDs, we PUT or PATCH
         # if we're creating a new object, we POST
-        url = f"{jamf_url}/{self.api_endpoints(object_type)}"
+        url = f"{api_url}/{endpoint}"
         request = "POST"
 
         count = 0
@@ -164,10 +167,12 @@ class JamfMSUPlanUploaderBase(JamfUploaderBase):
         jamf_url = self.env.get("JSS_URL").rstrip("/")
         jamf_user = self.env.get("API_USERNAME")
         jamf_password = self.env.get("API_PASSWORD")
+        jamf_platform_gw_region = self.env.get("PLATFORM_API_REGION")
+        jamf_platform_gw_tenant_id = self.env.get("PLATFORM_API_TENANT_ID")
         client_id = self.env.get("CLIENT_ID")
         client_secret = self.env.get("CLIENT_SECRET")
         bearer_token = self.env.get("BEARER_TOKEN")
-        use_jcm = self.to_bool(self.env.get("jamf_credentials_manager"))
+        jamf_cli_profile = self.env.get("JAMF_CLI_PROFILE")
         device_type = self.env.get("device_type")
         version = self.env.get("version")
         days_until_force_install = self.env.get("days_until_force_install")
@@ -208,23 +213,28 @@ class JamfMSUPlanUploaderBase(JamfUploaderBase):
         # now start the process of uploading the object
         self.output(f"Obtaining API token for {jamf_url}")
 
-        # get token using oauth or basic auth depending on the credentials given
-        if jamf_url:
-            token = self.handle_api_auth(
-                jamf_url,
-                jamf_user=jamf_user,
-                password=jamf_password,
-                client_id=client_id,
-                client_secret=client_secret,
-                token=bearer_token,
-                use_jamf_credentials_manager=use_jcm,
-            )
-        else:
-            raise ProcessorError("ERROR: Jamf Pro URL not supplied")
+        # get a token
+        token = self.auth(
+            jamf_url=jamf_url,
+            jamf_user=jamf_user,
+            password=jamf_password,
+            region=jamf_platform_gw_region,
+            tenant_id=jamf_platform_gw_tenant_id,
+            client_id=client_id,
+            client_secret=client_secret,
+            token=bearer_token,
+            jamf_cli_profile=jamf_cli_profile,
+        )
+
+        # construct the api_url based on the API type
+        api_url = self.construct_api_url(
+            jamf_url=jamf_url, region=jamf_platform_gw_region
+        )
+        self.output(f"API URL is {api_url}", verbose_level=3)
 
         # check if managed software update feature toggle is enabled - this
         # processor requires it to be enabled
-        toggle_value = self.check_feature_toggle(jamf_url, token)
+        toggle_value = self.check_feature_toggle(api_url, token, tenant_id=jamf_platform_gw_tenant_id)
         if toggle_value:
             self.output("Software Update Feature is enabled.")
         else:
@@ -235,7 +245,7 @@ class JamfMSUPlanUploaderBase(JamfUploaderBase):
         # get the group ID from the group name
         group_id = ""
         group_id = self.get_api_object_id_from_name(
-            jamf_url, object_type=object_type, object_name=group_name, token=token
+            api_url, object_type=object_type, object_name=group_name, token=token, tenant_id=jamf_platform_gw_tenant_id
         )
         if not group_id:
             raise ProcessorError(f"ERROR: Group {group_name} not found")
@@ -261,7 +271,7 @@ class JamfMSUPlanUploaderBase(JamfUploaderBase):
         # we need to substitute the values in the object name and template now to
         # account for version strings in the name
         template_file = self.prepare_template(
-            jamf_url,
+            api_url,
             device_type,
             group_id,
             version_type,
@@ -274,12 +284,13 @@ class JamfMSUPlanUploaderBase(JamfUploaderBase):
 
         # upload the object
         self.upload_object(
-            jamf_url,
+            api_url,
             object_type=object_type,
             object_template=template_file,
             sleep_time=sleep_time,
             token=token,
             max_tries=max_tries,
+            tenant_id=jamf_platform_gw_tenant_id,
         )
         object_updated = True
 

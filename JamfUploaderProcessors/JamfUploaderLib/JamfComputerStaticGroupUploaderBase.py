@@ -39,15 +39,16 @@ from JamfUploaderBase import (  # pylint: disable=import-error, wrong-import-pos
 class JamfComputerStaticGroupUploaderBase(JamfUploaderBase):
     """Class for functions used to upload a computer group to Jamf"""
 
-    def get_existing_assignments(self, jamf_url, object_id, token):
+    def get_existing_assignments(self, api_url, object_id, token, tenant_id=""):
         """return the existing members of the static group to ensure we don't overwrite"""
         # first grab the payload from the json object
         existing_assignments_key = self.get_api_object_value_from_id(
-            jamf_url,
+            api_url,
             object_type="computer_group",
             object_id=object_id,
             object_path="computers",
             token=token,
+            tenant_id=tenant_id,
         )
 
         self.output(
@@ -67,7 +68,7 @@ class JamfComputerStaticGroupUploaderBase(JamfUploaderBase):
 
     def upload_object(
         self,
-        jamf_url,
+        api_url,
         object_name,
         description,
         assignments,
@@ -75,6 +76,7 @@ class JamfComputerStaticGroupUploaderBase(JamfUploaderBase):
         token,
         max_tries,
         object_id=0,
+        tenant_id="",
     ):
         """Upload computer group"""
 
@@ -89,15 +91,16 @@ class JamfComputerStaticGroupUploaderBase(JamfUploaderBase):
         self.output(object_data, verbose_level=2)
 
         self.output("Uploading Computer Group...")
-        # if we find an object ID we put, if not, we post
         object_type = "static_computer_group"
+        endpoint = self.api_endpoints(object_type, tenant_id=tenant_id)
+        # if we find an object ID we put, if not, we post
         if object_id:
-            url = f"{jamf_url}/{self.api_endpoints(object_type)}/{object_id}"
+            url = f"{api_url}/{endpoint}/{object_id}"
         else:
-            url = f"{jamf_url}/{self.api_endpoints(object_type)}"
+            url = f"{api_url}/{endpoint}"
 
         count = 0
-        object_json = self.write_json_file(jamf_url, object_data)
+        object_json = self.write_json_file(api_url, object_data)
         while True:
             count += 1
             self.output(f"Computer Group upload attempt {count}", verbose_level=2)
@@ -129,10 +132,12 @@ class JamfComputerStaticGroupUploaderBase(JamfUploaderBase):
         jamf_url = self.env.get("JSS_URL").rstrip("/")
         jamf_user = self.env.get("API_USERNAME")
         jamf_password = self.env.get("API_PASSWORD")
+        jamf_platform_gw_region = self.env.get("PLATFORM_API_REGION")
+        jamf_platform_gw_tenant_id = self.env.get("PLATFORM_API_TENANT_ID")
         client_id = self.env.get("CLIENT_ID")
         client_secret = self.env.get("CLIENT_SECRET")
         bearer_token = self.env.get("BEARER_TOKEN")
-        use_jcm = self.to_bool(self.env.get("jamf_credentials_manager"))
+        jamf_cli_profile = self.env.get("JAMF_CLI_PROFILE")
         computergroup_name = self.env.get("computergroup_name")
         group_description = self.env.get("group_description")
         replace_group = self.to_bool(self.env.get("replace_group"))
@@ -158,29 +163,35 @@ class JamfComputerStaticGroupUploaderBase(JamfUploaderBase):
         # substitute user-assignable keys
         computergroup_name = self.substitute_assignable_keys(computergroup_name)
 
-        # now start the process of uploading the object
-        self.output(f"Checking for existing '{computergroup_name}' on {jamf_url}")
+        # get a token
+        token = self.auth(
+            jamf_url=jamf_url,
+            jamf_user=jamf_user,
+            password=jamf_password,
+            region=jamf_platform_gw_region,
+            tenant_id=jamf_platform_gw_tenant_id,
+            client_id=client_id,
+            client_secret=client_secret,
+            token=bearer_token,
+            jamf_cli_profile=jamf_cli_profile,
+        )
 
-        # get token using oauth or basic auth depending on the credentials given
-        if jamf_url:
-            token = self.handle_api_auth(
-                jamf_url,
-                jamf_user=jamf_user,
-                password=jamf_password,
-                client_id=client_id,
-                client_secret=client_secret,
-                token=bearer_token,
-                use_jamf_credentials_manager=use_jcm,
-            )
-        else:
-            raise ProcessorError("ERROR: Jamf Pro URL not supplied")
+        # construct the api_url based on the API type
+        api_url = self.construct_api_url(
+            jamf_url=jamf_url, region=jamf_platform_gw_region
+        )
+        self.output(f"API URL is {api_url}", verbose_level=3)
+
+        # now start the process of uploading the object
+        self.output(f"Checking for existing '{computergroup_name}' on {api_url}")
 
         # check for existing - requires object_name
         object_id = self.get_api_object_id_from_name(
-            jamf_url,
+            api_url,
             object_type="static_computer_group",
             object_name=computergroup_name,
             token=token,
+            tenant_id=jamf_platform_gw_tenant_id,
         )
 
         existing_assignments = []
@@ -202,12 +213,12 @@ class JamfComputerStaticGroupUploaderBase(JamfUploaderBase):
             # now get any existing assignments
             if not clear_assignments:
                 existing_assignments = self.get_existing_assignments(
-                    jamf_url, object_id, token
+                    api_url, object_id, token, tenant_id=jamf_platform_gw_tenant_id
                 )
 
         # upload the group
         self.upload_object(
-            jamf_url,
+            api_url,
             object_name=computergroup_name,
             description=group_description,
             assignments=existing_assignments,
@@ -215,6 +226,7 @@ class JamfComputerStaticGroupUploaderBase(JamfUploaderBase):
             token=token,
             max_tries=max_tries,
             object_id=object_id,
+            tenant_id=jamf_platform_gw_tenant_id,
         )
         group_uploaded = True
 

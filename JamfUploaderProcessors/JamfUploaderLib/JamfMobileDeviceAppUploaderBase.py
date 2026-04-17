@@ -62,11 +62,12 @@ class JamfMobileDeviceAppUploaderBase(JamfUploaderBase):
                 return [location] + locations[:index] + locations[index + 1 :]
         return locations
 
-    def _get_volume_purchasing_locations(self, jamf_url, token):
+    def _get_volume_purchasing_locations(self, api_url, token, tenant_id=""):
         """Retrieve all Volume Purchasing Locations from Jamf Pro."""
         url_filter = "?page=0&page-size=200&sort=id"
         object_type = "volume_purchasing_location"
-        url = jamf_url + "/" + self.api_endpoints(object_type) + url_filter
+        endpoint = self.api_endpoints(object_type, tenant_id=tenant_id)
+        url = f"{api_url}/{endpoint}{url_filter}"
         r = self.curl(api_type="jpapi", request="GET", url=url, token=token)
         if r.status_code != 200:
             self.output(
@@ -88,14 +89,14 @@ class JamfMobileDeviceAppUploaderBase(JamfUploaderBase):
         return locations
 
     def _location_contains_app_content(
-        self, jamf_url, token, location_id, target_adam_id
+        self, api_url, token, location_id, target_adam_id, tenant_id=""
     ):
         """Return True if the supplied location contains content for the adam ID."""
         if not location_id or not target_adam_id:
             return False
         object_type = "volume_purchasing_location"
-        endpoint = f"{jamf_url}/{self.api_endpoints(object_type)}/{location_id}/content"
-        url = f"{endpoint}?page=0&page-size=200"
+        endpoint = self.api_endpoints(object_type, tenant_id=tenant_id)
+        url = f"{api_url}/{endpoint}/{location_id}/content?page=0&page-size=200"
         r = self.curl(api_type="jpapi", request="GET", url=url, token=token)
         if r.status_code != 200:
             self.output(
@@ -124,10 +125,10 @@ class JamfMobileDeviceAppUploaderBase(JamfUploaderBase):
         return False
 
     def get_vpp_id(
-        self, jamf_url, token, itunes_store_url=None, preferred_location=None
+        self, api_url, token, itunes_store_url=None, preferred_location=None, tenant_id=""
     ):
         """Determine the Volume Purchasing Location ID that hosts the app's content."""
-        locations = self._get_volume_purchasing_locations(jamf_url, token)
+        locations = self._get_volume_purchasing_locations(api_url, token, tenant_id=tenant_id)
         if not locations:
             return None
         ordered_locations = self._prioritize_vpp_locations(
@@ -148,7 +149,7 @@ class JamfMobileDeviceAppUploaderBase(JamfUploaderBase):
                 verbose_level=3,
             )
             if self._location_contains_app_content(
-                jamf_url, token, location_id, target_adam_id
+                api_url, token, location_id, target_adam_id, tenant_id=tenant_id
             ):
                 return location_id
         self.output(
@@ -178,7 +179,7 @@ class JamfMobileDeviceAppUploaderBase(JamfUploaderBase):
                 )
 
     def prepare_mobiledeviceapp_template(
-        self, jamf_url, mobiledeviceapp_name, mobiledeviceapp_template
+        self, api_url, mobiledeviceapp_name, mobiledeviceapp_template
     ):
         """prepare the mobiledeviceapp contents"""
         # import template from file and replace any keys in the template
@@ -198,26 +199,28 @@ class JamfMobileDeviceAppUploaderBase(JamfUploaderBase):
         self.output(template_contents, verbose_level=2)
 
         # write the template to temp file
-        template_xml = self.write_temp_file(jamf_url, template_contents)
+        template_xml = self.write_temp_file(api_url, template_contents)
         return mobiledeviceapp_name, template_xml
 
     def upload_mobiledeviceapp(
         self,
-        jamf_url,
+        api_url,
         object_name,
         object_template,
         sleep_time,
         token,
         max_tries,
         object_id=0,
+        tenant_id="",
     ):
         """Upload Mobile device app"""
 
         self.output("Uploading Mobile device app...")
 
-        # if we find an object ID we put, if not, we post
         object_type = "mobile_device_application"
-        url = f"{jamf_url}/{self.api_endpoints(object_type)}/id/{object_id}"
+        endpoint = self.api_endpoints(object_type, tenant_id=tenant_id)
+        # if we find an object ID we put, if not, we post
+        url = f"{api_url}/{endpoint}/id/{object_id}"
 
         count = 0
         while True:
@@ -254,10 +257,12 @@ class JamfMobileDeviceAppUploaderBase(JamfUploaderBase):
         jamf_url = self.env.get("JSS_URL").rstrip("/")
         jamf_user = self.env.get("API_USERNAME")
         jamf_password = self.env.get("API_PASSWORD")
+        jamf_platform_gw_region = self.env.get("PLATFORM_API_REGION")
+        jamf_platform_gw_tenant_id = self.env.get("PLATFORM_API_TENANT_ID")
         client_id = self.env.get("CLIENT_ID")
         client_secret = self.env.get("CLIENT_SECRET")
         bearer_token = self.env.get("BEARER_TOKEN")
-        use_jcm = self.to_bool(self.env.get("jamf_credentials_manager"))
+        jamf_cli_profile = self.env.get("JAMF_CLI_PROFILE")
         mobiledeviceapp_name = self.env.get("mobiledeviceapp_name")
         clone_from = self.env.get("clone_from")
         selfservice_icon_uri = self.env.get("selfservice_icon_uri")
@@ -298,24 +303,31 @@ class JamfMobileDeviceAppUploaderBase(JamfUploaderBase):
 
         # get token using oauth or basic auth depending on the credentials given
         if jamf_url:
-            token = self.handle_api_auth(
+            token = self.auth(
                 jamf_url,
                 jamf_user=jamf_user,
                 password=jamf_password,
                 client_id=client_id,
                 client_secret=client_secret,
                 token=bearer_token,
-                use_jamf_credentials_manager=use_jcm,
+                jamf_cli_profile=jamf_cli_profile,
             )
         else:
             raise ProcessorError("ERROR: Jamf Pro URL not supplied")
 
+        # construct the api_url based on the API type
+        api_url = self.construct_api_url(
+            jamf_url=jamf_url, region=jamf_platform_gw_region
+        )
+        self.output(f"API URL is {api_url}", verbose_level=3)
+
         # check for existing - requires object_name
         object_id = self.get_api_object_id_from_name(
-            jamf_url,
+            api_url,
             object_type="mobile_device_application",
             object_name=mobiledeviceapp_name,
             token=token,
+            tenant_id=jamf_platform_gw_tenant_id,
         )
 
         if object_id:
@@ -331,21 +343,23 @@ class JamfMobileDeviceAppUploaderBase(JamfUploaderBase):
 
                 # obtain the Mobile device app bundleid
                 bundleid = self.get_api_object_value_from_id(
-                    jamf_url,
+                    api_url,
                     object_type="mobile_device_application",
                     object_id=object_id,
                     object_path="general/bundle_id",
                     token=token,
+                    tenant_id=jamf_platform_gw_tenant_id,
                 )
                 if bundleid:
                     self.output(f"Existing bundle ID is '{bundleid}'", verbose_level=1)
                 # obtain the Mobile device app version
                 mobiledeviceapp_version = self.get_api_object_value_from_id(
-                    jamf_url,
+                    api_url,
                     object_type="mobile_device_application",
                     object_id=object_id,
                     object_path="general/version",
                     token=token,
+                    tenant_id=jamf_platform_gw_tenant_id,
                 )
                 if mobiledeviceapp_version:
                     self.output(
@@ -354,11 +368,12 @@ class JamfMobileDeviceAppUploaderBase(JamfUploaderBase):
                     )
                 # obtain the Mobile device app free status
                 mobiledeviceapp_free = self.get_api_object_value_from_id(
-                    jamf_url,
+                    api_url,
                     object_type="mobile_device_application",
                     object_id=object_id,
                     object_path="general/free",
                     token=token,
+                    tenant_id=jamf_platform_gw_tenant_id,
                 )
                 if mobiledeviceapp_free:
                     self.output(
@@ -367,11 +382,12 @@ class JamfMobileDeviceAppUploaderBase(JamfUploaderBase):
                     )
                 # obtain the Mobile device app URL
                 itunes_store_url = self.get_api_object_value_from_id(
-                    jamf_url,
+                    api_url,
                     object_type="mobile_device_application",
                     object_id=object_id,
                     object_path="general/itunes_store_url",
                     token=token,
+                    tenant_id=jamf_platform_gw_tenant_id,
                 )
                 if itunes_store_url:
                     self.output(
@@ -381,11 +397,12 @@ class JamfMobileDeviceAppUploaderBase(JamfUploaderBase):
                 # obtain the Mobile device app icon
                 if not selfservice_icon_uri:
                     selfservice_icon_uri = self.get_api_object_value_from_id(
-                        jamf_url,
+                        api_url,
                         object_type="mobile_device_application",
                         object_id=object_id,
                         object_path="self_service/self_service_icon/uri",
                         token=token,
+                        tenant_id=jamf_platform_gw_tenant_id,
                     )
                     if selfservice_icon_uri:
                         self.output(
@@ -395,10 +412,11 @@ class JamfMobileDeviceAppUploaderBase(JamfUploaderBase):
                 # obtain the VPP location
                 self.output("Obtaining VPP ID", verbose_level=2)
                 vpp_id = self.get_vpp_id(
-                    jamf_url,
+                    api_url,
                     token,
                     itunes_store_url=itunes_store_url,
                     preferred_location=preferred_vpp_location,
+                    tenant_id=jamf_platform_gw_tenant_id,
                 )
                 if vpp_id:
                     self.output(
@@ -430,11 +448,12 @@ class JamfMobileDeviceAppUploaderBase(JamfUploaderBase):
                     )
                 else:
                     appconfig = self.get_api_object_value_from_id(
-                        jamf_url,
+                        api_url,
                         object_type="mobile_device_application",
                         object_id=object_id,
                         object_path="app_configuration/preferences",
                         token=token,
+                        tenant_id=jamf_platform_gw_tenant_id,
                     )
 
                 # we need to substitute the values in the Mobile device app name and template now to
@@ -455,13 +474,14 @@ class JamfMobileDeviceAppUploaderBase(JamfUploaderBase):
 
                 # upload the mobiledeviceapp
                 self.upload_mobiledeviceapp(
-                    jamf_url,
+                    api_url,
                     object_name=mobiledeviceapp_name,
                     object_template=template_xml,
                     sleep_time=sleep_time,
                     token=token,
                     max_tries=max_tries,
                     object_id=object_id,
+                    tenant_id=jamf_platform_gw_tenant_id,
                 )
                 mobiledeviceapp_updated = True
 
@@ -490,10 +510,11 @@ class JamfMobileDeviceAppUploaderBase(JamfUploaderBase):
         elif clone_from:
             # check for existing - requires object_name
             object_id = self.get_api_object_id_from_name(
-                jamf_url,
+                api_url,
                 object_type="mobile_device_application",
                 object_name=clone_from,
                 token=token,
+                tenant_id=jamf_platform_gw_tenant_id,
             )
             if object_id:
                 self.output(
@@ -502,21 +523,23 @@ class JamfMobileDeviceAppUploaderBase(JamfUploaderBase):
 
                 # obtain the Mobile device app bundleid
                 bundleid = self.get_api_object_value_from_id(
-                    jamf_url,
+                    api_url,
                     object_type="mobile_device_application",
                     object_id=object_id,
                     object_path="general/bundle_id",
                     token=token,
+                    tenant_id=jamf_platform_gw_tenant_id,
                 )
                 if bundleid:
                     self.output(f"Existing bundle ID is '{bundleid}'", verbose_level=1)
                 # obtain the Mobile device app version
                 mobiledeviceapp_version = self.get_api_object_value_from_id(
-                    jamf_url,
+                    api_url,
                     object_type="mobile_device_application",
                     object_id=object_id,
                     object_path="general/version",
                     token=token,
+                    tenant_id=jamf_platform_gw_tenant_id,
                 )
                 if mobiledeviceapp_version:
                     self.output(
@@ -525,11 +548,12 @@ class JamfMobileDeviceAppUploaderBase(JamfUploaderBase):
                     )
                 # obtain the Mobile device app free status
                 mobiledeviceapp_free = self.get_api_object_value_from_id(
-                    jamf_url,
+                    api_url,
                     object_type="mobile_device_application",
                     object_id=object_id,
                     object_path="general/free",
                     token=token,
+                    tenant_id=jamf_platform_gw_tenant_id,
                 )
                 if mobiledeviceapp_free:
                     self.output(
@@ -538,11 +562,12 @@ class JamfMobileDeviceAppUploaderBase(JamfUploaderBase):
                     )
                 # obtain the Mobile device app URL
                 itunes_store_url = self.get_api_object_value_from_id(
-                    jamf_url,
+                    api_url,
                     object_type="mobile_device_application",
                     object_id=object_id,
                     object_path="general/itunes_store_url",
                     token=token,
+                    tenant_id=jamf_platform_gw_tenant_id,
                 )
                 if itunes_store_url:
                     self.output(
@@ -552,11 +577,12 @@ class JamfMobileDeviceAppUploaderBase(JamfUploaderBase):
                 # obtain the Mobile device app icon
                 if not selfservice_icon_uri:
                     selfservice_icon_uri = self.get_api_object_value_from_id(
-                        jamf_url,
+                        api_url,
                         object_type="mobile_device_application",
                         object_id=object_id,
                         object_path="self_service/self_service_icon/uri",
                         token=token,
+                        tenant_id=jamf_platform_gw_tenant_id,
                     )
                     if selfservice_icon_uri:
                         self.output(
@@ -567,10 +593,11 @@ class JamfMobileDeviceAppUploaderBase(JamfUploaderBase):
                 # obtain the VPP location
                 self.output("Obtaining VPP ID", verbose_level=2)
                 vpp_id = self.get_vpp_id(
-                    jamf_url,
+                    api_url,
                     token,
                     itunes_store_url=itunes_store_url,
                     preferred_location=preferred_vpp_location,
+                    tenant_id=jamf_platform_gw_tenant_id,
                 )
                 if vpp_id:
                     self.output(
@@ -597,11 +624,12 @@ class JamfMobileDeviceAppUploaderBase(JamfUploaderBase):
                 # obtain appconfig
                 if not appconfig_template:
                     appconfig = self.get_api_object_value_from_id(
-                        jamf_url,
+                        api_url,
                         object_type="mobile_device_application",
                         object_id=object_id,
                         object_path="app_configuration/preferences",
                         token=token,
+                        tenant_id=jamf_platform_gw_tenant_id,
                     )
                 if appconfig_template:
                     appconfig = self.make_escaped_appconfig_from_template(
@@ -626,13 +654,14 @@ class JamfMobileDeviceAppUploaderBase(JamfUploaderBase):
 
                 # upload the mobiledeviceapp
                 self.upload_mobiledeviceapp(
-                    jamf_url,
+                    api_url,
                     object_name=mobiledeviceapp_name,
                     object_template=template_xml,
                     sleep_time=sleep_time,
                     token=token,
                     max_tries=max_tries,
                     object_id=0,
+                    tenant_id=jamf_platform_gw_tenant_id,
                 )
                 mobiledeviceapp_updated = True
 

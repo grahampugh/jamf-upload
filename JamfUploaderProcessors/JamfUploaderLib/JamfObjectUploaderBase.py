@@ -43,13 +43,14 @@ class JamfObjectUploaderBase(JamfUploaderBase):
 
     def upload_object(
         self,
-        jamf_url,
+        api_url,
         api_type,
         object_type,
         object_template,
         sleep_time,
         token,
         max_tries,
+        tenant_id="",
         object_name=None,
         object_id=0,
     ):
@@ -61,22 +62,26 @@ class JamfObjectUploaderBase(JamfUploaderBase):
         # if we're creating a new object, we POST
 
         if api_type == "classic":
+            endpoint = self.api_endpoints(object_type, tenant_id=tenant_id)
             if "_settings" in object_type:
                 # settings-style endpoints don't use IDs
-                url = f"{jamf_url}/{self.api_endpoints(object_type)}"
+                url = f"{api_url}/{endpoint}"
             else:
-                url = f"{jamf_url}/{self.api_endpoints(object_type)}/id/{object_id}"
+                url = f"{api_url}/{endpoint}/id/{object_id}"
         elif api_type == "jpapi" or api_type == "platform":
             if (
                 object_type
                 in ("blueprint_deploy_command", "blueprint_undeploy_command")
                 and object_id
             ):
-                url = f"{jamf_url}/{self.api_endpoints(object_type, uuid=object_id)}"
+                endpoint = self.api_endpoints(object_type, uuid=object_id, tenant_id=tenant_id)
+                url = f"{api_url}/{endpoint}"
             elif object_id:
-                url = f"{jamf_url}/{self.api_endpoints(object_type)}/{object_id}"
+                endpoint = self.api_endpoints(object_type, tenant_id=tenant_id)
+                url = f"{api_url}/{endpoint}/{object_id}"
             else:
-                url = f"{jamf_url}/{self.api_endpoints(object_type)}"
+                endpoint = self.api_endpoints(object_type, tenant_id=tenant_id)
+                url = f"{api_url}/{endpoint}"
         else:
             raise ProcessorError(f"ERROR: API type {api_type} not supported")
 
@@ -157,10 +162,12 @@ class JamfObjectUploaderBase(JamfUploaderBase):
         jamf_url = self.env.get("JSS_URL").rstrip("/")
         jamf_user = self.env.get("API_USERNAME")
         jamf_password = self.env.get("API_PASSWORD")
+        jamf_platform_gw_region = self.env.get("PLATFORM_API_REGION")
+        jamf_platform_gw_tenant_id = self.env.get("PLATFORM_API_TENANT_ID")
         client_id = self.env.get("CLIENT_ID")
         client_secret = self.env.get("CLIENT_SECRET")
         bearer_token = self.env.get("BEARER_TOKEN")
-        use_jcm = self.to_bool(self.env.get("jamf_credentials_manager"))
+        jamf_cli_profile = self.env.get("JAMF_CLI_PROFILE")
         object_id = self.env.get("object_id")
         object_name = self.env.get("object_name")
         object_type = self.env.get("object_type")
@@ -198,33 +205,24 @@ class JamfObjectUploaderBase(JamfUploaderBase):
         # now start the process of uploading the object
         self.output(f"Obtaining API token for {jamf_url}")
 
-        # get token using oauth or basic auth depending on the credentials given
-        if jamf_url:
-            # determine which token we need based on object type.
-            # classic and jpapi types use handle_api_auth,
-            # platform type uses handle_platform_api_auth
-            api_type = self.api_type(object_type)
-            self.output(f"API type for {object_type} is {api_type}", verbose_level=3)
-            if api_type == "platform":
-                token = self.handle_platform_api_auth(
-                    jamf_url,
-                    client_id=client_id,
-                    client_secret=client_secret,
-                    token=bearer_token,
-                    use_jamf_credentials_manager=use_jcm,
-                )
-            else:
-                token = self.handle_api_auth(
-                    jamf_url,
-                    jamf_user=jamf_user,
-                    password=jamf_password,
-                    client_id=client_id,
-                    client_secret=client_secret,
-                    token=bearer_token,
-                    use_jamf_credentials_manager=use_jcm,
-                )
-        else:
-            raise ProcessorError("ERROR: Jamf Pro URL not supplied")
+        # get a token
+        token = self.auth(
+            jamf_url=jamf_url,
+            jamf_user=jamf_user,
+            password=jamf_password,
+            region=jamf_platform_gw_region,
+            tenant_id=jamf_platform_gw_tenant_id,
+            client_id=client_id,
+            client_secret=client_secret,
+            token=bearer_token,
+            jamf_cli_profile=jamf_cli_profile,
+        )
+
+        # construct the api_url based on the API type
+        api_url = self.construct_api_url(
+            jamf_url=jamf_url, region=jamf_platform_gw_region
+        )
+        self.output(f"API URL is {api_url}", verbose_level=3)
 
         # declare name key
         namekey = self.get_namekey(object_type)
@@ -239,15 +237,16 @@ class JamfObjectUploaderBase(JamfUploaderBase):
                 # if an ID has been passed into the recipe, look for object based on ID
                 # rather than name
                 self.output(
-                    f"Checking for existing {object_type} with ID '{object_id}' on {jamf_url}"
+                    f"Checking for existing {object_type} with ID '{object_id}' on {api_url}"
                 )
 
                 existing_object_name = self.get_api_object_value_from_id(
-                    jamf_url,
+                    api_url,
                     object_type=object_type,
                     object_id=object_id,
                     object_path=namekey_path,
                     token=token,
+                    tenant_id=jamf_platform_gw_tenant_id,
                 )
                 if existing_object_name:
                     self.output(
@@ -268,7 +267,7 @@ class JamfObjectUploaderBase(JamfUploaderBase):
             else:
                 # normal operation - look for object of the same name
                 self.output(
-                    f"Checking for existing {object_type} '{object_name}' on {jamf_url}"
+                    f"Checking for existing {object_type} '{object_name}' on {api_url}"
                 )
 
                 # get the ID from the object bearing the supplied name
@@ -276,10 +275,11 @@ class JamfObjectUploaderBase(JamfUploaderBase):
                 id_key = self.get_idkey(object_type)
 
                 object_id = self.get_api_object_id_from_name(
-                    jamf_url,
+                    api_url,
                     object_type=object_type,
                     object_name=object_name,
                     token=token,
+                    tenant_id=jamf_platform_gw_tenant_id,
                     filter_name=namekey,
                     id_key=id_key,
                 )
@@ -355,7 +355,7 @@ class JamfObjectUploaderBase(JamfUploaderBase):
 
         # upload the object
         self.upload_object(
-            jamf_url,
+            api_url,
             api_type=api_type,
             object_type=object_type,
             object_template=template_file,
@@ -364,6 +364,7 @@ class JamfObjectUploaderBase(JamfUploaderBase):
             max_tries=max_tries,
             object_name=object_name,
             object_id=object_id,
+            tenant_id=jamf_platform_gw_tenant_id,
         )
         object_updated = True
 

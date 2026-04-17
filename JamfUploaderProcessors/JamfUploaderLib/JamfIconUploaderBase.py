@@ -70,14 +70,15 @@ class JamfIconUploaderBase(JamfUploaderBase):
                 sleep(10)
         return r
 
-    def upload_icon(self, jamf_url, icon_file, sleep_time, token, max_tries):
+    def upload_icon(self, api_url, icon_file, sleep_time, token, max_tries, tenant_id=""):
         """Upload icon."""
 
         self.output("Uploading icon...")
 
         # if we find an object ID we put, if not, we post
         object_type = "icon"
-        url = f"{jamf_url}/{self.api_endpoints(object_type)}"
+        endpoint = self.api_endpoints(object_type, tenant_id=tenant_id)
+        url = f"{api_url}/{endpoint}"
 
         # upload the icon
         count = 0
@@ -117,10 +118,12 @@ class JamfIconUploaderBase(JamfUploaderBase):
         jamf_url = self.env.get("JSS_URL").rstrip("/")
         jamf_user = self.env.get("API_USERNAME")
         jamf_password = self.env.get("API_PASSWORD")
+        jamf_platform_gw_region = self.env.get("PLATFORM_API_REGION")
+        jamf_platform_gw_tenant_id = self.env.get("PLATFORM_API_TENANT_ID")
         client_id = self.env.get("CLIENT_ID")
         client_secret = self.env.get("CLIENT_SECRET")
         bearer_token = self.env.get("BEARER_TOKEN")
-        use_jcm = self.to_bool(self.env.get("jamf_credentials_manager"))
+        jamf_cli_profile = self.env.get("JAMF_CLI_PROFILE")
         icon_file = self.env.get("icon_file")
         icon_uri = self.env.get("icon_uri")
         sleep_time = self.env.get("sleep")
@@ -138,19 +141,24 @@ class JamfIconUploaderBase(JamfUploaderBase):
         if "jamficonuploader_summary_result" in self.env:
             del self.env["jamficonuploader_summary_result"]
 
-        # get token using oauth or basic auth depending on the credentials given
-        if jamf_url:
-            token = self.handle_api_auth(
-                jamf_url,
-                jamf_user=jamf_user,
-                password=jamf_password,
-                client_id=client_id,
-                client_secret=client_secret,
-                token=bearer_token,
-                use_jamf_credentials_manager=use_jcm,
-            )
-        else:
-            raise ProcessorError("ERROR: Jamf Pro URL not supplied")
+        # get a token
+        token = self.auth(
+            jamf_url=jamf_url,
+            jamf_user=jamf_user,
+            password=jamf_password,
+            region=jamf_platform_gw_region,
+            tenant_id=jamf_platform_gw_tenant_id,
+            client_id=client_id,
+            client_secret=client_secret,
+            token=bearer_token,
+            jamf_cli_profile=jamf_cli_profile,
+        )
+
+        # construct the api_url based on the API type
+        api_url = self.construct_api_url(
+            jamf_url=jamf_url, region=jamf_platform_gw_region
+        )
+        self.output(f"API URL is {api_url}", verbose_level=3)
 
         # obtain the icon from the URI if no file path provided
         if "https://ics.services.jamfcloud.com/icon" in icon_uri and not icon_file:
@@ -162,11 +170,12 @@ class JamfIconUploaderBase(JamfUploaderBase):
 
         # upload the icon
         r = self.upload_icon(
-            jamf_url,
+            api_url,
             icon_file=icon_file,
             sleep_time=sleep_time,
             token=token,
             max_tries=max_tries,
+            tenant_id=jamf_platform_gw_tenant_id,
         )
 
         # get the uri from the output

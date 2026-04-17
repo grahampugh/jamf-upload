@@ -41,7 +41,7 @@ class JamfAPIRoleUploaderBase(JamfUploaderBase):
 
     def upload_object(
         self,
-        jamf_url,
+        api_url,
         object_type,
         object_name,
         object_template,
@@ -49,16 +49,18 @@ class JamfAPIRoleUploaderBase(JamfUploaderBase):
         token,
         max_tries,
         object_id=0,
+        tenant_id="",
     ):
         """Upload object"""
 
         self.output(f"Uploading {object_type}...")
 
+        endpoint = self.api_endpoints(object_type, tenant_id=tenant_id)
         # if we find an object ID we put, if not, we post
         if object_id:
-            url = f"{jamf_url}/{self.api_endpoints(object_type)}/{object_id}"
+            url = f"{api_url}/{endpoint}/{object_id}"
         else:
-            url = f"{jamf_url}/{self.api_endpoints(object_type)}"
+            url = f"{api_url}/{endpoint}"
 
         count = 0
         while True:
@@ -92,10 +94,12 @@ class JamfAPIRoleUploaderBase(JamfUploaderBase):
         jamf_url = self.env.get("JSS_URL").rstrip("/")
         jamf_user = self.env.get("API_USERNAME")
         jamf_password = self.env.get("API_PASSWORD")
+        jamf_platform_gw_region = self.env.get("PLATFORM_API_REGION")
+        jamf_platform_gw_tenant_id = self.env.get("PLATFORM_API_TENANT_ID")
         client_id = self.env.get("CLIENT_ID")
         client_secret = self.env.get("CLIENT_SECRET")
         bearer_token = self.env.get("BEARER_TOKEN")
-        use_jcm = self.to_bool(self.env.get("jamf_credentials_manager"))
+        jamf_cli_profile = self.env.get("JAMF_CLI_PROFILE")
         object_name = self.env.get("api_role_name")
         object_template = self.env.get("api_role_template")
         replace_object = self.to_bool(self.env.get("replace_api_role"))
@@ -125,37 +129,41 @@ class JamfAPIRoleUploaderBase(JamfUploaderBase):
             else:
                 raise ProcessorError(f"ERROR: Policy file {object_template} not found")
 
+        # get a token
+        token = self.auth(
+            jamf_url=jamf_url,
+            jamf_user=jamf_user,
+            password=jamf_password,
+            region=jamf_platform_gw_region,
+            tenant_id=jamf_platform_gw_tenant_id,
+            client_id=client_id,
+            client_secret=client_secret,
+            token=bearer_token,
+            jamf_cli_profile=jamf_cli_profile,
+        )
+
+        # construct the api_url based on the API type
+        api_url = self.construct_api_url(
+            jamf_url=jamf_url, region=jamf_platform_gw_region
+        )
+        self.output(f"API URL is {api_url}", verbose_level=3)
+
         # we need to substitute the values in the object name and template now to
         # account for version strings in the name
         object_name, template_file = self.prepare_template(
-            jamf_url, object_type, object_template, object_name
+            api_url, object_type, object_template, object_name
         )
 
         # now start the process of uploading the object
-        self.output(f"Checking for existing '{object_name}' on {jamf_url}")
-
-        # get token using oauth or basic auth depending on the credentials given
-        if jamf_url:
-            token = self.handle_api_auth(
-                jamf_url,
-                jamf_user=jamf_user,
-                password=jamf_password,
-                client_id=client_id,
-                client_secret=client_secret,
-                token=bearer_token,
-                use_jamf_credentials_manager=use_jcm,
-            )
-        else:
-            raise ProcessorError("ERROR: Jamf Pro URL not supplied")
-
         # Check for existing item
-        self.output(f"Checking for existing '{object_name}' on {jamf_url}")
+        self.output(f"Checking for existing '{object_name}' on {api_url}")
 
         object_id = self.get_api_object_id_from_name(
-            jamf_url,
+            api_url,
             object_type=object_type,
             object_name=object_name,
             token=token,
+            tenant_id=jamf_platform_gw_tenant_id,
             filter_name="displayName",
         )
 
@@ -175,7 +183,7 @@ class JamfAPIRoleUploaderBase(JamfUploaderBase):
 
         # upload the object
         self.upload_object(
-            jamf_url,
+            api_url,
             object_type=object_type,
             object_name=object_name,
             object_template=template_file,
@@ -183,6 +191,7 @@ class JamfAPIRoleUploaderBase(JamfUploaderBase):
             token=token,
             max_tries=max_tries,
             object_id=object_id,
+            tenant_id=jamf_platform_gw_tenant_id,
         )
         object_updated = True
 
