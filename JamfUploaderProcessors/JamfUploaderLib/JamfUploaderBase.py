@@ -610,15 +610,15 @@ class JamfUploaderBase(Processor):
         Returns the decoded payload as a dict, or None if decoding fails."""
         try:
             # JWT has 3 parts separated by dots: header.payload.signature
-            parts = token.split('.')
+            parts = token.split(".")
             if len(parts) != 3:
                 return None
-            
+
             # Decode the payload (second part)
             # Add padding if needed (JWT base64 encoding may omit padding)
             payload = parts[1]
-            payload += '=' * (4 - len(payload) % 4)
-            
+            payload += "=" * (4 - len(payload) % 4)
+
             decoded_bytes = urlsafe_b64decode(payload)
             decoded = json.loads(decoded_bytes)
             return decoded
@@ -632,7 +632,7 @@ class JamfUploaderBase(Processor):
         Calls jamf-cli with the supplied profile. The output matches the Jamf Pro API token
         responses and is handled the same way as get_api_token_from_oauth and
         get_api_token_from_basic_auth.
-        
+
         For Platform API (region provided), uses make_url_specific_dir for token storage.
         For Pro/Classic API (no region), uses make_tmp_dir for token storage."""
 
@@ -679,31 +679,29 @@ class JamfUploaderBase(Processor):
         try:
             output = json.loads(result.stdout)
         except json.JSONDecodeError as e:
-            raise ProcessorError(
-                f"jamf-cli returned invalid JSON: {e}"
-            ) from e
+            raise ProcessorError(f"jamf-cli returned invalid JSON: {e}") from e
 
         # jamf-cli returns a normalized token format regardless of API type:
         # {"token": "...", "expires_at": "2024-01-01T12:00:00.000Z"}
         # We trust that if region is provided, the user's profile is configured for Platform API.
         # The storage location and handling differs based on whether Platform API is requested.
-        
+
         if "token" in output:
             try:
                 token = str(output["token"])
                 expires = str(output["expires_at"])
-                
+
                 # Validate token type by inspecting JWT issuer claim
                 jwt_payload = self.decode_jwt_without_verification(token)
                 if jwt_payload and "iss" in jwt_payload:
                     issuer = jwt_payload["iss"]
                     self.output(f"Token issuer: {issuer}", verbose_level=2)
-                    
+
                     # Check for mismatch between requested API type and token type
                     # Platform API tokens are issued by apigw.jamf.com
                     # Pro API tokens are issued by the Jamf Pro instance
                     is_platform_token = "apigw.jamf.com" in issuer
-                    
+
                     if region and not is_platform_token:
                         # User requested Platform API but got a Pro API token
                         raise ProcessorError(
@@ -723,12 +721,12 @@ class JamfUploaderBase(Processor):
                             f"Please use a profile configured for Jamf Pro instance credentials, "
                             f"or provide --region and --tenant parameters to use Platform API."
                         )
-                
+
                 if region:
                     # Platform API - store in URL-specific directory
-                    # Note: Platform API tokens work fine even though jamf-cli returns them in 
+                    # Note: Platform API tokens work fine even though jamf-cli returns them in
                     # the normalized "token" format instead of "access_token" format
-                    
+
                     # Normalize the token data format to match other Platform API auth methods
                     # Platform API storage expects "access_token" and "expires_in"
                     # But we'll store it as-is with "token" and convert expires_at to expires
@@ -736,15 +734,19 @@ class JamfUploaderBase(Processor):
                     normalized_output["expires"] = expires
                     if "expires_at" in normalized_output:
                         del normalized_output["expires_at"]
-                    
+
                     url_specific_dir = self.make_url_specific_dir(api_url)
-                    token_file = os.path.join(url_specific_dir, "token_from_jamf_upload.txt")
+                    token_file = os.path.join(
+                        url_specific_dir, "token_from_jamf_upload.txt"
+                    )
                     normalized_output["url"] = api_url
                     normalized_output["user"] = f"jamf-cli:{jamf_cli_profile}"
                     with open(token_file, "w", encoding="utf-8") as fp:
                         json.dump(normalized_output, fp)
-                        
-                    self.output(f"Platform API token received via jamf-cli for region {region}")
+
+                    self.output(
+                        f"Platform API token received via jamf-cli for region {region}"
+                    )
                     self.output(f"Token: {token}", verbose_level=2)
                     self.output(f"Expires: {expires}", verbose_level=2)
                     return token
@@ -760,7 +762,9 @@ class JamfUploaderBase(Processor):
                     # Write token using Pro/Classic API storage (session-specific directory)
                     # Use prefixed identifier to avoid conflicts with other auth methods
                     self.write_token_to_json_file(
-                        api_url=api_url, identifier=f"jamf-cli:{jamf_cli_profile}", data=normalized_output
+                        api_url=api_url,
+                        identifier=f"jamf-cli:{jamf_cli_profile}",
+                        data=normalized_output,
                     )
                     self.output("Pro/Classic API token received via jamf-cli")
                     self.output(f"Token: {token}", verbose_level=2)
@@ -777,7 +781,7 @@ class JamfUploaderBase(Processor):
             self.output(
                 "WARNING: jamf-cli returned access_token format (unexpected). "
                 "This may indicate a jamf-cli version difference.",
-                verbose_level=1
+                verbose_level=1,
             )
             try:
                 token = str(output["access_token"])
@@ -786,7 +790,9 @@ class JamfUploaderBase(Processor):
                 if region:
                     # Platform API storage
                     url_specific_dir = self.make_url_specific_dir(api_url)
-                    token_file = os.path.join(url_specific_dir, "token_from_jamf_upload.txt")
+                    token_file = os.path.join(
+                        url_specific_dir, "token_from_jamf_upload.txt"
+                    )
                     output["url"] = api_url
                     output["user"] = f"jamf-cli:{jamf_cli_profile}"
                     with open(token_file, "w", encoding="utf-8") as fp:
@@ -796,13 +802,19 @@ class JamfUploaderBase(Processor):
                     normalized_output = output.copy()
                     normalized_output["token"] = token
                     # Convert expires_in to expires timestamp
-                    expires_timestamp = datetime.now(timezone.utc) + timedelta(seconds=expires_in)
-                    normalized_output["expires"] = expires_timestamp.strftime("%Y-%m-%dT%H:%M:%S.%fZ")
-                    self.write_token_to_json_file(
-                        api_url=api_url, identifier=f"jamf-cli:{jamf_cli_profile}", data=normalized_output
+                    expires_timestamp = datetime.now(timezone.utc) + timedelta(
+                        seconds=expires_in
                     )
-                    
-                self.output(f"Token received via jamf-cli (access_token format)")
+                    normalized_output["expires"] = expires_timestamp.strftime(
+                        "%Y-%m-%dT%H:%M:%S.%fZ"
+                    )
+                    self.write_token_to_json_file(
+                        api_url=api_url,
+                        identifier=f"jamf-cli:{jamf_cli_profile}",
+                        data=normalized_output,
+                    )
+
+                self.output("Token received via jamf-cli (access_token format)")
                 self.output(f"Token: {token}", verbose_level=2)
                 return token
             except KeyError as e:
@@ -811,7 +823,9 @@ class JamfUploaderBase(Processor):
                     f"jamf-cli output: {result.stdout.strip()}", verbose_level=2
                 )
         else:
-            self.output("ERROR: Unexpected response from jamf-cli - no token or access_token found")
+            self.output(
+                "ERROR: Unexpected response from jamf-cli - no token or access_token found"
+            )
             self.output(f"jamf-cli output: {result.stdout.strip()}", verbose_level=2)
         return ""
 
@@ -1079,7 +1093,9 @@ class JamfUploaderBase(Processor):
         if jamf_cli_profile:
             # Check for existing token using the profile as identifier
             # This ensures jamf-cli tokens are cached separately from OAuth tokens
-            token = self.check_platform_api_token(api_url, client_id=f"jamf-cli:{jamf_cli_profile}")
+            token = self.check_platform_api_token(
+                api_url, client_id=f"jamf-cli:{jamf_cli_profile}"
+            )
             if not token:
                 token = self.get_token_from_jamf_cli(
                     api_url, jamf_cli_profile=jamf_cli_profile, region=region
