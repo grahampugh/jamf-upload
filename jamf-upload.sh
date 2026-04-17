@@ -57,15 +57,19 @@ Valid object types:
 Arguments:
     --prefs <path>          Inherit AutoPkg prefs file provided by the full path to the file
     -v[vvv]                 Set value of verbosity
-    --url <JSS_URL>         The Jamf Pro URL
+    --url <JSS_URL>         The Jamf Pro URL (required even if using Platform API credentials)
+    --region (eu|us|apac)   The region that the Jamf Pro tenant is hosted in. This is required when using platform API 
+                            credentials and will be used to construct the API base URL for authentication and API calls
+    --tenant <TENANT_ID>    The tenant ID for the Jamf Pro platform API
     --user <API_USERNAME>   The API username
     --pass <API_PASSWORD>   The API user's password
     --clientid <ID>         An API Client ID
     --clientsecret <string> An API Client Secret
     --token <string>        A pre-existing bearer token for the Jamf Pro API
-    --jamf-credentials-manager
-                            Use JamfCredentialsManager to obtain a bearer token
+    --jamf-cli-profile <JAMF_CLI_PROFILE>
+                            A Jamf CLI profile to use to obtain a bearer token
     --recipe-dir <RECIPE_DIR>
+                            The directory containing the AutoPkg recipes
 
 UPLOAD OPTIONS
 
@@ -490,7 +494,130 @@ if plutil -replace RECIPE_DIR -string "." "$temp_processor_plist"; then
     echo "   [jamf-upload] Wrote RECIPE_DIR='.' into $temp_processor_plist"
 fi
 
-object="$1"
+# Find the object type from any position in the arguments.
+# Arguments before and after it are collected into remaining_args for later processing.
+object=""
+processor=""
+remaining_args=()
+
+is_valid_object_type() {
+    case "$1" in
+        account|apirole|apiclient|category|computerprestage) return 0 ;;
+        delete|objdelete|objectdelete) return 0 ;;
+        group|computergroup) return 0 ;;
+        groupdelete|computergroupdelete) return 0 ;;
+        profile|computerprofile) return 0 ;;
+        dock|dockitem) return 0 ;;
+        ea|extensionattribute|computerextensionattribute) return 0 ;;
+        eapopup|eapopupadjuster) return 0 ;;
+        icon|macapp|mobiledeviceapp) return 0 ;;
+        mobiledeviceea|mobiledeviceextensionattribute) return 0 ;;
+        mobiledevicegroup|mobiledeviceprofile) return 0 ;;
+        msu|managedsoftwareupdateplan) return 0 ;;
+        statechange) return 0 ;;
+        obj|object|classicobj|classicobject) return 0 ;;
+        pkg|package|pkgclean|unusedpkgclean|pkgdata) return 0 ;;
+        pkgcalc|packagerecalculate) return 0 ;;
+        policy|policydelete|policyflush) return 0 ;;
+        patch|patchcheck) return 0 ;;
+        read) return 0 ;;
+        restriction|softwarerestriction) return 0 ;;
+        scope|script) return 0 ;;
+        staticcomputergroup|staticmobiledevicegroup) return 0 ;;
+        jira|list-types|listtypes|slack|teams) return 0 ;;
+        *) return 1 ;;
+    esac
+}
+
+# Known flags that take a value argument (so we can skip the value when scanning)
+flag_takes_value() {
+    case "$1" in
+        --prefs|--recipe-dir|--url|--region|--tenant|--tenant-id) return 0 ;;
+        --user|--username|--pass|--password) return 0 ;;
+        --clientid|--clientsecret|--token|--jamf-cli-profile) return 0 ;;
+        --type|--domain|--group|--group_name|--group-name) return 0 ;;
+        --priority|--name|-n|--template|--api-client-id|--api-role-name) return 0 ;;
+        --lifetime|--access-token-lifetime) return 0 ;;
+        --payload|--mobileconfig|--identifier|--category|--organization) return 0 ;;
+        --description|--computergroup|--path|--operation|--output|--value) return 0 ;;
+        --data-type|--inventory-display|--ldap-mapping|--choices) return 0 ;;
+        --script|--script-path|--icon|--icon-uri|--icon-url) return 0 ;;
+        --clone-from|--clone_from|--appconfig|--mobiledevicegroup) return 0 ;;
+        --days|--days-until-force-install|--device-type|--version) return 0 ;;
+        --version-type|--id|--api-filter|--settings-key) return 0 ;;
+        --elements-to-remove|--elements-to-retain|--state|--retain-data) return 0 ;;
+        --keep|--smb_url|--smb-url|--smb_user*|--smb-user*) return 0 ;;
+        --smb_pass*|--smb-pass*) return 0 ;;
+        --pkg|--pkg_path|--pkg-path|--pkg-name|--pkg_name) return 0 ;;
+        --info|--notes|--title|--policy-name|--interval) return 0 ;;
+        --os_requirement*|--os-requirement*|--osrequirement*) return 0 ;;
+        --required_processor|--required-processor) return 0 ;;
+        --scope-type) return 0 ;;
+        --process_name|--process-name|--display_message|--display-message) return 0 ;;
+        --slack-url|--slack-user|--channel|--emoji) return 0 ;;
+        --teams-url|--teams-user|--patch_name) return 0 ;;
+        --jira-issue|--jira-api-token|--jira-project|--jira-priority) return 0 ;;
+        --jira-url|--jira-user*|--jira-issue-type) return 0 ;;
+        --pkg-category|--policy-category|--key) return 0 ;;
+        *) return 1 ;;
+    esac
+}
+
+# handle --help with no object type
+for arg in "$@"; do
+    if [[ "$arg" == "--help" || "$arg" == "-h" || "$arg" == "help" ]]; then
+        usage
+        exit 0
+    fi
+done
+
+# scan arguments to find the object type
+while [[ $# -gt 0 ]]; do
+    if [[ -z "$object" ]] && [[ "$1" != -* ]] && is_valid_object_type "$1"; then
+        object="$1"
+    elif [[ -z "$object" ]] && [[ "$1" != -* ]]; then
+        # non-flag argument that isn't a valid object type - this is the bad object
+        echo
+        echo "ERROR: '$1' is not a valid object type."
+        echo
+        echo "Valid object types:"
+        echo "    account, apiclient, apirole, category, computerprestage, delete,"
+        echo "    group, groupdelete, mobiledevicegroup, profile, mobiledeviceprofile,"
+        echo "    ea, eapopup, icon, jira, logflush, list-types, macapp, mobiledeviceapp,"
+        echo "    msu, obj, patch, pkg, pkgdata, pkgclean, pkgcalc, policy, policydelete,"
+        echo "    policyflush, read, restriction, scope, statechange, staticcomputergroup,"
+        echo "    staticmobiledevicegroup, script, slack, teams, unusedpkgclean"
+        echo
+        echo "Run './jamf-upload.sh --help' for full usage."
+        exit 1
+    else
+        remaining_args+=("$1")
+        # if this flag takes a value, also consume the next argument
+        if [[ -z "$object" ]] && flag_takes_value "$1" && [[ $# -ge 2 ]]; then
+            shift
+            remaining_args+=("$1")
+        fi
+    fi
+    shift
+done
+
+if [[ -z "$object" ]]; then
+    echo
+    echo "ERROR: No object type specified."
+    echo
+    echo "Valid object types:"
+    echo "    account, apiclient, apirole, category, computerprestage, delete,"
+    echo "    group, groupdelete, mobiledevicegroup, profile, mobiledeviceprofile,"
+    echo "    ea, eapopup, icon, jira, logflush, list-types, macapp, mobiledeviceapp,"
+    echo "    msu, obj, patch, pkg, pkgdata, pkgclean, pkgcalc, policy, policydelete,"
+    echo "    policyflush, read, restriction, scope, statechange, staticcomputergroup,"
+    echo "    staticmobiledevicegroup, script, slack, teams, unusedpkgclean"
+    echo
+    echo "Run './jamf-upload.sh --help' for full usage."
+    exit 1
+fi
+
+# Map object type to processor
 if [[ $object == "account" ]]; then
     processor="JamfAccountUploader"
 elif [[ $object == "apirole" ]]; then
@@ -573,19 +700,22 @@ elif [[ $object == "slack" ]]; then
     processor="JamfUploaderSlacker"
 elif [[ $object == "teams" ]]; then
     processor="JamfUploaderTeamsNotifier"
-elif [[ $object == "--help" || $object == "help" || $object == "-h" ]]; then
-    usage
-    exit 0
-else
-    usage
+fi
+
+# Replace positional parameters with remaining_args (flags only, object type removed)
+set -- "${remaining_args[@]}"
+
+if [[ $# -eq 0 ]]; then
+    echo
+    echo "ERROR: No arguments provided for object type '$object'."
+    echo "       At minimum, authentication options are required."
+    echo
+    echo "Run './jamf-upload.sh --help' for full usage."
     exit 1
 fi
 
-shift
-if [[ ! "$1" ]]; then
-    usage
-    exit 1
-fi
+# track any invalid flags
+invalid_keys=()
 
 while test $# -gt 0; do
     case "$1" in
@@ -603,16 +733,37 @@ while test $# -gt 0; do
             echo "   [jamf-upload] Wrote verbose='$verbosity' into $temp_processor_plist"
         fi
         ;;
-    --url)
-        shift
-        if plutil -replace JSS_URL -string "$1" "$temp_processor_plist"; then
-            echo "   [jamf-upload] Wrote JSS_URL='$1' into $temp_processor_plist"
-        fi
-        ;;
     --recipe-dir)
         shift
         if plutil -replace RECIPE_DIR -string "$1" "$temp_processor_plist"; then
             echo "   [jamf-upload] Wrote RECIPE_DIR='$1' into $temp_processor_plist"
+        fi
+        ;;
+    --url) 
+        shift
+        # expand a url input without any protocol or with a missing protocol to include https:// and a trailing slash, since that's the most likely intended format and the format required for the JSS_URL key in the processor plist, and add .jamfcloud.com if the input looks like a cloud instance without the full domain
+        if [[ "$1" =~ ^https?:// ]]; then
+            jss_url="$1"
+        elif [[ "$1" =~ ^[a-zA-Z0-9_-]+$ ]]; then
+            jss_url="https://$1.jamfcloud.com"
+        else
+            jss_url="https://$1"
+        fi
+
+        if plutil -replace JSS_URL -string "$jss_url" "$temp_processor_plist"; then
+            echo "   [jamf-upload] Wrote JSS_URL='$jss_url' into $temp_processor_plist"
+        fi
+        ;;
+    --region)
+        shift
+        if plutil -replace PLATFORM_API_REGION -string "$1" "$temp_processor_plist"; then
+            echo "   [jamf-upload] Wrote PLATFORM_API_REGION='$1' into $temp_processor_plist"
+        fi
+        ;;
+    --tenant|--tenant-id)
+        shift
+        if plutil -replace PLATFORM_API_TENANT_ID -string "$1" "$temp_processor_plist"; then
+            echo "   [jamf-upload] Wrote PLATFORM_API_TENANT_ID='$1' into $temp_processor_plist"
         fi
         ;;
     --user*)
@@ -647,9 +798,10 @@ while test $# -gt 0; do
             echo "   [jamf-upload] Wrote BEARER_TOKEN='[redacted]' into $temp_processor_plist"
         fi
         ;;
-    --jamf-credentials-manager)
-        if plutil -replace jamf_credentials_manager -string "True" "$temp_processor_plist"; then
-            echo "   [jamf-upload] Wrote jamf_credentials_manager='True' into $temp_processor_plist"
+    --jamf-cli-profile)
+        shift
+        if plutil -replace JAMF_CLI_PROFILE -string "$1" "$temp_processor_plist"; then
+            echo "   [jamf-upload] Wrote JAMF_CLI_PROFILE='$1' into $temp_processor_plist"
         fi
         ;;
     --type)
@@ -1743,11 +1895,224 @@ while test $# -gt 0; do
         exit 0
         ;;
     *)
-        echo "Unused key: $1"
+        echo "WARNING: Unknown argument: $1"
+        invalid_keys+=("$1")
         ;;
     esac
     shift
 done
+
+# Report any invalid keys that were supplied
+if [[ ${#invalid_keys[@]} -gt 0 ]]; then
+    echo
+    echo "ERROR: The following arguments are not valid for object type '$object':"
+    for k in "${invalid_keys[@]}"; do
+        echo "    $k"
+    done
+    echo
+    echo "Run './jamf-upload.sh --help' for full usage."
+    exit 1
+fi
+
+# Validate required keys per processor
+missing_keys=()
+
+check_key() {
+    # check_key <plist_key> <cli_flag>
+    if ! /usr/libexec/PlistBuddy -c "Print :$1" "$temp_processor_plist" &>/dev/null; then
+        missing_keys+=("$2")
+    fi
+}
+
+# Check authentication: need either --prefs, --jamf-cli-profile, --token,
+# URL+(user and/or pass), or URL+(clientid and/or clientsecret).
+# Password/secret may come from the keychain, so only user or clientid is required.
+has_prefs=false
+has_jamf_cli_profile=false
+has_token=false
+has_url=false
+has_user=false
+has_clientid=false
+
+/usr/libexec/PlistBuddy -c "Print :JSS_URL" "$temp_processor_plist" &>/dev/null && has_url=true
+/usr/libexec/PlistBuddy -c "Print :API_USERNAME" "$temp_processor_plist" &>/dev/null && has_user=true
+/usr/libexec/PlistBuddy -c "Print :CLIENT_ID" "$temp_processor_plist" &>/dev/null && has_clientid=true
+/usr/libexec/PlistBuddy -c "Print :BEARER_TOKEN" "$temp_processor_plist" &>/dev/null && has_token=true
+/usr/libexec/PlistBuddy -c "Print :JAMF_CLI_PROFILE" "$temp_processor_plist" &>/dev/null && has_jamf_cli_profile=true
+[[ -n "${autopkg_prefs:-}" ]] && has_prefs=true
+
+# Processors that don't need Jamf auth
+no_auth_processors=("JamfExtensionAttributePopupChoiceAdjuster" "JamfScopeAdjuster")
+
+needs_auth=true
+for p in "${no_auth_processors[@]}"; do
+    if [[ $processor == "$p" ]]; then
+        needs_auth=false
+        break
+    fi
+done
+
+if $needs_auth; then
+    if ! $has_prefs && ! $has_jamf_cli_profile; then
+        if ! $has_url; then
+            missing_keys+=("--url")
+        fi
+        if ! $has_user && ! $has_clientid && ! $has_token; then
+            missing_keys+=("--user or --clientid or --token")
+        fi
+    fi
+fi
+
+# Processor-specific required keys
+case "$processor" in
+    JamfAccountUploader)
+        check_key account_name "--name"
+        ;;
+    JamfAPIRoleUploader)
+        check_key api_role_name "--name"
+        check_key api_role_template "--template"
+        ;;
+    JamfAPIClientUploader)
+        check_key api_client_name "--name"
+        ;;
+    JamfCategoryUploader)
+        check_key category_name "--name"
+        ;;
+    JamfComputerPreStageUploader)
+        check_key prestage_name "--name"
+        check_key prestage_template "--template"
+        ;;
+    JamfObjectDeleter)
+        check_key object_name "--name"
+        ;;
+    JamfComputerGroupUploader)
+        check_key computergroup_name "--name"
+        check_key computergroup_template "--template"
+        ;;
+    JamfComputerGroupDeleter)
+        check_key computergroup_name "--name"
+        ;;
+    JamfComputerProfileUploader)
+        check_key profile_name "--name"
+        ;;
+    JamfDockItemUploader)
+        check_key dock_item_name "--name"
+        check_key dock_item_type "--type"
+        check_key dock_item_path "--path"
+        ;;
+    JamfExtensionAttributeUploader)
+        check_key ea_name "--name"
+        ;;
+    JamfMobileDeviceExtensionAttributeUploader)
+        check_key ea_name "--name"
+        ;;
+    JamfExtensionAttributePopupChoiceAdjuster)
+        check_key object_template "--template"
+        check_key choice_operation "--operation"
+        check_key choice_value "--value"
+        ;;
+    JamfIconUploader)
+        # need either icon_file or icon_uri
+        if ! /usr/libexec/PlistBuddy -c "Print :icon_file" "$temp_processor_plist" &>/dev/null && \
+           ! /usr/libexec/PlistBuddy -c "Print :icon_uri" "$temp_processor_plist" &>/dev/null; then
+            missing_keys+=("--icon or --icon-uri")
+        fi
+        ;;
+    JamfMacAppUploader)
+        check_key macapp_name "--name"
+        ;;
+    JamfMobileDeviceAppUploader)
+        check_key mobiledeviceapp_name "--name"
+        ;;
+    JamfMobileDeviceGroupUploader)
+        check_key mobiledevicegroup_name "--name"
+        check_key mobiledevicegroup_template "--template"
+        ;;
+    JamfMobileDeviceProfileUploader)
+        check_key profile_name "--name"
+        ;;
+    JamfMSUPlanUploader)
+        check_key device_type "--device-type"
+        check_key group_name "--group"
+        ;;
+    JamfObjectStateChanger)
+        check_key object_name "--name"
+        check_key object_state "--state"
+        ;;
+    JamfObjectUploader)
+        check_key object_template "--template"
+        ;;
+    JamfPackageUploader)
+        check_key pkg_path "--pkg"
+        ;;
+    JamfPackageCleaner)
+        check_key pkg_name_match "--name"
+        ;;
+    JamfPkgMetadataUploader)
+        check_key pkg_name "--pkg"
+        ;;
+    JamfPolicyUploader)
+        check_key policy_name "--name"
+        check_key policy_template "--template"
+        ;;
+    JamfPolicyDeleter)
+        check_key policy_name "--name"
+        ;;
+    JamfPolicyLogFlusher)
+        check_key policy_name "--name"
+        ;;
+    JamfPatchUploader)
+        check_key patch_name "--name"
+        check_key patch_softwaretitle "--title"
+        ;;
+    JamfPatchChecker)
+        check_key patch_softwaretitle "--title"
+        ;;
+    JamfObjectReader)
+        # need either object_name or all_objects
+        if ! /usr/libexec/PlistBuddy -c "Print :object_name" "$temp_processor_plist" &>/dev/null && \
+           ! /usr/libexec/PlistBuddy -c "Print :all_objects" "$temp_processor_plist" &>/dev/null; then
+            missing_keys+=("--name or --all")
+        fi
+        ;;
+    JamfSoftwareRestrictionUploader)
+        check_key restriction_name "--name"
+        ;;
+    JamfScopeAdjuster)
+        check_key object_template "--template"
+        check_key scoping_operation "--operation"
+        check_key scoping_type "--scope-type"
+        check_key scopeable_type "--type"
+        check_key scopeable_name "--name"
+        ;;
+    JamfScriptUploader)
+        check_key script_name "--name"
+        check_key script_path "--script"
+        ;;
+    JamfComputerStaticGroupUploader)
+        check_key computergroup_name "--name"
+        ;;
+    JamfMobileDeviceStaticGroupUploader)
+        check_key mobiledevicegroup_name "--name"
+        ;;
+    JamfUploaderSlacker)
+        check_key slack_webhook_url "--slack-url"
+        ;;
+    JamfUploaderTeamsNotifier)
+        check_key teams_webhook_url "--teams-url"
+        ;;
+esac
+
+if [[ ${#missing_keys[@]} -gt 0 ]]; then
+    echo
+    echo "ERROR: Missing required arguments for '$object':"
+    for k in "${missing_keys[@]}"; do
+        echo "    $k"
+    done
+    echo
+    echo "Run './jamf-upload.sh --help' for full usage."
+    exit 1
+fi
 
 # add the object type for items using the generic JamfObjectReader and JamfObjectUploader processors
 if [[ $processor == "JamfObjectReader" || $processor == "JamfObjectDeleter" || $processor == "JamfObjectUploader" || $processor == "JamfObjectStateChanger" ]]; then

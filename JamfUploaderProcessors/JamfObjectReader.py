@@ -90,11 +90,11 @@ class JamfObjectReader(JamfObjectReaderBase):
             "If provided, the token will be validated and used directly, "
             "bypassing credential-based authentication.",
         },
-        "jamf_credentials_manager": {
+        "JAMF_CLI_PROFILE": {
             "required": False,
-            "description": "Use JamfCredentialsManager to obtain a bearer token. "
-            "Requires JamfCredentialsManager to be installed at "
-            "/usr/local/lib/JamfCredentialsManager. Set to 'True' to enable.",
+            "description": "A jamf-cli profile to use to obtain a bearer token. "
+            "Requires jamf-cli to be installed and in the PATH. "
+            "Set to a profile name to enable.",
             "default": "",
         },
         "object_id": {

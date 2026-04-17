@@ -166,10 +166,12 @@ class JamfObjectReaderBase(JamfUploaderBase):
         jamf_url = self.env.get("JSS_URL").rstrip("/")
         jamf_user = self.env.get("API_USERNAME")
         jamf_password = self.env.get("API_PASSWORD")
+        jamf_platform_gw_region = self.env.get("PLATFORM_API_REGION")
+        jamf_platform_gw_tenant_id = self.env.get("PLATFORM_API_TENANT_ID")
         client_id = self.env.get("CLIENT_ID")
         client_secret = self.env.get("CLIENT_SECRET")
         bearer_token = self.env.get("BEARER_TOKEN")
-        use_jcm = self.to_bool(self.env.get("jamf_credentials_manager"))
+        jamf_cli_profile = self.env.get("JAMF_CLI_PROFILE")
         object_id = self.env.get("object_id")
         object_name = self.env.get("object_name")
         all_objects = self.to_bool(self.env.get("all_objects"))
@@ -206,31 +208,23 @@ class JamfObjectReaderBase(JamfUploaderBase):
         # substitute user-assignable keys
         object_name = self.substitute_assignable_keys(object_name)
 
-        # get token using oauth or basic auth depending on the credentials given
-        if jamf_url:
-            # determine which token we need based on object type. classic and jpapi types use handle_api_auth, platform type uses handle_platform_api_auth
-            api_type = self.api_type(object_type)
-            self.output(f"API type for {object_type} is {api_type}", verbose_level=3)
-            if api_type == "platform":
-                token = self.handle_platform_api_auth(
-                    jamf_url,
-                    client_id=client_id,
-                    client_secret=client_secret,
-                    token=bearer_token,
-                    use_jamf_credentials_manager=use_jcm,
-                )
-            else:
-                token = self.handle_api_auth(
-                    jamf_url,
-                    jamf_user=jamf_user,
-                    password=jamf_password,
-                    client_id=client_id,
-                    client_secret=client_secret,
-                    token=bearer_token,
-                    use_jamf_credentials_manager=use_jcm,
-                )
-        else:
-            raise ProcessorError("ERROR: Jamf Pro URL not supplied")
+        # determine the API type for the object type, which determines how we interact
+        # with the API for this object
+        api_type = self.api_type(object_type)
+        self.output(f"API type for {object_type} is {api_type}", verbose_level=3)
+
+        # get a token
+        token = self.auth(
+            jamf_url=jamf_url,
+            jamf_user=jamf_user,
+            password=jamf_password,
+            region=jamf_platform_gw_region,
+            tenant_id=jamf_platform_gw_tenant_id,
+            client_id=client_id,
+            client_secret=client_secret,
+            token=bearer_token,
+            jamf_cli_profile=jamf_cli_profile,
+        )
 
         # get instance name from URL
         host = jamf_url.partition("://")[2]
@@ -254,11 +248,22 @@ class JamfObjectReaderBase(JamfUploaderBase):
         namekey_path = self.get_namekey_path(object_type, namekey)
         self.output(f"Name key for {object_type} is {namekey}", verbose_level=3)
 
+        # construct the api_url based on the API type
+        api_url = self.construct_api_url(
+            jamf_url=jamf_url, region=jamf_platform_gw_region
+        )
+        self.output(f"API URL for {object_type} is {api_url}", verbose_level=3)
+
         # if requesting all objects we need to generate a list of all to iterate through
         if all_objects or list_only:
-            self.output(f"Getting all {object_type} objects from {jamf_url}")
+            self.output(f"Getting all {object_type} objects from {api_url}")
             object_list = self.get_all_api_objects(
-                jamf_url, object_type, uuid=uuid, token=token, namekey=namekey
+                api_url,
+                object_type,
+                tenant_id=jamf_platform_gw_tenant_id,
+                uuid=uuid,
+                token=token,
+                namekey=namekey,
             )
             if list_only:
                 self.env["object_list"] = object_list
@@ -308,10 +313,11 @@ class JamfObjectReaderBase(JamfUploaderBase):
                     f"Object ID {object_id} provided, using object ID to get object contents"
                 )
                 object_name = self.get_api_object_value_from_id(
-                    jamf_url,
+                    api_url,
                     object_type=object_type,
                     object_id=object_id,
                     object_path=namekey_path,
+                    tenant_id=jamf_platform_gw_tenant_id,
                     token=token,
                 )
             object_list = [{"id": object_id, namekey: object_name}]
@@ -319,7 +325,7 @@ class JamfObjectReaderBase(JamfUploaderBase):
 
         elif object_name:
             # Check for existing item
-            self.output(f"Checking for existing '{object_name}' on {jamf_url}")
+            self.output(f"Checking for existing '{object_name}' on {api_url}")
 
             # exception for accounts
             if object_type == "account":
@@ -333,10 +339,11 @@ class JamfObjectReaderBase(JamfUploaderBase):
                         object_type = "account_group"
 
                     object_id = self.get_api_object_id_from_name(
-                        jamf_url,
+                        api_url,
                         object_type=object_type,
                         object_name=object_name,
                         token=token,
+                        tenant_id=jamf_platform_gw_tenant_id,
                         filter_name=namekey,
                     )
                     if object_id:
@@ -346,11 +353,12 @@ class JamfObjectReaderBase(JamfUploaderBase):
                 id_key = self.get_idkey(object_type)
 
                 object_id = self.get_api_object_id_from_name(
-                    jamf_url,
+                    api_url,
                     object_type=object_type,
                     object_name=object_name,
                     token=token,
                     filter_name=namekey,
+                    tenant_id=jamf_platform_gw_tenant_id,
                     id_key=id_key,
                 )
 
@@ -361,13 +369,15 @@ class JamfObjectReaderBase(JamfUploaderBase):
                 )
                 object_list = [{"id": object_id, namekey: object_name}]
             else:
-                self.output(f"{object_type} '{object_name}' not found on {jamf_url}")
+                self.output(f"{object_type} '{object_name}' not found on {api_url}")
 
         elif "_settings" in object_type:
-            object_content = self.get_settings_object(jamf_url, object_type, token)
+            object_content = self.get_settings_object(
+                api_url, object_type, token, tenant_id=jamf_platform_gw_tenant_id
+            )
             if object_content:
                 self.output(
-                    f"{object_type} content on {jamf_url}: {object_content}",
+                    f"{object_type} content on {api_url}: {object_content}",
                     verbose_level=3,
                 )
                 if settings_key:
@@ -400,12 +410,12 @@ class JamfObjectReaderBase(JamfUploaderBase):
                     )
 
             else:
-                self.output(f"{object_type} has no content on {jamf_url}")
+                self.output(f"{object_type} has no content on {api_url}")
 
         if not list_only:
             # now iterate through all the objects
             self.output(
-                f"Iterating through {object_type} objects in {jamf_url}",
+                f"Iterating through {object_type} objects in {api_url}",
                 verbose_level=1,
             )
             # exception for accounts
@@ -429,7 +439,12 @@ class JamfObjectReaderBase(JamfUploaderBase):
                         else:
                             object_type = "account_group"
                         raw_object = self.get_api_object_contents_from_id(
-                            jamf_url, object_type, i, object_path="", token=token
+                            api_url,
+                            object_type,
+                            i,
+                            object_path="",
+                            token=token,
+                            tenant_id=jamf_platform_gw_tenant_id,
                         )
 
                         # parse the object
@@ -477,7 +492,12 @@ class JamfObjectReaderBase(JamfUploaderBase):
 
                     # get the object
                     raw_object = self.get_api_object_contents_from_id(
-                        jamf_url, object_type, i, object_path="", token=token
+                        api_url,
+                        object_type,
+                        i,
+                        object_path="",
+                        token=token,
+                        tenant_id=jamf_platform_gw_tenant_id,
                     )
 
                     # parse the object
