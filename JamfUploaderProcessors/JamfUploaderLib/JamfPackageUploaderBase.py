@@ -201,7 +201,15 @@ class JamfPackageUploaderBase(JamfUploaderBase):
     # Beginning of functions for uploading to v1/packages endpoint
 
     def upload_pkg(
-        self, api_url, pkg_path, pkg_name, pkg_id, sleep_time, token, max_tries, tenant_id=""
+        self,
+        api_url,
+        pkg_path,
+        pkg_name,
+        pkg_id,
+        sleep_time,
+        token,
+        max_tries,
+        tenant_id="",
     ):
         """Upload a package to a Cloud Distribution Point using the v1/packages endpoint"""
 
@@ -901,7 +909,7 @@ class JamfPackageUploaderBase(JamfUploaderBase):
                 verbose_level=1,
             )
             r = self.upload_pkg(
-                jamf_url=api_url,
+                api_url=api_url,
                 pkg_path=pkg_path,
                 pkg_name=pkg_name,
                 pkg_id=pkg_id,
@@ -939,7 +947,9 @@ class JamfPackageUploaderBase(JamfUploaderBase):
                 raise ProcessorError("ERROR: Jamf Pro URL not supplied")
 
             # now send the recalculation request
-            packages_recalculated = self.recalculate_packages(api_url, token, jamf_platform_gw_tenant_id)
+            packages_recalculated = self.recalculate_packages(
+                api_url, token, jamf_platform_gw_tenant_id
+            )
         else:
             packages_recalculated = False
 
