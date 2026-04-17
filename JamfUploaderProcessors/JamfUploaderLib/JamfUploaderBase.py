@@ -1177,7 +1177,9 @@ class JamfUploaderBase(Processor):
                 tenant_id=tenant_id,
                 jamf_cli_profile=jamf_cli_profile,
             )
-        elif jamf_url and (jamf_user or client_id or jamf_cli_profile):
+        elif jamf_url:
+            # handle_api_auth will attempt keychain lookup if no explicit
+            # credentials are provided, so we allow just a URL here
             token = self.handle_api_auth(
                 jamf_url,
                 jamf_user=jamf_user,
