@@ -908,7 +908,7 @@ class JamfPackageUploaderBase(JamfUploaderBase):
                 "Uploading package to Cloud DP",
                 verbose_level=1,
             )
-            r = self.upload_pkg(
+            self.upload_pkg(
                 api_url=api_url,
                 pkg_path=pkg_path,
                 pkg_name=pkg_name,
