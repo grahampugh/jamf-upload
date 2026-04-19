@@ -537,7 +537,7 @@ class JamfPackageUploaderBase(JamfUploaderBase):
         aws_cdp_mode = self.to_bool(self.env.get("aws_cdp_mode"))
         recalculate = self.to_bool(self.env.get("recalculate"))
         use_md5 = self.env.get("md5")
-        jamf_url = self.env.get("JSS_URL").rstrip("/")
+        jamf_url = (self.env.get("JSS_URL") or "").rstrip("/")
         jamf_user = self.env.get("API_USERNAME")
         jamf_password = self.env.get("API_PASSWORD")
         jamf_platform_gw_region = self.env.get("PLATFORM_API_REGION")
@@ -697,7 +697,7 @@ class JamfPackageUploaderBase(JamfUploaderBase):
 
         # get token using oauth or basic auth depending on the credentials given
         if jamf_url:
-            token = self.auth(
+            token, jamf_url, jamf_platform_gw_region, jamf_platform_gw_tenant_id = self.auth(
                 jamf_url=jamf_url,
                 jamf_user=jamf_user,
                 password=jamf_password,
@@ -824,7 +824,7 @@ class JamfPackageUploaderBase(JamfUploaderBase):
         if smb_shares or aws_cdp_mode:
             # get token using oauth or basic auth depending on the credentials given
             if jamf_url:
-                token = self.auth(
+                token, jamf_url, jamf_platform_gw_region, jamf_platform_gw_tenant_id = self.auth(
                     jamf_url=jamf_url,
                     jamf_user=jamf_user,
                     password=jamf_password,
@@ -932,7 +932,7 @@ class JamfPackageUploaderBase(JamfUploaderBase):
             # as package upload may have taken some time
             # get token using oauth or basic auth depending on the credentials given
             if jamf_url:
-                token = self.auth(
+                token, jamf_url, jamf_platform_gw_region, jamf_platform_gw_tenant_id = self.auth(
                     jamf_url=jamf_url,
                     jamf_user=jamf_user,
                     password=jamf_password,

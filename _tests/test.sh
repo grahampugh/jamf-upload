@@ -29,6 +29,10 @@ while [[ "$#" -gt 0 ]]; do
         shift
         profile="$1"
         ;;
+    --clientid)
+        shift
+        client_id="$1"
+        ;;
     -p | --pkg)
         shift
         pkg_path="${1}"
@@ -244,6 +248,12 @@ fi
 if [[ $region ]]; then
     command_base+=(
         --region "$region"
+    )
+fi
+
+if [[ $client_id ]]; then
+    command_base+=(
+        --clientid "$client_id"
     )
 fi
 

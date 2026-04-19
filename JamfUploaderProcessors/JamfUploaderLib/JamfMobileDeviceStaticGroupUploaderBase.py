@@ -130,7 +130,7 @@ class JamfMobileDeviceStaticGroupUploaderBase(JamfUploaderBase):
 
     def execute(self):
         """Upload a static mobile device group"""
-        jamf_url = self.env.get("JSS_URL").rstrip("/")
+        jamf_url = (self.env.get("JSS_URL") or "").rstrip("/")
         jamf_user = self.env.get("API_USERNAME")
         jamf_password = self.env.get("API_PASSWORD")
         jamf_platform_gw_region = self.env.get("PLATFORM_API_REGION")
@@ -165,7 +165,7 @@ class JamfMobileDeviceStaticGroupUploaderBase(JamfUploaderBase):
         mobiledevicegroup_name = self.substitute_assignable_keys(mobiledevicegroup_name)
 
         # get a token
-        token = self.auth(
+        token, jamf_url, jamf_platform_gw_region, jamf_platform_gw_tenant_id = self.auth(
             jamf_url=jamf_url,
             jamf_user=jamf_user,
             password=jamf_password,
