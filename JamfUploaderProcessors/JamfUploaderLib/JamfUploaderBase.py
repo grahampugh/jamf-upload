@@ -1979,9 +1979,14 @@ class JamfUploaderBase(Processor):
         raise ProcessorError(f"File '{filename}' not found")
 
     def get_all_api_objects(
-        self, domain, object_type, tenant_id="", uuid="", token="", namekey="name"
+        self, domain, object_type, tenant_id="", uuid="", token="", namekey=""
     ):
         """get a list of all objects of a particular type"""
+
+        # Resolve the correct name key for this object type if not provided
+        if not namekey:
+            namekey = self.get_namekey(object_type)
+
         # Get all objects from Jamf Pro as JSON object
         self.output(
             f"Getting all {self.api_endpoints(object_type, tenant_id=tenant_id)} from {domain}"
