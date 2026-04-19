@@ -720,7 +720,7 @@ class JamfPackageUploaderBase(JamfUploaderBase):
         # get Jamf Pro version to determine default mode
         # Version 11.5+ will use the v1/packages endpoint
         # Version 11.4- is not supported any more
-        jamf_pro_version = self.get_jamf_pro_version(api_url, token)
+        jamf_pro_version = self.get_jamf_pro_version(api_url, token, tenant_id=jamf_platform_gw_tenant_id)
 
         if APLooseVersion(jamf_pro_version) < APLooseVersion("11.5"):
             raise ProcessorError(

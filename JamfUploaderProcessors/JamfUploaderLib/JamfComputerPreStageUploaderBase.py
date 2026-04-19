@@ -216,7 +216,8 @@ class JamfComputerPreStageUploaderBase(JamfUploaderBase):
         if object_id:
             # PreStages need to match any existing versionLock values
             self.substitute_existing_version_locks(
-                api_url, object_type, object_id, template_file, token
+                api_url, object_type, object_id, template_file, token,
+                tenant_id=jamf_platform_gw_tenant_id,
             )
         else:
             # new prestages need an id of -1

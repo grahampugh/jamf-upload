@@ -268,7 +268,7 @@ class JamfPkgMetadataUploaderBase(JamfUploaderBase):
         )
         self.output(f"API URL is {api_url}", verbose_level=3)
 
-        jamf_pro_version = self.get_jamf_pro_version(api_url, token)
+        jamf_pro_version = self.get_jamf_pro_version(api_url, token, tenant_id=jamf_platform_gw_tenant_id)
 
         if APLooseVersion(jamf_pro_version) < APLooseVersion("11.4"):
             raise ProcessorError(
