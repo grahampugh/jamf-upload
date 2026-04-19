@@ -34,9 +34,7 @@ import threading
 
 from shutil import copyfile
 from time import sleep
-from urllib.parse import urlparse, quote
-import xml.etree.ElementTree as ElementTree
-from xml.sax.saxutils import escape
+from urllib.parse import urlparse
 
 from autopkglib import ProcessorError, APLooseVersion  # pylint: disable=import-error
 
@@ -503,7 +501,8 @@ class JamfPackageUploaderBase(JamfUploaderBase):
             packages_recalculated = True
         else:
             self.output(
-                f"WARNING: Cloud Distribution Point inventory NOT successfully recalculated (response={r.status_code})",
+                "WARNING: Cloud Distribution Point inventory NOT successfully "
+                f"recalculated (response={r.status_code})",
                 verbose_level=1,
             )
             packages_recalculated = False
@@ -697,16 +696,18 @@ class JamfPackageUploaderBase(JamfUploaderBase):
 
         # get token using oauth or basic auth depending on the credentials given
         if jamf_url:
-            token, jamf_url, jamf_platform_gw_region, jamf_platform_gw_tenant_id = self.auth(
-                jamf_url=jamf_url,
-                jamf_user=jamf_user,
-                password=jamf_password,
-                region=jamf_platform_gw_region,
-                tenant_id=jamf_platform_gw_tenant_id,
-                client_id=client_id,
-                client_secret=client_secret,
-                token=bearer_token,
-                jamf_cli_profile=jamf_cli_profile,
+            token, jamf_url, jamf_platform_gw_region, jamf_platform_gw_tenant_id = (
+                self.auth(
+                    jamf_url=jamf_url,
+                    jamf_user=jamf_user,
+                    password=jamf_password,
+                    region=jamf_platform_gw_region,
+                    tenant_id=jamf_platform_gw_tenant_id,
+                    client_id=client_id,
+                    client_secret=client_secret,
+                    token=bearer_token,
+                    jamf_cli_profile=jamf_cli_profile,
+                )
             )
         else:
             raise ProcessorError("ERROR: Jamf Pro URL not supplied")
@@ -720,11 +721,14 @@ class JamfPackageUploaderBase(JamfUploaderBase):
         # get Jamf Pro version to determine default mode
         # Version 11.5+ will use the v1/packages endpoint
         # Version 11.4- is not supported any more
-        jamf_pro_version = self.get_jamf_pro_version(api_url, token, tenant_id=jamf_platform_gw_tenant_id)
+        jamf_pro_version = self.get_jamf_pro_version(
+            api_url, token, tenant_id=jamf_platform_gw_tenant_id
+        )
 
         if APLooseVersion(jamf_pro_version) < APLooseVersion("11.5"):
             raise ProcessorError(
-                f"ERROR: Jamf Pro version {jamf_pro_version} does not support the v1/packages API endpoint required for this processor"
+                f"ERROR: Jamf Pro version {jamf_pro_version} does not support the "
+                "v1/packages API endpoint required for this processor"
             )
 
         filter_name = "packageName"
@@ -824,16 +828,18 @@ class JamfPackageUploaderBase(JamfUploaderBase):
         if smb_shares or aws_cdp_mode:
             # get token using oauth or basic auth depending on the credentials given
             if jamf_url:
-                token, jamf_url, jamf_platform_gw_region, jamf_platform_gw_tenant_id = self.auth(
-                    jamf_url=jamf_url,
-                    jamf_user=jamf_user,
-                    password=jamf_password,
-                    region=jamf_platform_gw_region,
-                    tenant_id=jamf_platform_gw_tenant_id,
-                    client_id=client_id,
-                    client_secret=client_secret,
-                    token=bearer_token,
-                    jamf_cli_profile=jamf_cli_profile,
+                token, jamf_url, jamf_platform_gw_region, jamf_platform_gw_tenant_id = (
+                    self.auth(
+                        jamf_url=jamf_url,
+                        jamf_user=jamf_user,
+                        password=jamf_password,
+                        region=jamf_platform_gw_region,
+                        tenant_id=jamf_platform_gw_tenant_id,
+                        client_id=client_id,
+                        client_secret=client_secret,
+                        token=bearer_token,
+                        jamf_cli_profile=jamf_cli_profile,
+                    )
                 )
             else:
                 raise ProcessorError("ERROR: Jamf Pro URL not supplied")
@@ -932,16 +938,18 @@ class JamfPackageUploaderBase(JamfUploaderBase):
             # as package upload may have taken some time
             # get token using oauth or basic auth depending on the credentials given
             if jamf_url:
-                token, jamf_url, jamf_platform_gw_region, jamf_platform_gw_tenant_id = self.auth(
-                    jamf_url=jamf_url,
-                    jamf_user=jamf_user,
-                    password=jamf_password,
-                    region=jamf_platform_gw_region,
-                    tenant_id=jamf_platform_gw_tenant_id,
-                    client_id=client_id,
-                    client_secret=client_secret,
-                    token=bearer_token,
-                    jamf_cli_profile=jamf_cli_profile,
+                token, jamf_url, jamf_platform_gw_region, jamf_platform_gw_tenant_id = (
+                    self.auth(
+                        jamf_url=jamf_url,
+                        jamf_user=jamf_user,
+                        password=jamf_password,
+                        region=jamf_platform_gw_region,
+                        tenant_id=jamf_platform_gw_tenant_id,
+                        client_id=client_id,
+                        client_secret=client_secret,
+                        token=bearer_token,
+                        jamf_cli_profile=jamf_cli_profile,
+                    )
                 )
             else:
                 raise ProcessorError("ERROR: Jamf Pro URL not supplied")
