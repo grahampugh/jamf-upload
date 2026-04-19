@@ -39,11 +39,15 @@ class JamfObjectDeleterBase(JamfUploaderBase):
 
     def execute(self):
         """Delete an API object"""
-        jamf_url = self.env.get("JSS_URL").rstrip("/")
+        jamf_url = (self.env.get("JSS_URL") or "").rstrip("/")
         jamf_user = self.env.get("API_USERNAME")
         jamf_password = self.env.get("API_PASSWORD")
+        jamf_platform_gw_region = self.env.get("PLATFORM_API_REGION")
+        jamf_platform_gw_tenant_id = self.env.get("PLATFORM_API_TENANT_ID")
         client_id = self.env.get("CLIENT_ID")
         client_secret = self.env.get("CLIENT_SECRET")
+        bearer_token = self.env.get("BEARER_TOKEN")
+        jamf_cli_profile = self.env.get("JAMF_CLI_PROFILE")
         object_name = self.env.get("object_name")
         object_type = self.env.get("object_type")
 
@@ -51,17 +55,24 @@ class JamfObjectDeleterBase(JamfUploaderBase):
         if "jamfobjectdeleter_summary_result" in self.env:
             del self.env["jamfobjectdeleter_summary_result"]
 
-        # get token using oauth or basic auth depending on the credentials given
-        if jamf_url:
-            token = self.handle_api_auth(
-                jamf_url,
-                jamf_user=jamf_user,
-                password=jamf_password,
-                client_id=client_id,
-                client_secret=client_secret,
-            )
-        else:
-            raise ProcessorError("ERROR: Jamf Pro URL not supplied")
+        # get a token
+        token, jamf_url, jamf_platform_gw_region, jamf_platform_gw_tenant_id = self.auth(
+            jamf_url=jamf_url,
+            jamf_user=jamf_user,
+            password=jamf_password,
+            region=jamf_platform_gw_region,
+            tenant_id=jamf_platform_gw_tenant_id,
+            client_id=client_id,
+            client_secret=client_secret,
+            token=bearer_token,
+            jamf_cli_profile=jamf_cli_profile,
+        )
+
+        # construct the api_url based on the API type
+        api_url = self.construct_api_url(
+            jamf_url=jamf_url, region=jamf_platform_gw_region
+        )
+        self.output(f"API URL is {api_url}", verbose_level=3)
 
         if "_settings" in object_type:
             self.output(f"Object of type {object_type} cannot be deleted")
@@ -70,19 +81,20 @@ class JamfObjectDeleterBase(JamfUploaderBase):
         # cloud_distribution_point endpoint doesn't use IDs or names
         if object_type == "cloud_distribution_point":
             self.output(
-                f"Deleting singleton {object_type} on {jamf_url}",
+                f"Deleting singleton {object_type} on {api_url}",
                 verbose_level=1,
             )
             self.delete_object(
-                jamf_url,
+                api_url,
                 object_type,
                 object_id=0,
                 token=token,
+                tenant_id=jamf_platform_gw_tenant_id,
             )
             object_name = object_type
         else:
             self.output(
-                f"Checking for existing {object_type} '{object_name}' on {jamf_url}"
+                f"Checking for existing {object_type} '{object_name}' on {api_url}"
             )
 
             # declare name key
@@ -90,11 +102,12 @@ class JamfObjectDeleterBase(JamfUploaderBase):
 
             # get the ID from the object bearing the supplied name
             object_id = self.get_api_object_id_from_name(
-                jamf_url,
+                api_url,
                 object_type=object_type,
                 object_name=object_name,
                 token=token,
                 filter_name=namekey,
+                tenant_id=jamf_platform_gw_tenant_id,
             )
 
             if object_id:
@@ -104,14 +117,15 @@ class JamfObjectDeleterBase(JamfUploaderBase):
                     verbose_level=1,
                 )
                 self.delete_object(
-                    jamf_url,
+                    api_url,
                     object_type,
                     object_id,
                     token,
+                    tenant_id=jamf_platform_gw_tenant_id,
                 )
             else:
                 self.output(
-                    f"{object_type} '{object_name}' not found on {jamf_url}.",
+                    f"{object_type} '{object_name}' not found on {api_url}.",
                     verbose_level=1,
                 )
                 return

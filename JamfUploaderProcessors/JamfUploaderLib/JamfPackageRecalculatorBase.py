@@ -35,11 +35,12 @@ from JamfUploaderBase import (  # pylint: disable=import-error, wrong-import-pos
 class JamfPackageRecalculatorBase(JamfUploaderBase):
     """Class for functions used to upload a package to Jamf"""
 
-    def recalculate_packages(self, jamf_url, token):
+    def recalculate_packages(self, api_url, token, tenant_id=""):
         """Send a request to recalulate the JCDS packages"""
         # get the JCDS file list
         object_type = "cloud_distribution_point"
-        url = f"{jamf_url}/{self.api_endpoints(object_type)}/refresh-inventory"
+        endpoint = self.api_endpoints(object_type, tenant_id=tenant_id)
+        url = f"{api_url}/{endpoint}/refresh-inventory"
 
         request = "POST"
         r = self.curl(
@@ -71,25 +72,36 @@ class JamfPackageRecalculatorBase(JamfUploaderBase):
 
         jcds2_mode = self.to_bool(self.env.get("jcds2_mode"))
         pkg_api_mode = self.to_bool(self.env.get("pkg_api_mode"))
-        jamf_url = self.env.get("JSS_URL").rstrip("/")
+        jamf_url = (self.env.get("JSS_URL") or "").rstrip("/")
         jamf_user = self.env.get("API_USERNAME")
         jamf_password = self.env.get("API_PASSWORD")
+        jamf_platform_gw_region = self.env.get("PLATFORM_API_REGION")
+        jamf_platform_gw_tenant_id = self.env.get("PLATFORM_API_TENANT_ID")
         client_id = self.env.get("CLIENT_ID")
         client_secret = self.env.get("CLIENT_SECRET")
+        bearer_token = self.env.get("BEARER_TOKEN")
+        jamf_cli_profile = self.env.get("JAMF_CLI_PROFILE")
 
-        # get token using oauth or basic auth depending on the credentials given
-        if jamf_url:
-            token = self.handle_api_auth(
-                jamf_url,
-                jamf_user=jamf_user,
-                password=jamf_password,
-                client_id=client_id,
-                client_secret=client_secret,
-            )
-        else:
-            raise ProcessorError("ERROR: Jamf Pro URL not supplied")
+        # get a token
+        token, jamf_url, jamf_platform_gw_region, jamf_platform_gw_tenant_id = self.auth(
+            jamf_url=jamf_url,
+            jamf_user=jamf_user,
+            password=jamf_password,
+            region=jamf_platform_gw_region,
+            tenant_id=jamf_platform_gw_tenant_id,
+            client_id=client_id,
+            client_secret=client_secret,
+            token=bearer_token,
+            jamf_cli_profile=jamf_cli_profile,
+        )
 
-        jamf_pro_version = self.get_jamf_pro_version(jamf_url, token)
+        # construct the api_url based on the API type
+        api_url = self.construct_api_url(
+            jamf_url=jamf_url, region=jamf_platform_gw_region
+        )
+        self.output(f"API URL is {api_url}", verbose_level=3)
+
+        jamf_pro_version = self.get_jamf_pro_version(api_url, token, tenant_id=jamf_platform_gw_tenant_id)
         if APLooseVersion(jamf_pro_version) >= APLooseVersion("11.5"):
             # set default mode to pkg_api_mode if using Jamf Cloud / AWS
             if not self.env.get("SMB_URL") and not self.env.get("SMB_SHARES"):
@@ -106,20 +118,21 @@ class JamfPackageRecalculatorBase(JamfUploaderBase):
         ) >= APLooseVersion("11.10"):
             # check token using oauth or basic auth depending on the credentials given
             # as package upload may have taken some time
-            # get token using oauth or basic auth depending on the credentials given
-            if jamf_url:
-                token = self.handle_api_auth(
-                    jamf_url,
-                    jamf_user=jamf_user,
-                    password=jamf_password,
-                    client_id=client_id,
-                    client_secret=client_secret,
-                )
-            else:
-                raise ProcessorError("ERROR: Jamf Pro URL not supplied")
+            # get a token
+            token, jamf_url, jamf_platform_gw_region, jamf_platform_gw_tenant_id = self.auth(
+                jamf_url=jamf_url,
+                jamf_user=jamf_user,
+                password=jamf_password,
+                region=jamf_platform_gw_region,
+                tenant_id=jamf_platform_gw_tenant_id,
+                client_id=client_id,
+                client_secret=client_secret,
+                token=bearer_token,
+                jamf_cli_profile=jamf_cli_profile,
+            )
 
             # now send the recalculation request
-            packages_recalculated = self.recalculate_packages(jamf_url, token)
+            packages_recalculated = self.recalculate_packages(api_url, token, tenant_id=jamf_platform_gw_tenant_id)
         else:
             packages_recalculated = False
 

@@ -43,13 +43,14 @@ class JamfComputerGroupDeleterBase(JamfUploaderBase):
     other objects depend on it.
     """
 
-    def delete_computer_group(self, jamf_url, object_id, token, max_tries):
+    def delete_computer_group(self, api_url, object_id, token, max_tries, tenant_id=""):
         """Delete computer group"""
 
         self.output("Deleting Computer Group...")
 
         object_type = "computer_group"
-        url = f"{jamf_url}/{self.api_endpoints(object_type)}/id/{object_id}"
+        endpoint = self.api_endpoints(object_type, tenant_id=tenant_id)
+        url = f"{api_url}/{endpoint}/id/{object_id}"
 
         count = 0
         while True:
@@ -72,11 +73,15 @@ class JamfComputerGroupDeleterBase(JamfUploaderBase):
 
     def execute(self):
         """Delete a computer group"""
-        jamf_url = self.env.get("JSS_URL").rstrip("/")
+        jamf_url = (self.env.get("JSS_URL") or "").rstrip("/")
         jamf_user = self.env.get("API_USERNAME")
         jamf_password = self.env.get("API_PASSWORD")
+        jamf_platform_gw_region = self.env.get("PLATFORM_API_REGION")
+        jamf_platform_gw_tenant_id = self.env.get("PLATFORM_API_TENANT_ID")
         client_id = self.env.get("CLIENT_ID")
         client_secret = self.env.get("CLIENT_SECRET")
+        bearer_token = self.env.get("BEARER_TOKEN")
+        jamf_cli_profile = self.env.get("JAMF_CLI_PROFILE")
         computergroup_name = self.env.get("computergroup_name")
         max_tries = self.env.get("max_tries")
 
@@ -92,27 +97,35 @@ class JamfComputerGroupDeleterBase(JamfUploaderBase):
         if "jamfcomputergroupdeleter_summary_result" in self.env:
             del self.env["jamfcomputergroupdeleter_summary_result"]
 
-        # now start the process of deleting the object
-        self.output(f"Checking for existing '{computergroup_name}' on {jamf_url}")
+        # get a token
+        token, jamf_url, jamf_platform_gw_region, jamf_platform_gw_tenant_id = self.auth(
+            jamf_url=jamf_url,
+            jamf_user=jamf_user,
+            password=jamf_password,
+            region=jamf_platform_gw_region,
+            tenant_id=jamf_platform_gw_tenant_id,
+            client_id=client_id,
+            client_secret=client_secret,
+            token=bearer_token,
+            jamf_cli_profile=jamf_cli_profile,
+        )
 
-        # get token using oauth or basic auth depending on the credentials given
-        if jamf_url:
-            token = self.handle_api_auth(
-                jamf_url,
-                jamf_user=jamf_user,
-                password=jamf_password,
-                client_id=client_id,
-                client_secret=client_secret,
-            )
-        else:
-            raise ProcessorError("ERROR: Jamf Pro URL not supplied")
+        # construct the api_url based on the API type
+        api_url = self.construct_api_url(
+            jamf_url=jamf_url, region=jamf_platform_gw_region
+        )
+        self.output(f"API URL is {api_url}", verbose_level=3)
+
+        # now start the process of deleting the object
+        self.output(f"Checking for existing '{computergroup_name}' on {api_url}")
 
         # check for existing - requires object_name
         object_id = self.get_api_object_id_from_name(
-            jamf_url,
+            api_url,
             object_type="computer_group",
             object_name=computergroup_name,
             token=token,
+            tenant_id=jamf_platform_gw_tenant_id,
         )
 
         if object_id:
@@ -122,14 +135,15 @@ class JamfComputerGroupDeleterBase(JamfUploaderBase):
                 verbose_level=1,
             )
             self.delete_computer_group(
-                jamf_url,
+                api_url,
                 object_id,
                 token,
                 max_tries,
+                tenant_id=jamf_platform_gw_tenant_id,
             )
         else:
             self.output(
-                f"Computer Group '{computergroup_name}' not found on {jamf_url}.",
+                f"Computer Group '{computergroup_name}' not found on {api_url}.",
                 verbose_level=1,
             )
             return

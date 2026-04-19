@@ -41,13 +41,14 @@ class JamfCategoryUploaderBase(JamfUploaderBase):
 
     def upload_category(
         self,
-        jamf_url,
+        api_url,
         object_name,
         priority,
         sleep_time,
         token,
         max_tries,
         object_id=0,
+        tenant_id="",
     ):
         """Update category metadata."""
 
@@ -58,14 +59,15 @@ class JamfCategoryUploaderBase(JamfUploaderBase):
 
         # if we find an object ID we put, if not, we post
         object_type = "category"
+        endpoint = self.api_endpoints(object_type, tenant_id=tenant_id)
         if object_id:
-            url = f"{jamf_url}/{self.api_endpoints(object_type)}/{object_id}"
+            url = f"{api_url}/{endpoint}/{object_id}"
         else:
-            url = f"{jamf_url}/{self.api_endpoints(object_type)}"
+            url = f"{api_url}/{endpoint}"
 
         # write the category.
         count = 0
-        category_json = self.write_json_file(jamf_url, category_data)
+        category_json = self.write_json_file(api_url, category_data)
         while True:
             count += 1
             self.output(
@@ -104,11 +106,15 @@ class JamfCategoryUploaderBase(JamfUploaderBase):
 
     def execute(self):
         """Upload a category"""
-        jamf_url = self.env.get("JSS_URL").rstrip("/")
+        jamf_url = (self.env.get("JSS_URL") or "").rstrip("/")
         jamf_user = self.env.get("API_USERNAME")
         jamf_password = self.env.get("API_PASSWORD")
+        jamf_platform_gw_region = self.env.get("PLATFORM_API_REGION")
+        jamf_platform_gw_tenant_id = self.env.get("PLATFORM_API_TENANT_ID")
         client_id = self.env.get("CLIENT_ID")
         client_secret = self.env.get("CLIENT_SECRET")
+        bearer_token = self.env.get("BEARER_TOKEN")
+        jamf_cli_profile = self.env.get("JAMF_CLI_PROFILE")
         category_name = self.env.get("category_name")
         category_priority = self.env.get("category_priority")
         replace_category = self.to_bool(self.env.get("replace_category"))
@@ -132,26 +138,34 @@ class JamfCategoryUploaderBase(JamfUploaderBase):
         # substitute user-assignable keys
         category_name = self.substitute_assignable_keys(category_name)
 
-        # get token using oauth or basic auth depending on the credentials given
-        if jamf_url:
-            token = self.handle_api_auth(
-                jamf_url,
-                jamf_user=jamf_user,
-                password=jamf_password,
-                client_id=client_id,
-                client_secret=client_secret,
-            )
-        else:
-            raise ProcessorError("ERROR: Jamf Pro URL not supplied")
+        # get a token
+        token, jamf_url, jamf_platform_gw_region, jamf_platform_gw_tenant_id = self.auth(
+            jamf_url=jamf_url,
+            jamf_user=jamf_user,
+            password=jamf_password,
+            region=jamf_platform_gw_region,
+            tenant_id=jamf_platform_gw_tenant_id,
+            client_id=client_id,
+            client_secret=client_secret,
+            token=bearer_token,
+            jamf_cli_profile=jamf_cli_profile,
+        )
+
+        # construct the api_url based on the API type
+        api_url = self.construct_api_url(
+            jamf_url=jamf_url, region=jamf_platform_gw_region
+        )
+        self.output(f"API URL is {api_url}", verbose_level=3)
 
         # now process the category
         # check for existing category
-        self.output(f"Checking for existing '{category_name}' on {jamf_url}")
+        self.output(f"Checking for existing '{category_name}' on {api_url}")
         object_id = self.get_api_object_id_from_name(
-            jamf_url,
+            api_url,
             object_type="category",
             object_name=category_name,
             token=token,
+            tenant_id=jamf_platform_gw_tenant_id,
         )
 
         if object_id:
@@ -173,13 +187,14 @@ class JamfCategoryUploaderBase(JamfUploaderBase):
 
         # upload the category
         category_id = self.upload_category(
-            jamf_url,
+            api_url,
             object_name=category_name,
             priority=category_priority,
             sleep_time=sleep_time,
             token=token,
             max_tries=max_tries,
             object_id=object_id,
+            tenant_id=jamf_platform_gw_tenant_id,
         )
 
         # output the summary

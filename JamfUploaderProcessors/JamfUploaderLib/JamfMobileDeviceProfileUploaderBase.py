@@ -42,15 +42,16 @@ from JamfUploaderBase import (  # pylint: disable=import-error, wrong-import-pos
 class JamfMobileDeviceProfileUploaderBase(JamfUploaderBase):
     """Class for functions used to upload a mobile device configuration profile to Jamf"""
 
-    def get_existing_uuid_and_identifier(self, jamf_url, object_id, token):
+    def get_existing_uuid_and_identifier(self, api_url, object_id, token, tenant_id=""):
         """return the existing UUID to ensure we don't change it"""
         # first grab the payload from the xml object
         existing_plist = self.get_api_object_value_from_id(
-            jamf_url,
+            api_url,
             object_type="configuration_profile",
             object_id=object_id,
             object_path="general/payloads",
             token=token,
+            tenant_id=tenant_id,
         )
 
         # Jamf seems to sometimes export an empty key which plistlib considers invalid,
@@ -111,7 +112,7 @@ class JamfMobileDeviceProfileUploaderBase(JamfUploaderBase):
 
     def upload_mobileconfig(
         self,
-        jamf_url,
+        api_url,
         object_name,
         description,
         category,
@@ -123,6 +124,7 @@ class JamfMobileDeviceProfileUploaderBase(JamfUploaderBase):
         token,
         max_tries,
         object_id=0,
+        tenant_id="",
     ):
         """Update Configuration Profile metadata."""
         # remove newlines, tabs, leading spaces, and XML-escape the payload
@@ -160,11 +162,12 @@ class JamfMobileDeviceProfileUploaderBase(JamfUploaderBase):
 
         self.output("Uploading Configuration Profile...")
         # write the template to temp file
-        template_xml = self.write_temp_file(jamf_url, template_contents)
+        template_xml = self.write_temp_file(api_url, template_contents)
 
-        # if we find an object ID we put, if not, we post
         object_type = "configuration_profile"
-        url = f"{jamf_url}/{self.api_endpoints(object_type)}/id/{object_id}"
+        endpoint = self.api_endpoints(object_type, tenant_id=tenant_id)
+        # if we find an object ID we put, if not, we post
+        url = f"{api_url}/{endpoint}/id/{object_id}"
 
         count = 0
         while True:
@@ -203,11 +206,15 @@ class JamfMobileDeviceProfileUploaderBase(JamfUploaderBase):
 
     def execute(self):
         """Upload a mobile device configuration profile"""
-        jamf_url = self.env.get("JSS_URL").rstrip("/")
+        jamf_url = (self.env.get("JSS_URL") or "").rstrip("/")
         jamf_user = self.env.get("API_USERNAME")
         jamf_password = self.env.get("API_PASSWORD")
+        jamf_platform_gw_region = self.env.get("PLATFORM_API_REGION")
+        jamf_platform_gw_tenant_id = self.env.get("PLATFORM_API_TENANT_ID")
         client_id = self.env.get("CLIENT_ID")
         client_secret = self.env.get("CLIENT_SECRET")
+        bearer_token = self.env.get("BEARER_TOKEN")
+        jamf_cli_profile = self.env.get("JAMF_CLI_PROFILE")
         profile_name = self.env.get("profile_name")
         mobileconfig = self.env.get("mobileconfig")
         template = self.env.get("profile_template")
@@ -304,26 +311,34 @@ class JamfMobileDeviceProfileUploaderBase(JamfUploaderBase):
         with open(template, "r", encoding="utf-8") as file:
             template_contents = file.read()
 
-        # check for existing Configuration Profile
-        self.output(f"Checking for existing '{mobileconfig_name}' on {jamf_url}")
+        # get a token using auth() with Platform API parameters
+        token, jamf_url, jamf_platform_gw_region, jamf_platform_gw_tenant_id = self.auth(
+            jamf_url=jamf_url,
+            jamf_user=jamf_user,
+            password=jamf_password,
+            region=jamf_platform_gw_region,
+            tenant_id=jamf_platform_gw_tenant_id,
+            client_id=client_id,
+            client_secret=client_secret,
+            token=bearer_token,
+            jamf_cli_profile=jamf_cli_profile,
+        )
 
-        # get token using oauth or basic auth depending on the credentials given
-        if jamf_url:
-            token = self.handle_api_auth(
-                jamf_url,
-                jamf_user=jamf_user,
-                password=jamf_password,
-                client_id=client_id,
-                client_secret=client_secret,
-            )
-        else:
-            raise ProcessorError("ERROR: Jamf Pro URL not supplied")
+        # construct the api_url based on the API type
+        api_url = self.construct_api_url(
+            jamf_url=jamf_url, region=jamf_platform_gw_region
+        )
+        self.output(f"API URL is {api_url}", verbose_level=3)
+
+        # check for existing Configuration Profile
+        self.output(f"Checking for existing '{mobileconfig_name}' on {api_url}")
 
         object_id = self.get_api_object_id_from_name(
-            jamf_url,
+            api_url,
             object_type="configuration_profile",
             object_name=mobileconfig_name,
             token=token,
+            tenant_id=jamf_platform_gw_tenant_id,
         )
         if object_id:
             self.output(
@@ -338,7 +353,7 @@ class JamfMobileDeviceProfileUploaderBase(JamfUploaderBase):
                 (
                     existing_uuid,
                     existing_identifier,
-                ) = self.get_existing_uuid_and_identifier(jamf_url, object_id, token)
+                ) = self.get_existing_uuid_and_identifier(api_url, object_id, token, tenant_id=jamf_platform_gw_tenant_id)
                 if mobileconfig:
                     # need to inject the existing payload identifier to prevent ghost profiles
                     mobileconfig_contents = (
@@ -353,7 +368,7 @@ class JamfMobileDeviceProfileUploaderBase(JamfUploaderBase):
                 # now upload the mobileconfig by generating an XML template
                 if mobileconfig_plist:
                     self.upload_mobileconfig(
-                        jamf_url,
+                        api_url,
                         object_name=mobileconfig_name,
                         description=profile_description,
                         category=profile_category,
@@ -365,6 +380,7 @@ class JamfMobileDeviceProfileUploaderBase(JamfUploaderBase):
                         token=token,
                         max_tries=max_tries,
                         object_id=object_id,
+                        tenant_id=jamf_platform_gw_tenant_id,
                     )
                     profile_updated = True
             else:
@@ -381,7 +397,7 @@ class JamfMobileDeviceProfileUploaderBase(JamfUploaderBase):
             # now upload the mobileconfig by generating an XML template
             if mobileconfig_plist:
                 self.upload_mobileconfig(
-                    jamf_url,
+                    api_url,
                     object_name=mobileconfig_name,
                     description=profile_description,
                     category=profile_category,
@@ -392,6 +408,7 @@ class JamfMobileDeviceProfileUploaderBase(JamfUploaderBase):
                     sleep_time=sleep_time,
                     token=token,
                     max_tries=max_tries,
+                    tenant_id=jamf_platform_gw_tenant_id,
                 )
                 profile_updated = True
             else:

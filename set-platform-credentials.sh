@@ -21,6 +21,7 @@ Usage:
 Options:
 [no arguments]                                    - interactive mode
 -r | --region (eu|us|apac)                        - region that the tenant is hosted in
+-t | --tenant TENANT_ID                           - tenant ID
 --id | --client-id CLIENT_ID                      - use the specified client ID
 --secret | --client-secret CLIENT_SECRET          - use the specified client secret
 -v[vvv]                                           - Set value of verbosity (default is -v)
@@ -118,6 +119,10 @@ while test $# -gt 0 ; do
             shift
             chosen_region="$1"
             ;;
+        -t|--tenant|--tenant-id)
+            shift
+            tenant_id="$1"
+            ;;
         --user|--id|--client-id)
             shift
             chosen_id="$1"
@@ -177,6 +182,16 @@ if [[ ! $chosen_id ]]; then
     fi
 fi
 
+# Ask for the tenant ID (show any existing value of first instance in list as default)
+if [[ ! $tenant_id ]]; then
+    echo "Enter Tenant ID for $api_base_url"
+    read -r -p "Tenant ID : " tenant_id
+    if [[ ! $tenant_id ]]; then
+        echo "   [main] No Tenant ID supplied"
+        exit 1
+    fi
+fi
+
 # check for existing service entry in login keychain
 region_base="${api_base_url/*:\/\//}"
 
@@ -185,31 +200,30 @@ server_check=$(security find-internet-password -s "$api_base_url" 2>/dev/null)
 if [[ $server_check ]]; then
     echo "Keychain entry/ies for $region_base found"
     # next check if there is an entry for the user on that server
-    kc_check=$(security find-internet-password -s "$api_base_url" -l "$region_base ($chosen_id)" -a "$chosen_id" -g 2>/dev/null)
+    kc_check=$(security find-internet-password -s "$api_base_url" -l "$region_base ($tenant_id) ($chosen_id)" -a "$chosen_id" -g 2>/dev/null)
 
     if [[ $kc_check ]]; then
-        echo "Keychain entry for $chosen_id found on $region_base"
+        echo "Keychain entry for tenant ID $tenant_id ($chosen_id) found on $region_base"
         # check for existing password entry in login keychain
-        client_secret=$(security find-internet-password -s "$api_base_url" -l "$region_base ($chosen_id)" -a "$chosen_id" -w -g 2>&1)
+        client_secret=$(security find-internet-password -s "$api_base_url" -l "$region_base ($tenant_id) ($chosen_id)" -a "$chosen_id" -w -g 2>&1)
         if [[ ${#client_secret} -gt 0 && $client_secret != "security: "* ]]; then
-            echo "Password/Client Secret for $chosen_id found on $region_base"
+            echo "Password/Client Secret for tenant ID $tenant_id ($chosen_id) found on $region_base"
         else
-            echo "Password/Client Secret for $chosen_id not found on $region_base"
+            echo "Password/Client Secret for tenant ID $tenant_id ($chosen_id) not found on $region_base"
             client_secret=""
         fi
     else
-        echo "Keychain entry for $chosen_id not found on $region_base"
+        echo "Keychain entry for tenant ID $tenant_id ($chosen_id) not found on $region_base"
     fi
 else
     echo "Keychain entry for $region_base not found"
 fi
 
-# now delete all existing entries from the selected instance for any username
-# Find and delete all keychain entries for this region, repeatedly until none remain
+# now delete any existing entry from the selected instance for the given username
 deleted_count=0
 while true; do
     # Find the first entry for this region
-    entry=$(security find-internet-password -s "$api_base_url" 2>/dev/null)
+    entry=$(security find-internet-password -s "$api_base_url" -l "$region_base ($tenant_id) ($chosen_id)" -a "$chosen_id" -g 2>/dev/null)
     if [[ -z "$entry" ]]; then
         echo "No more entries found, done with $api_base_url"
         break
@@ -217,7 +231,7 @@ while true; do
     
     # Extract the label from the entry (stored in 0x00000007 attribute)
     label=$(echo "$entry" | grep "0x00000007" | awk -F'"' '{print $2}')
-    if [[ $label == "$region_base ("*")" ]]; then
+    if [[ $label == "$region_base ($tenant_id) ($chosen_id)" ]]; then
         # Delete this specific entry
         echo "Deleting password for $label"
         if security delete-internet-password -s "$api_base_url" -l "$label"; then
@@ -255,16 +269,16 @@ fi
 # Apply to selected instance
 echo
 echo
-security add-internet-password -U -s "$api_base_url" -l "$region_base ($chosen_id)" -a "$chosen_id" -w "$chosen_secret"
-echo "   [main] Credentials for $api_base_url (user $chosen_id) added to keychain"
+security add-internet-password -U -s "$api_base_url" -l "$region_base ($tenant_id) ($chosen_id)" -a "$chosen_id" -w "$chosen_secret"
+echo "   [main] Credentials for $api_base_url, tenant ID $tenant_id ($chosen_id) added to keychain"
 
 # Verify the credentials
 echo
-echo "   [main] Checking credentials for $api_base_url (user $chosen_id)"
+echo "   [main] Checking credentials for $api_base_url, tenant ID $tenant_id ($chosen_id)"
 if verify_credentials; then
-    echo "   [main] Credentials for $api_base_url (user $chosen_id) verified"
+    echo "   [main] Credentials for $api_base_url, tenant ID $tenant_id ($chosen_id) verified"
 else
-    echo "   [main] ERROR: Credentials for $api_base_url (user $chosen_id) could not be verified"
+    echo "   [main] ERROR: Credentials for $api_base_url, tenant ID $tenant_id ($chosen_id) could not be verified"
 fi
 
 echo

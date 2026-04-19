@@ -41,7 +41,7 @@ class JamfMobileDeviceExtensionAttributeUploaderBase(JamfUploaderBase):
 
     def upload_ea(
         self,
-        jamf_url,
+        api_url,
         object_name,
         ea_description,
         ea_data_type,
@@ -53,6 +53,7 @@ class JamfMobileDeviceExtensionAttributeUploaderBase(JamfUploaderBase):
         token,
         max_tries,
         object_id=None,
+        tenant_id="",
     ):
         """Update extension attribute metadata."""
 
@@ -93,7 +94,8 @@ class JamfMobileDeviceExtensionAttributeUploaderBase(JamfUploaderBase):
 
         # if we find an object ID we put, if not, we post
         object_type = "mobile_device_extension_attribute"
-        url = f"{jamf_url}/{self.api_endpoints(object_type)}/id/{object_id}"
+        endpoint = self.api_endpoints(object_type, tenant_id=tenant_id)
+        url = f"{api_url}/{endpoint}/id/{object_id}"
 
         self.output(
             "Extension Attribute data:",
@@ -138,11 +140,15 @@ class JamfMobileDeviceExtensionAttributeUploaderBase(JamfUploaderBase):
 
     def execute(self):
         """Upload an extension attribute"""
-        jamf_url = self.env.get("JSS_URL").rstrip("/")
+        jamf_url = (self.env.get("JSS_URL") or "").rstrip("/")
         jamf_user = self.env.get("API_USERNAME")
         jamf_password = self.env.get("API_PASSWORD")
+        jamf_platform_gw_region = self.env.get("PLATFORM_API_REGION")
+        jamf_platform_gw_tenant_id = self.env.get("PLATFORM_API_TENANT_ID")
         client_id = self.env.get("CLIENT_ID")
         client_secret = self.env.get("CLIENT_SECRET")
+        bearer_token = self.env.get("BEARER_TOKEN")
+        jamf_cli_profile = self.env.get("JAMF_CLI_PROFILE")
         ea_name = self.env.get("ea_name")
         ea_description = self.env.get("ea_description")
         ea_input_type = self.env.get("ea_input_type")
@@ -179,26 +185,34 @@ class JamfMobileDeviceExtensionAttributeUploaderBase(JamfUploaderBase):
             raise ProcessorError(f"ERROR: EA input type {ea_input_type} not supported")
 
         # now start the process of uploading the object
-        self.output(f"Checking for existing '{ea_name}' on {jamf_url}")
+        # get a token
+        token, jamf_url, jamf_platform_gw_region, jamf_platform_gw_tenant_id = self.auth(
+            jamf_url=jamf_url,
+            jamf_user=jamf_user,
+            password=jamf_password,
+            region=jamf_platform_gw_region,
+            tenant_id=jamf_platform_gw_tenant_id,
+            client_id=client_id,
+            client_secret=client_secret,
+            token=bearer_token,
+            jamf_cli_profile=jamf_cli_profile,
+        )
 
-        # get token using oauth or basic auth depending on the credentials given
-        if jamf_url:
-            token = self.handle_api_auth(
-                jamf_url,
-                jamf_user=jamf_user,
-                password=jamf_password,
-                client_id=client_id,
-                client_secret=client_secret,
-            )
-        else:
-            raise ProcessorError("ERROR: Jamf Pro URL not supplied")
+        # construct the api_url
+        api_url = self.construct_api_url(
+            jamf_url=jamf_url, region=jamf_platform_gw_region
+        )
+        self.output(f"API URL is {api_url}", verbose_level=3)
+
+        self.output(f"Checking for existing '{ea_name}' on {api_url}")
 
         # check for existing - requires object_name
         object_id = self.get_api_object_id_from_name(
-            jamf_url,
+            api_url,
             object_type="mobile_device_extension_attribute",
             object_name=ea_name,
             token=token,
+            tenant_id=jamf_platform_gw_tenant_id,
         )
 
         if object_id:
@@ -221,7 +235,7 @@ class JamfMobileDeviceExtensionAttributeUploaderBase(JamfUploaderBase):
 
         # upload the EA
         self.upload_ea(
-            jamf_url,
+            api_url,
             object_name=ea_name,
             ea_description=ea_description,
             ea_data_type=ea_data_type,
@@ -233,6 +247,7 @@ class JamfMobileDeviceExtensionAttributeUploaderBase(JamfUploaderBase):
             token=token,
             max_tries=max_tries,
             object_id=object_id,
+            tenant_id=jamf_platform_gw_tenant_id,
         )
         ea_uploaded = True
 

@@ -41,13 +41,14 @@ class JamfComputerGroupUploaderBase(JamfUploaderBase):
 
     def upload_computergroup(
         self,
-        jamf_url,
+        api_url,
         object_name,
         object_template,
         sleep_time,
         token,
         max_tries,
         object_id=0,
+        tenant_id="",
     ):
         """Upload computer group"""
 
@@ -87,11 +88,12 @@ class JamfComputerGroupUploaderBase(JamfUploaderBase):
 
         self.output("Uploading Computer Group...")
         # write the template to temp file
-        template_xml = self.write_temp_file(jamf_url, template_contents)
+        template_xml = self.write_temp_file(api_url, template_contents)
 
         # if we find an object ID we put, if not, we post
         object_type = "computer_group"
-        url = f"{jamf_url}/{self.api_endpoints(object_type)}/id/{object_id}"
+        endpoint = self.api_endpoints(object_type, tenant_id=tenant_id)
+        url = f"{api_url}/{endpoint}/id/{object_id}"
 
         count = 0
         while True:
@@ -122,11 +124,15 @@ class JamfComputerGroupUploaderBase(JamfUploaderBase):
 
     def execute(self):
         """Upload a computer group"""
-        jamf_url = self.env.get("JSS_URL").rstrip("/")
+        jamf_url = (self.env.get("JSS_URL") or "").rstrip("/")
         jamf_user = self.env.get("API_USERNAME")
         jamf_password = self.env.get("API_PASSWORD")
+        jamf_platform_gw_region = self.env.get("PLATFORM_API_REGION")
+        jamf_platform_gw_tenant_id = self.env.get("PLATFORM_API_TENANT_ID")
         client_id = self.env.get("CLIENT_ID")
         client_secret = self.env.get("CLIENT_SECRET")
+        bearer_token = self.env.get("BEARER_TOKEN")
+        jamf_cli_profile = self.env.get("JAMF_CLI_PROFILE")
         computergroup_name = self.env.get("computergroup_name")
         computergroup_template = self.env.get("computergroup_template")
         replace_group = self.to_bool(self.env.get("replace_group"))
@@ -161,27 +167,35 @@ class JamfComputerGroupUploaderBase(JamfUploaderBase):
         # substitute user-assignable keys
         computergroup_name = self.substitute_assignable_keys(computergroup_name)
 
-        # now start the process of uploading the object
-        self.output(f"Checking for existing '{computergroup_name}' on {jamf_url}")
+        # get a token
+        token, jamf_url, jamf_platform_gw_region, jamf_platform_gw_tenant_id = self.auth(
+            jamf_url=jamf_url,
+            jamf_user=jamf_user,
+            password=jamf_password,
+            region=jamf_platform_gw_region,
+            tenant_id=jamf_platform_gw_tenant_id,
+            client_id=client_id,
+            client_secret=client_secret,
+            token=bearer_token,
+            jamf_cli_profile=jamf_cli_profile,
+        )
 
-        # get token using oauth or basic auth depending on the credentials given
-        if jamf_url:
-            token = self.handle_api_auth(
-                jamf_url,
-                jamf_user=jamf_user,
-                password=jamf_password,
-                client_id=client_id,
-                client_secret=client_secret,
-            )
-        else:
-            raise ProcessorError("ERROR: Jamf Pro URL not supplied")
+        # construct the api_url based on the API type
+        api_url = self.construct_api_url(
+            jamf_url=jamf_url, region=jamf_platform_gw_region
+        )
+        self.output(f"API URL is {api_url}", verbose_level=3)
+
+        # now start the process of uploading the object
+        self.output(f"Checking for existing '{computergroup_name}' on {api_url}")
 
         # check for existing - requires object_name
         object_id = self.get_api_object_id_from_name(
-            jamf_url,
+            api_url,
             object_type="computer_group",
             object_name=computergroup_name,
             token=token,
+            tenant_id=jamf_platform_gw_tenant_id,
         )
 
         if object_id:
@@ -202,13 +216,14 @@ class JamfComputerGroupUploaderBase(JamfUploaderBase):
 
         # upload the group
         self.upload_computergroup(
-            jamf_url,
+            api_url,
             object_name=computergroup_name,
             object_template=computergroup_template,
             sleep_time=sleep_time,
             token=token,
             max_tries=max_tries,
             object_id=object_id,
+            tenant_id=jamf_platform_gw_tenant_id,
         )
         group_uploaded = True
 

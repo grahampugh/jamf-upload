@@ -65,13 +65,14 @@ class JamfPackageCleanerBase(JamfUploaderBase):
                 verbose_level=2,
             )
 
-    def delete_package(self, jamf_url, object_id, token, max_tries):
+    def delete_package(self, api_url, object_id, token, max_tries, tenant_id=""):
         """Cleaning Packages"""
 
         self.output("Deleting package...")
 
         object_type = "package_v1"
-        url = f"{jamf_url}/{self.api_endpoints(object_type)}/{object_id}"
+        endpoint = self.api_endpoints(object_type, tenant_id=tenant_id)
+        url = f"{api_url}/{endpoint}/{object_id}"
 
         count = 0
         while True:
@@ -96,11 +97,15 @@ class JamfPackageCleanerBase(JamfUploaderBase):
         """Clean up old packages in Jamf Pro"""
 
         # Get the necessary environment variables
-        jamf_url = self.env.get("JSS_URL").rstrip("/")
+        jamf_url = (self.env.get("JSS_URL") or "").rstrip("/")
         jamf_user = self.env.get("API_USERNAME")
         jamf_password = self.env.get("API_PASSWORD")
+        jamf_platform_gw_region = self.env.get("PLATFORM_API_REGION")
+        jamf_platform_gw_tenant_id = self.env.get("PLATFORM_API_TENANT_ID")
         client_id = self.env.get("CLIENT_ID")
         client_secret = self.env.get("CLIENT_SECRET")
+        bearer_token = self.env.get("BEARER_TOKEN")
+        jamf_cli_profile = self.env.get("JAMF_CLI_PROFILE")
         pkg_name_match = self.env.get("pkg_name_match") or f"{self.env.get('NAME')}-"
         versions_to_keep = int(self.env.get("versions_to_keep"))
         minimum_name_length = int(self.env.get("minimum_name_length"))
@@ -197,21 +202,28 @@ class JamfPackageCleanerBase(JamfUploaderBase):
         # Get all packages from Jamf Pro as JSON object
         self.output(f"Getting all packages from {jamf_url}")
 
-        # get token using oauth or basic auth depending on the credentials given
-        if jamf_url:
-            token = self.handle_api_auth(
-                jamf_url,
-                jamf_user=jamf_user,
-                password=jamf_password,
-                client_id=client_id,
-                client_secret=client_secret,
-            )
-        else:
-            raise ProcessorError("ERROR: Jamf Pro URL not supplied")
+        # get a token
+        token, jamf_url, jamf_platform_gw_region, jamf_platform_gw_tenant_id = self.auth(
+            jamf_url=jamf_url,
+            jamf_user=jamf_user,
+            password=jamf_password,
+            region=jamf_platform_gw_region,
+            tenant_id=jamf_platform_gw_tenant_id,
+            client_id=client_id,
+            client_secret=client_secret,
+            token=bearer_token,
+            jamf_cli_profile=jamf_cli_profile,
+        )
+
+        # construct the api_url based on the API type
+        api_url = self.construct_api_url(
+            jamf_url=jamf_url, region=jamf_platform_gw_region
+        )
+        self.output(f"API URL is {api_url}", verbose_level=3)
 
         # check for existing
         object_type = "package_v1"
-        url = f"{jamf_url}/{self.api_endpoints(object_type)}"
+        url = f"{api_url}/{self.api_endpoints(object_type, tenant_id=jamf_platform_gw_tenant_id)}"
         r = self.curl(api_type="jpapi", request="GET", url=url, token=token)
         if isinstance(r.output, dict):
             jamf_packages = r.output["results"]
@@ -274,22 +286,30 @@ class JamfPackageCleanerBase(JamfUploaderBase):
 
         for package in packages_to_delete:
             # package deletion could take time, so we check the token before each deletion
-            # get token using oauth or basic auth depending on the credentials given
-            if jamf_url:
-                token = self.handle_api_auth(
-                    jamf_url,
-                    jamf_user=jamf_user,
-                    password=jamf_password,
-                    client_id=client_id,
-                    client_secret=client_secret,
-                )
-            else:
-                raise ProcessorError("ERROR: Jamf Pro URL not supplied")
-            self.delete_package(
+            # get a token
+            token, jamf_url, jamf_platform_gw_region, jamf_platform_gw_tenant_id = self.auth(
                 jamf_url=jamf_url,
+                jamf_user=jamf_user,
+                password=jamf_password,
+                region=jamf_platform_gw_region,
+                tenant_id=jamf_platform_gw_tenant_id,
+                client_id=client_id,
+                client_secret=client_secret,
+                token=bearer_token,
+                jamf_cli_profile=jamf_cli_profile,
+            )
+
+            # construct the api_url
+            api_url = self.construct_api_url(
+                jamf_url=jamf_url, region=jamf_platform_gw_region
+            )
+
+            self.delete_package(
+                jamf_url=api_url,
                 object_id=package["id"],
                 token=token,
                 max_tries=max_tries,
+                tenant_id=jamf_platform_gw_tenant_id,
             )
             self.output(f"Deleting {package['packageName']}", verbose_level=2)
 

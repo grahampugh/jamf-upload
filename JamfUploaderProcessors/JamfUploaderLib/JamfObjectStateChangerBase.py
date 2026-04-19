@@ -43,7 +43,7 @@ class JamfObjectStateChangerBase(JamfUploaderBase):
 
     def set_object_state(
         self,
-        jamf_url,
+        api_url,
         api_type,
         object_type,
         object_id,
@@ -52,6 +52,7 @@ class JamfObjectStateChangerBase(JamfUploaderBase):
         sleep_time,
         token,
         max_tries,
+        tenant_id="",
     ):
         """Send request to set object end state"""
 
@@ -59,11 +60,12 @@ class JamfObjectStateChangerBase(JamfUploaderBase):
         self.output("Getting existing object...")
 
         accept_header = "json"
+        endpoint = self.api_endpoints(object_type, tenant_id=tenant_id)
         if api_type == "classic":
-            url = f"{jamf_url}/{self.api_endpoints(object_type)}/id/{object_id}"
+            url = f"{api_url}/{endpoint}/id/{object_id}"
             accept_header = "xml"
         elif api_type == "jpapi":
-            url = f"{jamf_url}/{self.api_endpoints(object_type)}/{object_id}"
+            url = f"{api_url}/{endpoint}/{object_id}"
         else:
             raise ProcessorError(f"ERROR: API type {api_type} not supported")
 
@@ -181,11 +183,15 @@ class JamfObjectStateChangerBase(JamfUploaderBase):
 
     def execute(self):
         """Flush a policy log"""
-        jamf_url = self.env.get("JSS_URL").rstrip("/")
+        jamf_url = (self.env.get("JSS_URL") or "").rstrip("/")
         jamf_user = self.env.get("API_USERNAME")
         jamf_password = self.env.get("API_PASSWORD")
+        jamf_platform_gw_region = self.env.get("PLATFORM_API_REGION")
+        jamf_platform_gw_tenant_id = self.env.get("PLATFORM_API_TENANT_ID")
         client_id = self.env.get("CLIENT_ID")
         client_secret = self.env.get("CLIENT_SECRET")
+        bearer_token = self.env.get("BEARER_TOKEN")
+        jamf_cli_profile = self.env.get("JAMF_CLI_PROFILE")
         object_type = self.env.get("object_type")
         object_name = self.env.get("object_name")
         object_state = self.env.get("object_state")
@@ -236,27 +242,32 @@ class JamfObjectStateChangerBase(JamfUploaderBase):
         # now start the process of uploading the object
         self.output(f"Obtaining API token for {jamf_url}")
 
-        # get token using oauth or basic auth depending on the credentials given
-        if jamf_url:
-            # determine which token we need based on object type. classic and jpapi
-            # types use handle_api_auth, platform type uses handle_platform_api_auth
-            api_type = self.api_type(object_type)
-            token = self.handle_api_auth(
-                jamf_url,
-                jamf_user=jamf_user,
-                password=jamf_password,
-                client_id=client_id,
-                client_secret=client_secret,
-            )
-        else:
-            raise ProcessorError("ERROR: Jamf Pro URL not supplied")
+        # get a token
+        token, jamf_url, jamf_platform_gw_region, jamf_platform_gw_tenant_id = self.auth(
+            jamf_url=jamf_url,
+            jamf_user=jamf_user,
+            password=jamf_password,
+            region=jamf_platform_gw_region,
+            tenant_id=jamf_platform_gw_tenant_id,
+            client_id=client_id,
+            client_secret=client_secret,
+            token=bearer_token,
+            jamf_cli_profile=jamf_cli_profile,
+        )
+
+        # construct the api_url based on the API type
+        api_url = self.construct_api_url(
+            jamf_url=jamf_url, region=jamf_platform_gw_region
+        )
+        self.output(f"API URL is {api_url}", verbose_level=3)
 
         # check for existing - requires object_name
         object_id = self.get_api_object_id_from_name(
-            jamf_url,
+            api_url,
             object_type=object_type,
             object_name=object_name,
             token=token,
+            tenant_id=jamf_platform_gw_tenant_id,
         )
 
         if object_id:
@@ -266,7 +277,7 @@ class JamfObjectStateChangerBase(JamfUploaderBase):
                 verbose_level=1,
             )
             self.set_object_state(
-                jamf_url,
+                api_url,
                 api_type,
                 object_type,
                 object_id,
@@ -275,10 +286,11 @@ class JamfObjectStateChangerBase(JamfUploaderBase):
                 sleep_time,
                 token=token,
                 max_tries=max_tries,
+                tenant_id=jamf_platform_gw_tenant_id,
             )
         else:
             self.output(
-                f"{object_type} '{object_name}' not found on {jamf_url}.",
+                f"{object_type} '{object_name}' not found on {api_url}.",
                 verbose_level=1,
             )
             return

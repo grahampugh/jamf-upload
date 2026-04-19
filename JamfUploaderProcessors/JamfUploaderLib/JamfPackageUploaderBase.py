@@ -34,9 +34,7 @@ import threading
 
 from shutil import copyfile
 from time import sleep
-from urllib.parse import urlparse, quote
-import xml.etree.ElementTree as ElementTree
-from xml.sax.saxutils import escape
+from urllib.parse import urlparse
 
 from autopkglib import ProcessorError, APLooseVersion  # pylint: disable=import-error
 
@@ -201,7 +199,15 @@ class JamfPackageUploaderBase(JamfUploaderBase):
     # Beginning of functions for uploading to v1/packages endpoint
 
     def upload_pkg(
-        self, jamf_url, pkg_path, pkg_name, pkg_id, sleep_time, token, max_tries
+        self,
+        api_url,
+        pkg_path,
+        pkg_name,
+        pkg_id,
+        sleep_time,
+        token,
+        max_tries,
+        tenant_id="",
     ):
         """Upload a package to a Cloud Distribution Point using the v1/packages endpoint"""
 
@@ -222,7 +228,8 @@ class JamfPackageUploaderBase(JamfUploaderBase):
             pkg_path = tmp_pkg_path
 
         object_type = "package_v1"
-        url = f"{jamf_url}/{self.api_endpoints(object_type)}/{pkg_id}/upload"
+        endpoint = self.api_endpoints(object_type, tenant_id=tenant_id)
+        url = f"{api_url}/{endpoint}/{pkg_id}/upload"
         count = 0
         while True:
             count += 1
@@ -317,7 +324,7 @@ class JamfPackageUploaderBase(JamfUploaderBase):
     # ------------------------------------------------------------------------
     # Begin function on uploading pkg metadata
 
-    def check_pkg(self, pkg_name, jamf_url, token):
+    def check_pkg(self, pkg_name, api_url, token, tenant_id=""):
         """check if a package with the same name exists in the repo
         note that it is possible to have more than one with the same name
         which could mess things up"""
@@ -325,11 +332,12 @@ class JamfPackageUploaderBase(JamfUploaderBase):
         object_type = "package_v1"
         filter_name = "packageName"
         object_id = self.get_api_object_id_from_name(
-            jamf_url,
+            api_url,
             object_type=object_type,
             object_name=pkg_name,
             token=token,
             filter_name=filter_name,
+            tenant_id=tenant_id,
         )
 
         if object_id:
@@ -337,15 +345,16 @@ class JamfPackageUploaderBase(JamfUploaderBase):
         else:
             return "-1"
 
-    def get_category_id(self, jamf_url, category_name, token=""):
+    def get_category_id(self, api_url, category_name, token="", tenant_id=""):
         """Get the category ID from the name, or abort if ID not found"""
         # check for existing category
-        self.output(f"Checking for '{category_name}' on {jamf_url}")
+        self.output(f"Checking for '{category_name}' on {api_url}")
         object_id = self.get_api_object_id_from_name(
-            jamf_url,
+            api_url,
             object_type="category",
             object_name=category_name,
             token=token,
+            tenant_id=tenant_id,
         )
 
         if object_id:
@@ -357,7 +366,7 @@ class JamfPackageUploaderBase(JamfUploaderBase):
 
     def update_pkg_metadata(  # pylint: disable=too-many-arguments, too-many-locals
         self,
-        jamf_url,
+        api_url,
         pkg_name,
         pkg_display_name,
         pkg_metadata,
@@ -367,13 +376,14 @@ class JamfPackageUploaderBase(JamfUploaderBase):
         token,
         max_tries,
         pkg_id=0,
+        tenant_id="",
     ):
         """Update package metadata using v1/packages endpoint. Requires 11.5+"""
 
         # get category ID
         if pkg_metadata["category"]:
             category_id = self.get_category_id(
-                jamf_url, pkg_metadata["category"], token
+                api_url, pkg_metadata["category"], token, tenant_id
             )
         else:
             category_id = "-1"
@@ -415,14 +425,15 @@ class JamfPackageUploaderBase(JamfUploaderBase):
             verbose_level=2,
         )
 
-        pkg_json = self.write_json_file(jamf_url, pkg_data)
+        pkg_json = self.write_json_file(api_url, pkg_data)
 
         # if we find a pkg ID we put, if not, we post
         object_type = "package_v1"
+        endpoint = self.api_endpoints(object_type, tenant_id=tenant_id)
         if int(pkg_id) > 0:
-            url = f"{jamf_url}/{self.api_endpoints(object_type)}/{pkg_id}"
+            url = f"{api_url}/{endpoint}/{pkg_id}"
         else:
-            url = f"{jamf_url}/{self.api_endpoints(object_type)}"
+            url = f"{api_url}/{endpoint}"
 
         count = 0
         while True:
@@ -467,11 +478,12 @@ class JamfPackageUploaderBase(JamfUploaderBase):
     # ------------------------------------------------------------------------
     # Begin function for recalulating inventory on Cloud Distribution Point (for pkg_api_mode)
 
-    def recalculate_packages(self, jamf_url, token):
+    def recalculate_packages(self, api_url, token, tenant_id=""):
         """Send a request to recalulate the Cloud Distribution Point inventory"""
         # get the Cloud Distribution Point file list
         object_type = "cloud_distribution_point"
-        url = f"{jamf_url}/{self.api_endpoints(object_type)}/refresh-inventory"
+        endpoint = self.api_endpoints(object_type, tenant_id=tenant_id)
+        url = f"{api_url}/{endpoint}/refresh-inventory"
 
         request = "POST"
         r = self.curl(
@@ -489,7 +501,8 @@ class JamfPackageUploaderBase(JamfUploaderBase):
             packages_recalculated = True
         else:
             self.output(
-                f"WARNING: Cloud Distribution Point inventory NOT successfully recalculated (response={r.status_code})",
+                "WARNING: Cloud Distribution Point inventory NOT successfully "
+                f"recalculated (response={r.status_code})",
                 verbose_level=1,
             )
             packages_recalculated = False
@@ -523,11 +536,15 @@ class JamfPackageUploaderBase(JamfUploaderBase):
         aws_cdp_mode = self.to_bool(self.env.get("aws_cdp_mode"))
         recalculate = self.to_bool(self.env.get("recalculate"))
         use_md5 = self.env.get("md5")
-        jamf_url = self.env.get("JSS_URL").rstrip("/")
+        jamf_url = (self.env.get("JSS_URL") or "").rstrip("/")
         jamf_user = self.env.get("API_USERNAME")
         jamf_password = self.env.get("API_PASSWORD")
+        jamf_platform_gw_region = self.env.get("PLATFORM_API_REGION")
+        jamf_platform_gw_tenant_id = self.env.get("PLATFORM_API_TENANT_ID")
         client_id = self.env.get("CLIENT_ID")
         client_secret = self.env.get("CLIENT_SECRET")
+        bearer_token = self.env.get("BEARER_TOKEN")
+        jamf_cli_profile = self.env.get("JAMF_CLI_PROFILE")
         cloud_dp = self.to_bool(self.env.get("CLOUD_DP"))
         recipe_cache_dir = self.env.get("RECIPE_CACHE_DIR")
         pkg_uploaded = False
@@ -679,33 +696,49 @@ class JamfPackageUploaderBase(JamfUploaderBase):
 
         # get token using oauth or basic auth depending on the credentials given
         if jamf_url:
-            token = self.handle_api_auth(
-                jamf_url,
-                jamf_user=jamf_user,
-                password=jamf_password,
-                client_id=client_id,
-                client_secret=client_secret,
+            token, jamf_url, jamf_platform_gw_region, jamf_platform_gw_tenant_id = (
+                self.auth(
+                    jamf_url=jamf_url,
+                    jamf_user=jamf_user,
+                    password=jamf_password,
+                    region=jamf_platform_gw_region,
+                    tenant_id=jamf_platform_gw_tenant_id,
+                    client_id=client_id,
+                    client_secret=client_secret,
+                    token=bearer_token,
+                    jamf_cli_profile=jamf_cli_profile,
+                )
             )
         else:
             raise ProcessorError("ERROR: Jamf Pro URL not supplied")
 
+        # construct the api_url based on the API type
+        api_url = self.construct_api_url(
+            jamf_url=jamf_url, region=jamf_platform_gw_region
+        )
+        self.output(f"API URL is {api_url}", verbose_level=3)
+
         # get Jamf Pro version to determine default mode
         # Version 11.5+ will use the v1/packages endpoint
         # Version 11.4- is not supported any more
-        jamf_pro_version = self.get_jamf_pro_version(jamf_url, token)
+        jamf_pro_version = self.get_jamf_pro_version(
+            api_url, token, tenant_id=jamf_platform_gw_tenant_id
+        )
 
         if APLooseVersion(jamf_pro_version) < APLooseVersion("11.5"):
             raise ProcessorError(
-                f"ERROR: Jamf Pro version {jamf_pro_version} does not support the v1/packages API endpoint required for this processor"
+                f"ERROR: Jamf Pro version {jamf_pro_version} does not support the "
+                "v1/packages API endpoint required for this processor"
             )
 
         filter_name = "packageName"
         object_id = self.get_api_object_id_from_name(
-            jamf_url,
+            api_url,
             object_type="package_v1",
             object_name=pkg_name,
             token=token,
             filter_name=filter_name,
+            tenant_id=jamf_platform_gw_tenant_id,
         )
         if object_id:
             self.output(f"Package '{pkg_name}' already exists: ID {object_id}")
@@ -795,12 +828,18 @@ class JamfPackageUploaderBase(JamfUploaderBase):
         if smb_shares or aws_cdp_mode:
             # get token using oauth or basic auth depending on the credentials given
             if jamf_url:
-                token = self.handle_api_auth(
-                    jamf_url,
-                    jamf_user=jamf_user,
-                    password=jamf_password,
-                    client_id=client_id,
-                    client_secret=client_secret,
+                token, jamf_url, jamf_platform_gw_region, jamf_platform_gw_tenant_id = (
+                    self.auth(
+                        jamf_url=jamf_url,
+                        jamf_user=jamf_user,
+                        password=jamf_password,
+                        region=jamf_platform_gw_region,
+                        tenant_id=jamf_platform_gw_tenant_id,
+                        client_id=client_id,
+                        client_secret=client_secret,
+                        token=bearer_token,
+                        jamf_cli_profile=jamf_cli_profile,
+                    )
                 )
             else:
                 raise ProcessorError("ERROR: Jamf Pro URL not supplied")
@@ -817,7 +856,7 @@ class JamfPackageUploaderBase(JamfUploaderBase):
                 verbose_level=1,
             )
             self.update_pkg_metadata(
-                jamf_url,
+                api_url,
                 pkg_name,
                 pkg_display_name,
                 pkg_metadata,
@@ -827,6 +866,7 @@ class JamfPackageUploaderBase(JamfUploaderBase):
                 token=token,
                 max_tries=max_tries,
                 pkg_id=pkg_id,
+                tenant_id=jamf_platform_gw_tenant_id,
             )
             pkg_metadata_updated = True
         elif int(pkg_id) <= 0 and (
@@ -838,7 +878,7 @@ class JamfPackageUploaderBase(JamfUploaderBase):
                 verbose_level=1,
             )
             object_id = self.update_pkg_metadata(
-                jamf_url,
+                api_url,
                 pkg_name,
                 pkg_display_name,
                 pkg_metadata,
@@ -848,6 +888,7 @@ class JamfPackageUploaderBase(JamfUploaderBase):
                 token=token,
                 max_tries=max_tries,
                 pkg_id=pkg_id,
+                tenant_id=jamf_platform_gw_tenant_id,
             )
             pkg_metadata_updated = True
         elif not skip_metadata_upload:
@@ -873,14 +914,15 @@ class JamfPackageUploaderBase(JamfUploaderBase):
                 "Uploading package to Cloud DP",
                 verbose_level=1,
             )
-            r = self.upload_pkg(
-                jamf_url=jamf_url,
+            self.upload_pkg(
+                api_url=api_url,
                 pkg_path=pkg_path,
                 pkg_name=pkg_name,
                 pkg_id=pkg_id,
                 sleep_time=sleep_time,
                 token=token,
                 max_tries=max_tries,
+                tenant_id=jamf_platform_gw_tenant_id,
             )
             # if we get this far then there was a 200 success response so the package was uploaded
             pkg_uploaded = True
@@ -896,18 +938,26 @@ class JamfPackageUploaderBase(JamfUploaderBase):
             # as package upload may have taken some time
             # get token using oauth or basic auth depending on the credentials given
             if jamf_url:
-                token = self.handle_api_auth(
-                    jamf_url,
-                    jamf_user=jamf_user,
-                    password=jamf_password,
-                    client_id=client_id,
-                    client_secret=client_secret,
+                token, jamf_url, jamf_platform_gw_region, jamf_platform_gw_tenant_id = (
+                    self.auth(
+                        jamf_url=jamf_url,
+                        jamf_user=jamf_user,
+                        password=jamf_password,
+                        region=jamf_platform_gw_region,
+                        tenant_id=jamf_platform_gw_tenant_id,
+                        client_id=client_id,
+                        client_secret=client_secret,
+                        token=bearer_token,
+                        jamf_cli_profile=jamf_cli_profile,
+                    )
                 )
             else:
                 raise ProcessorError("ERROR: Jamf Pro URL not supplied")
 
             # now send the recalculation request
-            packages_recalculated = self.recalculate_packages(jamf_url, token)
+            packages_recalculated = self.recalculate_packages(
+                api_url, token, jamf_platform_gw_tenant_id
+            )
         else:
             packages_recalculated = False
 

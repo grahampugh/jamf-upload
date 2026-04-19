@@ -39,13 +39,14 @@ from JamfUploaderBase import (  # pylint: disable=import-error, wrong-import-pos
 class JamfAccountUploaderBase(JamfUploaderBase):
     """Class for functions used to upload an account to Jamf"""
 
-    def get_account_id_from_name(self, jamf_url, account_type, object_name, token):
+    def get_account_id_from_name(self, api_url, account_type, object_name, token, tenant_id=""):
         """check if an account with the same name exists on the server.
         This function is different to get_api_object_id_from_name because we need to check inside
         users/groups"""
         # define the relationship between the object types and their URL
         object_type = "account"
-        url = jamf_url + "/" + self.api_endpoints(object_type)
+        endpoint = self.api_endpoints(object_type, tenant_id=tenant_id)
+        url = f"{api_url}/{endpoint}"
         r = self.curl(api_type="classic", request="GET", url=url, token=token)
 
         if r.status_code == 200:
@@ -76,7 +77,7 @@ class JamfAccountUploaderBase(JamfUploaderBase):
                 "ERROR: Jamf returned status code '401' - Access denied."
             )
 
-    def prepare_account_template(self, jamf_url, account_name, account_template):
+    def prepare_account_template(self, api_url, account_name, account_template):
         """prepare the account contents"""
         # import template from file and replace any keys in the template
         if os.path.exists(account_template):
@@ -95,12 +96,12 @@ class JamfAccountUploaderBase(JamfUploaderBase):
         self.output(template_contents, verbose_level=2)
 
         # write the template to temp file
-        template_xml = self.write_temp_file(jamf_url, template_contents)
+        template_xml = self.write_temp_file(api_url, template_contents)
         return account_name, template_xml
 
     def upload_account(
         self,
-        jamf_url,
+        api_url,
         object_type,
         object_name,
         template_xml,
@@ -108,13 +109,18 @@ class JamfAccountUploaderBase(JamfUploaderBase):
         token,
         max_tries,
         object_id=0,
+        tenant_id="",
     ):
         """Upload account"""
 
         self.output(f"Uploading {object_type}...")
 
-        # if we find an object ID we put, if not, we post
-        url = f"{jamf_url}/JSSResource/accounts/{object_type}id/{object_id}"
+        # Account endpoint has special structure: /accounts/{userid|groupid}/{id}
+        # Use api_endpoints to get the base and append the specific structure
+        object_endpoint_type = "account"
+        base_endpoint = self.api_endpoints(object_endpoint_type, tenant_id=tenant_id)
+        # Append the account-specific path
+        url = f"{api_url}/{base_endpoint}/{object_type}id/{object_id}"
 
         count = 0
         while True:
@@ -145,11 +151,15 @@ class JamfAccountUploaderBase(JamfUploaderBase):
 
     def execute(self):
         """Upload the account"""
-        jamf_url = self.env.get("JSS_URL").rstrip("/")
+        jamf_url = (self.env.get("JSS_URL") or "").rstrip("/")
         jamf_user = self.env.get("API_USERNAME")
         jamf_password = self.env.get("API_PASSWORD")
+        jamf_platform_gw_region = self.env.get("PLATFORM_API_REGION")
+        jamf_platform_gw_tenant_id = self.env.get("PLATFORM_API_TENANT_ID")
         client_id = self.env.get("CLIENT_ID")
         client_secret = self.env.get("CLIENT_SECRET")
+        bearer_token = self.env.get("BEARER_TOKEN")
+        jamf_cli_profile = self.env.get("JAMF_CLI_PROFILE")
         account_name = self.env.get("account_name")
         account_type = self.env.get("account_type")
         domain = self.env.get("domain")
@@ -181,41 +191,50 @@ class JamfAccountUploaderBase(JamfUploaderBase):
             else:
                 raise ProcessorError(f"ERROR: Policy file {account_template} not found")
 
+        # get a token
+        token, jamf_url, jamf_platform_gw_region, jamf_platform_gw_tenant_id = self.auth(
+            jamf_url=jamf_url,
+            jamf_user=jamf_user,
+            password=jamf_password,
+            region=jamf_platform_gw_region,
+            tenant_id=jamf_platform_gw_tenant_id,
+            client_id=client_id,
+            client_secret=client_secret,
+            token=bearer_token,
+            jamf_cli_profile=jamf_cli_profile,
+        )
+
+        # construct the api_url based on the API type
+        api_url = self.construct_api_url(
+            jamf_url=jamf_url, region=jamf_platform_gw_region
+        )
+        self.output(f"API URL is {api_url}", verbose_level=3)
+
         # now start the process of uploading the object
-        self.output(f"Checking for existing '{account_name}' on {jamf_url}")
-
-        # get token using oauth or basic auth depending on the credentials given
-        if jamf_url:
-            token = self.handle_api_auth(
-                jamf_url,
-                jamf_user=jamf_user,
-                password=jamf_password,
-                client_id=client_id,
-                client_secret=client_secret,
-            )
-        else:
-            raise ProcessorError("ERROR: Jamf Pro URL not supplied")
-
         # check for existing account - requires account_name and account_type
+        self.output(f"Checking for existing '{account_name}' on {api_url}")
+
         object_id = self.get_account_id_from_name(
-            jamf_url,
+            api_url,
             account_type=account_type,
             object_name=account_name,
             token=token,
+            tenant_id=jamf_platform_gw_tenant_id,
         )
 
         # check for existing LDAP domain
         if domain:
             self.output(
-                f"Checking for existing LDAP domain '{domain}' on {jamf_url}",
+                f"Checking for existing LDAP domain '{domain}' on {api_url}",
                 verbose_level=1,
             )
             # requires object_name and account type
             domain_id = self.get_api_object_id_from_name(
-                jamf_url,
+                api_url,
                 object_type="ldap_server",
                 object_name=domain,
                 token=token,
+                tenant_id=jamf_platform_gw_tenant_id,
             )
             self.env["domain"] = domain
             self.env["domain_id"] = domain_id
@@ -223,10 +242,11 @@ class JamfAccountUploaderBase(JamfUploaderBase):
         # check for existing group - requires object_name and account type
         if group:
             group_id = self.get_account_id_from_name(
-                jamf_url,
+                api_url,
                 account_type="group",
                 object_name=group,
                 token=token,
+                tenant_id=jamf_platform_gw_tenant_id,
             )
             self.env["group"] = group
             self.env["group_id"] = group_id
@@ -234,7 +254,7 @@ class JamfAccountUploaderBase(JamfUploaderBase):
         # we need to substitute the values in the account name and template now to
         # account for version strings in the name
         account_name, template_xml = self.prepare_account_template(
-            jamf_url, account_name, account_template
+            api_url, account_name, account_template
         )
 
         if object_id:
@@ -253,7 +273,7 @@ class JamfAccountUploaderBase(JamfUploaderBase):
 
         # upload the account
         self.upload_account(
-            jamf_url,
+            api_url,
             object_type=account_type,
             object_name=account_name,
             template_xml=template_xml,
@@ -261,6 +281,7 @@ class JamfAccountUploaderBase(JamfUploaderBase):
             token=token,
             max_tries=max_tries,
             object_id=object_id,
+            tenant_id=jamf_platform_gw_tenant_id,
         )
         account_updated = True
 
