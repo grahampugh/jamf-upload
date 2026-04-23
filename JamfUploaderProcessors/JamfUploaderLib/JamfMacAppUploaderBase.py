@@ -41,123 +41,6 @@ from JamfUploaderBase import (  # pylint: disable=import-error, wrong-import-pos
 class JamfMacAppUploaderBase(JamfUploaderBase):
     """Class for functions used to upload a mac app to Jamf"""
 
-    def _extract_adam_id(self, store_url):
-        """Return the adamId component from an App Store URL."""
-        if not store_url:
-            return None
-        match = re.search(r"id(\d+)", store_url)
-        if match:
-            return match.group(1)
-        cleaned_value = store_url.strip()
-        return cleaned_value or None
-
-    def _prioritize_vpp_locations(self, locations, preferred_location):
-        """Return the locations list with preferred location matches first."""
-        if not preferred_location:
-            return locations
-        preferred_lower = preferred_location.lower()
-        for index, location in enumerate(locations):
-            location_name = location.get("locationName") or location.get("name", "")
-            if preferred_lower in location_name.lower():
-                return [location] + locations[:index] + locations[index + 1 :]
-        return locations
-
-    def _get_volume_purchasing_locations(self, api_url, token, tenant_id=""):
-        """Retrieve all Volume Purchasing Locations from Jamf Pro."""
-        url_filter = "?page=0&page-size=200&sort=id"
-        object_type = "volume_purchasing_location"
-        endpoint = self.api_endpoints(object_type, tenant_id=tenant_id)
-        url = f"{api_url}/{endpoint}{url_filter}"
-        r = self.curl(api_type="jpapi", request="GET", url=url, token=token)
-        if r.status_code != 200:
-            self.output(
-                f"Unable to retrieve VPP locations (status {r.status_code})",
-                verbose_level=2,
-            )
-            return []
-        if isinstance(r.output, dict):
-            output = r.output
-        else:
-            output = json.loads(r.output)
-        locations = output.get("results", [])
-        for obj in locations:
-            location_name = obj.get("locationName") or obj.get("name")
-            self.output(
-                f"VPP Location ID: {obj.get('id')} NAME: {location_name}",
-                verbose_level=3,
-            )
-        return locations
-
-    def _location_contains_app_content(
-        self, api_url, token, location_id, target_adam_id, tenant_id=""
-    ):
-        """Return True if the supplied location contains content for the adam ID."""
-        if not location_id or not target_adam_id:
-            return False
-        object_type = "volume_purchasing_location"
-        endpoint = self.api_endpoints(object_type, tenant_id=tenant_id)
-        url = f"{api_url}/{endpoint}/{location_id}/content?page=0&page-size=200"
-        r = self.curl(api_type="jpapi", request="GET", url=url, token=token)
-        if r.status_code != 200:
-            self.output(
-                f"Unable to retrieve VPP content for location {location_id} (status {r.status_code})",
-                verbose_level=2,
-            )
-            return False
-        if isinstance(r.output, dict):
-            output = r.output
-        else:
-            output = json.loads(r.output)
-        for content_item in output.get("results", []):
-            adam_id = str(content_item.get("adamId") or "").strip()
-            if not adam_id:
-                continue
-            if (
-                adam_id == target_adam_id
-                or adam_id in target_adam_id
-                or target_adam_id in adam_id
-            ):
-                self.output(
-                    f"Matched adam ID {target_adam_id} in location {location_id}",
-                    verbose_level=2,
-                )
-                return True
-        return False
-
-    def get_vpp_id(
-        self, api_url, token, store_url=None, preferred_location=None, tenant_id=""
-    ):
-        """Determine the Volume Purchasing Location ID that hosts the app's content."""
-        locations = self._get_volume_purchasing_locations(api_url, token, tenant_id=tenant_id)
-        if not locations:
-            return None
-        ordered_locations = self._prioritize_vpp_locations(
-            locations, preferred_location
-        )
-        target_adam_id = self._extract_adam_id(store_url)
-        if not target_adam_id:
-            self.output(
-                "Unable to determine adam ID from App Store URL; skipping VPP match",
-                verbose_level=2,
-            )
-            return None
-        for location in ordered_locations:
-            location_id = location.get("id")
-            location_name = location.get("name")
-            self.output(
-                f"Checking VPP location '{location_name}' (ID {location_id}) for adam ID {target_adam_id}",
-                verbose_level=3,
-            )
-            if self._location_contains_app_content(
-                api_url, token, location_id, target_adam_id, tenant_id=tenant_id
-            ):
-                return location_id
-        self.output(
-            f"No VPP location contains content for adam ID '{target_adam_id}'",
-            verbose_level=2,
-        )
-        return None
-
     def prepare_macapp_template(self, api_url, macapp_name, macapp_template):
         """prepare the macapp contents"""
         # import template from file and replace any keys in the template
@@ -242,9 +125,7 @@ class JamfMacAppUploaderBase(JamfUploaderBase):
         clone_from = self.env.get("clone_from")
         selfservice_icon_uri = self.env.get("selfservice_icon_uri")
         macapp_template = self.env.get("macapp_template")
-        preferred_vpp_location = self.env.get(
-            "preferred_volume_purchase_location"
-        )
+        preferred_vpp_location = self.env.get("preferred_volume_purchase_location")
         replace_macapp = self.to_bool(self.env.get("replace_macapp"))
         sleep_time = self.env.get("sleep")
         macapp_updated = False
@@ -275,14 +156,16 @@ class JamfMacAppUploaderBase(JamfUploaderBase):
 
         # get token using oauth or basic auth depending on the credentials given
         if jamf_url:
-            token, jamf_url, jamf_platform_gw_region, jamf_platform_gw_tenant_id = self.auth(
-                jamf_url,
-                jamf_user=jamf_user,
-                password=jamf_password,
-                client_id=client_id,
-                client_secret=client_secret,
-                token=bearer_token,
-                jamf_cli_profile=jamf_cli_profile,
+            token, jamf_url, jamf_platform_gw_region, jamf_platform_gw_tenant_id = (
+                self.auth(
+                    jamf_url,
+                    jamf_user=jamf_user,
+                    password=jamf_password,
+                    client_id=client_id,
+                    client_secret=client_secret,
+                    token=bearer_token,
+                    jamf_cli_profile=jamf_cli_profile,
+                )
             )
         else:
             raise ProcessorError("ERROR: Jamf Pro URL not supplied")

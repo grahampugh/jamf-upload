@@ -228,7 +228,6 @@ fi
 command_base=(
     "$DIR"/../jamf-upload.sh
     --prefs "$prefs"
-    --recipe-dir /Users/gpugh/sourcecode/jamf-upload/_tests
     --output "/Users/Shared/Jamf/JamfUploaderTests"
     "$verbosity"
 )
@@ -433,6 +432,7 @@ list-scripts)
         read
         --type "script"
         --list
+        --all
     )
     # now print out the command that will be executed, and run the command
     printf '%s\n' "Executing command: $(printf '%s ' "${command[@]}")"
@@ -514,11 +514,7 @@ ldapserver)
     ;;
 enrollment)
     command=(
-        "$DIR"/../jamf-upload.sh
-        --prefs "$prefs_alt"
-        --recipe-dir /Users/gpugh/sourcecode/jamf-upload/_tests
-        --output "/Users/Shared/Jamf/JamfUploaderTests"
-        "$verbosity"
+        "${command_base[@]}"
         obj
         --type "enrollment_settings"
         --template "templates/enrollment.json"
@@ -530,11 +526,7 @@ enrollment)
     ;;
 inventory)
     command=(
-        "$DIR"/../jamf-upload.sh
-        --prefs "$prefs_alt"
-        --recipe-dir /Users/gpugh/sourcecode/jamf-upload/_tests
-        --output "/Users/Shared/Jamf/JamfUploaderTests"
-        "$verbosity"
+        "${command_base[@]}"
         obj
         --type "computer_inventory_collection_settings"
         --template "templates/computer-inventory-collection-settings.json"
@@ -546,11 +538,7 @@ inventory)
     ;;
 laps)
     command=(
-        "$DIR"/../jamf-upload.sh
-        --prefs "$prefs_alt"
-        --recipe-dir /Users/gpugh/sourcecode/jamf-upload/_tests
-        --output "/Users/Shared/Jamf/JamfUploaderTests"
-        "$verbosity"
+        "${command_base[@]}"
         obj
         --type "laps_settings"
         --template "templates/local-admin-password-settings.json"
@@ -562,11 +550,7 @@ laps)
     ;;
 selfservice)
     command=(
-        "$DIR"/../jamf-upload.sh
-        --prefs "$prefs_alt"
-        --recipe-dir /Users/gpugh/sourcecode/jamf-upload/_tests
-        --output "/Users/Shared/Jamf/JamfUploaderTests"
-        "$verbosity"
+        "${command_base[@]}"
         obj
         --type "self_service_settings"
         --template "templates/self-service-settings.json"
@@ -712,11 +696,7 @@ read-distributionpoint)
     ;;
 appinstallers-tandc)
     command=(
-        "$DIR"/../jamf-upload.sh
-        --prefs "$prefs_alt"
-        --recipe-dir /Users/gpugh/sourcecode/jamf-upload/_tests
-        --output "/Users/Shared/Jamf/JamfUploaderTests"
-        "$verbosity"
+        "${command_base[@]}"
         obj
         --type "app_installers_accept_t_and_c_command"
     )
@@ -727,11 +707,7 @@ appinstallers-tandc)
     ;;
 read-appinstaller-id)
     command=(
-        "$DIR"/../jamf-upload.sh
-        --prefs "$prefs_alt"
-        --recipe-dir /Users/gpugh/sourcecode/jamf-upload/_tests
-        --output "/Users/Shared/Jamf/JamfUploaderTests"
-        "$verbosity"
+        "${command_base[@]}"
         read
         --type "app_installer"
         --id "1"
@@ -755,11 +731,7 @@ read-policy)
     ;;
 read-mobiledeviceapp)
     command=(
-        "$DIR"/../jamf-upload.sh
-        --prefs "$prefs_alt"
-        --recipe-dir /Users/gpugh/sourcecode/jamf-upload/_tests
-        --output "/Users/Shared/Jamf/JamfUploaderTests"
-        "$verbosity"
+        "${command_base[@]}"
         read
         --type "mobile_device_application"
         --name "Jamf Self Service"
@@ -795,11 +767,7 @@ read-profile)
     ;;
 read-profiles)
     command=(
-        "$DIR"/../jamf-upload.sh
-        --prefs "$prefs_alt"
-        --recipe-dir /Users/gpugh/sourcecode/jamf-upload/_tests
-        --output "/Users/Shared/Jamf/JamfUploaderTests"
-        "$verbosity"
+        "${command_base[@]}"
         read
         --type "os_x_configuration_profile"
         --all
@@ -907,11 +875,7 @@ read-prestage)
     ;;
 read-prestages)
     command=(
-        "$DIR"/../jamf-upload.sh
-        --prefs "$prefs_alt"
-        --recipe-dir /Users/gpugh/sourcecode/jamf-upload/_tests
-        --output "/Users/Shared/Jamf/JamfUploaderTests"
-        "$verbosity"
+        "${command_base[@]}"
         read
         --type "computer_prestage"
         --all
@@ -923,11 +887,7 @@ read-prestages)
     ;;
 read-device-prestages)
     command=(
-        "$DIR"/../jamf-upload.sh
-        --prefs "$prefs_alt"
-        --recipe-dir /Users/gpugh/sourcecode/jamf-upload/_tests
-        --output "/Users/Shared/Jamf/JamfUploaderTests"
-        "$verbosity"
+        "${command_base[@]}"
         read
         --type "mobile_device_prestage"
         --all
@@ -1127,7 +1087,6 @@ mea-popup)
     command=(
         "${command_base[@]}"
         mobiledeviceea
-        --recipe-dir /Users/Shared/GitHub/jamf-upload/_tests
         --name "Test Popup"
         --type "popup"
         --choices "1.0,1.1,1.2,1.3"
@@ -1175,11 +1134,10 @@ mobiledeviceappauto)
     command=(
         "${command_base[@]}"
         mobiledeviceapp
-        --recipe-dir /Users/Shared/GitHub/jamf-upload/_tests
-        --name "Keynote - Automatic"
-        --clone-from "Keynote"
+        --name "Bitwarden Password Manager - Automatic"
+        --clone-from "Bitwarden Password Manager"
         --template "templates/MobileDeviceApp-noscope-autoinstall.xml"
-        --key CATEGORY="Applications"
+        --key CATEGORY="JSPP - Applications"
         --key DEPLOYMENT_TYPE="Install Automatically/Prompt Users to Install"
         --replace
     )
@@ -1192,9 +1150,8 @@ mobiledeviceappautoconfig)
     command=(
         "${command_base[@]}"
         mobiledeviceapp
-        --recipe-dir /Users/Shared/GitHub/jamf-upload/_tests
-        --name "Keynote - Automatic"
-        --clone-from "Keynote"
+        --name "Bitwarden Password Manager - Automatic"
+        --clone-from "Bitwarden Password Manager"
         --template "templates/MobileDeviceApp-noscope-autoinstall.xml"
         --appconfig "templates/AppConfig.xml"
         --key CATEGORY="Applications"
@@ -1210,10 +1167,9 @@ mobiledeviceappselfservice)
     command=(
         "${command_base[@]}"
         mobiledeviceapp
-        --recipe-dir /Users/Shared/GitHub/jamf-upload/_tests
-        --name "Keynote"
+        --name "Bitwarden Password Manager"
         --template "templates/MobileDeviceApp-noscope.xml"
-        --key CATEGORY="Applications"
+        --key CATEGORY="JSPP - Applications"
         --key DEPLOYMENT_TYPE="Make Available in Self Service"
         --replace
     )
@@ -1226,11 +1182,10 @@ mobiledeviceappselfserviceconfig)
     command=(
         "${command_base[@]}"
         mobiledeviceapp
-        --recipe-dir /Users/Shared/GitHub/jamf-upload/_tests
-        --name "Keynote"
+        --name "Bitwarden Password Manager"
         --template "templates/MobileDeviceApp-noscope.xml"
         --appconfig "templates/AppConfig.xml"
-        --key CATEGORY="Applications"
+        --key CATEGORY="JSPP - Applications"
         --key DEPLOYMENT_TYPE="Make Available in Self Service"
         --replace
     )
@@ -1241,13 +1196,8 @@ mobiledeviceappselfserviceconfig)
     ;;
 mobiledeviceapp-fromread)
     command=(
-        "$DIR"/../jamf-upload.sh
-        --prefs "$prefs_alt"
-        --recipe-dir /Users/gpugh/sourcecode/jamf-upload/_tests
-        --output "/Users/Shared/Jamf/JamfUploaderTests"
-        "$verbosity"
+        "${command_base[@]}"
         mobiledeviceapp
-        --recipe-dir /Users/Shared/GitHub/jamf-upload/_tests
         --name "Jamf Self Service"
         --template "/Users/Shared/Jamf/JamfUploaderTests/MobileDeviceApp-Template-JamfSelfService.xml"
         --replace
@@ -1611,11 +1561,7 @@ pkgclean)
     ;;
 unusedpkg)
     command=(
-        "$DIR"/../jamf-upload.sh
-        --prefs "$prefs_alt"
-        --recipe-dir /Users/gpugh/sourcecode/jamf-upload/_tests
-        --output "/Users/Shared/Jamf/JamfUploaderTests"
-        "$verbosity"
+        "${command_base[@]}"
         unusedpkgclean
         --slack-url "$slack_webhook_url"
     )
