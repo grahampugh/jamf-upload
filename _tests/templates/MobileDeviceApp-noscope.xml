@@ -28,23 +28,23 @@
             <mobile_devices/>
         </exclusions>
     </scope>
-	<self_service>
-		<self_service_install_button_text>Install</self_service_install_button_text>
-		<self_service_icon>
+    <self_service>
+        <self_service_install_button_text>Install</self_service_install_button_text>
+        <self_service_icon>
             <uri>%selfservice_icon_uri%</uri>
-		</self_service_icon>
-		<feature_on_main_page>false</feature_on_main_page>
-		<self_service_categories/>
-		<notification>false</notification>
-		<notification_subject/>
-		<notification_message/>
-	</self_service>
-	<vpp_codes/>
-	<vpp>
-		<assign_vpp_device_based_licenses>true</assign_vpp_device_based_licenses>
-		<vpp_admin_account_id>3</vpp_admin_account_id>
-	</vpp>
+        </self_service_icon>
+        <feature_on_main_page>false</feature_on_main_page>
+        <self_service_categories/>
+        <notification>false</notification>
+        <notification_subject/>
+        <notification_message/>
+    </self_service>
+    <vpp_codes/>
+    <vpp>
+        <assign_vpp_device_based_licenses>true</assign_vpp_device_based_licenses>
+        <vpp_admin_account_id>%vpp_id%</vpp_admin_account_id>
+    </vpp>
     <app_configuration>
         <preferences>%appconfig%</preferences>
-	</app_configuration>
+    </app_configuration>
 </mobile_device_application>

@@ -695,16 +695,13 @@ class JamfUploaderBase(Processor):
         # get jamf-cli path from user path
         jamf_cli_path = shutil.which("jamf-cli")
         if not jamf_cli_path or not os.path.isfile(jamf_cli_path):
-            raise ProcessorError(
-                f"jamf-cli not found at {jamf_cli_path}"
-            )
+            raise ProcessorError(f"jamf-cli not found at {jamf_cli_path}")
 
         jamf_cli_api_type = "platform" if region else "pro"
 
         api_url = self.construct_api_url(jamf_url, region)
         self.output(
-            f"Using jamf-cli to get token for {api_url} "
-            f"({jamf_cli_api_type} API)",
+            f"Using jamf-cli to get token for {api_url} " f"({jamf_cli_api_type} API)",
             verbose_level=1,
         )
 
@@ -723,8 +720,7 @@ class JamfUploaderBase(Processor):
             jamf_cli_profile,
         ]
         self.output(
-            f"Requesting token from jamf-cli for profile "
-            f"{jamf_cli_profile}",
+            f"Requesting token from jamf-cli for profile " f"{jamf_cli_profile}",
             verbose_level=1,
         )
 
@@ -740,9 +736,7 @@ class JamfUploaderBase(Processor):
         try:
             output = json.loads(result.stdout)
         except json.JSONDecodeError as e:
-            raise ProcessorError(
-                f"jamf-cli returned invalid JSON: {e}"
-            ) from e
+            raise ProcessorError(f"jamf-cli returned invalid JSON: {e}") from e
 
         # jamf-cli returns a normalized token format:
         # {"token": "...", "expires_at": "2024-01-01T12:00:00.000Z"}
@@ -768,9 +762,7 @@ class JamfUploaderBase(Processor):
                         "token_from_jamf_upload.txt",
                     )
                     normalized_output["url"] = api_url
-                    normalized_output["user"] = (
-                        f"jamf-cli:{jamf_cli_profile}"
-                    )
+                    normalized_output["user"] = f"jamf-cli:{jamf_cli_profile}"
                     with open(token_file, "w", encoding="utf-8") as fp:
                         json.dump(normalized_output, fp)
 
@@ -791,9 +783,7 @@ class JamfUploaderBase(Processor):
                 self.output(f"Expires: {expires}", verbose_level=2)
                 return token
             except KeyError as e:
-                self.output(
-                    f"ERROR: Missing key in jamf-cli token response: {e}"
-                )
+                self.output(f"ERROR: Missing key in jamf-cli token response: {e}")
                 self.output(
                     f"jamf-cli output: {result.stdout.strip()}",
                     verbose_level=2,
@@ -823,14 +813,11 @@ class JamfUploaderBase(Processor):
                 else:
                     normalized_output = output.copy()
                     normalized_output["token"] = token
-                    expires_timestamp = (
-                        datetime.now(timezone.utc)
-                        + timedelta(seconds=expires_in)
+                    expires_timestamp = datetime.now(timezone.utc) + timedelta(
+                        seconds=expires_in
                     )
-                    normalized_output["expires"] = (
-                        expires_timestamp.strftime(
-                            "%Y-%m-%dT%H:%M:%S.%fZ"
-                        )
+                    normalized_output["expires"] = expires_timestamp.strftime(
+                        "%Y-%m-%dT%H:%M:%S.%fZ"
                     )
                     self.write_token_to_json_file(
                         api_url=api_url,
@@ -838,15 +825,11 @@ class JamfUploaderBase(Processor):
                         data=normalized_output,
                     )
 
-                self.output(
-                    "Token received via jamf-cli (access_token format)"
-                )
+                self.output("Token received via jamf-cli (access_token format)")
                 self.output(f"Token: {token}", verbose_level=2)
                 return token
             except KeyError as e:
-                self.output(
-                    f"ERROR: Missing key in token response: {e}"
-                )
+                self.output(f"ERROR: Missing key in token response: {e}")
                 self.output(
                     f"jamf-cli output: {result.stdout.strip()}",
                     verbose_level=2,
@@ -1216,9 +1199,7 @@ class JamfUploaderBase(Processor):
                 if auth_method == "platform":
                     # Extract region from the profile URL if not provided
                     if not region:
-                        region = self.extract_region_from_platform_url(
-                            profile_url
-                        )
+                        region = self.extract_region_from_platform_url(profile_url)
                         if region:
                             self.output(
                                 f"Auto-detected region '{region}' from "
@@ -1978,6 +1959,69 @@ class JamfUploaderBase(Processor):
                         return matched_filepath
         raise ProcessorError(f"File '{filename}' not found")
 
+    def paginated_get(
+        self,
+        api_type,
+        url,
+        token,
+        object_type,
+        namekey,
+        domain,
+    ):
+        """get a list of all objects of a particular type, handling pagination if needed.
+        For JPAPI endpoints only, as Classic API endpoints do not paginate."""
+
+        url_filter = "?page=0&page-size=1"
+        r = self.curl(
+            api_type=api_type, request="GET", url=f"{url}{url_filter}", token=token
+        )
+        self.output(f"Output:\n{r.output}", verbose_level=4)
+        # check if there is a totalCount value in the output
+        try:
+            total_objects = int(r.output["totalCount"])
+            self.output(f"Total objects: {total_objects}", verbose_level=2)
+            # if total count is 0, return empty list
+            if total_objects == 0:
+                return []
+            # now get all objects in a loop, paginating per 100 objects
+            object_list = []
+
+            for page in range(0, (total_objects + 99) // 100):
+                url_filter = f"?page={page}&page-size=100&sort={namekey}&sort-order=asc"
+                self.output(f"Getting page {page} of objects", verbose_level=2)
+                if page > 0:
+                    time.sleep(0.5)  # be nice to the server
+                r = self.curl(
+                    api_type=api_type,
+                    request="GET",
+                    url=f"{url}{url_filter}",
+                    token=token,
+                )
+                if r.status_code != 200:
+                    raise ProcessorError(
+                        f"ERROR: Unable to get list of {object_type} from {domain}"
+                    )
+                self.output(f"Output:\n{r.output}", verbose_level=4)
+                # parse the output to get the list of objects
+                if object_type == "managed_software_updates_available_updates":
+                    object_list.extend(r.output["availableUpdates"])
+                elif object_type == "managed_software_updates_plans_events":
+                    object_list.extend(r.output["events"])
+                else:
+                    object_list.extend(r.output["results"])
+                # any null values in the output should be converted to empty strings
+                # this is to avoid problems outputting to XML later
+                for obj in object_list:
+                    for key, value in obj.items():
+                        if value is None:
+                            obj[key] = ""
+        except (KeyError, TypeError):
+            # if not, we're not dealing with a paginated endpoint, so just return the
+            # results list
+            object_list = r.output
+
+        return object_list
+
     def get_all_api_objects(
         self, domain, object_type, tenant_id="", uuid="", token="", namekey=""
     ):
@@ -2007,63 +2051,16 @@ class JamfUploaderBase(Processor):
             object_list = r.output[self.object_list_types(object_type)]
         elif api_type == "jpapi" or api_type == "platform":
             # Jamf Pro API: use pagination
-            url_filter = "?page=0&page-size=1"
-            url = f"{domain}/{self.api_endpoints(object_type, uuid=uuid, tenant_id=tenant_id)}{url_filter}"
-            r = self.curl(api_type=api_type, request="GET", url=url, token=token)
-            self.output(f"Output:\n{r.output}", verbose_level=4)
-            # check if there is a totalCount value in the output
-            try:
-                total_objects = int(r.output["totalCount"])
-                self.output(f"Total objects: {total_objects}", verbose_level=2)
-                # if total count is 0, return empty list
-                if total_objects == 0:
-                    return []
-                # now get all objects in a loop, paginating per 100 objects
-                object_list = []
-
-                for page in range(0, (total_objects + 99) // 100):
-                    url_filter = (
-                        f"?page={page}&page-size=100&sort={namekey}&sort-order=asc"
-                    )
-                    self.output(f"Getting page {page} of objects", verbose_level=2)
-                    if page > 0:
-                        time.sleep(0.5)  # be nice to the server
-                    url = f"{domain}/{self.api_endpoints(object_type, uuid=uuid, tenant_id=tenant_id)}{url_filter}"
-                    r = self.curl(
-                        api_type=api_type, request="GET", url=url, token=token
-                    )
-                    if r.status_code != 200:
-                        raise ProcessorError(
-                            f"ERROR: Unable to get list of {object_type} from {domain}"
-                        )
-                    self.output(f"Output:\n{r.output}", verbose_level=4)
-                    # parse the output to get the list of objects
-                    if object_type == "managed_software_updates_available_updates":
-                        object_list.extend(r.output["availableUpdates"])
-                    elif object_type == "managed_software_updates_plans_events":
-                        object_list.extend(r.output["events"])
-                    else:
-                        object_list.extend(r.output["results"])
-                    # any null values in the output should be converted to empty strings
-                    # this is to avoid problems outputting to XML later
-                    for obj in object_list:
-                        for key, value in obj.items():
-                            if value is None:
-                                obj[key] = ""
-            except (KeyError, TypeError):
-                # if not, we're not dealing with a paginated endpoint, so just return the
-                # results list
-                object_list = r.output
-        # elif api_type == "platform":
-        #     # Platform API: no pagination, just get all objects at once
-        #     url = f"{domain}/{self.api_endpoints(object_type, uuid, tenant_id=tenant_id)}"
-        #     r = self.curl(api_type=api_type, request="GET", url=url, token=token)
-        #     if r.status_code != 200:
-        #         raise ProcessorError(
-        #             f"ERROR: Unable to get list of {object_type} from {domain}"
-        #         )
-        #     self.output(f"Output:\n{r.output}", verbose_level=4)
-        #     object_list = r.output.get(self.object_list_types(object_type), [])
+            # url_filter = "?page=0&page-size=1"
+            url = f"{domain}/{self.api_endpoints(object_type, uuid=uuid, tenant_id=tenant_id)}"
+            object_list = self.paginated_get(
+                api_type,
+                url,
+                token,
+                object_type,
+                namekey,
+                domain,
+            )
         else:
             raise ProcessorError(f"ERROR: Unknown API type {api_type}")
 
@@ -2839,6 +2836,125 @@ class JamfUploaderBase(Processor):
                 pass
 
         return acct, passw
+
+    def _extract_adam_id(self, store_url):
+        """Return the adamId component from an App Store URL."""
+        if not store_url:
+            return None
+        match = re.search(r"id(\d+)", store_url)
+        if match:
+            return match.group(1)
+        cleaned_value = store_url.strip()
+        return cleaned_value or None
+
+    def _prioritize_vpp_locations(self, locations, preferred_location):
+        """Return the locations list with preferred location matches first."""
+        if not preferred_location:
+            return locations
+        preferred_lower = preferred_location.lower()
+        for index, location in enumerate(locations):
+            location_name = location.get("locationName") or location.get("name", "")
+            if preferred_lower in location_name.lower():
+                return [location] + locations[:index] + locations[index + 1 :]
+        return locations
+
+    def _get_volume_purchasing_locations(self, api_url, token, tenant_id=""):
+        """Retrieve all Volume Purchasing Locations from Jamf Pro."""
+        object_type = "volume_purchasing_location"
+        endpoint = self.api_endpoints(object_type, tenant_id=tenant_id)
+        url = f"{api_url}/{endpoint}"
+
+        object_list = self.paginated_get(
+            api_type="jpapi",
+            url=url,
+            token=token,
+            object_type=object_type,
+            namekey="name",
+            domain=api_url,
+        )
+        if object_list is None:
+            self.output("Unable to retrieve VPP locations", verbose_level=2)
+            return []
+
+        locations = object_list
+        for obj in locations:
+            location_name = obj.get("locationName") or obj.get("name")
+            self.output(
+                f"VPP Location ID: {obj.get('id')} NAME: {location_name}",
+                verbose_level=3,
+            )
+        return locations
+
+    def _location_contains_app_content(
+        self, api_url, token, location_id, target_adam_id, tenant_id=""
+    ):
+        """Return True if the supplied location contains content for the adam ID."""
+        if not location_id or not target_adam_id:
+            return False
+        object_type = "volume_purchasing_location"
+        endpoint = self.api_endpoints(object_type, tenant_id=tenant_id)
+        url = f"{api_url}/{endpoint}/{location_id}/content"
+
+        object_list = self.paginated_get(
+            api_type="jpapi",
+            url=url,
+            token=token,
+            object_type=object_type,
+            namekey="name",
+            domain=api_url,
+        )
+
+        for content_item in object_list:
+            adam_id = str(content_item.get("adamId") or "").strip()
+            if not adam_id:
+                continue
+            if (
+                adam_id == target_adam_id
+                or adam_id in target_adam_id
+                or target_adam_id in adam_id
+            ):
+                self.output(
+                    f"Matched adam ID {target_adam_id} in location {location_id}",
+                    verbose_level=2,
+                )
+                return True
+        return False
+
+    def get_vpp_id(
+        self, api_url, token, store_url=None, preferred_location=None, tenant_id=""
+    ):
+        """Determine the Volume Purchasing Location ID that hosts the app's content."""
+        locations = self._get_volume_purchasing_locations(
+            api_url, token, tenant_id=tenant_id
+        )
+        if not locations:
+            return None
+        ordered_locations = self._prioritize_vpp_locations(
+            locations, preferred_location
+        )
+        target_adam_id = self._extract_adam_id(store_url)
+        if not target_adam_id:
+            self.output(
+                "Unable to determine adam ID from App Store URL; skipping VPP match",
+                verbose_level=2,
+            )
+            return None
+        for location in ordered_locations:
+            location_id = location.get("id")
+            location_name = location.get("name")
+            self.output(
+                f"Checking VPP location '{location_name}' (ID {location_id}) for adam ID {target_adam_id}",
+                verbose_level=3,
+            )
+            if self._location_contains_app_content(
+                api_url, token, location_id, target_adam_id, tenant_id=tenant_id
+            ):
+                return location_id
+        self.output(
+            f"No VPP location contains content for adam ID '{target_adam_id}'",
+            verbose_level=2,
+        )
+        return None
 
 
 if __name__ == "__main__":
