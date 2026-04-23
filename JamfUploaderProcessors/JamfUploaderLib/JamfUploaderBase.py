@@ -1388,8 +1388,12 @@ class JamfUploaderBase(Processor):
                     "No existing cookie found - starting new session", verbose_level=2
                 )
 
-            # all endpoints can be specified silent with show-error
-            curl_cmd.extend(["--silent", "--show-error"])
+            # all endpoints can be specified with show-error
+            curl_cmd.extend(["--show-error"])
+
+            # we want to be silent except for package uploads
+            if endpoint_type != "package_v1":
+                curl_cmd.extend(["--silent"])
 
             # icon download
             if endpoint_type == "icon_get":
@@ -1407,6 +1411,7 @@ class JamfUploaderBase(Processor):
 
             # package upload (Jamf Pro API)
             elif endpoint_type == "package_v1":
+                curl_cmd.extend(["--progress-bar"])
                 curl_cmd.extend(["--header", "Content-type: multipart/form-data"])
                 curl_cmd.extend(["--form", f"file=@{data}"])
 

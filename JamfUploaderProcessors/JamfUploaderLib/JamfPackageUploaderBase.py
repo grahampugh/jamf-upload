@@ -30,7 +30,6 @@ import os.path
 import shutil
 import subprocess
 import sys
-import threading
 
 from shutil import copyfile
 from time import sleep
@@ -46,27 +45,6 @@ sys.path.insert(0, os.path.dirname(__file__))
 from JamfUploaderBase import (  # pylint: disable=import-error, wrong-import-position
     JamfUploaderBase,
 )
-
-
-class ProgressPercentage(object):
-    """Class for displaying upload progress - used for jcds2_mode only"""
-
-    def __init__(self, filename):
-        self._filename = filename
-        self._size = float(os.path.getsize(filename))
-        self._seen_so_far = 0
-        self._lock = threading.Lock()
-
-    def __call__(self, bytes_amount):
-        # To simplify, assume this is hooked up to a single filename
-        with self._lock:
-            self._seen_so_far += bytes_amount
-            percentage = (self._seen_so_far / self._size) * 100
-            sys.stdout.write(
-                "\r%s  %s / %s  (%.2f%%)"  # pylint: disable=consider-using-f-string
-                % (self._filename, self._seen_so_far, self._size, percentage)
-            )
-            sys.stdout.flush()
 
 
 class JamfPackageUploaderBase(JamfUploaderBase):
@@ -370,7 +348,7 @@ class JamfPackageUploaderBase(JamfUploaderBase):
         pkg_name,
         pkg_display_name,
         pkg_metadata,
-        sha512string,
+        sha3string,
         md5string,
         sleep_time,
         token,
@@ -411,10 +389,10 @@ class JamfPackageUploaderBase(JamfUploaderBase):
             hash_type = "MD5"
             pkg_data["hashType"] = hash_type
             pkg_data["hashValue"] = md5string
-        elif sha512string:
-            hash_type = "SHA_512"
+        elif sha3string:
+            hash_type = "SHA3_512"
             pkg_data["hashType"] = hash_type
-            pkg_data["hashValue"] = sha512string
+            pkg_data["hashValue"] = sha3string
 
         self.output(
             "Package metadata:",
@@ -478,12 +456,18 @@ class JamfPackageUploaderBase(JamfUploaderBase):
     # ------------------------------------------------------------------------
     # Begin function for recalulating inventory on Cloud Distribution Point (for pkg_api_mode)
 
-    def recalculate_packages(self, api_url, token, tenant_id=""):
+    def recalculate_packages(self, api_url, token, tenant_id="", pkg_name=""):
         """Send a request to recalulate the Cloud Distribution Point inventory"""
         # get the Cloud Distribution Point file list
         object_type = "cloud_distribution_point"
         endpoint = self.api_endpoints(object_type, tenant_id=tenant_id)
         url = f"{api_url}/{endpoint}/refresh-inventory"
+        if pkg_name:
+            self.output(
+                f"Requesting Cloud Distribution Point inventory refresh for package {pkg_name}",
+                verbose_level=1,
+            )
+            url += f"?file-name={pkg_name}"
 
         request = "POST"
         r = self.curl(
@@ -494,15 +478,21 @@ class JamfPackageUploaderBase(JamfUploaderBase):
         )
 
         if r.status_code == 204:
-            self.output(
-                "Cloud Distribution Point inventory successfully recalculated",
-                verbose_level=2,
-            )
+            if pkg_name:
+                self.output(
+                    f"Cloud Distribution Point inventory refresh requested for package {pkg_name}",
+                    verbose_level=2,
+                )
+            else:
+                self.output(
+                    "Cloud Distribution Point global inventory refresh requested",
+                    verbose_level=2,
+                )
             packages_recalculated = True
         else:
             self.output(
                 "WARNING: Cloud Distribution Point inventory NOT successfully "
-                f"recalculated (response={r.status_code})",
+                f"refreshed (response={r.status_code})",
                 verbose_level=1,
             )
             packages_recalculated = False
@@ -683,13 +673,13 @@ class JamfPackageUploaderBase(JamfUploaderBase):
         if not pkg_display_name:
             pkg_display_name = pkg_name
 
-        # calculate the SHA-512 hash of the package
-        sha512string = self.sha512sum(pkg_path)
+        # calculate the SHA-3-512 hash of the package
+        sha3string = self.sha3sum(pkg_path)
 
         # calculate the SHA-256 hash of the package
         # sha256string = self.sha256sum(pkg_path)
 
-        # calculate the SHA-512 hash of the package
+        # calculate the MD5 hash of the package
         md5string = self.md5sum(pkg_path) if use_md5 else None
 
         # now start the process of uploading the package
@@ -861,7 +851,7 @@ class JamfPackageUploaderBase(JamfUploaderBase):
                 pkg_name,
                 pkg_display_name,
                 pkg_metadata,
-                sha512string,
+                sha3string,
                 md5string,
                 sleep_time,
                 token=token,
@@ -883,7 +873,7 @@ class JamfPackageUploaderBase(JamfUploaderBase):
                 pkg_name,
                 pkg_display_name,
                 pkg_metadata,
-                sha512string,
+                sha3string,
                 md5string,
                 sleep_time,
                 token=token,
@@ -928,12 +918,12 @@ class JamfPackageUploaderBase(JamfUploaderBase):
             # if we get this far then there was a 200 success response so the package was uploaded
             pkg_uploaded = True
 
-        # recalculate packages on JCDS if the metadata was updated and recalculation requested
+        # recalculate packages on JCDS if the metadata was updated
+        # if recalculate is set, we'll do a global refresh, otherwise we'll just refresh the package that was updated
         # Jamf Pro 11.10+ only
         if (
             APLooseVersion(jamf_pro_version) >= APLooseVersion("11.10")
             and pkg_metadata_updated
-            and recalculate
         ):
             # check token again using oauth or basic auth depending on the credentials given
             # as package upload may have taken some time
@@ -941,7 +931,7 @@ class JamfPackageUploaderBase(JamfUploaderBase):
             # first sleep if recalculate_wait_time is set, to give the system time to process the package upload before we send the recalculation request
             if recalculate_wait_time and int(recalculate_wait_time) > 0:
                 self.output(
-                    f"Waiting {recalculate_wait_time} seconds before sending Cloud DP inventory recalculation request",
+                    f"Waiting {recalculate_wait_time} seconds before sending Cloud DP inventory refresh request",
                     verbose_level=2,
                 )
                 sleep(int(recalculate_wait_time))
@@ -965,7 +955,10 @@ class JamfPackageUploaderBase(JamfUploaderBase):
 
             # now send the recalculation request
             packages_recalculated = self.recalculate_packages(
-                api_url, token, jamf_platform_gw_tenant_id
+                api_url,
+                token,
+                jamf_platform_gw_tenant_id,
+                pkg_name=None if recalculate else pkg_name,
             )
         else:
             packages_recalculated = False

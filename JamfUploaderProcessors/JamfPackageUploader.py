@@ -269,12 +269,12 @@ class JamfPackageUploader(JamfPackageUploaderBase):
         "recalculate_wait_time": {
             "required": False,
             "description": "Time to wait for recalculation to complete.",
-            "default": "False",
+            "default": 0,
         },
         "sleep": {
             "required": False,
             "description": "Pause after running this processor for specified seconds.",
-            "default": "0",
+            "default": 0,
         },
         "max_tries": {
             "required": False,
@@ -282,7 +282,7 @@ class JamfPackageUploader(JamfPackageUploaderBase):
                 "Maximum number of attempts to upload the account. "
                 "Must be an integer between 1 and 10."
             ),
-            "default": "5",
+            "default": 5,
         },
     }
 
