@@ -112,6 +112,7 @@ while [[ "$#" -gt 0 ]]; do
         echo "  category"
         echo "  group"
         echo "  delete-group"
+        echo "  delete-pkg"
         echo "  delete-script"
         echo "  mobiledevicegroup"
         echo "  msu"
@@ -131,7 +132,7 @@ while [[ "$#" -gt 0 ]]; do
         echo "  mobiledeviceapp-fromread"
         echo "  mobiledeviceprofile"
         echo "  policy"
-        echo "  policy_retain_scope"
+        echo "  policy-retain-scope"
         echo "  prestage"
         echo "  prestage2"
         echo "  account"
@@ -142,12 +143,12 @@ while [[ "$#" -gt 0 ]]; do
         echo "  patch"
         echo "  patch2"
         echo "  pkg"
-        echo "  pkgplusrecalc"
+        echo "  pkg-plus-calc"
         echo "  dock"
         echo "  icon"
         echo "  apirole"
         echo "  apiclient"
-        echo "  policydelete"
+        echo "  delete-policy"
         echo "  policyflush"
         echo "  pkg-noreplace"
         echo "  pkg-jcds2"
@@ -963,6 +964,18 @@ delete-script)
     "${command[@]}"
 
     ;;
+delete-pkg)
+    command=(
+        "${command_base[@]}"
+        delete
+        --type "package"
+        --name "$pkg_path"
+    )
+    # now print out the command that will be executed, and run the command
+    printf '%s\n' "Executing command: $(printf '%s ' "${command[@]}")"
+    "${command[@]}"
+
+    ;;
 mobiledevicegroup)
     command=(
         "${command_base[@]}"
@@ -1254,7 +1267,7 @@ policy)
     "${command[@]}"
 
     ;;
-policy_retain_scope)
+policy-retain-scope)
     command=(
         "${command_base[@]}"
         policy
@@ -1441,7 +1454,7 @@ pkg)
     "${command[@]}"
 
     ;;
-pkgplusrecalc)
+pkg-plus-calc*)
     command=(
         "${command_base[@]}"
         pkg
@@ -1450,7 +1463,6 @@ pkgplusrecalc)
         --info "Uploaded directly by JamfPackageUploader using v1/packages"
         --notes "$(date)"
         --recalculate
-        --recalculate-wait-time 60
         --replace
     )
     # now print out the command that will be executed, and run the command
@@ -1522,7 +1534,7 @@ apiclient)
     "${command[@]}"
 
     ;;
-policydelete)
+delete-policy)
     command=(
         "${command_base[@]}"
         policydelete
