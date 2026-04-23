@@ -266,6 +266,11 @@ class JamfPackageUploader(JamfPackageUploaderBase):
             "description": "Recalculate cloud distribution point inventory.",
             "default": "False",
         },
+        "recalculate_wait_time": {
+            "required": False,
+            "description": "Time to wait for recalculation to complete.",
+            "default": "False",
+        },
         "sleep": {
             "required": False,
             "description": "Pause after running this processor for specified seconds.",

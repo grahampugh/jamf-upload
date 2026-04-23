@@ -535,6 +535,7 @@ class JamfPackageUploaderBase(JamfUploaderBase):
         skip_metadata_upload = self.to_bool(self.env.get("skip_metadata_upload"))
         aws_cdp_mode = self.to_bool(self.env.get("aws_cdp_mode"))
         recalculate = self.to_bool(self.env.get("recalculate"))
+        recalculate_wait_time = self.env.get("recalculate_wait_time")
         use_md5 = self.env.get("md5")
         jamf_url = (self.env.get("JSS_URL") or "").rstrip("/")
         jamf_user = self.env.get("API_USERNAME")
@@ -936,6 +937,14 @@ class JamfPackageUploaderBase(JamfUploaderBase):
         ):
             # check token again using oauth or basic auth depending on the credentials given
             # as package upload may have taken some time
+
+            # first sleep if recalculate_wait_time is set, to give the system time to process the package upload before we send the recalculation request
+            if recalculate_wait_time and int(recalculate_wait_time) > 0:
+                self.output(
+                    f"Waiting {recalculate_wait_time} seconds before sending Cloud DP inventory recalculation request",
+                    verbose_level=2,
+                )
+                sleep(int(recalculate_wait_time))
             # get token using oauth or basic auth depending on the credentials given
             if jamf_url:
                 token, jamf_url, jamf_platform_gw_region, jamf_platform_gw_tenant_id = (

@@ -256,6 +256,9 @@ Package Upload arguments:
     --aws                   Use AWS CDP for package upload. Requires aws-cli to be installed 
     --api                   Use v1/packages endpoint for package upload to cloud DP
     --recalculate           Recalculate packages if using --jcds2 or --api modes
+    --recalculate-wait-time <int>
+                            Time to wait for recalculation to complete, in seconds. 
+                            Only applicable if --recalculate is set.
     --md5                   Use MD5 hash instead of SHA512. Required for packages 
                             to be installable via MDM InstallEnterpriseApplication
 
@@ -1624,6 +1627,14 @@ while test $# -gt 0; do
         if [[ $processor == "JamfPackageUploader" ]]; then
             if plutil -replace recalculate -string "true" "$temp_processor_plist"; then
                 echo "   [jamf-upload] Wrote recalculate='True' into $temp_processor_plist"
+            fi
+        fi
+        ;;
+    --recalculate-wait-time)
+        shift
+        if [[ $processor == "JamfPackageUploader" ]]; then
+            if plutil -replace recalculate_wait_time -string "$1" "$temp_processor_plist"; then
+                echo "   [jamf-upload] Wrote recalculate_wait_time='$1' into $temp_processor_plist"
             fi
         fi
         ;;
