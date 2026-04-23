@@ -72,6 +72,7 @@ while [[ "$#" -gt 0 ]]; do
         echo "  read-group"
         echo "  list-policies"
         echo "  list-policies-user"
+        echo "  list-pkgs"
         echo "  list-scripts"
         echo "  list-computer-groups"
         echo "  scope"
@@ -141,6 +142,7 @@ while [[ "$#" -gt 0 ]]; do
         echo "  patch"
         echo "  patch2"
         echo "  pkg"
+        echo "  pkgplusrecalc"
         echo "  dock"
         echo "  icon"
         echo "  apirole"
@@ -420,6 +422,19 @@ list-policies-user)
         --type "policy"
         --list
         --key CLIENT_ID=c611d89d-471b-40d2-855d-08647131fc1d
+    )
+    # now print out the command that will be executed, and run the command
+    printf '%s\n' "Executing command: $(printf '%s ' "${command[@]}")"
+    "${command[@]}"
+
+    ;;
+list-pkgs)
+    command=(
+        "${command_base[@]}"
+        read
+        --type "package"
+        --all
+        --list
     )
     # now print out the command that will be executed, and run the command
     printf '%s\n' "Executing command: $(printf '%s ' "${command[@]}")"
@@ -1419,6 +1434,23 @@ pkg)
         --category "JamfUploadTest"
         --info "Uploaded directly by JamfPackageUploader using v1/packages"
         --notes "$(date)"
+        --replace
+    )
+    # now print out the command that will be executed, and run the command
+    printf '%s\n' "Executing command: $(printf '%s ' "${command[@]}")"
+    "${command[@]}"
+
+    ;;
+pkgplusrecalc)
+    command=(
+        "${command_base[@]}"
+        pkg
+        --pkg "$pkg_path"
+        --category "JamfUploadTest"
+        --info "Uploaded directly by JamfPackageUploader using v1/packages"
+        --notes "$(date)"
+        --recalculate
+        --recalculate-wait-time 60
         --replace
     )
     # now print out the command that will be executed, and run the command
