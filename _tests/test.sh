@@ -12,58 +12,58 @@ while [[ "$#" -gt 0 ]]; do
     -t | --test)
         shift
         test_type="$1"
-        ;;
+    ;;
     -u | --url)
         shift
         url="$1"
-        ;;
+    ;;
     -r | --region)
         shift
         region="$1"
-        ;;
+    ;;
     --tenant)
         shift
         tenant_id="$1"
-        ;;
+    ;;
     --profile)
         shift
         profile="$1"
-        ;;
+    ;;
     --clientid)
         shift
         client_id="$1"
-        ;;
+    ;;
     -p | --pkg)
         shift
         pkg_path="${1}"
-        ;;
+    ;;
     -jp | --jira-project)
         shift
         jira_project="$1"
-        ;;
+    ;;
     -ju | --jira-user)
         shift
         jira_user="$1"
-        ;;
+    ;;
     -jt | --jira-api-token)
         shift
         jira_api_token="$1"
-        ;;
+    ;;
     --prefs)
         shift
         prefs="$1"
         prefs_alt="$1"
-        ;;
+    ;;
     --slack)
         shift
         slack_webhook_url="$1"
-        ;;
+    ;;
     -o | --open)
         open_results=1
-        ;;
+    ;;
     -v*)
         verbosity="$1"
-        ;;
+    ;;
     -h | --help)
         echo "Usage: test.sh -t|--test TEST_TYPE [-u|--url JAMF_URL] [-v VERBOSITY]"
         echo "Available TEST_TYPE values:"
@@ -162,11 +162,11 @@ while [[ "$#" -gt 0 ]]; do
         echo "  slack"
         echo "  teams"
         exit
-        ;;
+    ;;
     *)
         echo "Unknown option: $1"
         exit 1
-        ;;
+    ;;
     esac
     # Shift after checking all the cases to get the next option
     shift
@@ -266,14 +266,7 @@ list-types)
         "${command_base[@]}"
         list-types
     )
-    # now print out the command that will be executed, and run the command
-    printf '%s\n' "Executing command: $(printf '%s ' "${command[@]}")"
-    "${command[@]}"
-
-    if [[ $open_results ]]; then
-        open "/Users/Shared/Jamf/JamfUploaderTests"
-    fi
-    ;;
+;;
 statechange)
     command=(
         "${command_base[@]}"
@@ -282,14 +275,7 @@ statechange)
         --name "JSPP - Submit Inventory - Self Service"
         --state "disable"
     )
-    # now print out the command that will be executed, and run the command
-    printf '%s\n' "Executing command: $(printf '%s ' "${command[@]}")"
-    "${command[@]}"
-
-    if [[ $open_results ]]; then
-        open "/Users/Shared/Jamf/JamfUploaderTests"
-    fi
-    ;;
+;;
 disable)
     command=(
         "${command_base[@]}"
@@ -298,14 +284,7 @@ disable)
         --name "JSPP - Submit Inventory - Self Service"
         --state "disable"
     )
-    # now print out the command that will be executed, and run the command
-    printf '%s\n' "Executing command: $(printf '%s ' "${command[@]}")"
-    "${command[@]}"
-
-    if [[ $open_results ]]; then
-        open "/Users/Shared/Jamf/JamfUploaderTests"
-    fi
-    ;;
+;;
 enable)
     command=(
         "${command_base[@]}"
@@ -314,11 +293,7 @@ enable)
         --name "JSPP - Submit Inventory - Self Service"
         --state "enable"
     )
-    # now print out the command that will be executed, and run the command
-    printf '%s\n' "Executing command: $(printf '%s ' "${command[@]}")"
-    "${command[@]}"
-
-    ;;
+;;
 disable-app)
     command=(
         "${command_base[@]}"
@@ -328,11 +303,7 @@ disable-app)
         --state "disable"
         --retain-data "false"
     )
-    # now print out the command that will be executed, and run the command
-    printf '%s\n' "Executing command: $(printf '%s ' "${command[@]}")"
-    "${command[@]}"
-
-    ;;
+;;
 enable-app)
     command=(
         "${command_base[@]}"
@@ -341,11 +312,7 @@ enable-app)
         --name "Canva"
         --state "enable"
     )
-    # now print out the command that will be executed, and run the command
-    printf '%s\n' "Executing command: $(printf '%s ' "${command[@]}")"
-    "${command[@]}"
-
-    ;;
+;;
 disable-ea)
     command=(
         "${command_base[@]}"
@@ -355,11 +322,7 @@ disable-ea)
         --state "disable"
         --retain-data "false"
     )
-    # now print out the command that will be executed, and run the command
-    printf '%s\n' "Executing command: $(printf '%s ' "${command[@]}")"
-    "${command[@]}"
-
-    ;;
+;;
 enable-ea)
     command=(
         "${command_base[@]}"
@@ -368,11 +331,7 @@ enable-ea)
         --name "macOS Version Check"
         --state "enable"
     )
-    # now print out the command that will be executed, and run the command
-    printf '%s\n' "Executing command: $(printf '%s ' "${command[@]}")"
-    "${command[@]}"
-
-    ;;
+;;
 list-groups)
     command=(
         "${command_base[@]}"
@@ -380,14 +339,7 @@ list-groups)
         --type "group"
         --list
     )
-    # now print out the command that will be executed, and run the command
-    printf '%s\n' "Executing command: $(printf '%s ' "${command[@]}")"
-    "${command[@]}"
-
-    if [[ $open_results ]]; then
-        open "/Users/Shared/Jamf/JamfUploaderTests"
-    fi
-    ;;
+;;
 read-group)
     command=(
         "${command_base[@]}"
@@ -395,14 +347,7 @@ read-group)
         --type "group"
         --name "All Managed"
     )
-    # now print out the command that will be executed, and run the command
-    printf '%s\n' "Executing command: $(printf '%s ' "${command[@]}")"
-    "${command[@]}"
-
-    if [[ $open_results ]]; then
-        open "/Users/Shared/Jamf/JamfUploaderTests"
-    fi
-    ;;
+;;
 list-policies)
     command=(
         "${command_base[@]}"
@@ -411,11 +356,7 @@ list-policies)
         --all
         --list
     )
-    # now print out the command that will be executed, and run the command
-    printf '%s\n' "Executing command: $(printf '%s ' "${command[@]}")"
-    "${command[@]}"
-
-    ;;
+;;
 list-policies-user)
     command=(
         "${command_base[@]}"
@@ -424,11 +365,7 @@ list-policies-user)
         --list
         --key CLIENT_ID=c611d89d-471b-40d2-855d-08647131fc1d
     )
-    # now print out the command that will be executed, and run the command
-    printf '%s\n' "Executing command: $(printf '%s ' "${command[@]}")"
-    "${command[@]}"
-
-    ;;
+;;
 list-pkgs)
     command=(
         "${command_base[@]}"
@@ -437,11 +374,7 @@ list-pkgs)
         --all
         --list
     )
-    # now print out the command that will be executed, and run the command
-    printf '%s\n' "Executing command: $(printf '%s ' "${command[@]}")"
-    "${command[@]}"
-
-    ;;
+;;
 list-scripts)
     command=(
         "${command_base[@]}"
@@ -450,11 +383,7 @@ list-scripts)
         --list
         --all
     )
-    # now print out the command that will be executed, and run the command
-    printf '%s\n' "Executing command: $(printf '%s ' "${command[@]}")"
-    "${command[@]}"
-
-    ;;
+;;
 list-computer-groups)
     command=(
         "${command_base[@]}"
@@ -462,11 +391,7 @@ list-computer-groups)
         --type "computer_group"
         --list
     )
-    # now print out the command that will be executed, and run the command
-    printf '%s\n' "Executing command: $(printf '%s ' "${command[@]}")"
-    "${command[@]}"
-
-    ;;
+;;
 scope)
     echo "Running scope test"
     command=(
@@ -479,11 +404,7 @@ scope)
         --name "Testing"
         --not-strict
     )
-    # now print out the command that will be executed, and run the command
-    printf '%s\n' "Executing command: $(printf '%s ' "${command[@]}")"
-    "${command[@]}"
-
-    ;;
+;;
 ea-popup-remove)
     echo "Running EA popup remove test"
     command=(
@@ -494,11 +415,7 @@ ea-popup-remove)
         --value "1.3"
         --not-strict
     )
-    # now print out the command that will be executed, and run the command
-    printf '%s\n' "Executing command: $(printf '%s ' "${command[@]}")"
-    "${command[@]}"
-
-    ;;
+;;
 ea-popup-add)
     echo "Running EA popup add test"
     command=(
@@ -509,11 +426,7 @@ ea-popup-add)
         --value "1.3"
         --not-strict
     )
-    # now print out the command that will be executed, and run the command
-    printf '%s\n' "Executing command: $(printf '%s ' "${command[@]}")"
-    "${command[@]}"
-
-    ;;
+;;
 ldapserver)
     command=(
         "${command_base[@]}"
@@ -523,11 +436,7 @@ ldapserver)
         --template "/Users/gpugh/sourcecode/id-mac-tools/jamf-api-tools/templates/LDAPServerETH.xml"
         --replace
     )
-    # now print out the command that will be executed, and run the command
-    printf '%s\n' "Executing command: $(printf '%s ' "${command[@]}")"
-    "${command[@]}"
-
-    ;;
+;;
 enrollment)
     command=(
         "${command_base[@]}"
@@ -535,11 +444,7 @@ enrollment)
         --type "enrollment_settings"
         --template "templates/enrollment.json"
     )
-    # now print out the command that will be executed, and run the command
-    printf '%s\n' "Executing command: $(printf '%s ' "${command[@]}")"
-    "${command[@]}"
-
-    ;;
+;;
 inventory)
     command=(
         "${command_base[@]}"
@@ -547,11 +452,7 @@ inventory)
         --type "computer_inventory_collection_settings"
         --template "templates/computer-inventory-collection-settings.json"
     )
-    # now print out the command that will be executed, and run the command
-    printf '%s\n' "Executing command: $(printf '%s ' "${command[@]}")"
-    "${command[@]}"
-
-    ;;
+;;
 laps)
     command=(
         "${command_base[@]}"
@@ -559,11 +460,7 @@ laps)
         --type "laps_settings"
         --template "templates/local-admin-password-settings.json"
     )
-    # now print out the command that will be executed, and run the command
-    printf '%s\n' "Executing command: $(printf '%s ' "${command[@]}")"
-    "${command[@]}"
-
-    ;;
+;;
 selfservice)
     command=(
         "${command_base[@]}"
@@ -571,11 +468,7 @@ selfservice)
         --type "self_service_settings"
         --template "templates/self-service-settings.json"
     )
-    # now print out the command that will be executed, and run the command
-    printf '%s\n' "Executing command: $(printf '%s ' "${command[@]}")"
-    "${command[@]}"
-
-    ;;
+;;
 obj-category)
     command=(
         "${command_base[@]}"
@@ -585,11 +478,7 @@ obj-category)
         --template "templates/Category-Template-Testing.json"
         --replace
     )
-    # now print out the command that will be executed, and run the command
-    printf '%s\n' "Executing command: $(printf '%s ' "${command[@]}")"
-    "${command[@]}"
-
-    ;;
+;;
 obj-smartgroup-computer)
     command=(
         "${command_base[@]}"
@@ -605,11 +494,7 @@ obj-smartgroup-computer)
         --key GROUP_DESCRIPTION="Created using test.sh"
         --replace
     )
-    # now print out the command that will be executed, and run the command
-    printf '%s\n' "Executing command: $(printf '%s ' "${command[@]}")"
-    "${command[@]}"
-
-    ;;
+;;
 staticgroup-computer)
     command=(
         "${command_base[@]}"
@@ -618,11 +503,7 @@ staticgroup-computer)
         --description "Generated by Test Script $(date)"
         --replace
     )
-    # now print out the command that will be executed, and run the command
-    printf '%s\n' "Executing command: $(printf '%s ' "${command[@]}")"
-    "${command[@]}"
-
-    ;;
+;;
 staticgroup-mobile)
     command=(
         "${command_base[@]}"
@@ -632,11 +513,7 @@ staticgroup-mobile)
         --clear
         --replace
     )
-    # now print out the command that will be executed, and run the command
-    printf '%s\n' "Executing command: $(printf '%s ' "${command[@]}")"
-    "${command[@]}"
-
-    ;;
+;;
 obj-smartgroup-mobile)
     command=(
         "${command_base[@]}"
@@ -649,11 +526,7 @@ obj-smartgroup-mobile)
         --key GROUP_DESCRIPTION="Created using test.sh"
         --replace
     )
-    # now print out the command that will be executed, and run the command
-    printf '%s\n' "Executing command: $(printf '%s ' "${command[@]}")"
-    "${command[@]}"
-
-    ;;
+;;
 obj-profile)
     command=(
         "${command_base[@]}"
@@ -663,11 +536,7 @@ obj-profile)
         --template "templates/Profile-VLC-settings.xml"
         --replace
     )
-    # now print out the command that will be executed, and run the command
-    printf '%s\n' "Executing command: $(printf '%s ' "${command[@]}")"
-    "${command[@]}"
-
-    ;;
+;;
 obj-policy-id)
     command=(
         "${command_base[@]}"
@@ -678,11 +547,7 @@ obj-policy-id)
         --template "/Users/Shared/Jamf/JamfUploaderTests/jssimporter-policies-Firefox.xml"
         --replace
     )
-    # now print out the command that will be executed, and run the command
-    printf '%s\n' "Executing command: $(printf '%s ' "${command[@]}")"
-    "${command[@]}"
-
-    ;;
+;;
 obj-script-id)
     command=(
         "${command_base[@]}"
@@ -693,11 +558,7 @@ obj-script-id)
         --template "/Users/Shared/Jamf/JamfUploaderTests/jssimporter-scripts-SpotifyPostinstall.sh.json"
         --replace
     )
-    # now print out the command that will be executed, and run the command
-    printf '%s\n' "Executing command: $(printf '%s ' "${command[@]}")"
-    "${command[@]}"
-
-    ;;
+;;
 read-distributionpoint)
     command=(
         "${command_base[@]}"
@@ -705,22 +566,14 @@ read-distributionpoint)
         --type "distribution_point"
         --name "test-dp"
     )
-    # now print out the command that will be executed, and run the command
-    printf '%s\n' "Executing command: $(printf '%s ' "${command[@]}")"
-    "${command[@]}"
-
-    ;;
+;;
 appinstallers-tandc)
     command=(
         "${command_base[@]}"
         obj
         --type "app_installers_accept_t_and_c_command"
     )
-    # now print out the command that will be executed, and run the command
-    printf '%s\n' "Executing command: $(printf '%s ' "${command[@]}")"
-    "${command[@]}"
-
-    ;;
+;;
 read-appinstaller-id)
     command=(
         "${command_base[@]}"
@@ -728,11 +581,7 @@ read-appinstaller-id)
         --type "app_installer"
         --id "1"
     )
-    # now print out the command that will be executed, and run the command
-    printf '%s\n' "Executing command: $(printf '%s ' "${command[@]}")"
-    "${command[@]}"
-
-    ;;
+;;
 read-policy)
     command=(
         "${command_base[@]}"
@@ -740,11 +589,7 @@ read-policy)
         --type "policy"
         --name "Firefox"
     )
-    # now print out the command that will be executed, and run the command
-    printf '%s\n' "Executing command: $(printf '%s ' "${command[@]}")"
-    "${command[@]}"
-
-    ;;
+;;
 read-mobiledeviceapp)
     command=(
         "${command_base[@]}"
@@ -752,11 +597,7 @@ read-mobiledeviceapp)
         --type "mobile_device_application"
         --name "Jamf Self Service"
     )
-    # now print out the command that will be executed, and run the command
-    printf '%s\n' "Executing command: $(printf '%s ' "${command[@]}")"
-    "${command[@]}"
-
-    ;;
+;;
 read-macapp)
     command=(
         "${command_base[@]}"
@@ -764,11 +605,7 @@ read-macapp)
         --type "mac_application"
         --name "Numbers"
     )
-    # now print out the command that will be executed, and run the command
-    printf '%s\n' "Executing command: $(printf '%s ' "${command[@]}")"
-    "${command[@]}"
-
-    ;;
+;;
 read-profile)
     command=(
         "${command_base[@]}"
@@ -776,11 +613,7 @@ read-profile)
         --type "os_x_configuration_profile"
         --name "Nudge"
     )
-    # now print out the command that will be executed, and run the command
-    printf '%s\n' "Executing command: $(printf '%s ' "${command[@]}")"
-    "${command[@]}"
-
-    ;;
+;;
 read-profiles)
     command=(
         "${command_base[@]}"
@@ -788,11 +621,7 @@ read-profiles)
         --type "os_x_configuration_profile"
         --all
     )
-    # now print out the command that will be executed, and run the command
-    printf '%s\n' "Executing command: $(printf '%s ' "${command[@]}")"
-    "${command[@]}"
-
-    ;;
+;;
 read-ea)
     command=(
         "${command_base[@]}"
@@ -800,11 +629,7 @@ read-ea)
         --type "computer_extension_attribute"
         --name "AdobeFlashVersion"
     )
-    # now print out the command that will be executed, and run the command
-    printf '%s\n' "Executing command: $(printf '%s ' "${command[@]}")"
-    "${command[@]}"
-
-    ;;
+;;
 read-ea-popup)
     command=(
         "${command_base[@]}"
@@ -812,11 +637,7 @@ read-ea-popup)
         --type "computer_extension_attribute"
         --name "Test Popup"
     )
-    # now print out the command that will be executed, and run the command
-    printf '%s\n' "Executing command: $(printf '%s ' "${command[@]}")"
-    "${command[@]}"
-
-    ;;
+;;
 read-eas)
     command=(
         "${command_base[@]}"
@@ -824,11 +645,7 @@ read-eas)
         --type "computer_extension_attribute"
         --all
     )
-    # now print out the command that will be executed, and run the command
-    printf '%s\n' "Executing command: $(printf '%s ' "${command[@]}")"
-    "${command[@]}"
-
-    ;;
+;;
 read-script)
     command=(
         "${command_base[@]}"
@@ -836,11 +653,7 @@ read-script)
         --type "script"
         --name "SpotifyPostinstall.sh"
     )
-    # now print out the command that will be executed, and run the command
-    printf '%s\n' "Executing command: $(printf '%s ' "${command[@]}")"
-    "${command[@]}"
-
-    ;;
+;;
 read-script-id)
     command=(
         "${command_base[@]}"
@@ -848,11 +661,7 @@ read-script-id)
         --type "script"
         --id "22"
     )
-    # now print out the command that will be executed, and run the command
-    printf '%s\n' "Executing command: $(printf '%s ' "${command[@]}")"
-    "${command[@]}"
-
-    ;;
+;;
 read-category)
     command=(
         "${command_base[@]}"
@@ -860,11 +669,7 @@ read-category)
         --type "category"
         --name "Applications"
     )
-    # now print out the command that will be executed, and run the command
-    printf '%s\n' "Executing command: $(printf '%s ' "${command[@]}")"
-    "${command[@]}"
-
-    ;;
+;;
 read-categories)
     command=(
         "${command_base[@]}"
@@ -872,11 +677,7 @@ read-categories)
         --type "category"
         --all
     )
-    # now print out the command that will be executed, and run the command
-    printf '%s\n' "Executing command: $(printf '%s ' "${command[@]}")"
-    "${command[@]}"
-
-    ;;
+;;
 read-prestage)
     command=(
         "${command_base[@]}"
@@ -884,11 +685,7 @@ read-prestage)
         --type "computer_prestage"
         --name "Test PreStage"
     )
-    # now print out the command that will be executed, and run the command
-    printf '%s\n' "Executing command: $(printf '%s ' "${command[@]}")"
-    "${command[@]}"
-
-    ;;
+;;
 read-prestages)
     command=(
         "${command_base[@]}"
@@ -896,11 +693,7 @@ read-prestages)
         --type "computer_prestage"
         --all
     )
-    # now print out the command that will be executed, and run the command
-    printf '%s\n' "Executing command: $(printf '%s ' "${command[@]}")"
-    "${command[@]}"
-
-    ;;
+;;
 read-device-prestages)
     command=(
         "${command_base[@]}"
@@ -908,11 +701,7 @@ read-device-prestages)
         --type "mobile_device_prestage"
         --all
     )
-    # now print out the command that will be executed, and run the command
-    printf '%s\n' "Executing command: $(printf '%s ' "${command[@]}")"
-    "${command[@]}"
-
-    ;;
+;;
 category)
     command=(
         "${command_base[@]}"
@@ -921,11 +710,7 @@ category)
         --priority 18
         --replace
     )
-    # now print out the command that will be executed, and run the command
-    printf '%s\n' "Executing command: $(printf '%s ' "${command[@]}")"
-    "${command[@]}"
-
-    ;;
+;;
 group)
     command=(
         "${command_base[@]}"
@@ -935,11 +720,7 @@ group)
         --key POLICY_NAME="Firefox & stuff"
         --replace
     )
-    # now print out the command that will be executed, and run the command
-    printf '%s\n' "Executing command: $(printf '%s ' "${command[@]}")"
-    "${command[@]}"
-
-    ;;
+;;
 delete-group)
     command=(
         "${command_base[@]}"
@@ -947,11 +728,7 @@ delete-group)
         --type "computer_group"
         --name "1Password-update-smart"
     )
-    # now print out the command that will be executed, and run the command
-    printf '%s\n' "Executing command: $(printf '%s ' "${command[@]}")"
-    "${command[@]}"
-
-    ;;
+;;
 delete-script)
     command=(
         "${command_base[@]}"
@@ -959,11 +736,7 @@ delete-script)
         --type "script"
         --name "EndNote-postinstall.sh"
     )
-    # now print out the command that will be executed, and run the command
-    printf '%s\n' "Executing command: $(printf '%s ' "${command[@]}")"
-    "${command[@]}"
-
-    ;;
+;;
 delete-pkg)
     command=(
         "${command_base[@]}"
@@ -971,11 +744,7 @@ delete-pkg)
         --type "package"
         --name "$pkg_path"
     )
-    # now print out the command that will be executed, and run the command
-    printf '%s\n' "Executing command: $(printf '%s ' "${command[@]}")"
-    "${command[@]}"
-
-    ;;
+;;
 mobiledevicegroup)
     command=(
         "${command_base[@]}"
@@ -987,11 +756,7 @@ mobiledevicegroup)
         --key custom_curl_opts="--max-time 3600"
         --replace
     )
-    # now print out the command that will be executed, and run the command
-    printf '%s\n' "Executing command: $(printf '%s ' "${command[@]}")"
-    "${command[@]}"
-
-    ;;
+;;
 msu)
     command=(
         "${command_base[@]}"
@@ -1001,11 +766,7 @@ msu)
         --version "latest-minor"
         --days "14"
     )
-    # now print out the command that will be executed, and run the command
-    printf '%s\n' "Executing command: $(printf '%s ' "${command[@]}")"
-    "${command[@]}"
-
-    ;;
+;;
 payload)
     command=(
         "${command_base[@]}"
@@ -1025,11 +786,7 @@ payload)
         --key EXCLUSION_GROUP_NAME="Firefox test users"
         --replace
     )
-    # now print out the command that will be executed, and run the command
-    printf '%s\n' "Executing command: $(printf '%s ' "${command[@]}")"
-    "${command[@]}"
-
-    ;;
+;;
 profile)
     command=(
         "${command_base[@]}"
@@ -1040,11 +797,7 @@ profile)
         --mobileconfig "templates/TestProfileIdentifiers.mobileconfig"
         --replace
     )
-    # now print out the command that will be executed, and run the command
-    printf '%s\n' "Executing command: $(printf '%s ' "${command[@]}")"
-    "${command[@]}"
-
-    ;;
+;;
 profile2)
     command=(
         "${command_base[@]}"
@@ -1058,11 +811,7 @@ profile2)
         --key ORGANIZATION="Microsoft"
         --replace
     )
-    # now print out the command that will be executed, and run the command
-    printf '%s\n' "Executing command: $(printf '%s ' "${command[@]}")"
-    "${command[@]}"
-
-    ;;
+;;
 profile_retain_scope)
     command=(
         "${command_base[@]}"
@@ -1077,11 +826,7 @@ profile_retain_scope)
         --replace
         --retain-existing-scope
     )
-    # now print out the command that will be executed, and run the command
-    printf '%s\n' "Executing command: $(printf '%s ' "${command[@]}")"
-    "${command[@]}"
-
-    ;;
+;;
 ea)
     command=(
         "${command_base[@]}"
@@ -1090,11 +835,7 @@ ea)
         --script "templates/MicrosoftAutoUpdate-EA.sh"
         --replace
     )
-    # now print out the command that will be executed, and run the command
-    printf '%s\n' "Executing command: $(printf '%s ' "${command[@]}")"
-    "${command[@]}"
-
-    ;;
+;;
 ea-popup)
     command=(
         "${command_base[@]}"
@@ -1106,11 +847,7 @@ ea-popup)
         --inventory-display "General"
         --replace
     )
-    # now print out the command that will be executed, and run the command
-    printf '%s\n' "Executing command: $(printf '%s ' "${command[@]}")"
-    "${command[@]}"
-
-    ;;
+;;
 mea-popup)
     command=(
         "${command_base[@]}"
@@ -1122,11 +859,7 @@ mea-popup)
         --inventory-display "General"
         --replace
     )
-    # now print out the command that will be executed, and run the command
-    printf '%s\n' "Executing command: $(printf '%s ' "${command[@]}")"
-    "${command[@]}"
-
-    ;;
+;;
 macapp)
     command=(
         "${command_base[@]}"
@@ -1137,11 +870,7 @@ macapp)
         --key DEPLOYMENT_TYPE="Make Available in Self Service"
         --replace
     )
-    # now print out the command that will be executed, and run the command
-    printf '%s\n' "Executing command: $(printf '%s ' "${command[@]}")"
-    "${command[@]}"
-
-    ;;
+;;
 macapp2)
     command=(
         "${command_base[@]}"
@@ -1153,11 +882,7 @@ macapp2)
         --key DEPLOYMENT_TYPE="Install Automatically/Prompt Users to Install"
         --replace
     )
-    # now print out the command that will be executed, and run the command
-    printf '%s\n' "Executing command: $(printf '%s ' "${command[@]}")"
-    "${command[@]}"
-
-    ;;
+;;
 mobiledeviceappauto)
     command=(
         "${command_base[@]}"
@@ -1169,11 +894,7 @@ mobiledeviceappauto)
         --key DEPLOYMENT_TYPE="Install Automatically/Prompt Users to Install"
         --replace
     )
-    # now print out the command that will be executed, and run the command
-    printf '%s\n' "Executing command: $(printf '%s ' "${command[@]}")"
-    "${command[@]}"
-
-    ;;
+;;
 mobiledeviceappautoconfig)
     command=(
         "${command_base[@]}"
@@ -1186,11 +907,7 @@ mobiledeviceappautoconfig)
         --key DEPLOYMENT_TYPE="Install Automatically/Prompt Users to Install"
         --replace
     )
-    # now print out the command that will be executed, and run the command
-    printf '%s\n' "Executing command: $(printf '%s ' "${command[@]}")"
-    "${command[@]}"
-
-    ;;
+;;
 mobiledeviceappselfservice)
     command=(
         "${command_base[@]}"
@@ -1201,11 +918,7 @@ mobiledeviceappselfservice)
         --key DEPLOYMENT_TYPE="Make Available in Self Service"
         --replace
     )
-    # now print out the command that will be executed, and run the command
-    printf '%s\n' "Executing command: $(printf '%s ' "${command[@]}")"
-    "${command[@]}"
-
-    ;;
+;;
 mobiledeviceappselfserviceconfig)
     command=(
         "${command_base[@]}"
@@ -1217,11 +930,7 @@ mobiledeviceappselfserviceconfig)
         --key DEPLOYMENT_TYPE="Make Available in Self Service"
         --replace
     )
-    # now print out the command that will be executed, and run the command
-    printf '%s\n' "Executing command: $(printf '%s ' "${command[@]}")"
-    "${command[@]}"
-
-    ;;
+;;
 mobiledeviceapp-fromread)
     command=(
         "${command_base[@]}"
@@ -1230,11 +939,7 @@ mobiledeviceapp-fromread)
         --template "/Users/Shared/Jamf/JamfUploaderTests/MobileDeviceApp-Template-JamfSelfService.xml"
         --replace
     )
-    # now print out the command that will be executed, and run the command
-    printf '%s\n' "Executing command: $(printf '%s ' "${command[@]}")"
-    "${command[@]}"
-
-    ;;
+;;
 mobiledeviceprofile)
     command=(
         "${command_base[@]}"
@@ -1245,11 +950,7 @@ mobiledeviceprofile)
         --mobileconfig "templates/AllowScreenRecording.mobileconfig"
         --replace
     )
-    # now print out the command that will be executed, and run the command
-    printf '%s\n' "Executing command: $(printf '%s ' "${command[@]}")"
-    "${command[@]}"
-
-    ;;
+;;
 policy)
     command=(
         "${command_base[@]}"
@@ -1262,11 +963,7 @@ policy)
         --key pkg_name="$pkg_name"
         --replace
     )
-    # now print out the command that will be executed, and run the command
-    printf '%s\n' "Executing command: $(printf '%s ' "${command[@]}")"
-    "${command[@]}"
-
-    ;;
+;;
 policy-retain-scope)
     command=(
         "${command_base[@]}"
@@ -1280,11 +977,7 @@ policy-retain-scope)
         --replace
         --retain-existing-scope
     )
-    # now print out the command that will be executed, and run the command
-    printf '%s\n' "Executing command: $(printf '%s ' "${command[@]}")"
-    "${command[@]}"
-
-    ;;
+;;
 prestage)
     command=(
         "${command_base[@]}"
@@ -1293,11 +986,7 @@ prestage)
         --template "templates/computer-prestage-example.json"
         --replace
     )
-    # now print out the command that will be executed, and run the command
-    printf '%s\n' "Executing command: $(printf '%s ' "${command[@]}")"
-    "${command[@]}"
-
-    ;;
+;;
 prestage2)
     command=(
         "${command_base[@]}"
@@ -1306,11 +995,7 @@ prestage2)
         --template "templates/computer-prestage-example-account.json"
         --replace
     )
-    # now print out the command that will be executed, and run the command
-    printf '%s\n' "Executing command: $(printf '%s ' "${command[@]}")"
-    "${command[@]}"
-
-    ;;
+;;
 account)
     command=(
         "${command_base[@]}"
@@ -1319,11 +1004,7 @@ account)
         --type "group"
         --template "templates/Account-Group-local.xml"
     )
-    # now print out the command that will be executed, and run the command
-    printf '%s\n' "Executing command: $(printf '%s ' "${command[@]}")"
-    "${command[@]}"
-
-    ;;
+;;
 account2)
     command=(
         "${command_base[@]}"
@@ -1336,11 +1017,7 @@ account2)
         --key ACCOUNT_EMAIL="graham@pugh.com"
         --key GROUP_NAME="Test Group"
     )
-    # now print out the command that will be executed, and run the command
-    printf '%s\n' "Executing command: $(printf '%s ' "${command[@]}")"
-    "${command[@]}"
-
-    ;;
+;;
 account3)
     command=(
         "${command_base[@]}"
@@ -1352,11 +1029,7 @@ account3)
         --key ACCOUNT_EMAIL="graham@pugh.com"
         --replace
     )
-    # now print out the command that will be executed, and run the command
-    printf '%s\n' "Executing command: $(printf '%s ' "${command[@]}")"
-    "${command[@]}"
-
-    ;;
+;;
 restriction)
     command=(
         "${command_base[@]}"
@@ -1370,11 +1043,7 @@ restriction)
         --computergroup Testing
         --replace
     )
-    # now print out the command that will be executed, and run the command
-    printf '%s\n' "Executing command: $(printf '%s ' "${command[@]}")"
-    "${command[@]}"
-
-    ;;
+;;
 script)
     command=(
         "${command_base[@]}"
@@ -1384,11 +1053,7 @@ script)
         --script_parameter4 "License Type"
         --replace
     )
-    # now print out the command that will be executed, and run the command
-    printf '%s\n' "Executing command: $(printf '%s ' "${command[@]}")"
-    "${command[@]}"
-
-    ;;
+;;
 patch)
     command=(
         "${command_base[@]}"
@@ -1402,11 +1067,7 @@ patch)
         "$url"
         --replace
     )
-    # now print out the command that will be executed, and run the command
-    printf '%s\n' "Executing command: $(printf '%s ' "${command[@]}")"
-    "${command[@]}"
-
-    ;;
+;;
 patch2)
     command=(
         "${command_base[@]}"
@@ -1420,11 +1081,7 @@ patch2)
         --key PATCH_ENABLED="true"
         --replace
     )
-    # now print out the command that will be executed, and run the command
-    printf '%s\n' "Executing command: $(printf '%s ' "${command[@]}")"
-    "${command[@]}"
-
-    ;;
+;;
 patchcheck)
     command=(
         "${command_base[@]}"
@@ -1434,11 +1091,7 @@ patchcheck)
         --version "96.0"
         --replace
     )
-    # now print out the command that will be executed, and run the command
-    printf '%s\n' "Executing command: $(printf '%s ' "${command[@]}")"
-    "${command[@]}"
-
-    ;;
+;;
 pkg)
     command=(
         "${command_base[@]}"
@@ -1449,11 +1102,7 @@ pkg)
         --notes "$(date)"
         --replace
     )
-    # now print out the command that will be executed, and run the command
-    printf '%s\n' "Executing command: $(printf '%s ' "${command[@]}")"
-    "${command[@]}"
-
-    ;;
+;;
 pkg-plus-calc*)
     command=(
         "${command_base[@]}"
@@ -1465,11 +1114,7 @@ pkg-plus-calc*)
         --recalculate
         --replace
     )
-    # now print out the command that will be executed, and run the command
-    printf '%s\n' "Executing command: $(printf '%s ' "${command[@]}")"
-    "${command[@]}"
-
-    ;;
+;;
 dock)
     command=(
         "${command_base[@]}"
@@ -1479,33 +1124,21 @@ dock)
         --path "/Applications/ETH Self Service.app/"
         --replace
     )
-    # now print out the command that will be executed, and run the command
-    printf '%s\n' "Executing command: $(printf '%s ' "${command[@]}")"
-    "${command[@]}"
-
-    ;;
+;;
 icon)
     command=(
         "${command_base[@]}"
         icon
         --icon-uri "https://ics.services.jamfcloud.com/icon/hash_13139b4d9732a8b2fa3bbe25e6c6373e8ef6b85a7c7ba2bd15615195d63bc648"
     )
-    # now print out the command that will be executed, and run the command
-    printf '%s\n' "Executing command: $(printf '%s ' "${command[@]}")"
-    "${command[@]}"
-
-    ;;
+;;
 icon2)
     command=(
         "${command_base[@]}"
         icon
         --icon "/tmp/Apple Configurator.png"
     )
-    # now print out the command that will be executed, and run the command
-    printf '%s\n' "Executing command: $(printf '%s ' "${command[@]}")"
-    "${command[@]}"
-
-    ;;
+;;
 apirole)
     command=(
         "${command_base[@]}"
@@ -1514,11 +1147,7 @@ apirole)
         --template "templates/APIRoleTemplate-example.json"
         --replace
     )
-    # now print out the command that will be executed, and run the command
-    printf '%s\n' "Executing command: $(printf '%s ' "${command[@]}")"
-    "${command[@]}"
-
-    ;;
+;;
 apiclient)
     command=(
         "${command_base[@]}"
@@ -1529,22 +1158,14 @@ apiclient)
         --enabled
         --replace
     )
-    # now print out the command that will be executed, and run the command
-    printf '%s\n' "Executing command: $(printf '%s ' "${command[@]}")"
-    "${command[@]}"
-
-    ;;
+;;
 delete-policy)
     command=(
         "${command_base[@]}"
         policydelete
         --name "Install Latest Adium"
     )
-    # now print out the command that will be executed, and run the command
-    printf '%s\n' "Executing command: $(printf '%s ' "${command[@]}")"
-    "${command[@]}"
-
-    ;;
+;;
 policyflush)
     command=(
         "${command_base[@]}"
@@ -1552,11 +1173,7 @@ policyflush)
         --name "0001 - Install Rosetta 2"
         --interval "Zero Days"
     )
-    # now print out the command that will be executed, and run the command
-    printf '%s\n' "Executing command: $(printf '%s ' "${command[@]}")"
-    "${command[@]}"
-
-    ;;
+;;
 pkg-noreplace)
     command=(
         "${command_base[@]}"
@@ -1568,11 +1185,7 @@ pkg-noreplace)
         --info "Uploaded directly by JamfPackageUploader using v1/packages"
         --notes "$(date)"
     )
-    # now print out the command that will be executed, and run the command
-    printf '%s\n' "Executing command: $(printf '%s ' "${command[@]}")"
-    "${command[@]}"
-
-    ;;
+;;
 pkg-aws)
     command=(
         "${command_base[@]}"
@@ -1586,11 +1199,7 @@ pkg-aws)
         --key "S3_BUCKET_NAME=jamf2360b29f101f4e0881cf6422ee2be25e"
         --replace
     )
-    # now print out the command that will be executed, and run the command
-    printf '%s\n' "Executing command: $(printf '%s ' "${command[@]}")"
-    "${command[@]}"
-
-    ;;
+;;
 pkgclean)
     command=(
         "${command_base[@]}"
@@ -1598,33 +1207,21 @@ pkgclean)
         --keep "0"
         --key "NAME=gen-pkg-lightspeed"
     )
-    # now print out the command that will be executed, and run the command
-    printf '%s\n' "Executing command: $(printf '%s ' "${command[@]}")"
-    "${command[@]}"
-
-    ;;
+;;
 unusedpkg)
     command=(
         "${command_base[@]}"
         unusedpkgclean
         --slack-url "$slack_webhook_url"
     )
-    # now print out the command that will be executed, and run the command
-    printf '%s\n' "Executing command: $(printf '%s ' "${command[@]}")"
-    "${command[@]}"
-
-    ;;
+;;
     # --dry-run \
 pkgcalc)
     command=(
         "${command_base[@]}"
         pkgcalc
     )
-    # now print out the command that will be executed, and run the command
-    printf '%s\n' "Executing command: $(printf '%s ' "${command[@]}")"
-    "${command[@]}"
-
-    ;;
+;;
 pkgdata)
     command=(
         "${command_base[@]}"
@@ -1636,11 +1233,7 @@ pkgdata)
         --notes "$(date)"
         --replace
     )
-    # now print out the command that will be executed, and run the command
-    printf '%s\n' "Executing command: $(printf '%s ' "${command[@]}")"
-    "${command[@]}"
-
-    ;;
+;;
 jira)
     command=(
         "${command_base[@]}"
@@ -1662,11 +1255,7 @@ jira)
         --jira-api-token "$jira_api_token"
         --jira-url "$url/rest/api/3/issue/"
     )
-    # now print out the command that will be executed, and run the command
-    printf '%s\n' "Executing command: $(printf '%s ' "${command[@]}")"
-    "${command[@]}"
-
-    ;;
+;;
 slack)
     command=(
         "${command_base[@]}"
@@ -1683,11 +1272,7 @@ slack)
         --slack-url "$slack_webhook_url"
         --icon "https://resources.jamf.com/images/logos/Jamf-Icon-color.png"
     )
-    # now print out the command that will be executed, and run the command
-    printf '%s\n' "Executing command: $(printf '%s ' "${command[@]}")"
-    "${command[@]}"
-
-    ;;
+;;
 teams)
     command=(
         "${command_base[@]}"
@@ -1705,16 +1290,22 @@ teams)
         --patch-uploaded
         --patch-name "Test Patch Policy"
     )
-    # now print out the command that will be executed, and run the command
-    printf '%s\n' "Executing command: $(printf '%s ' "${command[@]}")"
-    "${command[@]}"
-
-    ;;
+;;
 *)
     echo "Unknown test type: $test_type"
     echo "Usage: test.sh [test_type]"
-    ;;
+    exit 1
+;;
 esac
+
+# now print out the command that will be executed, and run the command
+printf '%s\n' "Executing command: $(printf '%s ' "${command[@]}")"
+"${command[@]}"
+
+if [[ $open_results ]]; then
+    open "/Users/Shared/Jamf/JamfUploaderTests"
+fi
+
 
 # revert url
 if [[ $usual_url ]]; then
