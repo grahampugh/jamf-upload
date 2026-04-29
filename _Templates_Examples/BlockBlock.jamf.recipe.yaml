@@ -1,0 +1,94 @@
+Description: |
+  Downloads the latest version of BlockBlock from GitHub and creates a PKG, and creates a Jamf Pro policy to install it.
+
+    The native BlockBlock Installer.app utilizes a shell script to install / uninstall BlockBlock. While most of software components are simply copied from within the installer app to their respective locations, the default preferences.plist is created on the fly. To address this, this recipe creates this defaults file via the PLIST_DEFAULTS input variable. If you wish to alter the defaults for your environment, simply add / update the applicable keys and values.</string>
+
+Identifier: com.github.grahampugh.jamf-upload-tests.jamf.BlockBlock
+ParentRecipe: com.github.apizz.pkg.BlockBlock
+MinimumVersion: "2.3"
+
+Input:
+  NAME: BlockBlock
+  GROUP_NAME: BlockBlock-update-smart
+  GROUP_TEMPLATE: SmartGroup-update-smart-EA.xml
+  POLICY_NAME: "Install Latest %NAME%"
+  UPDATE_PREDICATE: pkg_uploaded == False
+  SELF_SERVICE_DESCRIPTION: Powerful disk cloning and backup utility.
+  CATEGORY: Utility
+  SELF_SERVICE_ICON: "%NAME%.png"
+  SELF_SERVICE_DISPLAY_NAME: "Install Latest %NAME%"
+  INSTALL_BUTTON_TEXT: Install
+  REINSTALL_BUTTON_TEXT: Install
+  TESTING_GROUP_NAME: Testing
+  POLICY_TEMPLATE: Policy-install-latest.xml
+  POLICY_CATEGORY: Testing
+  POLICY_RUN_COMMAND: ""
+  EXTENSION_ATTRIBUTE_NAME: BlockBlock Version
+  EXTENSION_ATTRIBUTE_SCRIPT: BlockBlock-EA.sh
+  MANAGED_LOGIN_PROFILE_NAME: "Managed Login Items - %NAME%"
+  MANAGED_LOGIN_PROFILE_MOBILECONFIG: "%NAME%-Managed Login Items.mobileconfig"
+  PPPC_PROFILE_NAME: "PPPC - %NAME%"
+  PPPC_PROFILE_MOBILECONFIG: "%NAME%-PPPC.mobileconfig"
+  PROFILE_TEMPLATE: Profile-single-group.xml
+  REPLACE_PROFILE: "True"
+  REPLACE_POLICY: "True"
+  SKIP_PROFILES: "True"
+  SKIP_POLICY: "False"
+
+Process:
+  - Processor: com.github.grahampugh.jamf-upload.processors/JamfCategoryUploader
+    Arguments:
+      category_name: "%CATEGORY%"
+
+  - Processor: com.github.grahampugh.jamf-upload.processors/JamfCategoryUploader
+    Arguments:
+      category_name: "%POLICY_CATEGORY%"
+
+  - Processor: com.github.grahampugh.jamf-upload.processors/JamfPackageUploader
+    Arguments:
+      pkg_category: "%CATEGORY%"
+
+  - Processor: StopProcessingIf
+    Arguments:
+      predicate: "%UPDATE_PREDICATE%"
+
+  - Processor: com.github.grahampugh.jamf-upload.processors/JamfExtensionAttributeUploader
+    Arguments:
+      ea_script_path: "%EXTENSION_ATTRIBUTE_SCRIPT%"
+      ea_name: "%EXTENSION_ATTRIBUTE_NAME%"
+      replace_ea: "True"
+
+  - Processor: com.github.grahampugh.jamf-upload.processors/JamfComputerGroupUploader
+    Arguments:
+      computergroup_name: "%GROUP_NAME%"
+      computergroup_template: "%GROUP_TEMPLATE%"
+      replace_group: True
+
+  - Processor: com.github.grahampugh.jamf-upload.processors/JamfComputerProfileUploader
+    Arguments:
+      profile_name: "%MANAGED_LOGIN_PROFILE_NAME%"
+      profile_category: "%CATEGORY%"
+      profile_template: "%PROFILE_TEMPLATE%"
+      mobileconfig: "%MANAGED_LOGIN_PROFILE_MOBILECONFIG%"
+      profile_computergroup: "%GROUP_NAME%"
+      replace_profile: "%REPLACE_PROFILE%"
+      skip_and_proceed: "%SKIP_PROFILES%"
+
+  - Processor: com.github.grahampugh.jamf-upload.processors/JamfComputerProfileUploader
+    Arguments:
+      profile_name: "%PPPC_PROFILE_NAME%"
+      profile_category: "%CATEGORY%"
+      profile_template: "%PROFILE_TEMPLATE%"
+      mobileconfig: "%PPPC_PROFILE_MOBILECONFIG%"
+      profile_computergroup: "%GROUP_NAME%"
+      replace_profile: "%REPLACE_PROFILE%"
+      skip_and_proceed: "%SKIP_PROFILES%"
+
+  - Processor: com.github.grahampugh.jamf-upload.processors/JamfPolicyUploader
+    Arguments:
+      policy_name: "%POLICY_NAME%"
+      icon: "%SELF_SERVICE_ICON%"
+      replace_policy: "%REPLACE_POLICY%"
+      policy_template: "%POLICY_TEMPLATE%"
+      skip_and_proceed: "%SKIP_POLICY%"
+
