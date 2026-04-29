@@ -106,11 +106,20 @@ class JamfObjectDeleter(JamfObjectDeleterBase):
             "description": "Type of the object. This is the name of the key in the XML template",
             "default": "",
         },
+        "skip_and_proceed": {
+            "required": False,
+            "description": "If True, skip the upload process and proceed.",
+            "default": False,
+        },
     }
 
     output_variables = {
         "jamfobjectdeleter_summary_result": {
             "description": "Description of interesting results.",
+        },
+        "process_skipped": {
+            "description": "Boolean - True if the process was skipped due to "
+            "skip_and_proceed input variable being set to True.",
         },
     }
 

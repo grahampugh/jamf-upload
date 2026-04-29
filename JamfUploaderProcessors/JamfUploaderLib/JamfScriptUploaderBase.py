@@ -183,6 +183,7 @@ class JamfScriptUploaderBase(JamfUploaderBase):
         replace_script = self.to_bool(self.env.get("replace_script"))
         sleep_time = self.env.get("sleep")
         max_tries = self.env.get("max_tries")
+        skip_and_proceed = self.to_bool(self.env.get("skip_and_proceed"))
 
         # verify that max_tries is an integer greater than zero and less than 10
         try:
@@ -195,6 +196,17 @@ class JamfScriptUploaderBase(JamfUploaderBase):
         # clear any pre-existing summary result
         if "jamfscriptuploader_summary_result" in self.env:
             del self.env["jamfscriptuploader_summary_result"]
+
+        process_skipped = False
+
+        # skip the process if skip_and_proceed is True
+        if skip_and_proceed:
+            self.output(
+                "Skipping script to next process as skip_and_proceed is set to True"
+            )
+            process_skipped = True
+            self.env["process_skipped"] = process_skipped
+            return
         script_uploaded = False
 
         # we need to substitute the values in the script name now to
@@ -356,3 +368,4 @@ class JamfScriptUploaderBase(JamfUploaderBase):
                     "P11": script_parameter11,
                 },
             }
+        self.env["process_skipped"] = process_skipped

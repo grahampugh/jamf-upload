@@ -130,6 +130,7 @@ class JamfMacAppUploaderBase(JamfUploaderBase):
         sleep_time = self.env.get("sleep")
         macapp_updated = False
         max_tries = self.env.get("max_tries")
+        skip_and_proceed = self.to_bool(self.env.get("skip_and_proceed"))
 
         # verify that max_tries is an integer greater than zero and less than 10
         try:
@@ -142,6 +143,17 @@ class JamfMacAppUploaderBase(JamfUploaderBase):
         # clear any pre-existing summary result
         if "jamfmacappuploader_summary_result" in self.env:
             del self.env["jamfmacappuploader_summary_result"]
+
+        process_skipped = False
+
+        # skip the process if skip_and_proceed is True
+        if skip_and_proceed:
+            self.output(
+                "Skipping mac app to next process as skip_and_proceed is set to True"
+            )
+            process_skipped = True
+            self.env["process_skipped"] = process_skipped
+            return
 
         # handle files with a relative path
         if not macapp_template.startswith("/"):
@@ -500,3 +512,5 @@ class JamfMacAppUploaderBase(JamfUploaderBase):
                 verbose_level=1,
             )
             return
+
+        self.env["process_skipped"] = process_skipped

@@ -114,6 +114,7 @@ class JamfPackageCleanerBase(JamfUploaderBase):
         )
         dry_run = self.to_bool(self.env.get("dry_run"))
         max_tries = self.env.get("max_tries")
+        skip_and_proceed = self.to_bool(self.env.get("skip_and_proceed"))
 
         # verify that max_tries is an integer greater than zero and less than 10
         try:
@@ -122,6 +123,17 @@ class JamfPackageCleanerBase(JamfUploaderBase):
                 raise ValueError
         except (ValueError, TypeError):
             max_tries = 5
+
+        process_skipped = False
+
+        # skip the process if skip_and_proceed is True
+        if skip_and_proceed:
+            self.output(
+                "Skipping package cleaner to next process as skip_and_proceed is set to True"
+            )
+            process_skipped = True
+            self.env["process_skipped"] = process_skipped
+            return
 
         # Create a list of smb shares in tuples
         smb_shares = []
@@ -203,16 +215,18 @@ class JamfPackageCleanerBase(JamfUploaderBase):
         self.output(f"Getting all packages from {jamf_url}")
 
         # get a token
-        token, jamf_url, jamf_platform_gw_region, jamf_platform_gw_tenant_id = self.auth(
-            jamf_url=jamf_url,
-            jamf_user=jamf_user,
-            password=jamf_password,
-            region=jamf_platform_gw_region,
-            tenant_id=jamf_platform_gw_tenant_id,
-            client_id=client_id,
-            client_secret=client_secret,
-            token=bearer_token,
-            jamf_cli_profile=jamf_cli_profile,
+        token, jamf_url, jamf_platform_gw_region, jamf_platform_gw_tenant_id = (
+            self.auth(
+                jamf_url=jamf_url,
+                jamf_user=jamf_user,
+                password=jamf_password,
+                region=jamf_platform_gw_region,
+                tenant_id=jamf_platform_gw_tenant_id,
+                client_id=client_id,
+                client_secret=client_secret,
+                token=bearer_token,
+                jamf_cli_profile=jamf_cli_profile,
+            )
         )
 
         # construct the api_url based on the API type
@@ -287,16 +301,18 @@ class JamfPackageCleanerBase(JamfUploaderBase):
         for package in packages_to_delete:
             # package deletion could take time, so we check the token before each deletion
             # get a token
-            token, jamf_url, jamf_platform_gw_region, jamf_platform_gw_tenant_id = self.auth(
-                jamf_url=jamf_url,
-                jamf_user=jamf_user,
-                password=jamf_password,
-                region=jamf_platform_gw_region,
-                tenant_id=jamf_platform_gw_tenant_id,
-                client_id=client_id,
-                client_secret=client_secret,
-                token=bearer_token,
-                jamf_cli_profile=jamf_cli_profile,
+            token, jamf_url, jamf_platform_gw_region, jamf_platform_gw_tenant_id = (
+                self.auth(
+                    jamf_url=jamf_url,
+                    jamf_user=jamf_user,
+                    password=jamf_password,
+                    region=jamf_platform_gw_region,
+                    tenant_id=jamf_platform_gw_tenant_id,
+                    client_id=client_id,
+                    client_secret=client_secret,
+                    token=bearer_token,
+                    jamf_cli_profile=jamf_cli_profile,
+                )
             )
 
             # construct the api_url
@@ -305,7 +321,7 @@ class JamfPackageCleanerBase(JamfUploaderBase):
             )
 
             self.delete_package(
-                jamf_url=api_url,
+                api_url=api_url,
                 object_id=package["id"],
                 token=token,
                 max_tries=max_tries,
@@ -354,3 +370,4 @@ class JamfPackageCleanerBase(JamfUploaderBase):
                 "deleted": str(len(packages_to_delete)),
             },
         }
+        self.env["process_skipped"] = process_skipped

@@ -211,6 +211,7 @@ class JamfPkgMetadataUploaderBase(JamfUploaderBase):
         send_notification = self.to_bool(self.env.get("send_notification"))
         sleep_time = self.env.get("sleep")
         max_tries = self.env.get("max_tries")
+        skip_and_proceed = self.to_bool(self.env.get("skip_and_proceed"))
 
         # verify that max_tries is an integer greater than zero and less than 10
         try:
@@ -245,6 +246,17 @@ class JamfPkgMetadataUploaderBase(JamfUploaderBase):
         # clear any pre-existing summary result
         if "jamfpkgmetadatauploader_summary_result" in self.env:
             del self.env["jamfpkgmetadatauploader_summary_result"]
+
+        process_skipped = False
+
+        # skip the process if skip_and_proceed is True
+        if skip_and_proceed:
+            self.output(
+                "Skipping pkg metadata to next process as skip_and_proceed is set to True"
+            )
+            process_skipped = True
+            self.env["process_skipped"] = process_skipped
+            return
 
         # now start the process of uploading the package
         self.output(f"Checking for existing metadata '{pkg_name}' on {jamf_url}")
@@ -343,3 +355,4 @@ class JamfPkgMetadataUploaderBase(JamfUploaderBase):
                     "pkg_display_name": pkg_display_name,
                 },
             }
+        self.env["process_skipped"] = process_skipped

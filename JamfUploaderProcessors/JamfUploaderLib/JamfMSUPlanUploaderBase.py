@@ -179,6 +179,7 @@ class JamfMSUPlanUploaderBase(JamfUploaderBase):
         group_name = self.env.get("group_name")
         sleep_time = self.env.get("sleep")
         max_tries = self.env.get("max_tries")
+        skip_and_proceed = self.to_bool(self.env.get("skip_and_proceed"))
 
         # verify that max_tries is an integer greater than zero and less than 10
         try:
@@ -209,6 +210,17 @@ class JamfMSUPlanUploaderBase(JamfUploaderBase):
         # clear any pre-existing summary result
         if "jamfmsuplanuploader_summary_result" in self.env:
             del self.env["jamfmsuplanuploader_summary_result"]
+
+        process_skipped = False
+
+        # skip the process if skip_and_proceed is True
+        if skip_and_proceed:
+            self.output(
+                "Skipping msuplan to next process as skip_and_proceed is set to True"
+            )
+            process_skipped = True
+            self.env["process_skipped"] = process_skipped
+            return
 
         # now start the process of uploading the object
         self.output(f"Obtaining API token for {jamf_url}")
@@ -315,3 +327,4 @@ class JamfMSUPlanUploaderBase(JamfUploaderBase):
                     ),
                 },
             }
+        self.env["process_skipped"] = process_skipped

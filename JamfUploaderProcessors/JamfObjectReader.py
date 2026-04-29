@@ -157,6 +157,11 @@ class JamfObjectReader(JamfObjectReaderBase):
             "description": "Only output a variable with a list of all objects - ID and name",
             "default": "False",
         },
+        "skip_and_proceed": {
+            "required": False,
+            "description": "If True, skip the upload process and proceed.",
+            "default": False,
+        },
     }
 
     output_variables = {
@@ -186,6 +191,10 @@ class JamfObjectReader(JamfObjectReaderBase):
         },
         "payload_file_path": {
             "description": "Path of outputted payload",
+        },
+        "process_skipped": {
+            "description": "Boolean - True if the process was skipped due to "
+            "skip_and_proceed input variable being set to True.",
         },
     }
 

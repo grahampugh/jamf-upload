@@ -120,6 +120,7 @@ class JamfCategoryUploaderBase(JamfUploaderBase):
         replace_category = self.to_bool(self.env.get("replace_category"))
         sleep_time = self.env.get("sleep")
         max_tries = self.env.get("max_tries")
+        skip_and_proceed = self.to_bool(self.env.get("skip_and_proceed"))
 
         # verify that max_tries is an integer greater than zero and less than 10
         try:
@@ -132,6 +133,17 @@ class JamfCategoryUploaderBase(JamfUploaderBase):
         # clear any pre-existing summary result
         if "jamfcategoryuploader_summary_result" in self.env:
             del self.env["jamfcategoryuploader_summary_result"]
+
+        process_skipped = False
+
+        # skip the process if skip_and_proceed is True
+        if skip_and_proceed:
+            self.output(
+                "Skipping category to next process as skip_and_proceed is set to True"
+            )
+            process_skipped = True
+            self.env["process_skipped"] = process_skipped
+            return
 
         # we need to substitute the values in the computer group name now to
         # account for version strings in the name
@@ -209,3 +221,4 @@ class JamfCategoryUploaderBase(JamfUploaderBase):
                 "priority": str(category_priority),
             },
         }
+        self.env["process_skipped"] = process_skipped

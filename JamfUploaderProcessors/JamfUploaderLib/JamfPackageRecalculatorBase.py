@@ -81,6 +81,19 @@ class JamfPackageRecalculatorBase(JamfUploaderBase):
         client_secret = self.env.get("CLIENT_SECRET")
         bearer_token = self.env.get("BEARER_TOKEN")
         jamf_cli_profile = self.env.get("JAMF_CLI_PROFILE")
+        skip_and_proceed = self.to_bool(self.env.get("skip_and_proceed"))
+
+        process_skipped = False
+
+        # skip the process if skip_and_proceed is True
+        if skip_and_proceed:
+            self.output(
+                "Skipping package recalculator to next process as "
+                "skip_and_proceed is set to True"
+            )
+            process_skipped = True
+            self.env["process_skipped"] = process_skipped
+            return
 
         # get a token
         token, jamf_url, jamf_platform_gw_region, jamf_platform_gw_tenant_id = self.auth(
@@ -147,3 +160,4 @@ class JamfPackageRecalculatorBase(JamfUploaderBase):
                 "packages_recalculated": str(packages_recalculated),
             },
         }
+        self.env["process_skipped"] = process_skipped

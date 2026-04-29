@@ -226,6 +226,7 @@ class JamfPolicyUploaderBase(JamfUploaderBase):
         sleep_time = self.env.get("sleep")
         replace_icon = self.to_bool(self.env.get("replace_icon"))
         max_tries = self.env.get("max_tries")
+        skip_and_proceed = self.to_bool(self.env.get("skip_and_proceed"))
 
         # verify that max_tries is an integer greater than zero and less than 10
         try:
@@ -240,6 +241,17 @@ class JamfPolicyUploaderBase(JamfUploaderBase):
         # clear any pre-existing summary result
         if "jamfpolicyuploader_summary_result" in self.env:
             del self.env["jamfpolicyuploader_summary_result"]
+
+        process_skipped = False
+
+        # skip the process if skip_and_proceed is True
+        if skip_and_proceed:
+            self.output(
+                "Skipping policy to next process as skip_and_proceed is set to True"
+            )
+            process_skipped = True
+            self.env["process_skipped"] = process_skipped
+            return
 
         # handle files with a relative path
         if not policy_template.startswith("/"):
@@ -377,3 +389,4 @@ class JamfPolicyUploaderBase(JamfUploaderBase):
                     "icon_path": icon,
                 },
             }
+        self.env["process_skipped"] = process_skipped

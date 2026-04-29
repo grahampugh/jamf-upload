@@ -283,6 +283,7 @@ class JamfComputerProfileUploaderBase(JamfUploaderBase):
         retain_scope = self.to_bool(self.env.get("retain_scope"))
         sleep_time = self.env.get("sleep")
         max_tries = self.env.get("max_tries")
+        skip_and_proceed = self.to_bool(self.env.get("skip_and_proceed"))
 
         # verify that max_tries is an integer greater than zero and less than 10
         try:
@@ -295,6 +296,17 @@ class JamfComputerProfileUploaderBase(JamfUploaderBase):
         # clear any pre-existing summary result
         if "jamfcomputerprofileuploader_summary_result" in self.env:
             del self.env["jamfcomputerprofileuploader_summary_result"]
+
+        process_skipped = False
+
+        # skip the process if skip_and_proceed is True
+        if skip_and_proceed:
+            self.output(
+                "Skipping computer profile to next process as skip_and_proceed is set to True"
+            )
+            process_skipped = True
+            self.env["process_skipped"] = process_skipped
+            return
 
         profile_updated = False
 
@@ -553,3 +565,4 @@ class JamfComputerProfileUploaderBase(JamfUploaderBase):
                     "profile_category": profile_category,
                 },
             }
+        self.env["process_skipped"] = process_skipped

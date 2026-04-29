@@ -225,6 +225,7 @@ class JamfMobileDeviceProfileUploaderBase(JamfUploaderBase):
         replace_profile = self.to_bool(self.env.get("replace_profile"))
         sleep_time = self.env.get("sleep")
         max_tries = self.env.get("max_tries")
+        skip_and_proceed = self.to_bool(self.env.get("skip_and_proceed"))
 
         # verify that max_tries is an integer greater than zero and less than 10
         try:
@@ -239,6 +240,18 @@ class JamfMobileDeviceProfileUploaderBase(JamfUploaderBase):
         # clear any pre-existing summary result
         if "jamfmobiledeviceprofileuploader_summary_result" in self.env:
             del self.env["jamfmobiledeviceprofileuploader_summary_result"]
+
+        process_skipped = False
+
+        # skip the process if skip_and_proceed is True
+        if skip_and_proceed:
+            self.output(
+                "Skipping mobile device profile to next process as skip_and_proceed is set to True"
+            )
+            process_skipped = True
+            self.env["process_skipped"] = process_skipped
+            return
+
         # substitute values in the profile name and category
         profile_name = self.substitute_assignable_keys(profile_name)
         profile_category = self.substitute_assignable_keys(profile_category)
@@ -312,16 +325,18 @@ class JamfMobileDeviceProfileUploaderBase(JamfUploaderBase):
             template_contents = file.read()
 
         # get a token using auth() with Platform API parameters
-        token, jamf_url, jamf_platform_gw_region, jamf_platform_gw_tenant_id = self.auth(
-            jamf_url=jamf_url,
-            jamf_user=jamf_user,
-            password=jamf_password,
-            region=jamf_platform_gw_region,
-            tenant_id=jamf_platform_gw_tenant_id,
-            client_id=client_id,
-            client_secret=client_secret,
-            token=bearer_token,
-            jamf_cli_profile=jamf_cli_profile,
+        token, jamf_url, jamf_platform_gw_region, jamf_platform_gw_tenant_id = (
+            self.auth(
+                jamf_url=jamf_url,
+                jamf_user=jamf_user,
+                password=jamf_password,
+                region=jamf_platform_gw_region,
+                tenant_id=jamf_platform_gw_tenant_id,
+                client_id=client_id,
+                client_secret=client_secret,
+                token=bearer_token,
+                jamf_cli_profile=jamf_cli_profile,
+            )
         )
 
         # construct the api_url based on the API type
@@ -353,7 +368,9 @@ class JamfMobileDeviceProfileUploaderBase(JamfUploaderBase):
                 (
                     existing_uuid,
                     existing_identifier,
-                ) = self.get_existing_uuid_and_identifier(api_url, object_id, token, tenant_id=jamf_platform_gw_tenant_id)
+                ) = self.get_existing_uuid_and_identifier(
+                    api_url, object_id, token, tenant_id=jamf_platform_gw_tenant_id
+                )
                 if mobileconfig:
                     # need to inject the existing payload identifier to prevent ghost profiles
                     mobileconfig_contents = (
@@ -431,3 +448,4 @@ class JamfMobileDeviceProfileUploaderBase(JamfUploaderBase):
                     "profile_category": profile_category,
                 },
             }
+        self.env["process_skipped"] = process_skipped

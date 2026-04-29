@@ -43,7 +43,18 @@ class JamfSchemaListerBase(JamfUploaderBase):
         api_filter = self.env.get("api_filter", "all").lower()
         show_deprecated = self.to_bool(self.env.get("show_deprecated", "False"))
         output_dir = self.env.get("output_dir")
+        skip_and_proceed = self.to_bool(self.env.get("skip_and_proceed"))
 
+        process_skipped = False
+
+        # skip the process if skip_and_proceed is True
+        if skip_and_proceed:
+            self.output(
+                "Skipping schema lister to next process as skip_and_proceed is set to True"
+            )
+            process_skipped = True
+            self.env["process_skipped"] = process_skipped
+            return
         if not jamf_url:
             raise ProcessorError("ERROR: JSS_URL is required")
 
@@ -136,3 +147,4 @@ class JamfSchemaListerBase(JamfUploaderBase):
             "report_fields": ["output"],
             "data": {"output": output_text},
         }
+        self.env["process_skipped"] = process_skipped

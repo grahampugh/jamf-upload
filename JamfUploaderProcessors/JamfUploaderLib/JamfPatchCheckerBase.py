@@ -130,10 +130,22 @@ class JamfPatchCheckerBase(JamfUploaderBase):
         pkg_name = self.env.get("pkg_name")
         version = self.env.get("version")
         patch_softwaretitle = self.env.get("patch_softwaretitle")
+        skip_and_proceed = self.to_bool(self.env.get("skip_and_proceed"))
 
         # Clear any pre-existing summary result
         if "jamfpatchchecker_summary_result" in self.env:
             del self.env["jamfpatchchecker_summary_result"]
+
+        process_skipped = False
+
+        # skip the process if skip_and_proceed is True
+        if skip_and_proceed:
+            self.output(
+                "Skipping patch checker to next process as skip_and_proceed is set to True"
+            )
+            process_skipped = True
+            self.env["process_skipped"] = process_skipped
+            return
 
         # get a token
         token, jamf_url, jamf_platform_gw_region, jamf_platform_gw_tenant_id = self.auth(
@@ -213,3 +225,4 @@ class JamfPatchCheckerBase(JamfUploaderBase):
         # Set the environment variable for summary result
         self.env["patch"] = patch_softwaretitle
         self.env["jamfpatchchecker_summary_result"] = summary_result
+        self.env["process_skipped"] = process_skipped

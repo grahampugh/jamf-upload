@@ -180,12 +180,21 @@ class JamfPkgMetadataUploader(JamfPkgMetadataUploaderBase):
             "description": "Maximum number of attempts for uploading package metadata.",
             "default": "5",
         },
+        "skip_and_proceed": {
+            "required": False,
+            "description": "If True, skip the upload process and proceed.",
+            "default": False,
+        },
     }
 
     output_variables = {
         "pkg_name": {"description": "The name of the uploaded package."},
         "jamfpkgmetadatauploader_summary_result": {
             "description": "Description of interesting results.",
+        },
+        "process_skipped": {
+            "description": "Boolean - True if the process was skipped due to "
+            "skip_and_proceed input variable being set to True.",
         },
     }
 

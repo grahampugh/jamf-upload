@@ -120,6 +120,7 @@ class JamfMobileDeviceGroupUploaderBase(JamfUploaderBase):
         replace_group = self.to_bool(self.env.get("replace_group"))
         sleep_time = self.env.get("sleep")
         max_tries = self.env.get("max_tries")
+        skip_and_proceed = self.to_bool(self.env.get("skip_and_proceed"))
         group_uploaded = False
 
         # verify that max_tries is an integer greater than zero and less than 10
@@ -133,6 +134,17 @@ class JamfMobileDeviceGroupUploaderBase(JamfUploaderBase):
         # clear any pre-existing summary result
         if "JamfMobileDeviceGroupUploader_summary_result" in self.env:
             del self.env["JamfMobileDeviceGroupUploader_summary_result"]
+
+        process_skipped = False
+
+        # skip the process if skip_and_proceed is True
+        if skip_and_proceed:
+            self.output(
+                "Skipping mobile device group to next process as skip_and_proceed is set to True"
+            )
+            process_skipped = True
+            self.env["process_skipped"] = process_skipped
+            return
 
         # we need to substitute the values in the computer group name now to
         # account for version strings in the name
@@ -227,3 +239,4 @@ class JamfMobileDeviceGroupUploaderBase(JamfUploaderBase):
                     "template": mobiledevicegroup_template,
                 },
             }
+        self.env["process_skipped"] = process_skipped

@@ -50,10 +50,22 @@ class JamfObjectDeleterBase(JamfUploaderBase):
         jamf_cli_profile = self.env.get("JAMF_CLI_PROFILE")
         object_name = self.env.get("object_name")
         object_type = self.env.get("object_type")
+        skip_and_proceed = self.to_bool(self.env.get("skip_and_proceed"))
 
         # clear any pre-existing summary result
         if "jamfobjectdeleter_summary_result" in self.env:
             del self.env["jamfobjectdeleter_summary_result"]
+
+        process_skipped = False
+
+        # skip the process if skip_and_proceed is True
+        if skip_and_proceed:
+            self.output(
+                "Skipping object deleter to next process as skip_and_proceed is set to True"
+            )
+            process_skipped = True
+            self.env["process_skipped"] = process_skipped
+            return
 
         # get a token
         token, jamf_url, jamf_platform_gw_region, jamf_platform_gw_tenant_id = self.auth(
@@ -137,3 +149,4 @@ class JamfObjectDeleterBase(JamfUploaderBase):
             "report_fields": ["type", "name"],
             "data": {"type": object_type, "name": object_name},
         }
+        self.env["process_skipped"] = process_skipped
