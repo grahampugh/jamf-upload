@@ -161,6 +161,7 @@ while [[ "$#" -gt 0 ]]; do
         echo "  jira"
         echo "  slack"
         echo "  teams"
+        echo "  skip"
         exit
     ;;
     *)
@@ -194,7 +195,6 @@ pkg_name="$(basename "$pkg_path")"
 # path to prefs
 if [[ ! $prefs ]]; then
     prefs="$HOME/Library/Preferences/com.github.autopkg.plist"
-    prefs_alt="/Users/Shared/com.github.autopkg.plist"
 fi
 
 # ensure pkg upload modes are disabled
@@ -1291,6 +1291,19 @@ teams)
         --patch-name "Test Patch Policy"
     )
 ;;
+skip)
+    command=(
+        "${command_base[@]}"
+        obj
+        --type "policy"
+        --template "templates/PolicyTemplate-trigger.xml"
+        --key POLICY_NAME="Install plistyamlplist"
+        --key TRIGGER_NAME="plistyamlplist-install"
+        --key CATEGORY="JamfUploadTest"
+        --key pkg_name="$pkg_name"
+        --skip
+    )
+    ;;
 *)
     echo "Unknown test type: $test_type"
     echo "Usage: test.sh [test_type]"

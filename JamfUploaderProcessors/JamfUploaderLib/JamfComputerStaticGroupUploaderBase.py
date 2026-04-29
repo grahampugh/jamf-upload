@@ -144,6 +144,7 @@ class JamfComputerStaticGroupUploaderBase(JamfUploaderBase):
         clear_assignments = self.to_bool(self.env.get("clear_assignments"))
         sleep_time = self.env.get("sleep")
         max_tries = self.env.get("max_tries")
+        skip_and_proceed = self.to_bool(self.env.get("skip_and_proceed"))
 
         # verify that max_tries is an integer greater than zero and less than 10
         try:
@@ -156,6 +157,18 @@ class JamfComputerStaticGroupUploaderBase(JamfUploaderBase):
         # clear any pre-existing summary result
         if "jamfcomputerstaticgroupuploader_summary_result" in self.env:
             del self.env["jamfcomputerstaticgroupuploader_summary_result"]
+
+        process_skipped = False
+
+        # skip the process if skip_and_proceed is True
+        if skip_and_proceed:
+            self.output(
+                "Skipping computer static group to next process as skip_and_proceed is set to True"
+            )
+            process_skipped = True
+            self.env["process_skipped"] = process_skipped
+            return
+
         group_uploaded = False
 
         # we need to substitute the values in the computer group name now to
@@ -164,16 +177,18 @@ class JamfComputerStaticGroupUploaderBase(JamfUploaderBase):
         computergroup_name = self.substitute_assignable_keys(computergroup_name)
 
         # get a token
-        token, jamf_url, jamf_platform_gw_region, jamf_platform_gw_tenant_id = self.auth(
-            jamf_url=jamf_url,
-            jamf_user=jamf_user,
-            password=jamf_password,
-            region=jamf_platform_gw_region,
-            tenant_id=jamf_platform_gw_tenant_id,
-            client_id=client_id,
-            client_secret=client_secret,
-            token=bearer_token,
-            jamf_cli_profile=jamf_cli_profile,
+        token, jamf_url, jamf_platform_gw_region, jamf_platform_gw_tenant_id = (
+            self.auth(
+                jamf_url=jamf_url,
+                jamf_user=jamf_user,
+                password=jamf_password,
+                region=jamf_platform_gw_region,
+                tenant_id=jamf_platform_gw_tenant_id,
+                client_id=client_id,
+                client_secret=client_secret,
+                token=bearer_token,
+                jamf_cli_profile=jamf_cli_profile,
+            )
         )
 
         # construct the api_url based on the API type
@@ -246,3 +261,4 @@ class JamfComputerStaticGroupUploaderBase(JamfUploaderBase):
                     "group": computergroup_name,
                 },
             }
+        self.env["process_skipped"] = process_skipped

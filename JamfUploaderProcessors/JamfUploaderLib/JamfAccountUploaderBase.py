@@ -168,6 +168,7 @@ class JamfAccountUploaderBase(JamfUploaderBase):
         replace_account = self.to_bool(self.env.get("replace_account"))
         max_tries = self.env.get("max_tries")
         sleep_time = self.env.get("sleep")
+        skip_and_proceed = self.to_bool(self.env.get("skip_and_proceed"))
 
         # verify that max_tries is an integer greater than zero and less than 10
         try:
@@ -182,6 +183,17 @@ class JamfAccountUploaderBase(JamfUploaderBase):
         # clear any pre-existing summary result
         if "jamfaccountuploader_summary_result" in self.env:
             del self.env["jamfaccountuploader_summary_result"]
+
+        process_skipped = False
+
+        # skip the process if skip_and_proceed is True
+        if skip_and_proceed:
+            self.output(
+                "Skipping account to next process as skip_and_proceed is set to True"
+            )
+            process_skipped = True
+            self.env["process_skipped"] = process_skipped
+            return
 
         # handle files with a relative path
         if not account_template.startswith("/"):
@@ -298,3 +310,4 @@ class JamfAccountUploaderBase(JamfUploaderBase):
                     "template": account_template,
                 },
             }
+        self.env["process_skipped"] = process_skipped

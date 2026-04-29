@@ -105,6 +105,7 @@ class JamfAPIRoleUploaderBase(JamfUploaderBase):
         replace_object = self.to_bool(self.env.get("replace_api_role"))
         sleep_time = self.env.get("sleep")
         max_tries = self.env.get("max_tries")
+        skip_and_proceed = self.to_bool(self.env.get("skip_and_proceed"))
         object_type = "api_role"
 
         # verify that max_tries is an integer greater than zero and less than 10
@@ -118,6 +119,17 @@ class JamfAPIRoleUploaderBase(JamfUploaderBase):
         # clear any pre-existing summary result
         if "jamfapiroleuploader_summary_result" in self.env:
             del self.env["jamfapiroleuploader_summary_result"]
+
+        process_skipped = False
+
+        # skip the process if skip_and_proceed is True
+        if skip_and_proceed:
+            self.output(
+                "Skipping apirole to next process as skip_and_proceed is set to True"
+            )
+            process_skipped = True
+            self.env["process_skipped"] = process_skipped
+            return
 
         object_updated = False
 
@@ -207,3 +219,4 @@ class JamfAPIRoleUploaderBase(JamfUploaderBase):
                     "template": object_template,
                 },
             }
+        self.env["process_skipped"] = process_skipped

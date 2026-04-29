@@ -310,6 +310,7 @@ class JamfUnusedPackageCleanerBase(JamfUploaderBase):
         output_dir = self.env.get("output_dir")
         slack_webhook_url = self.env.get("slack_webhook_url")
         max_tries = self.env.get("max_tries")
+        skip_and_proceed = self.to_bool(self.env.get("skip_and_proceed"))
 
         # verify that max_tries is an integer greater than zero and less than 10
         try:
@@ -318,6 +319,18 @@ class JamfUnusedPackageCleanerBase(JamfUploaderBase):
                 raise ValueError
         except (ValueError, TypeError):
             max_tries = 5
+
+        process_skipped = False
+
+        # skip the process if skip_and_proceed is True
+        if skip_and_proceed:
+            self.output(
+                "Skipping unused package cleaner to next process as "
+                "skip_and_proceed is set to True"
+            )
+            process_skipped = True
+            self.env["process_skipped"] = process_skipped
+            return
 
         object_type = "package_v1"
 
@@ -586,3 +599,4 @@ class JamfUnusedPackageCleanerBase(JamfUploaderBase):
                 "deleted": str(deleted_count),
             },
         }
+        self.env["process_skipped"] = process_skipped

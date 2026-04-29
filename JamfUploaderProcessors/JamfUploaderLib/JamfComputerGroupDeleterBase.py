@@ -84,6 +84,7 @@ class JamfComputerGroupDeleterBase(JamfUploaderBase):
         jamf_cli_profile = self.env.get("JAMF_CLI_PROFILE")
         computergroup_name = self.env.get("computergroup_name")
         max_tries = self.env.get("max_tries")
+        skip_and_proceed = self.to_bool(self.env.get("skip_and_proceed"))
 
         # verify that max_tries is an integer greater than zero and less than 10
         try:
@@ -96,6 +97,17 @@ class JamfComputerGroupDeleterBase(JamfUploaderBase):
         # clear any pre-existing summary result
         if "jamfcomputergroupdeleter_summary_result" in self.env:
             del self.env["jamfcomputergroupdeleter_summary_result"]
+
+        process_skipped = False
+
+        # skip the process if skip_and_proceed is True
+        if skip_and_proceed:
+            self.output(
+                "Skipping computer group deleter to next process as skip_and_proceed is set to True"
+            )
+            process_skipped = True
+            self.env["process_skipped"] = process_skipped
+            return
 
         # get a token
         token, jamf_url, jamf_platform_gw_region, jamf_platform_gw_tenant_id = self.auth(
@@ -154,3 +166,4 @@ class JamfComputerGroupDeleterBase(JamfUploaderBase):
             "report_fields": ["computer_group"],
             "data": {"computer_group": computergroup_name},
         }
+        self.env["process_skipped"] = process_skipped

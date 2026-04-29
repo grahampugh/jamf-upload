@@ -161,6 +161,7 @@ Generic Object Upload arguments:
     --output <dir>          Optional directory to output the parsed XML to. Directory must exist.
     --key X=Y               Substitutable values in the template. Multiple values can be supplied
     --replace               Replace existing item
+    --skip                  Skip the process entirely 
 
 Icon Upload arguments:
     --icon <path>           Full path to an icon file
@@ -525,7 +526,7 @@ is_valid_object_type() {
         patch|patchcheck) return 0 ;;
         read) return 0 ;;
         restriction|softwarerestriction) return 0 ;;
-        scope|script) return 0 ;;
+        scope|script|skip) return 0 ;;
         staticcomputergroup|staticmobiledevicegroup) return 0 ;;
         jira|list-types|listtypes|slack|teams) return 0 ;;
         *) return 1 ;;
@@ -562,6 +563,7 @@ flag_takes_value() {
         --jira-issue|--jira-api-token|--jira-project|--jira-priority) return 0 ;;
         --jira-url|--jira-user*|--jira-issue-type) return 0 ;;
         --pkg-category|--policy-category|--key) return 0 ;;
+        --skip) return 0 ;;
         *) return 1 ;;
     esac
 }
@@ -805,6 +807,11 @@ while test $# -gt 0; do
         shift
         if plutil -replace JAMF_CLI_PROFILE -string "$1" "$temp_processor_plist"; then
             echo "   [jamf-upload] Wrote JAMF_CLI_PROFILE='$1' into $temp_processor_plist"
+        fi
+        ;;
+    --skip)
+        if plutil -replace skip_and_proceed -string "True" "$temp_processor_plist"; then
+            echo "   [jamf-upload] Wrote skip_and_proceed='True' into $temp_processor_plist"
         fi
         ;;
     --type)

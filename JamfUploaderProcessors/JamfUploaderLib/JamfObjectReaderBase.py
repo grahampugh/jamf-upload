@@ -185,6 +185,7 @@ class JamfObjectReaderBase(JamfUploaderBase):
             [elements_to_remove] if isinstance(elements_to_remove, str) else []
         )
         elements_to_retain = self.env.get("elements_to_retain")
+        skip_and_proceed = self.to_bool(self.env.get("skip_and_proceed"))
         elements_to_retain = (
             [elements_to_retain] if isinstance(elements_to_retain, str) else []
         )
@@ -201,6 +202,17 @@ class JamfObjectReaderBase(JamfUploaderBase):
         # clear any pre-existing summary result
         if "jamfobjectreader_summary_result" in self.env:
             del self.env["jamfobjectreader_summary_result"]
+
+        process_skipped = False
+
+        # skip the process if skip_and_proceed is True
+        if skip_and_proceed:
+            self.output(
+                "Skipping object reader to next process as skip_and_proceed is set to True"
+            )
+            process_skipped = True
+            self.env["process_skipped"] = process_skipped
+            return
 
         # now start the process of reading the object
         # we need to substitute the values in the computer group name now to
@@ -566,3 +578,4 @@ class JamfObjectReaderBase(JamfUploaderBase):
                 "file_path": file_path,
             },
         }
+        self.env["process_skipped"] = process_skipped
