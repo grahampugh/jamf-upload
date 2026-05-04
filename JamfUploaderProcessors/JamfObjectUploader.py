@@ -158,6 +158,11 @@ class JamfObjectUploader(JamfObjectUploaderBase):
             ),
             "default": "5",
         },
+        "skip_and_proceed": {
+            "required": False,
+            "description": "If True, skip the upload process and proceed.",
+            "default": False,
+        },
     }
 
     output_variables = {
@@ -170,6 +175,9 @@ class JamfObjectUploader(JamfObjectUploaderBase):
         "object_updated": {"description": "Boolean - True if the object was changed."},
         "failover_url": {
             "description": "Failover URL, if uploading failover_generate_command object.",
+        },
+        "process_skipped": {
+            "description": "Boolean - True if the upload process was skipped due to skip_and_proceed input variable being set to True.",
         },
     }
 

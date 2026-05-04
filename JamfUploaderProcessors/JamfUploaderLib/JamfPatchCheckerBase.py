@@ -59,9 +59,7 @@ class JamfPatchCheckerBase(JamfUploaderBase):
         # Get current softwaretitle
         object_type = "patch_software_title"
         endpoint = self.api_endpoints(object_type, tenant_id=tenant_id)
-        url = (
-            f"{api_url}/{endpoint}/id/{patch_softwaretitle_id}"
-        )
+        url = f"{api_url}/{endpoint}/id/{patch_softwaretitle_id}"
 
         # No need to loop over curl function, since we only make a "GET" request.
         r = self.curl(
@@ -130,22 +128,36 @@ class JamfPatchCheckerBase(JamfUploaderBase):
         pkg_name = self.env.get("pkg_name")
         version = self.env.get("version")
         patch_softwaretitle = self.env.get("patch_softwaretitle")
+        skip_if = self.env.get("skip_if")
 
         # Clear any pre-existing summary result
         if "jamfpatchchecker_summary_result" in self.env:
             del self.env["jamfpatchchecker_summary_result"]
 
+        process_skipped = False
+
+        # skip the process if skip_if is True
+        if skip_if and self.predicate_evaluates_as_true(skip_if):
+            self.output("Skipping to next process as skip_if evaluated to True")
+            process_skipped = True
+            self.env["process_skipped"] = process_skipped
+            return
+        elif skip_if:
+            self.output("Not skipping process as skip_if evaluated to False")
+
         # get a token
-        token, jamf_url, jamf_platform_gw_region, jamf_platform_gw_tenant_id = self.auth(
-            jamf_url=jamf_url,
-            jamf_user=jamf_user,
-            password=jamf_password,
-            region=jamf_platform_gw_region,
-            tenant_id=jamf_platform_gw_tenant_id,
-            client_id=client_id,
-            client_secret=client_secret,
-            token=bearer_token,
-            jamf_cli_profile=jamf_cli_profile,
+        token, jamf_url, jamf_platform_gw_region, jamf_platform_gw_tenant_id = (
+            self.auth(
+                jamf_url=jamf_url,
+                jamf_user=jamf_user,
+                password=jamf_password,
+                region=jamf_platform_gw_region,
+                tenant_id=jamf_platform_gw_tenant_id,
+                client_id=client_id,
+                client_secret=client_secret,
+                token=bearer_token,
+                jamf_cli_profile=jamf_cli_profile,
+            )
         )
 
         # construct the api_url based on the API type
@@ -213,3 +225,4 @@ class JamfPatchCheckerBase(JamfUploaderBase):
         # Set the environment variable for summary result
         self.env["patch"] = patch_softwaretitle
         self.env["jamfpatchchecker_summary_result"] = summary_result
+        self.env["process_skipped"] = process_skipped

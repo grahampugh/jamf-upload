@@ -541,6 +541,7 @@ class JamfPackageUploaderBase(JamfUploaderBase):
         pkg_uploaded = False
         pkg_metadata_updated = False
         max_tries = self.env.get("max_tries")
+        skip_if = self.env.get("skip_if")
 
         # verify that max_tries is an integer greater than zero and less than 10
         try:
@@ -549,6 +550,17 @@ class JamfPackageUploaderBase(JamfUploaderBase):
                 raise ValueError
         except (ValueError, TypeError):
             max_tries = 5
+
+        process_skipped = False
+
+        # skip the process if skip_if is True
+        if skip_if and self.predicate_evaluates_as_true(skip_if):
+            self.output("Skipping to next process as skip_if evaluated to True")
+            process_skipped = True
+            self.env["process_skipped"] = process_skipped
+            return
+        elif skip_if:
+            self.output("Not skipping process as skip_if evaluated to False")
 
         # set pkg_name if not separately defined
         if not pkg_name:
@@ -990,3 +1002,4 @@ class JamfPackageUploaderBase(JamfUploaderBase):
                     "packages_recalculated": str(packages_recalculated),
                 },
             }
+        self.env["process_skipped"] = process_skipped

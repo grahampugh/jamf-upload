@@ -211,6 +211,7 @@ class JamfPkgMetadataUploaderBase(JamfUploaderBase):
         send_notification = self.to_bool(self.env.get("send_notification"))
         sleep_time = self.env.get("sleep")
         max_tries = self.env.get("max_tries")
+        skip_if = self.env.get("skip_if")
 
         # verify that max_tries is an integer greater than zero and less than 10
         try:
@@ -226,6 +227,26 @@ class JamfPkgMetadataUploaderBase(JamfUploaderBase):
         if "/" in pkg_name:
             pkg_name = os.path.basename(pkg_name)
 
+        # we need to ensure that a zipped package's display name matches the new pkg_name for
+        # comparison with an existing package
+        if not pkg_display_name:
+            pkg_display_name = pkg_name
+
+        # clear any pre-existing summary result
+        if "jamfpkgmetadatauploader_summary_result" in self.env:
+            del self.env["jamfpkgmetadatauploader_summary_result"]
+
+        process_skipped = False
+
+        # skip the process if skip_if is True
+        if skip_if and self.predicate_evaluates_as_true(skip_if):
+            self.output("Skipping to next process as skip_if evaluated to True")
+            process_skipped = True
+            self.env["process_skipped"] = process_skipped
+            return
+        elif skip_if:
+            self.output("Not skipping process as skip_if evaluated to False")
+
         pkg_metadata = {
             "category": pkg_category,
             "info": pkg_info,
@@ -237,29 +258,22 @@ class JamfPkgMetadataUploaderBase(JamfUploaderBase):
             "send_notification": send_notification,
         }
 
-        # we need to ensure that a zipped package's display name matches the new pkg_name for
-        # comparison with an existing package
-        if not pkg_display_name:
-            pkg_display_name = pkg_name
-
-        # clear any pre-existing summary result
-        if "jamfpkgmetadatauploader_summary_result" in self.env:
-            del self.env["jamfpkgmetadatauploader_summary_result"]
-
         # now start the process of uploading the package
         self.output(f"Checking for existing metadata '{pkg_name}' on {jamf_url}")
 
         # get a token
-        token, jamf_url, jamf_platform_gw_region, jamf_platform_gw_tenant_id = self.auth(
-            jamf_url=jamf_url,
-            jamf_user=jamf_user,
-            password=jamf_password,
-            region=jamf_platform_gw_region,
-            tenant_id=jamf_platform_gw_tenant_id,
-            client_id=client_id,
-            client_secret=client_secret,
-            token=bearer_token,
-            jamf_cli_profile=jamf_cli_profile,
+        token, jamf_url, jamf_platform_gw_region, jamf_platform_gw_tenant_id = (
+            self.auth(
+                jamf_url=jamf_url,
+                jamf_user=jamf_user,
+                password=jamf_password,
+                region=jamf_platform_gw_region,
+                tenant_id=jamf_platform_gw_tenant_id,
+                client_id=client_id,
+                client_secret=client_secret,
+                token=bearer_token,
+                jamf_cli_profile=jamf_cli_profile,
+            )
         )
 
         # construct the api_url based on the API type
@@ -268,7 +282,9 @@ class JamfPkgMetadataUploaderBase(JamfUploaderBase):
         )
         self.output(f"API URL is {api_url}", verbose_level=3)
 
-        jamf_pro_version = self.get_jamf_pro_version(api_url, token, tenant_id=jamf_platform_gw_tenant_id)
+        jamf_pro_version = self.get_jamf_pro_version(
+            api_url, token, tenant_id=jamf_platform_gw_tenant_id
+        )
 
         if APLooseVersion(jamf_pro_version) < APLooseVersion("11.4"):
             raise ProcessorError(
@@ -276,7 +292,9 @@ class JamfPkgMetadataUploaderBase(JamfUploaderBase):
             )
 
         # check for existing pkg
-        object_id = self.check_pkg(pkg_name, api_url, token=token, tenant_id=jamf_platform_gw_tenant_id)
+        object_id = self.check_pkg(
+            pkg_name, api_url, token=token, tenant_id=jamf_platform_gw_tenant_id
+        )
         self.output(f"ID: {object_id}", verbose_level=3)  # TEMP
         if object_id != "-1":
             self.output(f"Package '{pkg_name}' already exists: ID {object_id}")
@@ -343,3 +361,4 @@ class JamfPkgMetadataUploaderBase(JamfUploaderBase):
                     "pkg_display_name": pkg_display_name,
                 },
             }
+        self.env["process_skipped"] = process_skipped

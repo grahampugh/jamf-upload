@@ -100,6 +100,11 @@ class JamfScopeAdjuster(JamfScopeAdjusterBase):
                 "Directory to save the modified object file. Defaults to RECIPE_CACHE_DIR."
             ),
         },
+        "skip_and_proceed": {
+            "required": False,
+            "description": "If True, skip the upload process and proceed.",
+            "default": False,
+        },
     }
 
     output_variables = {
@@ -114,6 +119,10 @@ class JamfScopeAdjuster(JamfScopeAdjusterBase):
                 "Raw processed XML object string. For chaining additional "
                 "JamfScopeAdjuster processors."
             )
+        },
+        "process_skipped": {
+            "description": "Boolean - True if the process was skipped due to "
+            "skip_and_proceed input variable being set to True.",
         },
     }
 

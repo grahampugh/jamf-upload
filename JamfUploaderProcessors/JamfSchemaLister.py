@@ -71,6 +71,11 @@ class JamfSchemaLister(JamfSchemaListerBase):
                 "Directory must exist."
             ),
         },
+        "skip_and_proceed": {
+            "required": False,
+            "description": "If True, skip the upload process and proceed.",
+            "default": False,
+        },
     }
 
     output_variables = {
@@ -79,6 +84,10 @@ class JamfSchemaLister(JamfSchemaListerBase):
         },
         "schema_lister_output": {
             "description": "Text listing of all discovered endpoints.",
+        },
+        "process_skipped": {
+            "description": "Boolean - True if the process was skipped due to "
+            "skip_and_proceed input variable being set to True.",
         },
     }
 

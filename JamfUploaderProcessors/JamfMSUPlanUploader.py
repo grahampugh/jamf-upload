@@ -140,6 +140,11 @@ class JamfMSUPlanUploader(JamfMSUPlanUploaderBase):
             ),
             "default": "5",
         },
+        "skip_and_proceed": {
+            "required": False,
+            "description": "If True, skip the upload process and proceed.",
+            "default": False,
+        },
     }
 
     output_variables = {
@@ -160,6 +165,10 @@ class JamfMSUPlanUploader(JamfMSUPlanUploaderBase):
         },
         "force_install_local_datetime": {
             "description": "The date and time of the plan's forced installation deadline."
+        },
+        "process_skipped": {
+            "description": "Boolean - True if the process was skipped due to "
+            "skip_and_proceed input variable being set to True.",
         },
     }
 

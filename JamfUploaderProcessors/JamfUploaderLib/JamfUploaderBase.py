@@ -29,6 +29,7 @@ import xml.etree.ElementTree as ET
 from base64 import b64encode
 from collections import abc, namedtuple
 from datetime import datetime, timedelta, timezone
+from Foundation import NSPredicate
 from pathlib import Path
 from shutil import rmtree
 from time import sleep
@@ -58,6 +59,18 @@ class JamfUploaderBase(Processor):
 
     # Schema registry instance — lazily initialised per processor run
     _registry = None
+
+    def predicate_evaluates_as_true(self, predicate_string):
+        """Evaluates predicate against our environment dictionary."""
+        try:
+            predicate = NSPredicate.predicateWithFormat_(predicate_string)
+        except (ValueError, TypeError) as err:
+            raise ProcessorError(
+                f"Predicate error for '{predicate_string}': {err}"
+            ) from err
+        result = predicate.evaluateWithObject_(self.env)
+        self.output(f"({predicate_string}) is {result}", verbose_level=2)
+        return result
 
     def _get_registry(self, jamf_url):
         """Return the shared JamfSchemaRegistry, creating it on first use.
@@ -1719,6 +1732,10 @@ class JamfUploaderBase(Processor):
                     verbose_level=4,
                 )
                 object_id = 0
+                self.output(
+                    f"Looking for {object_type} with {filter_name} '{object_name}'",
+                    verbose_level=2,
+                )
                 for obj in object_list:
                     self.output(
                         obj,
@@ -2312,7 +2329,7 @@ class JamfUploaderBase(Processor):
             stdin=subprocess.PIPE,
             stdout=subprocess.PIPE,
         )
-        (output, _) = proc.communicate(xml)
+        output, _ = proc.communicate(xml)
         return output
 
     def get_existing_scope(self, jamf_url, object_type, object_id, token, tenant_id=""):

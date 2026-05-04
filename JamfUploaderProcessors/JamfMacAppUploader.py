@@ -144,6 +144,11 @@ class JamfMacAppUploader(JamfMacAppUploaderBase):
             ),
             "default": "5",
         },
+        "skip_and_proceed": {
+            "required": False,
+            "description": "If True, skip the upload process and proceed.",
+            "default": False,
+        },
     }
 
     output_variables = {
@@ -156,6 +161,10 @@ class JamfMacAppUploader(JamfMacAppUploaderBase):
         "macapp_updated": {"description": "Boolean - True if the macapp was changed."},
         "changed_macapp_id": {
             "description": "Jamf object ID of the newly created or modified macapp.",
+        },
+        "process_skipped": {
+            "description": "Boolean - True if the process was skipped due to "
+            "skip_and_proceed input variable being set to True.",
         },
     }
 

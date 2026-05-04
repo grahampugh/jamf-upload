@@ -291,6 +291,18 @@ class JamfScopeAdjusterBase(JamfUploaderBase):
         scopeable_name = self.env.get("scopeable_name")
         strict_mode = self.to_bool(self.env.get("strict_mode"))
         strip_raw_xml = self.to_bool(self.env.get("strip_raw_xml"))
+        skip_if = self.env.get("skip_if")
+
+        process_skipped = False
+
+        # skip the process if skip_if is True
+        if skip_if and self.predicate_evaluates_as_true(skip_if):
+            self.output("Skipping to next process as skip_if evaluated to True")
+            process_skipped = True
+            self.env["process_skipped"] = process_skipped
+            return
+        elif skip_if:
+            self.output("Not skipping process as skip_if evaluated to False")
 
         if object_template:
             if not object_template.startswith("/"):
@@ -350,3 +362,4 @@ class JamfScopeAdjusterBase(JamfUploaderBase):
 
         self.env["object_template"] = object_template
         self.env["raw_object"] = raw_object
+        self.env["process_skipped"] = process_skipped

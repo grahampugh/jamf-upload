@@ -148,6 +148,11 @@ class JamfMobileDeviceAppUploader(JamfMobileDeviceAppUploaderBase):
             ),
             "default": "5",
         },
+        "skip_and_proceed": {
+            "required": False,
+            "description": "If True, skip the upload process and proceed.",
+            "default": False,
+        },
     }
 
     output_variables = {
@@ -162,6 +167,10 @@ class JamfMobileDeviceAppUploader(JamfMobileDeviceAppUploaderBase):
         },
         "changed_mobiledeviceapp_id": {
             "description": "Jamf object ID of the newly created or modified Mobile device app.",
+        },
+        "process_skipped": {
+            "description": "Boolean - True if the process was skipped due to "
+            "skip_and_proceed input variable being set to True.",
         },
     }
 

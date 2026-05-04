@@ -188,6 +188,7 @@ class JamfObjectReaderBase(JamfUploaderBase):
         elements_to_retain = (
             [elements_to_retain] if isinstance(elements_to_retain, str) else []
         )
+        skip_if = self.env.get("skip_if")
 
         # check for required variables
         if not all_objects and not list_only and not "_settings" in object_type:
@@ -202,6 +203,17 @@ class JamfObjectReaderBase(JamfUploaderBase):
         if "jamfobjectreader_summary_result" in self.env:
             del self.env["jamfobjectreader_summary_result"]
 
+        process_skipped = False
+
+        # skip the process if skip_if is True
+        if skip_if and self.predicate_evaluates_as_true(skip_if):
+            self.output("Skipping to next process as skip_if evaluated to True")
+            process_skipped = True
+            self.env["process_skipped"] = process_skipped
+            return
+        elif skip_if:
+            self.output("Not skipping process as skip_if evaluated to False")
+
         # now start the process of reading the object
         # we need to substitute the values in the computer group name now to
         # account for version strings in the name
@@ -214,16 +226,18 @@ class JamfObjectReaderBase(JamfUploaderBase):
         self.output(f"API type for {object_type} is {api_type}", verbose_level=3)
 
         # get a token
-        token, jamf_url, jamf_platform_gw_region, jamf_platform_gw_tenant_id = self.auth(
-            jamf_url=jamf_url,
-            jamf_user=jamf_user,
-            password=jamf_password,
-            region=jamf_platform_gw_region,
-            tenant_id=jamf_platform_gw_tenant_id,
-            client_id=client_id,
-            client_secret=client_secret,
-            token=bearer_token,
-            jamf_cli_profile=jamf_cli_profile,
+        token, jamf_url, jamf_platform_gw_region, jamf_platform_gw_tenant_id = (
+            self.auth(
+                jamf_url=jamf_url,
+                jamf_user=jamf_user,
+                password=jamf_password,
+                region=jamf_platform_gw_region,
+                tenant_id=jamf_platform_gw_tenant_id,
+                client_id=client_id,
+                client_secret=client_secret,
+                token=bearer_token,
+                jamf_cli_profile=jamf_cli_profile,
+            )
         )
 
         # get instance name from URL
@@ -566,3 +580,4 @@ class JamfObjectReaderBase(JamfUploaderBase):
                 "file_path": file_path,
             },
         }
+        self.env["process_skipped"] = process_skipped

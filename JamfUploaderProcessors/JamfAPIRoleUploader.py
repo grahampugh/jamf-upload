@@ -124,6 +124,11 @@ class JamfAPIRoleUploader(JamfAPIRoleUploaderBase):
             ),
             "default": "5",
         },
+        "skip_and_proceed": {
+            "required": False,
+            "description": "If True, skip the upload process and proceed.",
+            "default": False,
+        },
     }
 
     output_variables = {
@@ -135,6 +140,10 @@ class JamfAPIRoleUploader(JamfAPIRoleUploaderBase):
         },
         "api_role_updated": {
             "description": "Boolean - True if the object was changed."
+        },
+        "process_skipped": {
+            "description": "Boolean - True if the process was skipped due to "
+            "skip_and_proceed input variable being set to True.",
         },
     }
 

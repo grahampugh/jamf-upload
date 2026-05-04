@@ -105,6 +105,7 @@ class JamfAPIRoleUploaderBase(JamfUploaderBase):
         replace_object = self.to_bool(self.env.get("replace_api_role"))
         sleep_time = self.env.get("sleep")
         max_tries = self.env.get("max_tries")
+        skip_if = self.env.get("skip_if")
         object_type = "api_role"
 
         # verify that max_tries is an integer greater than zero and less than 10
@@ -119,6 +120,17 @@ class JamfAPIRoleUploaderBase(JamfUploaderBase):
         if "jamfapiroleuploader_summary_result" in self.env:
             del self.env["jamfapiroleuploader_summary_result"]
 
+        process_skipped = False
+
+        # skip the process if skip_if is True
+        if skip_if and self.predicate_evaluates_as_true(skip_if):
+            self.output("Skipping to next process as skip_if evaluated to True")
+            process_skipped = True
+            self.env["process_skipped"] = process_skipped
+            return
+        elif skip_if:
+            self.output("Not skipping process as skip_if evaluated to False")
+
         object_updated = False
 
         # handle files with a relative path
@@ -130,16 +142,18 @@ class JamfAPIRoleUploaderBase(JamfUploaderBase):
                 raise ProcessorError(f"ERROR: Policy file {object_template} not found")
 
         # get a token
-        token, jamf_url, jamf_platform_gw_region, jamf_platform_gw_tenant_id = self.auth(
-            jamf_url=jamf_url,
-            jamf_user=jamf_user,
-            password=jamf_password,
-            region=jamf_platform_gw_region,
-            tenant_id=jamf_platform_gw_tenant_id,
-            client_id=client_id,
-            client_secret=client_secret,
-            token=bearer_token,
-            jamf_cli_profile=jamf_cli_profile,
+        token, jamf_url, jamf_platform_gw_region, jamf_platform_gw_tenant_id = (
+            self.auth(
+                jamf_url=jamf_url,
+                jamf_user=jamf_user,
+                password=jamf_password,
+                region=jamf_platform_gw_region,
+                tenant_id=jamf_platform_gw_tenant_id,
+                client_id=client_id,
+                client_secret=client_secret,
+                token=bearer_token,
+                jamf_cli_profile=jamf_cli_profile,
+            )
         )
 
         # construct the api_url based on the API type
@@ -207,3 +221,4 @@ class JamfAPIRoleUploaderBase(JamfUploaderBase):
                     "template": object_template,
                 },
             }
+        self.env["process_skipped"] = process_skipped

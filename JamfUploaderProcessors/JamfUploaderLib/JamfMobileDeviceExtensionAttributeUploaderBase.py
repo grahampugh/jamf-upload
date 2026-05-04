@@ -161,6 +161,7 @@ class JamfMobileDeviceExtensionAttributeUploaderBase(JamfUploaderBase):
         replace_ea = self.to_bool(self.env.get("replace_ea"))
         sleep_time = self.env.get("sleep")
         max_tries = self.env.get("max_tries")
+        skip_if = self.env.get("skip_if")
 
         # verify that max_tries is an integer greater than zero and less than 10
         try:
@@ -180,22 +181,35 @@ class JamfMobileDeviceExtensionAttributeUploaderBase(JamfUploaderBase):
         if "jamfmobiledeviceextensionattributeuploader_summary_result" in self.env:
             del self.env["jamfmobiledeviceextensionattributeuploader_summary_result"]
 
+        process_skipped = False
+
+        # skip the process if skip_if is True
+        if skip_if and self.predicate_evaluates_as_true(skip_if):
+            self.output("Skipping to next process as skip_if evaluated to True")
+            process_skipped = True
+            self.env["process_skipped"] = process_skipped
+            return
+        elif skip_if:
+            self.output("Not skipping process as skip_if evaluated to False")
+
         # determine input type
         if ea_input_type != "popup" and ea_input_type != "ldap":
             raise ProcessorError(f"ERROR: EA input type {ea_input_type} not supported")
 
         # now start the process of uploading the object
         # get a token
-        token, jamf_url, jamf_platform_gw_region, jamf_platform_gw_tenant_id = self.auth(
-            jamf_url=jamf_url,
-            jamf_user=jamf_user,
-            password=jamf_password,
-            region=jamf_platform_gw_region,
-            tenant_id=jamf_platform_gw_tenant_id,
-            client_id=client_id,
-            client_secret=client_secret,
-            token=bearer_token,
-            jamf_cli_profile=jamf_cli_profile,
+        token, jamf_url, jamf_platform_gw_region, jamf_platform_gw_tenant_id = (
+            self.auth(
+                jamf_url=jamf_url,
+                jamf_user=jamf_user,
+                password=jamf_password,
+                region=jamf_platform_gw_region,
+                tenant_id=jamf_platform_gw_tenant_id,
+                client_id=client_id,
+                client_secret=client_secret,
+                token=bearer_token,
+                jamf_cli_profile=jamf_cli_profile,
+            )
         )
 
         # construct the api_url
@@ -266,3 +280,4 @@ class JamfMobileDeviceExtensionAttributeUploaderBase(JamfUploaderBase):
                     "input_type": ea_input_type,
                 },
             }
+        self.env["process_skipped"] = process_skipped

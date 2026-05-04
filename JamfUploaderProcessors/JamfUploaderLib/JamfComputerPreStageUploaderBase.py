@@ -113,6 +113,7 @@ class JamfComputerPreStageUploaderBase(JamfUploaderBase):
         replace_prestage = self.to_bool(self.env.get("replace_prestage"))
         sleep_time = self.env.get("sleep")
         max_tries = self.env.get("max_tries")
+        skip_if = self.env.get("skip_if")
         object_type = "computer_prestage"
 
         # verify that max_tries is an integer greater than zero and less than 10
@@ -127,22 +128,35 @@ class JamfComputerPreStageUploaderBase(JamfUploaderBase):
         if "jamfcomputerprestageuploader_summary_result" in self.env:
             del self.env["jamfcomputerprestageuploader_summary_result"]
 
+        process_skipped = False
+
+        # skip the process if skip_if is True
+        if skip_if and self.predicate_evaluates_as_true(skip_if):
+            self.output("Skipping to next process as skip_if evaluated to True")
+            process_skipped = True
+            self.env["process_skipped"] = process_skipped
+            return
+        elif skip_if:
+            self.output("Not skipping process as skip_if evaluated to False")
+
         prestage_updated = False
 
         # now start the process of uploading the object
         self.output(f"Obtaining API token for {jamf_url}")
 
         # get a token
-        token, jamf_url, jamf_platform_gw_region, jamf_platform_gw_tenant_id = self.auth(
-            jamf_url=jamf_url,
-            jamf_user=jamf_user,
-            password=jamf_password,
-            region=jamf_platform_gw_region,
-            tenant_id=jamf_platform_gw_tenant_id,
-            client_id=client_id,
-            client_secret=client_secret,
-            token=bearer_token,
-            jamf_cli_profile=jamf_cli_profile,
+        token, jamf_url, jamf_platform_gw_region, jamf_platform_gw_tenant_id = (
+            self.auth(
+                jamf_url=jamf_url,
+                jamf_user=jamf_user,
+                password=jamf_password,
+                region=jamf_platform_gw_region,
+                tenant_id=jamf_platform_gw_tenant_id,
+                client_id=client_id,
+                client_secret=client_secret,
+                token=bearer_token,
+                jamf_cli_profile=jamf_cli_profile,
+            )
         )
 
         # construct the api_url based on the API type
@@ -216,7 +230,11 @@ class JamfComputerPreStageUploaderBase(JamfUploaderBase):
         if object_id:
             # PreStages need to match any existing versionLock values
             self.substitute_existing_version_locks(
-                api_url, object_type, object_id, template_file, token,
+                api_url,
+                object_type,
+                object_id,
+                template_file,
+                token,
                 tenant_id=jamf_platform_gw_tenant_id,
             )
         else:
@@ -266,3 +284,4 @@ class JamfComputerPreStageUploaderBase(JamfUploaderBase):
                     "template": prestage_template,
                 },
             }
+        self.env["process_skipped"] = process_skipped
