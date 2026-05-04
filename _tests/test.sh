@@ -1297,11 +1297,28 @@ skip)
         obj
         --type "policy"
         --template "templates/PolicyTemplate-trigger.xml"
-        --key POLICY_NAME="Install plistyamlplist"
+        --name "Install plistyamlplist"
         --key TRIGGER_NAME="plistyamlplist-install"
         --key CATEGORY="JamfUploadTest"
+        --key SKIP_TEST="true"
         --key pkg_name="$pkg_name"
-        --skip
+        --skip-if "SKIP_TEST == 'true'"
+        --replace
+    )
+    ;;
+noskip)
+    command=(
+        "${command_base[@]}"
+        obj
+        --type "policy"
+        --template "templates/PolicyTemplate-trigger.xml"
+        --name "Install plistyamlplist"
+        --key TRIGGER_NAME="plistyamlplist-install"
+        --key CATEGORY="JamfUploadTest"
+        --key SKIP_TEST="false"
+        --key pkg_name="$pkg_name"
+        --skip-if "SKIP_TEST == 'true'"
+        --replace
     )
     ;;
 *)

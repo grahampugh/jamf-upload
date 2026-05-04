@@ -1732,6 +1732,10 @@ class JamfUploaderBase(Processor):
                     verbose_level=4,
                 )
                 object_id = 0
+                self.output(
+                    f"Looking for {object_type} with {filter_name} '{object_name}'",
+                    verbose_level=2,
+                )
                 for obj in object_list:
                     self.output(
                         obj,
