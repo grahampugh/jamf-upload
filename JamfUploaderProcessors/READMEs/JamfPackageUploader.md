@@ -111,6 +111,9 @@ Can be run as a post-processor for a pkg recipe or in a child recipe. The parent
   - **required:** False
   - **description:** Maximum number of attempts to upload the account. Must be an integer between 1 and 10.
   - **default:** "5"
+- **skip_if:**
+  - **required:** False
+  - **description:** Skip the process if a supplied predicate is met.
 
 ## Output variables
 

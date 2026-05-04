@@ -118,9 +118,9 @@ class JamfCategoryUploader(JamfCategoryUploaderBase):
             ),
             "default": "5",
         },
-        "skip_and_proceed": {
+        "skip_if": {
             "required": False,
-            "description": "If True, skip the upload process and proceed.",
+            "description": "Skip the process if the supplied predicate evaluates to True.",
             "default": False,
         },
     }
@@ -132,7 +132,7 @@ class JamfCategoryUploader(JamfCategoryUploaderBase):
         },
         "process_skipped": {
             "description": "Boolean - True if the process was skipped due to "
-            "skip_and_proceed input variable being set to True.",
+            "skip_if predicate resolved to True.",
         },
     }
 

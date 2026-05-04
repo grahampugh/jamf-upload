@@ -67,6 +67,9 @@ A processor for AutoPkg that will upload an Extension Attribute item to a Jamf C
   - **required:** False
   - **description:** Maximum number of attempts to upload the account. Must be an integer between 1 and 10.
   - **default:** "5"
+- **skip_if:**
+  - **required:** False
+  - **description:** Skip the process if a supplied predicate is met.
 
 ## Output variables
 

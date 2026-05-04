@@ -25,6 +25,9 @@ A processor for AutoPkg that adds or removes pop-up choices from a Jamf Pro Exte
 - **output_dir**:
   - **required**: False
   - **description**: Directory to save the modified XML or JSON file. Defaults to `RECIPE_CACHE_DIR`.
+- **skip_if:**
+  - **required:** False
+  - **description:** Skip the process if a supplied predicate is met.
 
 ## Output variables
 

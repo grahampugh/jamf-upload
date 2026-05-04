@@ -158,9 +158,9 @@ class JamfObjectUploader(JamfObjectUploaderBase):
             ),
             "default": "5",
         },
-        "skip_and_proceed": {
+        "skip_if": {
             "required": False,
-            "description": "If True, skip the upload process and proceed.",
+            "description": "Skip the process if the supplied predicate evaluates to True.",
             "default": False,
         },
     }
