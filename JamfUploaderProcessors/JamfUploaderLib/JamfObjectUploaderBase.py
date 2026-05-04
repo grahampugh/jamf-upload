@@ -180,7 +180,7 @@ class JamfObjectUploaderBase(JamfUploaderBase):
         replacement_value = self.env.get("replacement_value")
         sleep_time = self.env.get("sleep")
         max_tries = self.env.get("max_tries")
-        skip_and_proceed = self.to_bool(self.env.get("skip_and_proceed"))
+        skip_if = self.env.get("skip_if")
 
         # verify that max_tries is an integer greater than zero and less than 10
         try:
@@ -197,14 +197,16 @@ class JamfObjectUploaderBase(JamfUploaderBase):
         if "jamfobjectuploader_summary_result" in self.env:
             del self.env["jamfobjectuploader_summary_result"]
 
-        # skip the process if skip_and_proceed is True
-        if skip_and_proceed:
+        # skip the process if skip_if is True
+        if skip_if and self.predicate_evaluates_as_true(skip_if):
             self.output(
-                f"Skipping {object_type} to next process as skip_and_proceed is set to True"
+                f"Skipping {object_type} to next process as skip_if evaluated to True"
             )
             process_skipped = True
             self.env["process_skipped"] = process_skipped
             return
+        elif skip_if:
+            self.output(f"Not skipping {object_type} as skip_if evaluated to False")
 
         # get api type
         api_type = self.api_type(object_type)

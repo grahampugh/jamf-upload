@@ -51,7 +51,9 @@ class JamfMSUPlanUploaderBase(JamfUploaderBase):
         """Check if the feature toggle is enabled and raise processor error
         if toggle is set to false"""
         object_type = "managed_software_updates_feature_toggle_settings"
-        object_content = self.get_settings_object(api_url, object_type, token, tenant_id=tenant_id)
+        object_content = self.get_settings_object(
+            api_url, object_type, token, tenant_id=tenant_id
+        )
         if object_content:
             self.output(
                 f"{object_type} content on {api_url}: {object_content}",
@@ -179,7 +181,7 @@ class JamfMSUPlanUploaderBase(JamfUploaderBase):
         group_name = self.env.get("group_name")
         sleep_time = self.env.get("sleep")
         max_tries = self.env.get("max_tries")
-        skip_and_proceed = self.to_bool(self.env.get("skip_and_proceed"))
+        skip_if = self.env.get("skip_if")
 
         # verify that max_tries is an integer greater than zero and less than 10
         try:
@@ -213,29 +215,31 @@ class JamfMSUPlanUploaderBase(JamfUploaderBase):
 
         process_skipped = False
 
-        # skip the process if skip_and_proceed is True
-        if skip_and_proceed:
-            self.output(
-                "Skipping msuplan to next process as skip_and_proceed is set to True"
-            )
+        # skip the process if skip_if is True
+        if skip_if and self.predicate_evaluates_as_true(skip_if):
+            self.output("Skipping to next process as skip_if evaluated to True")
             process_skipped = True
             self.env["process_skipped"] = process_skipped
             return
+        elif skip_if:
+            self.output("Not skipping process as skip_if evaluated to False")
 
         # now start the process of uploading the object
         self.output(f"Obtaining API token for {jamf_url}")
 
         # get a token
-        token, jamf_url, jamf_platform_gw_region, jamf_platform_gw_tenant_id = self.auth(
-            jamf_url=jamf_url,
-            jamf_user=jamf_user,
-            password=jamf_password,
-            region=jamf_platform_gw_region,
-            tenant_id=jamf_platform_gw_tenant_id,
-            client_id=client_id,
-            client_secret=client_secret,
-            token=bearer_token,
-            jamf_cli_profile=jamf_cli_profile,
+        token, jamf_url, jamf_platform_gw_region, jamf_platform_gw_tenant_id = (
+            self.auth(
+                jamf_url=jamf_url,
+                jamf_user=jamf_user,
+                password=jamf_password,
+                region=jamf_platform_gw_region,
+                tenant_id=jamf_platform_gw_tenant_id,
+                client_id=client_id,
+                client_secret=client_secret,
+                token=bearer_token,
+                jamf_cli_profile=jamf_cli_profile,
+            )
         )
 
         # construct the api_url based on the API type
@@ -246,7 +250,9 @@ class JamfMSUPlanUploaderBase(JamfUploaderBase):
 
         # check if managed software update feature toggle is enabled - this
         # processor requires it to be enabled
-        toggle_value = self.check_feature_toggle(api_url, token, tenant_id=jamf_platform_gw_tenant_id)
+        toggle_value = self.check_feature_toggle(
+            api_url, token, tenant_id=jamf_platform_gw_tenant_id
+        )
         if toggle_value:
             self.output("Software Update Feature is enabled.")
         else:
@@ -257,7 +263,11 @@ class JamfMSUPlanUploaderBase(JamfUploaderBase):
         # get the group ID from the group name
         group_id = ""
         group_id = self.get_api_object_id_from_name(
-            api_url, object_type=object_type, object_name=group_name, token=token, tenant_id=jamf_platform_gw_tenant_id
+            api_url,
+            object_type=object_type,
+            object_name=group_name,
+            token=token,
+            tenant_id=jamf_platform_gw_tenant_id,
         )
         if not group_id:
             raise ProcessorError(f"ERROR: Group {group_name} not found")

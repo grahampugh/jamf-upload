@@ -272,19 +272,19 @@ class JamfExtensionAttributePopupChoiceAdjusterBase(JamfUploaderBase):
         output_dir = self.env.get("output_dir") or self.env.get("RECIPE_CACHE_DIR")
         choice_value = self.env.get("choice_value")
         strict_mode = self.to_bool(self.env.get("strict_mode"))
-        skip_and_proceed = self.to_bool(self.env.get("skip_and_proceed"))
+        skip_if = self.env.get("skip_if")
 
         process_skipped = False
 
         # skip the process if skip_and_proceed is True
-        if skip_and_proceed:
-            self.output(
-                "Skipping extension attribute popup choice adjuster to next process as "
-                "skip_and_proceed is set to True"
-            )
+        # skip the process if skip_if is True
+        if skip_if and self.predicate_evaluates_as_true(skip_if):
+            self.output("Skipping to next process as skip_if evaluated to True")
             process_skipped = True
             self.env["process_skipped"] = process_skipped
             return
+        elif skip_if:
+            self.output("Not skipping process as skip_if evaluated to False")
 
         if object_template:
             if not object_template.startswith("/"):

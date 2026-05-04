@@ -185,10 +185,10 @@ class JamfObjectReaderBase(JamfUploaderBase):
             [elements_to_remove] if isinstance(elements_to_remove, str) else []
         )
         elements_to_retain = self.env.get("elements_to_retain")
-        skip_and_proceed = self.to_bool(self.env.get("skip_and_proceed"))
         elements_to_retain = (
             [elements_to_retain] if isinstance(elements_to_retain, str) else []
         )
+        skip_if = self.env.get("skip_if")
 
         # check for required variables
         if not all_objects and not list_only and not "_settings" in object_type:
@@ -205,14 +205,14 @@ class JamfObjectReaderBase(JamfUploaderBase):
 
         process_skipped = False
 
-        # skip the process if skip_and_proceed is True
-        if skip_and_proceed:
-            self.output(
-                "Skipping object reader to next process as skip_and_proceed is set to True"
-            )
+        # skip the process if skip_if is True
+        if skip_if and self.predicate_evaluates_as_true(skip_if):
+            self.output("Skipping to next process as skip_if evaluated to True")
             process_skipped = True
             self.env["process_skipped"] = process_skipped
             return
+        elif skip_if:
+            self.output("Not skipping process as skip_if evaluated to False")
 
         # now start the process of reading the object
         # we need to substitute the values in the computer group name now to
@@ -226,16 +226,18 @@ class JamfObjectReaderBase(JamfUploaderBase):
         self.output(f"API type for {object_type} is {api_type}", verbose_level=3)
 
         # get a token
-        token, jamf_url, jamf_platform_gw_region, jamf_platform_gw_tenant_id = self.auth(
-            jamf_url=jamf_url,
-            jamf_user=jamf_user,
-            password=jamf_password,
-            region=jamf_platform_gw_region,
-            tenant_id=jamf_platform_gw_tenant_id,
-            client_id=client_id,
-            client_secret=client_secret,
-            token=bearer_token,
-            jamf_cli_profile=jamf_cli_profile,
+        token, jamf_url, jamf_platform_gw_region, jamf_platform_gw_tenant_id = (
+            self.auth(
+                jamf_url=jamf_url,
+                jamf_user=jamf_user,
+                password=jamf_password,
+                region=jamf_platform_gw_region,
+                tenant_id=jamf_platform_gw_tenant_id,
+                client_id=client_id,
+                client_secret=client_secret,
+                token=bearer_token,
+                jamf_cli_profile=jamf_cli_profile,
+            )
         )
 
         # get instance name from URL
