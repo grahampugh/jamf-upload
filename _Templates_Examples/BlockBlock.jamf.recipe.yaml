@@ -72,7 +72,7 @@ Process:
       mobileconfig: "%MANAGED_LOGIN_PROFILE_MOBILECONFIG%"
       profile_computergroup: "%GROUP_NAME%"
       replace_profile: "%REPLACE_PROFILE%"
-      skip_and_proceed: "%SKIP_PROFILES%"
+      skip_if: "SKIP_PROFILES == 'True'"
 
   - Processor: com.github.grahampugh.jamf-upload.processors/JamfComputerProfileUploader
     Arguments:
@@ -82,7 +82,7 @@ Process:
       mobileconfig: "%PPPC_PROFILE_MOBILECONFIG%"
       profile_computergroup: "%GROUP_NAME%"
       replace_profile: "%REPLACE_PROFILE%"
-      skip_and_proceed: "%SKIP_PROFILES%"
+      skip_if: "SKIP_PROFILES == 'True'"
 
   - Processor: com.github.grahampugh.jamf-upload.processors/JamfPolicyUploader
     Arguments:
@@ -90,4 +90,4 @@ Process:
       icon: "%SELF_SERVICE_ICON%"
       replace_policy: "%REPLACE_POLICY%"
       policy_template: "%POLICY_TEMPLATE%"
-      skip_and_proceed: "%SKIP_POLICY%"
+      skip_if: "SKIP_POLICY == 'True'"
