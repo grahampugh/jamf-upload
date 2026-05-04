@@ -55,6 +55,9 @@ A processor for AutoPkg to read an API object and optionally, output to file (XM
   - **required:** False
   - **description:** Maximum number of attempts to upload the account. Must be an integer between 1 and 10.
   - **default:** "5"
+- **skip_if:**
+  - **required:** False
+  - **description:** Skip the process if a supplied predicate is met.
 
 ## Output variables
 

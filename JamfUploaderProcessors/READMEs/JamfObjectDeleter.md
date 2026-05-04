@@ -27,6 +27,9 @@ A processor for AutoPkg to delete an API object.
 - **object_type**:
   - **required**: True
   - **description**: The API object type. This is in the singular form - the name of the key in the XML template. See the [Object Reference](./Object%20Reference.md) for valid objects.
+- **skip_if:**
+  - **required:** False
+  - **description:** Skip the process if a supplied predicate is met.
 
 ## Output variables
 

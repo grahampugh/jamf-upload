@@ -19,15 +19,9 @@ Certain Jamf API object types can be referenced in processors where the `object_
 | App Installers Title | `app_installers_title` |
 | App Installers T & C Settings | `app_installers_t_and_c_settings` |
 | App Installers Accept T & C Command | `app_installers_accept_t_and_c_command` |
-| Blueprint | `blueprint` |
-| Blueprint - Deploy | `blueprint_deploy` |
-| Blueprint - Undeploy | `blueprint_undeploy` |
 | Category | `category` |
 | Check-In Settings | `check_in_settings` |
 | Cloud LDAP | `cloud_ldap` |
-| Compliance Benchmarks - Baseline | `baseline` |
-| Compliance Benchmarks - Benchmark | `benchmark` |
-| Compliance Benchmarks - Rule | `rule` |
 | Computer | `computer` |
 | Computer Extension Attribute | `computer_extension_attribute` |
 | Computer Group (Smart or Static) | `computer_group` |
