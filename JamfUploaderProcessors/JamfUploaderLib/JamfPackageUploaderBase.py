@@ -30,6 +30,7 @@ import os.path
 import shutil
 import subprocess
 import sys
+from urllib.parse import quote
 
 from shutil import copyfile
 from time import sleep
@@ -467,7 +468,7 @@ class JamfPackageUploaderBase(JamfUploaderBase):
                 f"Requesting Cloud Distribution Point inventory refresh for package {pkg_name}",
                 verbose_level=1,
             )
-            url += f"?file-name={pkg_name}"
+            url += f"?file-name={quote(pkg_name)}"
 
         request = "POST"
         r = self.curl(
