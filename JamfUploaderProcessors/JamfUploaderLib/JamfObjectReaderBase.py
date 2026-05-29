@@ -573,11 +573,12 @@ class JamfObjectReaderBase(JamfUploaderBase):
             self.env["parsed_object"] = str(parsed_object)
 
         # output the summary
-        self.env["jamfobjectreader_summary_result"] = {
-            "summary_text": "The following objects were outputted in Jamf Pro:",
-            "report_fields": ["file_path"],
-            "data": {
-                "file_path": file_path,
-            },
-        }
+        if file_path:
+            self.env["jamfobjectreader_summary_result"] = {
+                "summary_text": "The following objects were outputted in Jamf Pro:",
+                "report_fields": ["file_path"],
+                "data": {
+                    "file_path": file_path,
+                },
+            }
         self.env["process_skipped"] = process_skipped
