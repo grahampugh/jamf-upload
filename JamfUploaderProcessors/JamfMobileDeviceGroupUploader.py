@@ -134,7 +134,7 @@ class JamfMobileDeviceGroupUploader(JamfMobileDeviceGroupUploaderBase):
     }
 
     output_variables = {
-        "JamfMobileDeviceGroupUploader_summary_result": {
+        "jamfmobiledevicegroupuploader_summary_result": {
             "description": "Description of interesting results.",
         },
         "process_skipped": {

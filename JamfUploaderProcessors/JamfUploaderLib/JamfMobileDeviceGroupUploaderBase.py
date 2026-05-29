@@ -132,8 +132,10 @@ class JamfMobileDeviceGroupUploaderBase(JamfUploaderBase):
             max_tries = 5
 
         # clear any pre-existing summary result
-        if "JamfMobileDeviceGroupUploader_summary_result" in self.env:
-            del self.env["JamfMobileDeviceGroupUploader_summary_result"]
+        if "jamfmobiledevicegroupuploader_summary_result" in self.env:
+            del self.env["jamfmobiledevicegroupuploader_summary_result"]
+        if "dry_run_summary_result" in self.env:
+            del self.env["dry_run_summary_result"]
 
         process_skipped = False
 
@@ -242,7 +244,7 @@ class JamfMobileDeviceGroupUploaderBase(JamfUploaderBase):
         # output the summary
         self.env["group_uploaded"] = group_uploaded
         if group_uploaded:
-            self.env["JamfMobileDeviceGroupUploader_summary_result"] = {
+            self.env["jamfmobiledevicegroupuploader_summary_result"] = {
                 "summary_text": (
                     "The following Mobile Device Groups were created or updated "
                     "in Jamf Pro:"

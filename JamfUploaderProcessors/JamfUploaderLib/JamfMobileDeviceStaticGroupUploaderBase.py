@@ -158,6 +158,8 @@ class JamfMobileDeviceStaticGroupUploaderBase(JamfUploaderBase):
         # clear any pre-existing summary result
         if "jamfmobiledevicestaticgroupuploader_summary_result" in self.env:
             del self.env["jamfmobiledevicestaticgroupuploader_summary_result"]
+        if "dry_run_summary_result" in self.env:
+            del self.env["dry_run_summary_result"]
 
         process_skipped = False
 

@@ -671,6 +671,8 @@ class JamfPackageUploaderBase(JamfUploaderBase):
         # clear any pre-existing summary result
         if "jamfpackageuploader_summary_result" in self.env:
             del self.env["jamfpackageuploader_summary_result"]
+        if "dry_run_summary_result" in self.env:
+            del self.env["dry_run_summary_result"]
 
         # See if the package is a bundle (directory).
         # If so, zip_pkg_path will look for an existing .zip

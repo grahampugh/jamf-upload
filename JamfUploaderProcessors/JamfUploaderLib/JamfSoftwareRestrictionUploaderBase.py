@@ -166,6 +166,8 @@ class JamfSoftwareRestrictionUploaderBase(JamfUploaderBase):
         # clear any pre-existing summary result
         if "jamfsoftwarerestrictionuploader_summary_result" in self.env:
             del self.env["jamfsoftwarerestrictionuploader_summary_result"]
+        if "dry_run_summary_result" in self.env:
+            del self.env["dry_run_summary_result"]
 
         process_skipped = False
 

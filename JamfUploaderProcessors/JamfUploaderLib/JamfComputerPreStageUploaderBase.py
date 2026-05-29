@@ -127,6 +127,8 @@ class JamfComputerPreStageUploaderBase(JamfUploaderBase):
         # clear any pre-existing summary result
         if "jamfcomputerprestageuploader_summary_result" in self.env:
             del self.env["jamfcomputerprestageuploader_summary_result"]
+        if "dry_run_summary_result" in self.env:
+            del self.env["dry_run_summary_result"]
 
         process_skipped = False
 
