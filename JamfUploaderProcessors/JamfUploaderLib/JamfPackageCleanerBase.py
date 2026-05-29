@@ -17,7 +17,6 @@ See the License for the specific language governing permissions and
 limitations under the License.
 """
 
-import json
 import os.path
 import sys
 
@@ -240,11 +239,14 @@ class JamfPackageCleanerBase(JamfUploaderBase):
         # check for existing
         object_type = "package_v1"
         url = f"{api_url}/{self.api_endpoints(object_type, tenant_id=jamf_platform_gw_tenant_id)}"
-        r = self.curl(api_type="jpapi", request="GET", url=url, token=token)
-        if isinstance(r.output, dict):
-            jamf_packages = r.output["results"]
-        else:
-            jamf_packages = json.loads(r.output)["results"]
+        jamf_packages = self.paginated_get(
+            api_type="jpapi",
+            url=url,
+            token=token,
+            object_type=object_type,
+            namekey="packageName",
+            domain=api_url,
+        )
 
         # Find packages that match the name pattern
         found_packages = [

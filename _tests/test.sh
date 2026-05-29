@@ -1217,7 +1217,7 @@ pkgclean)
         "${command_base[@]}"
         pkgclean
         --keep "0"
-        --key "NAME=gen-pkg-lightspeed"
+        --name "pkg-nfrgrahampugh-branding-desktop"
     )
 ;;
 unusedpkg)
