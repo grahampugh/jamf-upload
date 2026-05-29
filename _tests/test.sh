@@ -64,6 +64,9 @@ while [[ "$#" -gt 0 ]]; do
     -v*)
         verbosity="$1"
     ;;
+    --dry-run)
+        dry_run=1
+    ;;
     -h | --help)
         echo "Usage: test.sh -t|--test TEST_TYPE [-u|--url JAMF_URL] [-v VERBOSITY]"
         echo "Available TEST_TYPE values:"
@@ -256,6 +259,12 @@ fi
 if [[ $client_id ]]; then
     command_base+=(
         --clientid "$client_id"
+    )
+fi
+
+if [[ $dry_run ]]; then
+    command_base+=(
+        --dry-run
     )
 fi
 

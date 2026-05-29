@@ -70,6 +70,8 @@ Arguments:
                             A Jamf CLI profile to use to obtain a bearer token
     --recipe-dir <RECIPE_DIR>
                             The directory containing the AutoPkg recipes
+    --dry-run               Run the processor in dry run mode. No changes will be made to the Jamf Pro server. 
+                            Works with all processors.
 
 UPLOAD OPTIONS
 
@@ -815,6 +817,11 @@ while test $# -gt 0; do
             echo "   [jamf-upload] Wrote skip_if='$1' into $temp_processor_plist"
         fi
         ;;
+    --dry-run)
+        if plutil -replace dry_run -string "True" "$temp_processor_plist"; then
+            echo "   [jamf-upload] Wrote dry_run='True' into $temp_processor_plist"
+        fi
+        ;;
     --type)
         shift
         if [[ $processor == "JamfAccountUploader" ]]; then
@@ -1462,13 +1469,6 @@ while test $# -gt 0; do
         if [[ $processor == "JamfObjectStateChanger" ]]; then
             if plutil -replace retain_data -string "$1" "$temp_processor_plist"; then
                 echo "   [jamf-upload] Wrote retain_data='$1' into $temp_processor_plist"
-            fi
-        fi
-        ;;
-    --dry-run)
-        if [[ $processor == "JamfPackageCleaner" || $processor == "JamfUnusedPackageCleaner" ]]; then
-            if plutil -replace dry_run -string "True" "$temp_processor_plist"; then
-                echo "   [jamf-upload] Wrote dry_run='True' into $temp_processor_plist"
             fi
         fi
         ;;

@@ -598,6 +598,7 @@ class JamfUploaderBase(Processor):
             request="POST",
             url=url,
             enc_creds=enc_creds,
+            endpoint_type="token",
         )
         output = r.output
         if r.status_code == 200:
