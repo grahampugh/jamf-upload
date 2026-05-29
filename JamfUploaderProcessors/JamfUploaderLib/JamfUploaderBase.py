@@ -1417,8 +1417,8 @@ class JamfUploaderBase(Processor):
             # all endpoints can be specified with show-error
             curl_cmd.extend(["--show-error"])
 
-            # we want to be silent except for package uploads
-            if endpoint_type != "package_v1":
+            # we want to be silent except for package uploads with progress enabled
+            if endpoint_type != "package_v1" or not self.env.get("show_upload_progress"):
                 curl_cmd.extend(["--silent"])
 
             # icon download
@@ -1437,7 +1437,8 @@ class JamfUploaderBase(Processor):
 
             # package upload (Jamf Pro API)
             elif endpoint_type == "package_v1":
-                curl_cmd.extend(["--progress-bar"])
+                if self.env.get("show_upload_progress"):
+                    curl_cmd.extend(["--progress-bar"])
                 curl_cmd.extend(["--header", "Content-type: multipart/form-data"])
                 curl_cmd.extend(["--form", f"file=@{data}"])
 

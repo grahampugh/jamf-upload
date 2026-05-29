@@ -110,6 +110,11 @@ class JamfPackageUploader(JamfPackageUploaderBase):
             "without making any writes.",
             "default": False,
         },
+        "show_upload_progress": {
+            "required": False,
+            "description": ("Show a curl progress bar during package upload."),
+            "default": False,
+        },
         "CLOUD_DP": {
             "required": False,
             "description": (

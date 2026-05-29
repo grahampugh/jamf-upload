@@ -1110,6 +1110,7 @@ pkg)
         --info "Uploaded directly by JamfPackageUploader using v1/packages"
         --notes "$(date)"
         --replace
+        --progress
     )
 ;;
 pkg-plus-calc*)
@@ -1122,6 +1123,7 @@ pkg-plus-calc*)
         --notes "$(date)"
         --recalculate
         --replace
+        --progress
     )
 ;;
 dock)
@@ -1193,6 +1195,7 @@ pkg-noreplace)
         --category JamfUploadTest
         --info "Uploaded directly by JamfPackageUploader using v1/packages"
         --notes "$(date)"
+        --progress
     )
 ;;
 pkg-aws)
