@@ -180,6 +180,8 @@ class JamfMobileDeviceExtensionAttributeUploaderBase(JamfUploaderBase):
         # clear any pre-existing summary result
         if "jamfmobiledeviceextensionattributeuploader_summary_result" in self.env:
             del self.env["jamfmobiledeviceextensionattributeuploader_summary_result"]
+        if "dry_run_summary_result" in self.env:
+            del self.env["dry_run_summary_result"]
 
         process_skipped = False
 

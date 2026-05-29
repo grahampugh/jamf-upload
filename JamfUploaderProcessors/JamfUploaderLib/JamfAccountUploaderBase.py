@@ -185,6 +185,8 @@ class JamfAccountUploaderBase(JamfUploaderBase):
         # clear any pre-existing summary result
         if "jamfaccountuploader_summary_result" in self.env:
             del self.env["jamfaccountuploader_summary_result"]
+        if "dry_run_summary_result" in self.env:
+            del self.env["dry_run_summary_result"]
 
         process_skipped = False
 

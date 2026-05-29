@@ -55,6 +55,8 @@ class JamfObjectDeleterBase(JamfUploaderBase):
         # clear any pre-existing summary result
         if "jamfobjectdeleter_summary_result" in self.env:
             del self.env["jamfobjectdeleter_summary_result"]
+        if "dry_run_summary_result" in self.env:
+            del self.env["dry_run_summary_result"]
 
         process_skipped = False
 

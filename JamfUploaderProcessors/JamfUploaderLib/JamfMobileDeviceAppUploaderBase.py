@@ -169,6 +169,8 @@ class JamfMobileDeviceAppUploaderBase(JamfUploaderBase):
         # clear any pre-existing summary result
         if "jamfmobiledeviceappuploader_summary_result" in self.env:
             del self.env["jamfmobiledeviceappuploader_summary_result"]
+        if "dry_run_summary_result" in self.env:
+            del self.env["dry_run_summary_result"]
 
         process_skipped = False
 

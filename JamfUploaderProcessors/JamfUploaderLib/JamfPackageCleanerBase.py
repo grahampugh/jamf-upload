@@ -201,6 +201,8 @@ class JamfPackageCleanerBase(JamfUploaderBase):
         # Clear any pre-existing summary result
         if "jamfpackagecleaner_summary_result" in self.env:
             del self.env["jamfpackagecleaner_summary_result"]
+        if "dry_run_summary_result" in self.env:
+            del self.env["dry_run_summary_result"]
 
         # Abort if the package name match string is too short
         if len(pkg_name_match) < minimum_name_length:

@@ -196,6 +196,8 @@ class JamfObjectUploaderBase(JamfUploaderBase):
         # clear any pre-existing summary result
         if "jamfobjectuploader_summary_result" in self.env:
             del self.env["jamfobjectuploader_summary_result"]
+        if "dry_run_summary_result" in self.env:
+            del self.env["dry_run_summary_result"]
 
         # skip the process if skip_if is True
         if skip_if and self.predicate_evaluates_as_true(skip_if):

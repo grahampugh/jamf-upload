@@ -143,6 +143,8 @@ class JamfIconUploaderBase(JamfUploaderBase):
         # clear any pre-existing summary result
         if "jamficonuploader_summary_result" in self.env:
             del self.env["jamficonuploader_summary_result"]
+        if "dry_run_summary_result" in self.env:
+            del self.env["dry_run_summary_result"]
 
         process_skipped = False
 

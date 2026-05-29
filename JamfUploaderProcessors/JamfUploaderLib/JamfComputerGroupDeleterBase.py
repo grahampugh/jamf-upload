@@ -97,6 +97,8 @@ class JamfComputerGroupDeleterBase(JamfUploaderBase):
         # clear any pre-existing summary result
         if "jamfcomputergroupdeleter_summary_result" in self.env:
             del self.env["jamfcomputergroupdeleter_summary_result"]
+        if "dry_run_summary_result" in self.env:
+            del self.env["dry_run_summary_result"]
 
         process_skipped = False
 

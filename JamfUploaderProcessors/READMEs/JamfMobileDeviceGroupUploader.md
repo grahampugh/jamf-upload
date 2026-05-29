@@ -49,5 +49,5 @@ A processor for AutoPkg that will upload a mobile device group (smart or static)
 
 ## Output variables
 
-- **jamfmobiledeviceuploader_summary_result:**
+- **jamfmobiledevicegroupuploader_summary_result:**
   - **description:** Description of interesting results.
