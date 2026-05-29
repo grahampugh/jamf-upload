@@ -55,7 +55,7 @@ class JamfUploaderBase(Processor):
     """Common functions used by at least two JamfUploader processors."""
 
     # Global version
-    __version__ = "2026.05.04.0"
+    __version__ = "2026.05.29.0"
 
     # Schema registry instance — lazily initialised per processor run
     _registry = None
@@ -1339,7 +1339,9 @@ class JamfUploaderBase(Processor):
             if endpoint_type not in ("oauth", "token", "auth", "platform_api_token"):
                 self.output(f"DRY RUN: Would {request} to {url}")
                 r = namedtuple(
-                    "r", ["headers", "status_code", "output"], defaults=(None, None, None)
+                    "r",
+                    ["headers", "status_code", "output"],
+                    defaults=(None, None, None),
                 )
                 return r(headers=[], status_code=200, output={})
 
