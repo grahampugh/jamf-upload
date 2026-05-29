@@ -2,6 +2,39 @@
 
 The dates here represent when the features were added to the processors in the `jamf-upload` repo.
 
+## 2026-05-29
+
+* Added `dry_run` option to all processors. When set to `True`, processors perform read-only checks and report what would change without making any writes to the Jamf Pro server.
+* Made the curl progress bar during package upload optional via the `show_upload_progress` input parameter in `JamfPackageUploader`. Progress output is now disabled by default to avoid interfering with logging systems.
+
+## 2026-05-08
+
+* (#380) URL-encode the package name when checking for existing packages in `JamfPackageUploaderBase` to handle packages with special characters in their names.
+
+## 2026-05-04
+
+* (#376) Added `skip_if` predicate support to all processors, allowing a process to be skipped based on an NSPredicate expression evaluated against the AutoPkg environment.
+* (#377) Updated `output_variables` descriptions across all processors for consistency.
+* (#378) Added `skip_if` documentation to `JamfAccountUploader`.
+
+## 2026-04-23
+
+* (#372) Fixed VPP location retrieval in `JamfMacAppUploader` and `JamfMobileDeviceAppUploader` to use paginated results when checking available VPP locations.
+* (#373) Added `recalculate_wait_time` option to `JamfPackageUploader`, allowing a delay before sending a Cloud Distribution Point inventory refresh request after a package upload.
+* (#374) Updated `JamfPackageUploader` to allow per-package Cloud Distribution Point inventory refresh (in addition to the existing global refresh option).
+
+## 2026-04-19
+
+* (#370) Added `JamfSchemaRegistry` for dynamic API schema discovery, replacing hardcoded endpoint tables. Added support for the Jamf Platform Gateway API and `jamf-cli`-based authentication. Added `BEARER_TOKEN`, `JAMF_CLI_PROFILE`, `PLATFORM_API_REGION`, and `PLATFORM_API_TENANT_ID` input variables to all processors.
+
+## 2026-04-12
+
+* (#371) Added URL expansion convenience support to `jamf-upload.sh`.
+
+## 2026-03-17
+
+* (#368) Added impact alert notification settings endpoint to the API endpoint list (thanks @neilmartin83).
+
 ## 2026-02-24
 
 * Updated `check_pkg` function in `JamfPackageUploaderBase` to use the Jamf Pro API (v1/packages endpoint) instead of the Classic API.

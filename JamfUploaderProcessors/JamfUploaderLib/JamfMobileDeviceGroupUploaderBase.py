@@ -211,6 +211,18 @@ class JamfMobileDeviceGroupUploaderBase(JamfUploaderBase):
                 )
                 return
 
+        if self.env.get("dry_run"):
+            action = "CREATE" if not object_id else "UPDATE"
+            self.output(f"DRY RUN: Would {action} mobile_device_group '{mobiledevicegroup_name}'")
+            self.env["group_uploaded"] = False
+            self.env["dry_run_summary_result"] = {
+                "summary_text": "DRY RUN: The following changes would be made in Jamf Pro:",
+                "report_fields": ["action", "type", "name"],
+                "data": {"action": action, "type": "mobile_device_group", "name": mobiledevicegroup_name},
+            }
+            self.env["process_skipped"] = process_skipped
+            return
+
         # upload the group
         self.upload_mobiledevicegroup(
             api_url,

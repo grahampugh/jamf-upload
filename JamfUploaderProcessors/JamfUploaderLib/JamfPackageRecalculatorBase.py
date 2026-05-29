@@ -149,6 +149,16 @@ class JamfPackageRecalculatorBase(JamfUploaderBase):
                 )
             )
 
+            if self.env.get("dry_run"):
+                self.output("DRY RUN: Would recalculate package inventory on Cloud Distribution Point")
+                self.env["dry_run_summary_result"] = {
+                    "summary_text": "DRY RUN: The following changes would be made in Jamf Pro:",
+                    "report_fields": ["action", "type", "name"],
+                    "data": {"action": "RECALCULATE", "type": "cloud_dp_inventory", "name": "packages"},
+                }
+                self.env["process_skipped"] = process_skipped
+                return
+
             # now send the recalculation request
             packages_recalculated = self.recalculate_packages(
                 api_url, token, tenant_id=jamf_platform_gw_tenant_id

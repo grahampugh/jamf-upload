@@ -140,6 +140,15 @@ class JamfPolicyDeleterBase(JamfUploaderBase):
 
         if object_id:
             self.output(f"Policy '{policy_name}' exists: ID {object_id}")
+            if self.env.get("dry_run"):
+                self.output(f"DRY RUN: Would DELETE policy '{policy_name}' (ID {object_id})")
+                self.env["dry_run_summary_result"] = {
+                    "summary_text": "DRY RUN: The following changes would be made in Jamf Pro:",
+                    "report_fields": ["action", "type", "name"],
+                    "data": {"action": "DELETE", "type": "policy", "name": policy_name},
+                }
+                self.env["process_skipped"] = process_skipped
+                return
             self.output(
                 "Deleting existing policy",
                 verbose_level=1,

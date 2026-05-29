@@ -93,6 +93,12 @@ class JamfPolicyDeleter(JamfPolicyDeleterBase):
             "Required for Platform API authentication.",
             "default": "",
         },
+        "dry_run": {
+            "required": False,
+            "description": "If True, perform read-only checks and report what would change "
+            "without making any writes.",
+            "default": False,
+        },
         "policy_name": {
             "required": True,
             "description": "Policy to delete",
@@ -120,6 +126,10 @@ class JamfPolicyDeleter(JamfPolicyDeleterBase):
         "process_skipped": {
             "description": "Boolean - True if the process was skipped due to "
             "skip_if predicate resolved to True.",
+        },
+        "dry_run_summary_result": {
+            "description": "Summary of what would have been changed (only set when dry_run "
+            "is True).",
         },
     }
 

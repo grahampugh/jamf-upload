@@ -287,6 +287,18 @@ class JamfAccountUploaderBase(JamfUploaderBase):
                 )
                 return
 
+        if self.env.get("dry_run"):
+            action = "CREATE" if not object_id else "UPDATE"
+            self.output(f"DRY RUN: Would {action} account '{account_name}'")
+            self.env["account_updated"] = False
+            self.env["dry_run_summary_result"] = {
+                "summary_text": "DRY RUN: The following changes would be made in Jamf Pro:",
+                "report_fields": ["action", "type", "name"],
+                "data": {"action": action, "type": "account", "name": account_name},
+            }
+            self.env["process_skipped"] = process_skipped
+            return
+
         # upload the account
         self.upload_account(
             api_url,

@@ -258,6 +258,19 @@ class JamfComputerPreStageUploaderBase(JamfUploaderBase):
             with open(template_file, "w", encoding="utf-8") as file:
                 file.write(template_contents)
 
+        if self.env.get("dry_run"):
+            action = "CREATE" if not object_id else "UPDATE"
+            self.output(f"DRY RUN: Would {action} computer_prestage '{prestage_name}'")
+            self.env["prestage_name"] = prestage_name
+            self.env["prestage_updated"] = False
+            self.env["dry_run_summary_result"] = {
+                "summary_text": "DRY RUN: The following changes would be made in Jamf Pro:",
+                "report_fields": ["action", "type", "name"],
+                "data": {"action": action, "type": "computer_prestage", "name": prestage_name},
+            }
+            self.env["process_skipped"] = process_skipped
+            return
+
         # upload the object
         self.upload_prestage(
             api_url,

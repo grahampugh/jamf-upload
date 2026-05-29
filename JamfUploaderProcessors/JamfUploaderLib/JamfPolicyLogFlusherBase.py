@@ -154,6 +154,15 @@ class JamfPolicyLogFlusherBase(JamfUploaderBase):
 
         if object_id:
             self.output(f"Policy '{policy_name}' exists: ID {object_id}")
+            if self.env.get("dry_run"):
+                self.output(f"DRY RUN: Would flush policy log for '{policy_name}'")
+                self.env["dry_run_summary_result"] = {
+                    "summary_text": "DRY RUN: The following changes would be made in Jamf Pro:",
+                    "report_fields": ["action", "type", "name"],
+                    "data": {"action": "FLUSH", "type": "policy_log", "name": policy_name},
+                }
+                self.env["process_skipped"] = process_skipped
+                return
             self.output(
                 "Flushing existing policy",
                 verbose_level=1,

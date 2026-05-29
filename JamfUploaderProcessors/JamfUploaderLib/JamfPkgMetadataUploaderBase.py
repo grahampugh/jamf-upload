@@ -303,6 +303,19 @@ class JamfPkgMetadataUploaderBase(JamfUploaderBase):
             self.output(f"Package '{pkg_name}' not found on server")
             pkg_id = 0
 
+        if self.env.get("dry_run"):
+            action = "UPDATE metadata for" if int(pkg_id) > 0 else "CREATE"
+            self.output(f"DRY RUN: Would {action} package '{pkg_name}'")
+            self.env["pkg_name"] = pkg_name
+            self.env["pkg_metadata_updated"] = False
+            self.env["dry_run_summary_result"] = {
+                "summary_text": "DRY RUN: The following changes would be made in Jamf Pro:",
+                "report_fields": ["action", "type", "name"],
+                "data": {"action": action, "type": "package", "name": pkg_name},
+            }
+            self.env["process_skipped"] = process_skipped
+            return
+
         # now process the package metadata
         if int(pkg_id) > 0:
             # replace existing package metadata

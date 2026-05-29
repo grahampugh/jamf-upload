@@ -102,6 +102,12 @@ class JamfObjectUploader(JamfObjectUploaderBase):
             "Required for Platform API authentication.",
             "default": "",
         },
+        "dry_run": {
+            "required": False,
+            "description": "If True, perform read-only checks and report what would change "
+            "without making any writes.",
+            "default": False,
+        },
         "object_name": {
             "required": False,
             "description": "Name of the object. Required except for settings-related objects.",
@@ -178,6 +184,10 @@ class JamfObjectUploader(JamfObjectUploaderBase):
         },
         "process_skipped": {
             "description": "Boolean - True if the upload process was skipped due to skip_and_proceed input variable being set to True.",
+        },
+        "dry_run_summary_result": {
+            "description": "Summary of what would have been changed (only set when dry_run "
+            "is True).",
         },
     }
 

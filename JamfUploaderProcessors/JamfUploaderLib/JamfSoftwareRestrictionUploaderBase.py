@@ -250,6 +250,18 @@ class JamfSoftwareRestrictionUploaderBase(JamfUploaderBase):
                 f"Software Restriction '{restriction_name}' not found - will create"
             )
 
+        if self.env.get("dry_run"):
+            action = "CREATE" if not object_id else "UPDATE"
+            self.output(f"DRY RUN: Would {action} restricted_software '{restriction_name}'")
+            self.env["restriction_uploaded"] = False
+            self.env["dry_run_summary_result"] = {
+                "summary_text": "DRY RUN: The following changes would be made in Jamf Pro:",
+                "report_fields": ["action", "type", "name"],
+                "data": {"action": action, "type": "restricted_software", "name": restriction_name},
+            }
+            self.env["process_skipped"] = process_skipped
+            return
+
         self.upload_restriction(
             api_url,
             object_name=restriction_name,

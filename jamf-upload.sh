@@ -70,6 +70,8 @@ Arguments:
                             A Jamf CLI profile to use to obtain a bearer token
     --recipe-dir <RECIPE_DIR>
                             The directory containing the AutoPkg recipes
+    --dry-run               Run the processor in dry run mode. No changes will be made to the Jamf Pro server. 
+                            Works with all processors.
 
 UPLOAD OPTIONS
 
@@ -262,6 +264,7 @@ Package Upload arguments:
                             Only applicable if --recalculate is set.
     --md5                   Use MD5 hash instead of SHA512. Required for packages 
                             to be installable via MDM InstallEnterpriseApplication
+    --progress              Show a curl progress bar during package upload.
 
 Package Metadata Upload arguments:
     --name <string>         The package display name
@@ -813,6 +816,11 @@ while test $# -gt 0; do
         shift
         if plutil -replace skip_if -string "$1" "$temp_processor_plist"; then
             echo "   [jamf-upload] Wrote skip_if='$1' into $temp_processor_plist"
+        fi
+        ;;
+    --dry-run)
+        if plutil -replace dry_run -string "True" "$temp_processor_plist"; then
+            echo "   [jamf-upload] Wrote dry_run='True' into $temp_processor_plist"
         fi
         ;;
     --type)
@@ -1465,13 +1473,6 @@ while test $# -gt 0; do
             fi
         fi
         ;;
-    --dry-run)
-        if [[ $processor == "JamfPackageCleaner" || $processor == "JamfUnusedPackageCleaner" ]]; then
-            if plutil -replace dry_run -string "True" "$temp_processor_plist"; then
-                echo "   [jamf-upload] Wrote dry_run='True' into $temp_processor_plist"
-            fi
-        fi
-        ;;
     --keep)
         shift
         if [[ $processor == "JamfPackageCleaner" ]]; then
@@ -1506,26 +1507,6 @@ while test $# -gt 0; do
             fi
         fi
         ;;
-    --pkg | --pkg_path | --pkg-path)
-        shift
-        if [[ $processor == "JamfPackageUploader" ]]; then
-            if plutil -replace pkg_path -string "$1" "$temp_processor_plist"; then
-                echo "   [jamf-upload] Wrote pkg_path='$1' into $temp_processor_plist"
-            fi
-        elif [[ $processor == "JamfPkgMetadataUploader" ]]; then
-            if plutil -replace pkg_name -string "$1" "$temp_processor_plist"; then
-                echo "   [jamf-upload] Wrote pkg_name='$1' into $temp_processor_plist"
-            fi
-        fi
-        ;;
-    --pkg-name | --pkg_name)
-        shift
-        if [[ $processor == "JamfPackageUploader" || $processor == "JamfPatchChecker" || $processor == "JamfPatchUploader" || $processor == "JamfPkgMetadataUploader" || $processor == "JamfUploaderJiraIssueCreator" || $processor == "JamfUploaderSlacker" || $processor == "JamfUploaderTeamsNotifier" ]]; then
-            if plutil -replace pkg_name -string "$1" "$temp_processor_plist"; then
-                echo "   [jamf-upload] Wrote pkg_name='$1' into $temp_processor_plist"
-            fi
-        fi
-        ;;
     --info)
         shift
         if [[ $processor == "JamfPackageUploader" || $processor == "JamfPkgMetadataUploader" ]]; then
@@ -1547,6 +1528,33 @@ while test $# -gt 0; do
         elif [[ $processor == "JamfScriptUploader" ]]; then
             if plutil -replace script_notes -string "$1" "$temp_processor_plist"; then
                 echo "   [jamf-upload] Wrote script_notes='$1' into $temp_processor_plist"
+            fi
+        fi
+        ;;
+    --pkg | --pkg_path | --pkg-path)
+        shift
+        if [[ $processor == "JamfPackageUploader" ]]; then
+            if plutil -replace pkg_path -string "$1" "$temp_processor_plist"; then
+                echo "   [jamf-upload] Wrote pkg_path='$1' into $temp_processor_plist"
+            fi
+        elif [[ $processor == "JamfPkgMetadataUploader" ]]; then
+            if plutil -replace pkg_name -string "$1" "$temp_processor_plist"; then
+                echo "   [jamf-upload] Wrote pkg_name='$1' into $temp_processor_plist"
+            fi
+        fi
+        ;;
+    --pkg-name | --pkg_name)
+        shift
+        if [[ $processor == "JamfPackageUploader" || $processor == "JamfPatchChecker" || $processor == "JamfPatchUploader" || $processor == "JamfPkgMetadataUploader" || $processor == "JamfUploaderJiraIssueCreator" || $processor == "JamfUploaderSlacker" || $processor == "JamfUploaderTeamsNotifier" ]]; then
+            if plutil -replace pkg_name -string "$1" "$temp_processor_plist"; then
+                echo "   [jamf-upload] Wrote pkg_name='$1' into $temp_processor_plist"
+            fi
+        fi
+        ;;
+    --progress)
+        if [[ $processor == "JamfPackageUploader" ]]; then
+            if plutil -replace show_upload_progress -string "True" "$temp_processor_plist"; then
+                echo "   [jamf-upload] Wrote show_upload_progress='True' into $temp_processor_plist"
             fi
         fi
         ;;

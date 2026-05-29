@@ -94,6 +94,15 @@ class JamfObjectDeleterBase(JamfUploaderBase):
 
         # cloud_distribution_point endpoint doesn't use IDs or names
         if object_type == "cloud_distribution_point":
+            if self.env.get("dry_run"):
+                self.output(f"DRY RUN: Would DELETE singleton {object_type}")
+                self.env["dry_run_summary_result"] = {
+                    "summary_text": "DRY RUN: The following changes would be made in Jamf Pro:",
+                    "report_fields": ["action", "type", "name"],
+                    "data": {"action": "DELETE", "type": object_type, "name": object_type},
+                }
+                self.env["process_skipped"] = process_skipped
+                return
             self.output(
                 f"Deleting singleton {object_type} on {api_url}",
                 verbose_level=1,
@@ -126,6 +135,15 @@ class JamfObjectDeleterBase(JamfUploaderBase):
 
             if object_id:
                 self.output(f"{object_type} '{object_name}' exists: ID {object_id}")
+                if self.env.get("dry_run"):
+                    self.output(f"DRY RUN: Would DELETE {object_type} '{object_name}' (ID {object_id})")
+                    self.env["dry_run_summary_result"] = {
+                        "summary_text": "DRY RUN: The following changes would be made in Jamf Pro:",
+                        "report_fields": ["action", "type", "name"],
+                        "data": {"action": "DELETE", "type": object_type, "name": object_name},
+                    }
+                    self.env["process_skipped"] = process_skipped
+                    return
                 self.output(
                     f"Deleting existing {object_type}",
                     verbose_level=1,

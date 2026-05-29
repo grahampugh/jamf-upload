@@ -21,6 +21,10 @@ A processor for AutoPkg that will recalculate the cloud ditribution point invent
 - **CLIENT_SECRET:**
   - **required:** False
   - **description:** Secret associated with the Client ID, optionally set as a key in the com.github.autopkg preference file.
+- **dry_run:**
+  - **required:** False
+  - **description:** If True, perform read-only checks and report what would change without making any writes.
+  - **default:** False
 - **skip_if:**
   - **required:** False
   - **description:** Skip the process if a supplied predicate is met.

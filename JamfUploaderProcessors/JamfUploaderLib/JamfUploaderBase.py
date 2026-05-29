@@ -55,7 +55,7 @@ class JamfUploaderBase(Processor):
     """Common functions used by at least two JamfUploader processors."""
 
     # Global version
-    __version__ = "2026.05.04.0"
+    __version__ = "2026.05.29.0"
 
     # Schema registry instance — lazily initialised per processor run
     _registry = None
@@ -598,6 +598,7 @@ class JamfUploaderBase(Processor):
             request="POST",
             url=url,
             enc_creds=enc_creds,
+            endpoint_type="token",
         )
         output = r.output
         if r.status_code == 200:
@@ -1332,6 +1333,18 @@ class JamfUploaderBase(Processor):
         The Jamf Platform API uses OAuth 2.0 for authentication.
         """
         tmp_dir = self.make_tmp_dir(jamf_url=url)
+
+        # dry-run: skip write operations but allow auth/token requests
+        if self.env.get("dry_run") and request in ("POST", "PUT", "PATCH", "DELETE"):
+            if endpoint_type not in ("oauth", "token", "auth", "platform_api_token"):
+                self.output(f"DRY RUN: Would {request} to {url}")
+                r = namedtuple(
+                    "r",
+                    ["headers", "status_code", "output"],
+                    defaults=(None, None, None),
+                )
+                return r(headers=[], status_code=200, output={})
+
         headers_file = os.path.join(tmp_dir, "curl_headers_from_jamf_upload.txt")
         output_file = self.init_temp_file(url, suffix=".txt")
         cookie_jar = os.path.join(tmp_dir, "curl_cookies_from_jamf_upload.txt")
@@ -1404,8 +1417,8 @@ class JamfUploaderBase(Processor):
             # all endpoints can be specified with show-error
             curl_cmd.extend(["--show-error"])
 
-            # we want to be silent except for package uploads
-            if endpoint_type != "package_v1":
+            # we want to be silent except for package uploads with progress enabled
+            if endpoint_type != "package_v1" or not self.env.get("show_upload_progress"):
                 curl_cmd.extend(["--silent"])
 
             # icon download
@@ -1424,7 +1437,8 @@ class JamfUploaderBase(Processor):
 
             # package upload (Jamf Pro API)
             elif endpoint_type == "package_v1":
-                curl_cmd.extend(["--progress-bar"])
+                if self.env.get("show_upload_progress"):
+                    curl_cmd.extend(["--progress-bar"])
                 curl_cmd.extend(["--header", "Content-type: multipart/form-data"])
                 curl_cmd.extend(["--form", f"file=@{data}"])
 
