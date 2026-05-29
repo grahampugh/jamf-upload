@@ -330,6 +330,20 @@ class JamfPolicyUploaderBase(JamfUploaderBase):
                 )
                 return
 
+        if self.env.get("dry_run"):
+            action = "CREATE" if not object_id else "UPDATE"
+            self.output(f"DRY RUN: Would {action} policy '{policy_name}'")
+            self.env["policy_name"] = policy_name
+            self.env["policy_updated"] = False
+            self.env["changed_policy_id"] = ""
+            self.env["dry_run_summary_result"] = {
+                "summary_text": "DRY RUN: The following changes would be made in Jamf Pro:",
+                "report_fields": ["action", "type", "name"],
+                "data": {"action": action, "type": "policy", "name": policy_name},
+            }
+            self.env["process_skipped"] = process_skipped
+            return
+
         # upload the policy
         r = self.upload_policy(
             api_url,

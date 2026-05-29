@@ -549,6 +549,15 @@ class JamfUnusedPackageCleanerBase(JamfUploaderBase):
                     "Dry run mode enabled. No packages will be deleted.",
                     verbose_level=1,
                 )
+                self.env["dry_run_summary_result"] = {
+                    "summary_text": "DRY RUN: The following changes would be made in Jamf Pro:",
+                    "report_fields": ["action", "type", "name"],
+                    "data": {
+                        "action": "DELETE",
+                        "type": "package",
+                        "name": f"{len(unused_packages)} unused package(s)",
+                    },
+                }
             else:
                 # delete the packages
                 for pkg_id, pkg_name in unused_packages.items():

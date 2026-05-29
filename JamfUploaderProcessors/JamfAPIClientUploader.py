@@ -97,6 +97,12 @@ class JamfAPIClientUploader(JamfAPIClientUploaderBase):
             "Required for Platform API authentication.",
             "default": "",
         },
+        "dry_run": {
+            "required": False,
+            "description": "If True, perform read-only checks and report what would change "
+            "without making any writes.",
+            "default": False,
+        },
         "api_client_name": {
             "required": False,
             "description": "Name of the API Client in Jamf",
@@ -117,7 +123,8 @@ class JamfAPIClientUploader(JamfAPIClientUploaderBase):
         },
         "api_role_name": {
             "required": False,
-            "description": "API Role to scope to the API Client. Currently limited to a single API Role",
+            "description": "API Role to scope to the API Client. Currently limited to a single "
+            "API Role",
             "default": "",
         },
         "replace_api_client": {
@@ -161,6 +168,10 @@ class JamfAPIClientUploader(JamfAPIClientUploaderBase):
         "process_skipped": {
             "description": "Boolean - True if the process was skipped due to "
             "skip_if predicate resolved to True.",
+        },
+        "dry_run_summary_result": {
+            "description": "Summary of what would have been changed (only set when dry_run "
+            "is True).",
         },
     }
 

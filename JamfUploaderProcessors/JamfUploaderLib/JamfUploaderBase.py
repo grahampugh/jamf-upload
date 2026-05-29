@@ -1332,6 +1332,16 @@ class JamfUploaderBase(Processor):
         The Jamf Platform API uses OAuth 2.0 for authentication.
         """
         tmp_dir = self.make_tmp_dir(jamf_url=url)
+
+        # dry-run: skip write operations but allow auth/token requests
+        if self.env.get("dry_run") and request in ("POST", "PUT", "PATCH", "DELETE"):
+            if endpoint_type not in ("oauth", "token", "auth", "platform_api_token"):
+                self.output(f"DRY RUN: Would {request} to {url}")
+                r = namedtuple(
+                    "r", ["headers", "status_code", "output"], defaults=(None, None, None)
+                )
+                return r(headers=[], status_code=200, output={})
+
         headers_file = os.path.join(tmp_dir, "curl_headers_from_jamf_upload.txt")
         output_file = self.init_temp_file(url, suffix=".txt")
         cookie_jar = os.path.join(tmp_dir, "curl_cookies_from_jamf_upload.txt")

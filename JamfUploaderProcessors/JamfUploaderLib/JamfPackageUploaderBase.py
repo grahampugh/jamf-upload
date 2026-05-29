@@ -752,6 +752,27 @@ class JamfPackageUploaderBase(JamfUploaderBase):
             pkg_id = 0
         self.output(f"Package ID: {object_id}", verbose_level=3)  # TEMP
 
+        if self.env.get("dry_run"):
+            if object_id:
+                action = "UPDATE metadata for"
+            else:
+                action = "CREATE"
+            self.output(f"DRY RUN: Would {action} package '{pkg_name}'")
+            self.env["pkg_name"] = pkg_name
+            self.env["pkg_uploaded"] = False
+            self.env["pkg_metadata_updated"] = False
+            self.env["dry_run_summary_result"] = {
+                "summary_text": "DRY RUN: The following changes would be made in Jamf Pro:",
+                "report_fields": ["action", "type", "name"],
+                "data": {
+                    "action": action,
+                    "type": "package",
+                    "name": pkg_name,
+                },
+            }
+            self.env["process_skipped"] = process_skipped
+            return
+
         # Process for SMB shares if defined
         self.output(
             "Number of File Share DPs: " + str(len(smb_shares)), verbose_level=2

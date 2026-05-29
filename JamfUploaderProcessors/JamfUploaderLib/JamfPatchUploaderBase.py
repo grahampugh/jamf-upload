@@ -465,6 +465,18 @@ class JamfPatchUploaderBase(JamfUploaderBase):
                     )
                     return
 
+            if self.env.get("dry_run"):
+                action = "CREATE" if not patch_id else "UPDATE"
+                self.output(f"DRY RUN: Would {action} patch_policy '{patch_name}'")
+                self.env["patch_updated"] = False
+                self.env["dry_run_summary_result"] = {
+                    "summary_text": "DRY RUN: The following changes would be made in Jamf Pro:",
+                    "report_fields": ["action", "type", "name"],
+                    "data": {"action": action, "type": "patch_policy", "name": patch_name},
+                }
+                self.env["process_skipped"] = process_skipped
+                return
+
             # Upload the patch
             r = self.upload_patch(
                 api_url,

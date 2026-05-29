@@ -184,6 +184,16 @@ class JamfIconUploaderBase(JamfUploaderBase):
         if not icon_file:
             raise ProcessorError("ERROR: Icon not found")
 
+        if self.env.get("dry_run"):
+            self.output(f"DRY RUN: Would UPLOAD icon '{icon_file}'")
+            self.env["dry_run_summary_result"] = {
+                "summary_text": "DRY RUN: The following changes would be made in Jamf Pro:",
+                "report_fields": ["action", "type", "name"],
+                "data": {"action": "UPLOAD", "type": "icon", "name": str(icon_file)},
+            }
+            self.env["process_skipped"] = process_skipped
+            return
+
         # upload the icon
         r = self.upload_icon(
             api_url,

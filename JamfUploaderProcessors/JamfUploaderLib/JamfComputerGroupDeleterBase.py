@@ -144,6 +144,15 @@ class JamfComputerGroupDeleterBase(JamfUploaderBase):
 
         if object_id:
             self.output(f"Computer Group '{computergroup_name}' exists: ID {object_id}")
+            if self.env.get("dry_run"):
+                self.output(f"DRY RUN: Would DELETE computer group '{computergroup_name}' (ID {object_id})")
+                self.env["dry_run_summary_result"] = {
+                    "summary_text": "DRY RUN: The following changes would be made in Jamf Pro:",
+                    "report_fields": ["action", "type", "name"],
+                    "data": {"action": "DELETE", "type": "computer_group", "name": computergroup_name},
+                }
+                self.env["process_skipped"] = process_skipped
+                return
             self.output(
                 "Deleting existing computer group",
                 verbose_level=1,

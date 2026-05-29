@@ -191,6 +191,18 @@ class JamfDockItemUploaderBase(JamfUploaderBase):
                 )
                 return
 
+        if self.env.get("dry_run"):
+            action = "CREATE" if not object_id else "UPDATE"
+            self.output(f"DRY RUN: Would {action} dock_item '{dock_item_name}'")
+            self.env["dock_item_uploaded"] = False
+            self.env["dry_run_summary_result"] = {
+                "summary_text": "DRY RUN: The following changes would be made in Jamf Pro:",
+                "report_fields": ["action", "type", "name"],
+                "data": {"action": action, "type": "dock_item", "name": dock_item_name},
+            }
+            self.env["process_skipped"] = process_skipped
+            return
+
         # Upload the dock item
         self.upload_dock_item(
             api_url,

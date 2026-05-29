@@ -129,6 +129,10 @@ class JamfUnusedPackageCleaner(JamfUnusedPackageCleanerBase):
             "description": "Boolean - True if the process was skipped due to "
             "skip_if predicate resolved to True.",
         },
+        "dry_run_summary_result": {
+            "description": "Summary of what would have been changed (only set when dry_run "
+            "is True).",
+        },
     }
 
     def main(self):

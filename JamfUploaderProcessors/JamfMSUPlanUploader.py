@@ -102,6 +102,12 @@ class JamfMSUPlanUploader(JamfMSUPlanUploaderBase):
             "Required for Platform API authentication.",
             "default": "",
         },
+        "dry_run": {
+            "required": False,
+            "description": "If True, perform read-only checks and report what would change "
+            "without making any writes.",
+            "default": False,
+        },
         "days_until_force_install": {
             "required": False,
             "description": "Days until forced installation of planned managed software update.",
@@ -169,6 +175,10 @@ class JamfMSUPlanUploader(JamfMSUPlanUploaderBase):
         "process_skipped": {
             "description": "Boolean - True if the process was skipped due to "
             "skip_if predicate resolved to True.",
+        },
+        "dry_run_summary_result": {
+            "description": "Summary of what would have been changed (only set when dry_run "
+            "is True).",
         },
     }
 

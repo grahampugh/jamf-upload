@@ -296,6 +296,15 @@ class JamfPackageCleanerBase(JamfUploaderBase):
                 "Use '-vv' to see detailed information. "
                 "Aborting."
             )
+            self.env["dry_run_summary_result"] = {
+                "summary_text": "DRY RUN: The following changes would be made in Jamf Pro:",
+                "report_fields": ["action", "type", "name"],
+                "data": {
+                    "action": "DELETE",
+                    "type": "package",
+                    "name": f"{len(packages_to_delete)} package(s) matching criteria",
+                },
+            }
             return
 
         for package in packages_to_delete:

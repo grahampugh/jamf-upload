@@ -304,6 +304,16 @@ class JamfMSUPlanUploaderBase(JamfUploaderBase):
         # check for an existing object except for settings-related endpoints
         object_type = "managed_software_updates_plans_group_settings"
 
+        if self.env.get("dry_run"):
+            self.output(f"DRY RUN: Would CREATE msu_plan for group '{group_name}'")
+            self.env["dry_run_summary_result"] = {
+                "summary_text": "DRY RUN: The following changes would be made in Jamf Pro:",
+                "report_fields": ["action", "type", "name"],
+                "data": {"action": "CREATE", "type": "msu_plan", "name": group_name},
+            }
+            self.env["process_skipped"] = process_skipped
+            return
+
         # upload the object
         self.upload_object(
             api_url,
