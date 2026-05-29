@@ -6,6 +6,7 @@ The dates here represent when the features were added to the processors in the `
 
 * Added `dry_run` option to all processors. When set to `True`, processors perform read-only checks and report what would change without making any writes to the Jamf Pro server.
 * Made the curl progress bar during package upload optional via the `show_upload_progress` input parameter in `JamfPackageUploader`. Progress output is now disabled by default to avoid interfering with logging systems.
+* Fixed `JamfPackageCleaner` to use paginated requests when retrieving the package list from the Jamf Pro API, ensuring all packages are returned on large servers.
 
 ## 2026-05-08
 
