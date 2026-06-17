@@ -255,7 +255,7 @@ class JamfPackageCleanerBase(JamfUploaderBase):
             if item["packageName"].startswith(pkg_name_match)
         ]
         found_packages = sorted(
-            found_packages, key=lambda item: item["id"], reverse=True
+            found_packages, key=lambda item: int(item["id"]) if item.get("id") is not None else 0, reverse=True
         )
 
         # If there are not enough versions to delete, log it will skip the deletion step
