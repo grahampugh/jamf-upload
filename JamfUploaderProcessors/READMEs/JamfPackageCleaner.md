@@ -36,6 +36,10 @@ A processor for AutoPkg that will remove packages matching a pattern from a Jamf
   - **required**: False
   - **description**: The maximum number of packages that can be deleted. This is used as a failsafe.
   - **default**: 20
+- **exclude_packages_in_use**:
+  - **required**: False
+  - **description**: If set to True, any package that is still in use is kept even if it would otherwise be deleted. A package is considered in use if it is referenced by a policy, a patch software title, or a PreStage Enrollment. The `versions_to_keep` newest packages are always kept; this option only ever spares additional older packages, so the result may exceed `versions_to_keep` while an in-use package remains. The usage lookup only runs when there is at least one package that would be deleted.
+  - **default**: False
 - **dry_run**:
   - **required**: False
   - **description**: If set to True, nothing is deleted from Jamf Pro. Use together with `-vv` for detailed information. This is used for testing
