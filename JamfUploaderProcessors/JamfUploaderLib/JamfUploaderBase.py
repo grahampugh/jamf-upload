@@ -55,7 +55,7 @@ class JamfUploaderBase(Processor):
     """Common functions used by at least two JamfUploader processors."""
 
     # Global version
-    __version__ = "2026.05.29.0"
+    __version__ = "2026.06.22.0"
 
     # Schema registry instance — lazily initialised per processor run
     _registry = None
@@ -1556,8 +1556,10 @@ class JamfUploaderBase(Processor):
         curl_cmd.extend(["--output", output_file])
         self.output(f"Output file is: {output_file}", verbose_level=3)
 
-        # write session for jamf API requests
-        if "/api/" in url or "/uapi/" in url or "JSSResource" in url:
+        # write session for jamf API requests (only when not already handled above)
+        if api_type not in ("classic", "jpapi") and (
+            "/api/" in url or "/uapi/" in url or "JSSResource" in url
+        ):
             curl_cmd.extend(["--cookie-jar", cookie_jar])
 
             # look for existing session
