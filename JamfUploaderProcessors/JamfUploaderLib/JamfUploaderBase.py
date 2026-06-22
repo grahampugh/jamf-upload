@@ -55,7 +55,7 @@ class JamfUploaderBase(Processor):
     """Common functions used by at least two JamfUploader processors."""
 
     # Global version
-    __version__ = "2026.05.29.0"
+    __version__ = "2026.06.22.0"
 
     # Schema registry instance — lazily initialised per processor run
     _registry = None
