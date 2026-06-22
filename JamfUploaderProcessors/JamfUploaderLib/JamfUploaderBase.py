@@ -1556,8 +1556,10 @@ class JamfUploaderBase(Processor):
         curl_cmd.extend(["--output", output_file])
         self.output(f"Output file is: {output_file}", verbose_level=3)
 
-        # write session for jamf API requests
-        if "/api/" in url or "/uapi/" in url or "JSSResource" in url:
+        # write session for jamf API requests (only when not already handled above)
+        if api_type not in ("classic", "jpapi") and (
+            "/api/" in url or "/uapi/" in url or "JSSResource" in url
+        ):
             curl_cmd.extend(["--cookie-jar", cookie_jar])
 
             # look for existing session
