@@ -295,6 +295,22 @@ class JamfPackageUploader(JamfPackageUploaderBase):
             ),
             "default": 5,
         },
+        "hash_poll_interval": {
+            "required": False,
+            "description": (
+                "Seconds between polls when waiting for the server to compute the "
+                "package hash after a JCDS upload. Default=15."
+            ),
+            "default": 15,
+        },
+        "hash_poll_timeout": {
+            "required": False,
+            "description": (
+                "Maximum seconds to wait for the server to compute the package hash "
+                "after a JCDS upload before treating it as a failure. Default=300."
+            ),
+            "default": 300,
+        },
         "skip_if": {
             "required": False,
             "description": "Skip the process if the supplied predicate evaluates to True.",

@@ -343,14 +343,12 @@ class JamfPackageUploaderBase(JamfUploaderBase):
             self.output(f"Category '{category_name}' not found")
             raise ProcessorError("Supplied package category does not exist")
 
-    def update_pkg_metadata(  # pylint: disable=too-many-arguments, too-many-locals
+    def update_pkg_metadata(  # pylint: disable=too-many-arguments
         self,
         api_url,
         pkg_name,
         pkg_display_name,
         pkg_metadata,
-        sha3string,
-        md5string,
         sleep_time,
         token,
         max_tries,
@@ -367,7 +365,8 @@ class JamfPackageUploaderBase(JamfUploaderBase):
         else:
             category_id = "-1"
 
-        # build the package record JSON
+        # build the package record JSON — omit all hash/size fields; the server
+        # computes them from the uploaded binary and they are read-only on PUT
         pkg_data = {
             "packageName": pkg_display_name,
             "fileName": pkg_name,
@@ -385,15 +384,6 @@ class JamfPackageUploaderBase(JamfUploaderBase):
             "suppressEula": 0,
             "suppressRegistration": 0,
         }
-
-        if md5string:
-            hash_type = "MD5"
-            pkg_data["hashType"] = hash_type
-            pkg_data["hashValue"] = md5string
-        elif sha3string:
-            hash_type = "SHA3_512"
-            pkg_data["hashType"] = hash_type
-            pkg_data["hashValue"] = sha3string
 
         self.output(
             "Package metadata:",
@@ -501,6 +491,90 @@ class JamfPackageUploaderBase(JamfUploaderBase):
 
     # End functions for recalulating inventory on Cloud Distribution Point
     # ------------------------------------------------------------------------
+    # Begin functions for hash verification after JCDS upload
+
+    def get_pkg_server_sha3_and_size(self, api_url, pkg_id, token, tenant_id=""):
+        """Fetch the sha3512 hash and size for a package record from the server.
+
+        Uses the named sha3512 field directly rather than hashType/hashValue, which
+        can be in a transitional state (e.g. SHA_512 empty) while the server recomputes.
+        """
+        object_type = "package_v1"
+        endpoint = self.api_endpoints(object_type, tenant_id=tenant_id)
+        url = f"{api_url}/{endpoint}/{pkg_id}"
+        r = self.curl(api_type="jpapi", request="GET", url=url, token=token)
+        if r.status_code == 200:
+            obj = json.loads(json.dumps(r.output))
+            return obj.get("sha3512", ""), obj.get("size", 0)
+        return "", 0
+
+    def poll_pkg_hash(  # pylint: disable=too-many-arguments
+        self,
+        api_url,
+        pkg_id,
+        pkg_name,
+        local_sha3,
+        previous_hash,
+        token,
+        poll_interval=15,
+        poll_timeout=300,
+        tenant_id="",
+    ):
+        """Poll GET /v1/packages/{id} until the server has computed a new hash, then verify it.
+
+        The server recomputes hashes asynchronously after upload. On a replace, it keeps returning
+        the previous file's sha3512 until processing finishes, so we must distinguish:
+          - empty / previous hash  → still processing, keep waiting
+          - size == 0              → upload error, treat as mismatch immediately
+          - matches local_sha3     → success
+          - any other value        → corruption / mismatch
+        """
+        elapsed = 0
+        while elapsed < poll_timeout:
+            sha3512, size = self.get_pkg_server_sha3_and_size(
+                api_url, pkg_id, token, tenant_id
+            )
+            if sha3512 and sha3512 != previous_hash:
+                try:
+                    size_is_zero = int(size) == 0
+                except (ValueError, TypeError):
+                    size_is_zero = False  # empty string or None — not yet computed, not a failure
+                if size_is_zero:
+                    self.output(
+                        f"WARNING: Package '{pkg_name}' — server reported size=0, "
+                        "indicating a failed upload",
+                        verbose_level=1,
+                    )
+                    return False
+                if sha3512 == local_sha3:
+                    self.output(
+                        f"Package '{pkg_name}' hash verified (SHA3-512 match)",
+                        verbose_level=1,
+                    )
+                    return True
+                else:
+                    self.output(
+                        f"WARNING: Package '{pkg_name}' hash mismatch — "
+                        f"server={sha3512}, local={local_sha3}",
+                        verbose_level=1,
+                    )
+                    return False
+            self.output(
+                f"Waiting for server to compute hash for '{pkg_name}' "
+                f"(elapsed {elapsed}s / {poll_timeout}s) …",
+                verbose_level=2,
+            )
+            sleep(poll_interval)
+            elapsed += poll_interval
+
+        self.output(
+            f"WARNING: Timed out waiting for server hash for '{pkg_name}' after {poll_timeout}s",
+            verbose_level=1,
+        )
+        return False
+
+    # End functions for hash verification after JCDS upload
+    # ------------------------------------------------------------------------
 
     # ------------------------------------------------------------------------
     # MAIN FUNCTION
@@ -527,7 +601,8 @@ class JamfPackageUploaderBase(JamfUploaderBase):
         aws_cdp_mode = self.to_bool(self.env.get("aws_cdp_mode"))
         recalculate = self.to_bool(self.env.get("recalculate"))
         recalculate_wait_time = self.env.get("recalculate_wait_time")
-        use_md5 = self.env.get("md5")
+        hash_poll_interval = int(self.env.get("hash_poll_interval") or 15)
+        hash_poll_timeout = int(self.env.get("hash_poll_timeout") or 300)
         jamf_url = (self.env.get("JSS_URL") or "").rstrip("/")
         jamf_user = self.env.get("API_USERNAME")
         jamf_password = self.env.get("API_PASSWORD")
@@ -688,14 +763,8 @@ class JamfPackageUploaderBase(JamfUploaderBase):
         if not pkg_display_name:
             pkg_display_name = pkg_name
 
-        # calculate the SHA-3-512 hash of the package
+        # calculate the local SHA-3-512 hash for post-upload verification
         sha3string = self.sha3sum(pkg_path)
-
-        # calculate the SHA-256 hash of the package
-        # sha256string = self.sha256sum(pkg_path)
-
-        # calculate the MD5 hash of the package
-        md5string = self.md5sum(pkg_path) if use_md5 else None
 
         # now start the process of uploading the package
         self.output(f"Checking for existing package '{pkg_name}' on {jamf_url}")
@@ -887,8 +956,6 @@ class JamfPackageUploaderBase(JamfUploaderBase):
                 pkg_name,
                 pkg_display_name,
                 pkg_metadata,
-                sha3string,
-                md5string,
                 sleep_time,
                 token=token,
                 max_tries=max_tries,
@@ -909,8 +976,6 @@ class JamfPackageUploaderBase(JamfUploaderBase):
                 pkg_name,
                 pkg_display_name,
                 pkg_metadata,
-                sha3string,
-                md5string,
                 sleep_time,
                 token=token,
                 max_tries=max_tries,
@@ -927,6 +992,7 @@ class JamfPackageUploaderBase(JamfUploaderBase):
 
         # upload package if the metadata was updated - has to be done last with v1/packages
         # (already done with smb_shares or aws_cdp_mode)
+        packages_recalculated = False
         if not aws_cdp_mode and (not smb_shares or cloud_dp) and pkg_metadata_updated:
             self.output(f"ID: {object_id}", verbose_level=3)  # TEMP
             if object_id != "-1":
@@ -937,67 +1003,98 @@ class JamfPackageUploaderBase(JamfUploaderBase):
                     "ERROR: Package ID not obtained so cannot upload package"
                 )
 
+            # capture the sha3512 the server currently holds so we can detect when it changes
+            previous_hash, _ = self.get_pkg_server_sha3_and_size(
+                api_url, pkg_id, token, jamf_platform_gw_tenant_id
+            )
             self.output(
-                "Uploading package to Cloud DP",
-                verbose_level=1,
+                f"Server sha3512 before upload: {previous_hash or '(none)'}",
+                verbose_level=2,
             )
-            self.upload_pkg(
-                api_url=api_url,
-                pkg_path=pkg_path,
-                pkg_name=pkg_name,
-                pkg_id=pkg_id,
-                sleep_time=sleep_time,
-                token=token,
-                max_tries=max_tries,
-                tenant_id=jamf_platform_gw_tenant_id,
-            )
-            # if we get this far then there was a 200 success response so the package was uploaded
-            pkg_uploaded = True
 
-        # recalculate packages on JCDS if the metadata was updated
-        # if recalculate is set, we'll do a global refresh, otherwise we'll just refresh the package that was updated
-        # Jamf Pro 11.10+ only
-        if (
-            APLooseVersion(jamf_pro_version) >= APLooseVersion("11.10")
-            and pkg_metadata_updated
-        ):
-            # check token again using oauth or basic auth depending on the credentials given
-            # as package upload may have taken some time
-
-            # first sleep if recalculate_wait_time is set, to give the system time to process the package upload before we send the recalculation request
-            if recalculate_wait_time and int(recalculate_wait_time) > 0:
+            upload_verified = False
+            upload_attempt = 0
+            while not upload_verified and upload_attempt < max_tries:
+                upload_attempt += 1
                 self.output(
-                    f"Waiting {recalculate_wait_time} seconds before sending Cloud DP inventory refresh request",
-                    verbose_level=2,
+                    f"Uploading package to Cloud DP (attempt {upload_attempt})",
+                    verbose_level=1,
                 )
-                sleep(int(recalculate_wait_time))
-            # get token using oauth or basic auth depending on the credentials given
-            if jamf_url:
-                token, jamf_url, jamf_platform_gw_region, jamf_platform_gw_tenant_id = (
-                    self.auth(
-                        jamf_url=jamf_url,
-                        jamf_user=jamf_user,
-                        password=jamf_password,
-                        region=jamf_platform_gw_region,
-                        tenant_id=jamf_platform_gw_tenant_id,
-                        client_id=client_id,
-                        client_secret=client_secret,
-                        token=bearer_token,
-                        jamf_cli_profile=jamf_cli_profile,
-                    )
+                self.upload_pkg(
+                    api_url=api_url,
+                    pkg_path=pkg_path,
+                    pkg_name=pkg_name,
+                    pkg_id=pkg_id,
+                    sleep_time=sleep_time,
+                    token=token,
+                    max_tries=max_tries,
+                    tenant_id=jamf_platform_gw_tenant_id,
                 )
-            else:
-                raise ProcessorError("ERROR: Jamf Pro URL not supplied")
+                pkg_uploaded = True
 
-            # now send the recalculation request
-            packages_recalculated = self.recalculate_packages(
-                api_url,
-                token,
-                jamf_platform_gw_tenant_id,
-                pkg_name=None if recalculate else pkg_name,
-            )
-        else:
-            packages_recalculated = False
+                # trigger JCDS inventory refresh so the server starts computing the new hash
+                if APLooseVersion(jamf_pro_version) >= APLooseVersion("11.10"):
+                    if recalculate_wait_time and int(recalculate_wait_time) > 0:
+                        self.output(
+                            f"Waiting {recalculate_wait_time} seconds before sending "
+                            "Cloud DP inventory refresh request",
+                            verbose_level=2,
+                        )
+                        sleep(int(recalculate_wait_time))
+                    if jamf_url:
+                        token, jamf_url, jamf_platform_gw_region, jamf_platform_gw_tenant_id = (
+                            self.auth(
+                                jamf_url=jamf_url,
+                                jamf_user=jamf_user,
+                                password=jamf_password,
+                                region=jamf_platform_gw_region,
+                                tenant_id=jamf_platform_gw_tenant_id,
+                                client_id=client_id,
+                                client_secret=client_secret,
+                                token=bearer_token,
+                                jamf_cli_profile=jamf_cli_profile,
+                            )
+                        )
+                    else:
+                        raise ProcessorError("ERROR: Jamf Pro URL not supplied")
+                    packages_recalculated = self.recalculate_packages(
+                        api_url,
+                        token,
+                        jamf_platform_gw_tenant_id,
+                        pkg_name=None if recalculate else pkg_name,
+                    )
+
+                    # poll until the server has computed a fresh hash, then verify it
+                    upload_verified = self.poll_pkg_hash(
+                        api_url=api_url,
+                        pkg_id=pkg_id,
+                        pkg_name=pkg_name,
+                        local_sha3=sha3string,
+                        previous_hash=previous_hash,
+                        token=token,
+                        poll_interval=hash_poll_interval,
+                        poll_timeout=hash_poll_timeout,
+                        tenant_id=jamf_platform_gw_tenant_id,
+                    )
+                    if not upload_verified and upload_attempt < max_tries:
+                        self.output(
+                            f"Hash verification failed — retrying upload "
+                            f"(attempt {upload_attempt + 1}/{max_tries})",
+                            verbose_level=1,
+                        )
+                        # use the now-stale server hash as the new baseline for next poll
+                        previous_hash, _ = self.get_pkg_server_sha3_and_size(
+                            api_url, pkg_id, token, jamf_platform_gw_tenant_id
+                        )
+                else:
+                    # Jamf Pro < 11.10 — no refresh endpoint, skip verification
+                    upload_verified = True
+
+            if not upload_verified:
+                raise ProcessorError(
+                    f"ERROR: Package '{pkg_name}' hash verification failed after "
+                    f"{upload_attempt} upload attempt(s)"
+                )
 
         # output the summary
         self.env["pkg_name"] = pkg_name
