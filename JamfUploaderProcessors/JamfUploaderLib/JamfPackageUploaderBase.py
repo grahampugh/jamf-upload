@@ -493,16 +493,20 @@ class JamfPackageUploaderBase(JamfUploaderBase):
     # ------------------------------------------------------------------------
     # Begin functions for hash verification after JCDS upload
 
-    def get_pkg_server_hashes(self, api_url, pkg_id, token, tenant_id=""):
-        """Fetch the current hashType and hashValue for a package record from the server"""
+    def get_pkg_server_sha3_and_size(self, api_url, pkg_id, token, tenant_id=""):
+        """Fetch the sha3512 hash and size for a package record from the server.
+
+        Uses the named sha3512 field directly rather than hashType/hashValue, which
+        can be in a transitional state (e.g. SHA_512 empty) while the server recomputes.
+        """
         object_type = "package_v1"
         endpoint = self.api_endpoints(object_type, tenant_id=tenant_id)
         url = f"{api_url}/{endpoint}/{pkg_id}"
         r = self.curl(api_type="jpapi", request="GET", url=url, token=token)
         if r.status_code == 200:
             obj = json.loads(json.dumps(r.output))
-            return obj.get("hashType", ""), obj.get("hashValue", "")
-        return "", ""
+            return obj.get("sha3512", ""), obj.get("size", 0)
+        return "", 0
 
     def poll_pkg_hash(  # pylint: disable=too-many-arguments
         self,
@@ -519,18 +523,30 @@ class JamfPackageUploaderBase(JamfUploaderBase):
         """Poll GET /v1/packages/{id} until the server has computed a new hash, then verify it.
 
         The server recomputes hashes asynchronously after upload. On a replace, it keeps returning
-        the previous file's hash until processing finishes, so we must distinguish:
+        the previous file's sha3512 until processing finishes, so we must distinguish:
           - empty / previous hash  → still processing, keep waiting
+          - size == 0              → upload error, treat as mismatch immediately
           - matches local_sha3     → success
           - any other value        → corruption / mismatch
         """
         elapsed = 0
         while elapsed < poll_timeout:
-            hash_type, hash_value = self.get_pkg_server_hashes(
+            sha3512, size = self.get_pkg_server_sha3_and_size(
                 api_url, pkg_id, token, tenant_id
             )
-            if hash_type == "SHA3_512" and hash_value and hash_value != previous_hash:
-                if hash_value == local_sha3:
+            if sha3512 and sha3512 != previous_hash:
+                try:
+                    size_is_zero = int(size) == 0
+                except (ValueError, TypeError):
+                    size_is_zero = False  # empty string or None — not yet computed, not a failure
+                if size_is_zero:
+                    self.output(
+                        f"WARNING: Package '{pkg_name}' — server reported size=0, "
+                        "indicating a failed upload",
+                        verbose_level=1,
+                    )
+                    return False
+                if sha3512 == local_sha3:
                     self.output(
                         f"Package '{pkg_name}' hash verified (SHA3-512 match)",
                         verbose_level=1,
@@ -539,7 +555,7 @@ class JamfPackageUploaderBase(JamfUploaderBase):
                 else:
                     self.output(
                         f"WARNING: Package '{pkg_name}' hash mismatch — "
-                        f"server={hash_value}, local={local_sha3}",
+                        f"server={sha3512}, local={local_sha3}",
                         verbose_level=1,
                     )
                     return False
@@ -987,12 +1003,12 @@ class JamfPackageUploaderBase(JamfUploaderBase):
                     "ERROR: Package ID not obtained so cannot upload package"
                 )
 
-            # capture the hash the server currently holds so we can detect when it changes
-            previous_hash_type, previous_hash = self.get_pkg_server_hashes(
+            # capture the sha3512 the server currently holds so we can detect when it changes
+            previous_hash, _ = self.get_pkg_server_sha3_and_size(
                 api_url, pkg_id, token, jamf_platform_gw_tenant_id
             )
             self.output(
-                f"Server hash before upload: type={previous_hash_type} value={previous_hash}",
+                f"Server sha3512 before upload: {previous_hash or '(none)'}",
                 verbose_level=2,
             )
 
@@ -1067,7 +1083,7 @@ class JamfPackageUploaderBase(JamfUploaderBase):
                             verbose_level=1,
                         )
                         # use the now-stale server hash as the new baseline for next poll
-                        _, previous_hash = self.get_pkg_server_hashes(
+                        previous_hash, _ = self.get_pkg_server_sha3_and_size(
                             api_url, pkg_id, token, jamf_platform_gw_tenant_id
                         )
                 else:
