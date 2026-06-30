@@ -128,7 +128,7 @@ class JamfPatchCheckerBase(JamfUploaderBase):
         pkg_name = self.env.get("pkg_name")
         version = self.env.get("version")
         patch_softwaretitle = self.env.get("patch_softwaretitle")
-        skip_if = self.env.get("skip_if")
+        skip_if = self.get_and_clear_skip_if()
 
         # Clear any pre-existing summary result
         if "jamfpatchchecker_summary_result" in self.env:

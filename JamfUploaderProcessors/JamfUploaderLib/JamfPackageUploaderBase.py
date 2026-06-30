@@ -541,20 +541,20 @@ class JamfPackageUploaderBase(JamfUploaderBase):
                     size_is_zero = False  # empty string or None — not yet computed, not a failure
                 if size_is_zero:
                     self.output(
-                        f"WARNING: Package '{pkg_name}' — server reported size=0, "
+                        f"WARNING: Package '{pkg_name}' — server reported size=0 after {elapsed}s, "
                         "indicating a failed upload",
                         verbose_level=1,
                     )
                     return False
                 if sha3512 == local_sha3:
                     self.output(
-                        f"Package '{pkg_name}' hash verified (SHA3-512 match)",
+                        f"Package '{pkg_name}' hash verified after {elapsed}s (SHA3-512 match)",
                         verbose_level=1,
                     )
                     return True
                 else:
                     self.output(
-                        f"WARNING: Package '{pkg_name}' hash mismatch — "
+                        f"WARNING: Package '{pkg_name}' hash mismatch after {elapsed}s — "
                         f"server={sha3512}, local={local_sha3}",
                         verbose_level=1,
                     )
@@ -617,7 +617,7 @@ class JamfPackageUploaderBase(JamfUploaderBase):
         pkg_uploaded = False
         pkg_metadata_updated = False
         max_tries = self.env.get("max_tries")
-        skip_if = self.env.get("skip_if")
+        skip_if = self.get_and_clear_skip_if()
 
         # verify that max_tries is an integer greater than zero and less than 10
         try:
