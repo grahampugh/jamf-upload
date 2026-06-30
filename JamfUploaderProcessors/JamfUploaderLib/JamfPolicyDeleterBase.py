@@ -80,7 +80,7 @@ class JamfPolicyDeleterBase(JamfUploaderBase):
         jamf_cli_profile = self.env.get("JAMF_CLI_PROFILE")
         policy_name = self.env.get("policy_name")
         max_tries = self.env.get("max_tries")
-        skip_if = self.env.get("skip_if")
+        skip_if = self.get_and_clear_skip_if()
 
         # verify that max_tries is an integer greater than zero and less than 10
         try:

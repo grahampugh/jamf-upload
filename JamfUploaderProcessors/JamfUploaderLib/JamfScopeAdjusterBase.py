@@ -291,7 +291,7 @@ class JamfScopeAdjusterBase(JamfUploaderBase):
         scopeable_name = self.env.get("scopeable_name")
         strict_mode = self.to_bool(self.env.get("strict_mode"))
         strip_raw_xml = self.to_bool(self.env.get("strip_raw_xml"))
-        skip_if = self.env.get("skip_if")
+        skip_if = self.get_and_clear_skip_if()
 
         process_skipped = False
 

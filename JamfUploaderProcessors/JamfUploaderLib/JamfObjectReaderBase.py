@@ -188,7 +188,7 @@ class JamfObjectReaderBase(JamfUploaderBase):
         elements_to_retain = (
             [elements_to_retain] if isinstance(elements_to_retain, str) else []
         )
-        skip_if = self.env.get("skip_if")
+        skip_if = self.get_and_clear_skip_if()
 
         # check for required variables
         if not all_objects and not list_only and not "_settings" in object_type:

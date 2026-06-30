@@ -81,7 +81,7 @@ class JamfPackageRecalculatorBase(JamfUploaderBase):
         client_secret = self.env.get("CLIENT_SECRET")
         bearer_token = self.env.get("BEARER_TOKEN")
         jamf_cli_profile = self.env.get("JAMF_CLI_PROFILE")
-        skip_if = self.env.get("skip_if")
+        skip_if = self.get_and_clear_skip_if()
 
         process_skipped = False
 
