@@ -114,7 +114,7 @@ class JamfExtensionAttributePopupChoiceAdjusterBase(JamfUploaderBase):
             raise ProcessorError(f"Parent element not found for XPath: {parent_xpath}")
 
         for child in parent.findall(element):
-            if child.text == choice_value and strict_mode == False:
+            if child.text == choice_value and not strict_mode:
                 self.output(
                     f"WARNING: Element <{element}> with choice_value '{choice_value}' already exists "
                     f"in {parent_xpath}, parsed object unchanged."
@@ -166,7 +166,7 @@ class JamfExtensionAttributePopupChoiceAdjusterBase(JamfUploaderBase):
             self.output(
                 f"Removed all instances of <{element}> containing '{choice_value}' from XML."
             )
-        elif strict_mode == False:
+        elif not strict_mode:
             self.output(
                 f"WARNING: Element <{element}> with choice_value '{choice_value}' not found, "
                 "parsed object unchanged."
@@ -198,7 +198,7 @@ class JamfExtensionAttributePopupChoiceAdjusterBase(JamfUploaderBase):
 
         if element in data:
             if isinstance(data[element], list):
-                if choice_value in data[element] and strict_mode == False:
+                if choice_value in data[element] and not strict_mode:
                     self.output(
                         f"WARNING: choice_value '{choice_value}' already exists in array '{element}', "
                         f"parsed object unchanged."
@@ -242,7 +242,7 @@ class JamfExtensionAttributePopupChoiceAdjusterBase(JamfUploaderBase):
                     data[element].remove(choice_value)
                     if not data[element]:
                         del data[element]
-                elif strict_mode == False:
+                elif not strict_mode:
                     self.output(
                         f"WARNING: choice_value '{choice_value}' not found in array '{element}', "
                         f"parsed object unchanged."
