@@ -105,7 +105,7 @@ class JamfPolicyLogFlusher(JamfPolicyLogFlusherBase):
             "description": "Policy whose log is to be flushed",
             "default": "",
         },
-         "sleep": {
+        "sleep": {
             "required": False,
             "description": "Pause after running this processor for specified seconds.",
             "default": "0",
