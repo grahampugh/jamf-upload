@@ -148,7 +148,7 @@ class JamfMobileDeviceGroupUploaderBase(JamfUploaderBase):
         elif skip_if:
             self.output("Not skipping process as skip_if evaluated to False")
 
-        # we need to substitute the values in the computer group name now to
+        # we need to substitute the values in the mobile device group name now to
         # account for version strings in the name
         # substitute user-assignable keys
         mobiledevicegroup_name = self.substitute_assignable_keys(mobiledevicegroup_name)
