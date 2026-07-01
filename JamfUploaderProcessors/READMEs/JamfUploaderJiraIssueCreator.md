@@ -16,8 +16,11 @@ A postprocessor for AutoPkg that will create a Jira issue based on the output of
   - **required:** False
   - **description:** Category for the created/updated pkg.
 - **NAME:**
-  - **required:** True
+  - **required:** False
   - **description:** Name of the application being created/updated.
+- **CATEGORY:**
+  - **required:** False
+  - **description:** Category.
 - **patch_name:**
   - **required:** False
   - **description:** Name of the Patch Policy being updated.
@@ -39,7 +42,7 @@ A postprocessor for AutoPkg that will create a Jira issue based on the output of
 - **jira_url:**
   - **required:** True
   - **description:** Jira base URL to send the message to (e.g. <https://yourcompany.atlassian.net> - API endpoint not required).
-- **jira_product_id:**
+- **jira_project_id:**
   - **required:** True
   - **description:** Jira Product ID
 - **jira_username:**
@@ -60,3 +63,7 @@ A postprocessor for AutoPkg that will create a Jira issue based on the output of
   - **required:** False
   - **description:** Maximum number of attempts to upload the account. Must be an integer between 1 and 10.
   - **default:** "5"
+
+## Output variables
+
+This processor has no output variables.

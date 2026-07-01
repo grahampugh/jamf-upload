@@ -18,8 +18,14 @@ Takes elements from [this gist](https://gist.github.com/devStepsize/b1b795309a21
   - **required:** False
   - **description:** Category for the created/updated pkg.
 - **NAME:**
-  - **required:** True
+  - **required:** False
   - **description:** Name of the application being created/updated.
+- **PROFILE_NAME:**
+  - **required:** False
+  - **description:** Profile name.
+- **PROFILE_CATEGORY:**
+  - **required:** False
+  - **description:** Profile category.
 - **pkg_name:**
   - **required:** False
   - **description:** File name of the pkg being uploaded.
@@ -32,9 +38,30 @@ Takes elements from [this gist](https://gist.github.com/devStepsize/b1b795309a21
 - **jamfpackageuploader_summary_result:**
   - **required:** False
   - **description:** Result of JamfPackageUploader.
+- **jamfpkgmetadatauploader_summary_result:**
+  - **required:** False
+  - **description:** Summary results of package metadata processors.
 - **jamfpolicyuploader_summary_result:**
   - **required:** False
   - **description:** Result of JamfPolicyUploader.
+- **jamfcomputerprofileuploader_summary_result:**
+  - **required:** False
+  - **description:** Summary results of computer profile processors.
+- **jamfmobiledeviceprofilepploader_summary_result:**
+  - **required:** False
+  - **description:** Summary results of mobile device profile processors.
+- **jamfmacappuploader_summary_result:**
+  - **required:** False
+  - **description:** Summary results of Mac App Store App processors.
+- **jamfmobiledeviceappuploader_summary_result:**
+  - **required:** False
+  - **description:** Summary results of Mobile Device App Store App processors.
+- **jamfmsuplanuploader_summary_result:**
+  - **required:** False
+  - **description:** Summary results of MSU Plan processors.
+- **jamfobjectuploader_summary_result:**
+  - **required:** False
+  - **description:** Summary results of generic object uploader processors.
 - **slack_webhook_url:**
   - **required:** True
   - **description:** Slack webhook URL to send the message to.
@@ -54,3 +81,7 @@ Takes elements from [this gist](https://gist.github.com/devStepsize/b1b795309a21
   - **required:** False
   - **description:** Maximum number of attempts to upload the account. Must be an integer between 1 and 10.
   - **default:** "5"
+
+## Output variables
+
+This processor has no output variables.

@@ -1,4 +1,4 @@
-# JamfObjectUploader
+# JamfMSUPlanUploader
 
 ## Description
 
@@ -21,8 +21,23 @@ A processor for AutoPkg that will create a Managed Software Update Plan. Current
 - **CLIENT_SECRET:**
   - **required:** False
   - **description:** Secret associated with the Client ID, optionally set as a key in the com.github.autopkg preference file.
+- **BEARER_TOKEN:**
+  - **required:** False
+  - **description:** A pre-existing bearer token for the Jamf Pro API. If provided, the token will be validated and used directly, bypassing credential-based authentication.
+- **JAMF_CLI_PROFILE:**
+  - **required:** False
+  - **description:** A jamf-cli profile to use to obtain a bearer token. Requires jamf-cli to be installed and in the PATH. Set to a profile name to enable.
+  - **default:** ""
+- **PLATFORM_API_REGION:**
+  - **required:** False
+  - **description:** Region for Jamf Platform API Gateway (e.g., 'us1', 'eu1', 'au1'). Required for Platform API authentication.
+  - **default:** ""
+- **PLATFORM_API_TENANT_ID:**
+  - **required:** False
+  - **description:** Tenant ID for Jamf Platform API Gateway. Required for Platform API authentication.
+  - **default:** ""
 - **device_type**:
-  - **required**: True
+  - **required**: False
   - **description**: Device type, must be one of 'computer', 'mobile-device', 'apple-tv' (case-insensitive).
 - **group_name**:
   - **required**: True
@@ -60,5 +75,9 @@ A processor for AutoPkg that will create a Managed Software Update Plan. Current
   - **description**: Version type, one of 'latest_minor', 'latest_major', 'latest_any', or 'specific_version'.
 - **specific_version**:
   - **description**: Specific version, if 'version_type' is set to 'specific_version'.
-- **object_updated**:
-  - **description**: The date and time of the plan's forced installation deadline.
+- **force_install_local_datetime:**
+  - **description:** The date and time of the plan's forced installation deadline.
+- **process_skipped:**
+  - **description:** Boolean - True if the process was skipped due to skip_if predicate resolved to True.
+- **dry_run_summary_result:**
+  - **description:** Summary of what would have been changed (only set when dry_run is True).

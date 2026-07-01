@@ -21,12 +21,35 @@ A processor for AutoPkg that will upload an account to a Jamf Cloud or on-prem s
 - **CLIENT_SECRET:**
   - **required:** False
   - **description:** Secret associated with the Client ID, optionally set as a key in the com.github.autopkg preference file.
+- **BEARER_TOKEN:**
+  - **required:** False
+  - **description:** A pre-existing bearer token for the Jamf Pro API. If provided, the token will be validated and used directly, bypassing credential-based authentication.
+- **JAMF_CLI_PROFILE:**
+  - **required:** False
+  - **description:** A jamf-cli profile to use to obtain a bearer token. Requires jamf-cli to be installed and in the PATH. Set to a profile name to enable.
+  - **default:** ""
+- **PLATFORM_API_REGION:**
+  - **required:** False
+  - **description:** Region for Jamf Platform API Gateway (e.g., 'us1', 'eu1', 'au1'). Required for Platform API authentication.
+  - **default:** ""
+- **PLATFORM_API_TENANT_ID:**
+  - **required:** False
+  - **description:** Tenant ID for Jamf Platform API Gateway. Required for Platform API authentication.
+  - **default:** ""
 - **account_name:**
   - **required:** True
   - **description:** Account name
 - **account_type:**
   - **required:** True
   - **description:** Account type; "user" or "group"
+- **domain:**
+  - **required:** False
+  - **description:** LDAP domain, required if writing an LDAP group.
+  - **default:** ""
+- **group:**
+  - **required:** False
+  - **description:** Local group, required if giving a user group access.
+  - **default:** ""
 - **account_template:**
   - **required:** True
   - **description:** Full path to the XML template
@@ -60,3 +83,7 @@ A processor for AutoPkg that will upload an account to a Jamf Cloud or on-prem s
   - **description:** Boolean - True if the account was changed.
 - **changed_account_id:**
   - **description:** Jamf object ID of the newly created or modified account.
+- **process_skipped:**
+  - **description:** Boolean - True if the process was skipped due to skip_if predicate resolved to True.
+- **dry_run_summary_result:**
+  - **description:** Summary of what would have been changed (only set when dry_run is True).
