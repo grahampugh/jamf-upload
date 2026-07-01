@@ -35,6 +35,9 @@ A processor for AutoPkg that adds or removes a scopeable object (target, limitat
 - **output_dir:**  
   - **required:** False  
   - **description:** Directory to save the modified object file. Defaults to `RECIPE_CACHE_DIR`.
+- **skip_if:**
+  - **required:** False
+  - **description:** Skip the process if a supplied predicate is met.
 
 ## Output variables
 
@@ -42,3 +45,5 @@ A processor for AutoPkg that adds or removes a scopeable object (target, limitat
   - **description:** Full path of the modified object file. Intended to be passed to `JamfObjectUploader`.
 - **raw_object:**  
   - **description:** Raw processed XML object string. Can be used for chaining additional `JamfScopeAdjuster` processors.
+- **process_skipped:**
+  - **description:** Boolean - True if the process was skipped due to skip_if predicate resolved to True.

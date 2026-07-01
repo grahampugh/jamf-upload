@@ -21,12 +21,31 @@ A processor for AutoPkg to delete an API object.
 - **CLIENT_SECRET:**
   - **required:** False
   - **description:** Secret associated with the Client ID, optionally set as a key in the com.github.autopkg preference file.
+- **BEARER_TOKEN:**
+  - **required:** False
+  - **description:** A pre-existing bearer token for the Jamf Pro API. If provided, the token will be validated and used directly, bypassing credential-based authentication.
+- **JAMF_CLI_PROFILE:**
+  - **required:** False
+  - **description:** A jamf-cli profile to use to obtain a bearer token. Requires jamf-cli to be installed and in the PATH. Set to a profile name to enable.
+  - **default:** ""
+- **PLATFORM_API_REGION:**
+  - **required:** False
+  - **description:** Region for Jamf Platform API Gateway (e.g., 'us1', 'eu1', 'au1'). Required for Platform API authentication.
+  - **default:** ""
+- **PLATFORM_API_TENANT_ID:**
+  - **required:** False
+  - **description:** Tenant ID for Jamf Platform API Gateway. Required for Platform API authentication.
+  - **default:** ""
 - **object_name**:
-  - **required**: False
+  - **required**: True
   - **description**: The name of the API object
 - **object_type**:
   - **required**: True
   - **description**: The API object type. This is in the singular form - the name of the key in the XML template. See the [Object Reference](./Object%20Reference.md) for valid objects.
+- **max_tries:**
+  - **required:** False
+  - **description:** Maximum number of attempts to upload the account. Must be an integer between 1 and 10.
+  - **default:** "5"
 - **dry_run:**
   - **required:** False
   - **description:** If True, perform read-only checks and report what would change without making any writes.
@@ -39,5 +58,7 @@ A processor for AutoPkg to delete an API object.
 
 - **jamfobjectdeleter_summary_result:**
   - **description:** Description of interesting results.
-- **object_name**:
-  - **description**: The name of the API object
+- **process_skipped:**
+  - **description:** Boolean - True if the process was skipped due to skip_if predicate resolved to True.
+- **dry_run_summary_result:**
+  - **description:** Summary of what would have been changed (only set when dry_run is True).

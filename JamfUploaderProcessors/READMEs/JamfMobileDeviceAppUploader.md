@@ -21,6 +21,21 @@ A processor for AutoPkg that will update or clone a Mobile Device app object on 
 - **CLIENT_SECRET:**
   - **required:** False
   - **description:** Secret associated with the Client ID, optionally set as a key in the com.github.autopkg preference file.
+- **BEARER_TOKEN:**
+  - **required:** False
+  - **description:** A pre-existing bearer token for the Jamf Pro API. If provided, the token will be validated and used directly, bypassing credential-based authentication.
+- **JAMF_CLI_PROFILE:**
+  - **required:** False
+  - **description:** A jamf-cli profile to use to obtain a bearer token. Requires jamf-cli to be installed and in the PATH. Set to a profile name to enable.
+  - **default:** ""
+- **PLATFORM_API_REGION:**
+  - **required:** False
+  - **description:** Region for Jamf Platform API Gateway (e.g., 'us1', 'eu1', 'au1'). Required for Platform API authentication.
+  - **default:** ""
+- **PLATFORM_API_TENANT_ID:**
+  - **required:** False
+  - **description:** Tenant ID for Jamf Platform API Gateway. Required for Platform API authentication.
+  - **default:** ""
 - **mobiledeviceapp_name:**
   - **required:** False
   - **description:** Mobile Device app name
@@ -39,6 +54,10 @@ A processor for AutoPkg that will update or clone a Mobile Device app object on 
 - **appconfig_template:**
   - **required:** False
   - **description:** Full path to the AppConfig XML template
+- **preferred_volume_purchase_location:**
+  - **required:** False
+  - **description:** Text to match within the Volume Purchasing Location name when prioritizing app content.
+  - **default:** ""
 - **replace_mobiledeviceapp:**
   - **required:** False
   - **description:** Overwrite an existing Mobile Device app if True.
@@ -69,3 +88,7 @@ A processor for AutoPkg that will update or clone a Mobile Device app object on 
   - **description:** Boolean - True if the mobiledeviceapp was changed.
 - **changed_mobiledeviceapp_id:**
   - **description:** Jamf object ID of the newly created or modified mobiledeviceapp.
+- **process_skipped:**
+  - **description:** Boolean - True if the process was skipped due to skip_if predicate resolved to True.
+- **dry_run_summary_result:**
+  - **description:** Summary of what would have been changed (only set when dry_run is True).

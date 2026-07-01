@@ -15,7 +15,7 @@ Can be run as a post-processor for a pkg recipe or in a child recipe. The parent
   - **required:** False
   - **description:** Package display name, which may be different to the `pkg_name`. If not supplied, reverts to `pkg_name`.
 - **pkg_path:**
-  - **required:** True
+  - **required:** False
   - **description:** Path to a pkg or dmg to import - \*\*provided by previous pkg recipe/processor.
 - **version:**
   - **required:** False
@@ -76,18 +76,36 @@ Can be run as a post-processor for a pkg recipe or in a child recipe. The parent
   - **required:** False
   - **description:** Recalculate the cloud distribution point inventory. Requires Jamf Pro 11.10+ and a configured JCDS endpoint.
   - **default:** False
-- **S3_BUCKET_NAME:**
-  - **required:** False
-  - **description:** The name of an AWS S3 bucket linked to a Jamf Pro server. Required for `aws_cdp_mode`.
 - **JSS_URL:**
   - **required:** True
   - **description:** URL to a Jamf Pro server to which the API user has write access.
 - **API_USERNAME:**
-  - **required:** True
+  - **required:** False
   - **description:** Username of account with appropriate API access to the Jamf Pro Server.
 - **API_PASSWORD:**
-  - **required:** True
-  - **description:** Password of account with appropriate API access to the Jamf Pro Server..
+  - **required:** False
+  - **description:** Password of account with appropriate API access to the Jamf Pro Server.
+- **CLIENT_ID:**
+  - **required:** False
+  - **description:** Client ID with access to access to jss, optionally set as a key in the com.github.autopkg preference file.
+- **CLIENT_SECRET:**
+  - **required:** False
+  - **description:** Secret associated with the Client ID, optionally set as a key in the com.github.autopkg preference file.
+- **BEARER_TOKEN:**
+  - **required:** False
+  - **description:** A pre-existing bearer token for the Jamf Pro API. If provided, the token will be validated and used directly, bypassing credential-based authentication.
+- **JAMF_CLI_PROFILE:**
+  - **required:** False
+  - **description:** A jamf-cli profile to use to obtain a bearer token. Requires jamf-cli to be installed and in the PATH. Set to a profile name to enable.
+  - **default:** ""
+- **PLATFORM_API_REGION:**
+  - **required:** False
+  - **description:** Region for Jamf Platform API Gateway (e.g., 'us1', 'eu1', 'au1'). Required for Platform API authentication.
+  - **default:** ""
+- **PLATFORM_API_TENANT_ID:**
+  - **required:** False
+  - **description:** Tenant ID for Jamf Platform API Gateway. Required for Platform API authentication.
+  - **default:** ""
 - **CLOUD_DP:**
   - **required:** False
   - **description:** Indicates the presence of a Cloud Distribution Point. The default is deliberately blank. If no SMB DP is configured, the default setting assumes that the Cloud DP has been enabled. If at least one SMB DP is configured, the default setting assumes that no Cloud DP has been set. This can be overridden by setting `CLOUD_DP` to `True`, in which case packages will be uploaded to both a Cloud DP plus the SMB DP(s)."
@@ -103,6 +121,22 @@ Can be run as a post-processor for a pkg recipe or in a child recipe. The parent
 - **SMB_SHARES:**
   - **required:** False
   - **description:** An array of dictionaries containing `SMB_URL`, `SMB_USERNAME` and `SMB_PASSWORD`, as an alternative to individual keys. Any individual keys will override this complete array. The array can only be provided via the AutoPkg preferences file.
+- **show_upload_progress:**
+  - **required:** False
+  - **description:** Show a curl progress bar during package upload.
+  - **default:** False
+- **recalculate_wait_time:**
+  - **required:** False
+  - **description:** Time to wait for recalculation to complete.
+  - **default:** 0
+- **hash_poll_interval:**
+  - **required:** False
+  - **description:** Seconds between polls when waiting for the server to compute the package hash after a JCDS upload.
+  - **default:** 15
+- **hash_poll_timeout:**
+  - **required:** False
+  - **description:** Maximum seconds to wait for the server to compute the package hash after a JCDS upload before treating it as a failure.
+  - **default:** 300
 - **sleep:**
   - **required:** False
   - **description:** Pause after running this processor for specified seconds.
@@ -129,3 +163,7 @@ Can be run as a post-processor for a pkg recipe or in a child recipe. The parent
   - **description:** True/False depending if a package was uploaded or not.
 - **jamfpackageuploader_summary_result:**
   - **description:** Description of interesting results.
+- **process_skipped:**
+  - **description:** Boolean - True if the process was skipped due to skip_if predicate resolved to True.
+- **dry_run_summary_result:**
+  - **description:** Summary of what would have been changed (only set when dry_run is True).

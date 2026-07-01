@@ -21,15 +21,27 @@ A processor for AutoPkg that will upload a mobile device configuration profile t
 - **CLIENT_SECRET:**
   - **required:** False
   - **description:** Secret associated with the Client ID, optionally set as a key in the com.github.autopkg preference file.
+- **BEARER_TOKEN:**
+  - **required:** False
+  - **description:** A pre-existing bearer token for the Jamf Pro API. If provided, the token will be validated and used directly, bypassing credential-based authentication.
+- **JAMF_CLI_PROFILE:**
+  - **required:** False
+  - **description:** A jamf-cli profile to use to obtain a bearer token. Requires jamf-cli to be installed and in the PATH. Set to a profile name to enable.
+  - **default:** ""
+- **PLATFORM_API_REGION:**
+  - **required:** False
+  - **description:** Region for Jamf Platform API Gateway (e.g., 'us1', 'eu1', 'au1'). Required for Platform API authentication.
+  - **default:** ""
+- **PLATFORM_API_TENANT_ID:**
+  - **required:** False
+  - **description:** Tenant ID for Jamf Platform API Gateway. Required for Platform API authentication.
+  - **default:** ""
 - **profile_name**:
   - **required**: False
   - **description**: Configuration Profile name
 - **mobileconfig**:
   - **required**: False
   - **description**: Path to Configuration Profile mobileconfig file
-- **identifier**:
-  - **required**: False
-  - **description**: Configuration Profile payload identifier
 - **profile_template**:
   - **required**: False
   - **description**: Path to Configuration Profile XML template file
@@ -45,10 +57,6 @@ A processor for AutoPkg that will upload a mobile device configuration profile t
 - **profile_mobiledevicegroup**:
   - **required**: False
   - **description**: a mobile device group that will be scoped to the profile
-- **unsign_profile**:
-  - **required**: False
-  - **description**: Unsign a mobileconfig file prior to uploading if it is signed, if true.
-  - **default**: False
 - **replace_profile**:
   - **required**: False
   - **description**: overwrite an existing Configuration Profile if True.
@@ -73,3 +81,7 @@ A processor for AutoPkg that will upload a mobile device configuration profile t
 
 - **jamfmobiledeviceprofileuploader_summary_result:**
   - **description:** Description of interesting results.
+- **process_skipped:**
+  - **description:** Boolean - True if the process was skipped due to skip_if predicate resolved to True.
+- **dry_run_summary_result:**
+  - **description:** Summary of what would have been changed (only set when dry_run is True).

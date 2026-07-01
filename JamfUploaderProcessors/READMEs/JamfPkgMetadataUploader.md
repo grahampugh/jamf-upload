@@ -1,14 +1,14 @@
-# JamfPolicyLogFlusher
+# JamfPkgMetadataUploader
 
 ## Description
 
-A processor for AutoPkg that will flush logs for a policy on a Jamf Cloud or on-prem server.
+A processor for AutoPkg that will upload package metadata to Jamf Pro.
 
 ## Input variables
 
 - **JSS_URL:**
   - **required:** True
-  - **description:** URL to a Jamf Pro server that the API user has write access to, optionally set as a key in the com.github.autopkg preference file.
+  - **description:** URL to a Jamf Pro server to which the API user has write access.
 - **API_USERNAME:**
   - **required:** False
   - **description:** Username of account with appropriate access to jss, optionally set as a key in the com.github.autopkg preference file.
@@ -36,20 +36,56 @@ A processor for AutoPkg that will flush logs for a policy on a Jamf Cloud or on-
   - **required:** False
   - **description:** Tenant ID for Jamf Platform API Gateway. Required for Platform API authentication.
   - **default:** ""
-- **policy_name:**
-  - **required:** True
-  - **description:** Policy whose log is to be flushed
+- **CLOUD_DP:**
+  - **required:** False
+  - **description:** Indicates the presence of a Cloud Distribution Point. The default is deliberately blank. If no SMB DP is configured, the default setting assumes that the Cloud DP has been enabled. If at least one SMB DP is configured, the default setting assumes that no Cloud DP has been set. This can be overridden by setting `CLOUD_DP` to `True`, in which case packages will be uploaded to both a Cloud DP plus the SMB DP(s).
+- **pkg_name:**
+  - **required:** False
+  - **description:** Package name. If supplied, will rename the package supplied in the pkg_path key when uploading it to the fileshare.
+  - **default:** ""
+- **pkg_display_name:**
+  - **required:** False
+  - **description:** Package display name, which may be different to the `pkg_name`. If not supplied, reverts to `pkg_name`.
+  - **default:** ""
+- **pkg_category:**
+  - **required:** False
+  - **description:** Package category.
+  - **default:** ""
+- **pkg_info:**
+  - **required:** False
+  - **description:** Package info field.
+  - **default:** ""
+- **pkg_notes:**
+  - **required:** False
+  - **description:** Package notes field.
+  - **default:** ""
+- **pkg_priority:**
+  - **required:** False
+  - **description:** Package priority.
+  - **default:** "10"
+- **reboot_required:**
+  - **required:** False
+  - **description:** Whether a package requires a reboot after installation.
+  - **default:** ""
+- **os_requirements:**
+  - **required:** False
+  - **description:** Package OS requirement.
+  - **default:** ""
+- **required_processor:**
+  - **required:** False
+  - **description:** Package required processor. Acceptable values are 'x86' or 'None'.
+  - **default:** "None"
+- **send_notification:**
+  - **required:** False
+  - **description:** Whether to send a notification when a package is installed.
+  - **default:** ""
 - **sleep:**
   - **required:** False
   - **description:** Pause after running this processor for specified seconds.
   - **default:** "0"
-- **logflush_interval:**
-  - **required:** False
-  - **description:** Log interval to be flushed
-  - **default:** "Zero Days"
 - **max_tries:**
   - **required:** False
-  - **description:** Maximum number of attempts to upload the account. Must be an integer between 1 and 10.
+  - **description:** Maximum number of attempts for uploading package metadata. Must be an integer between 1 and 10.
   - **default:** "5"
 - **dry_run:**
   - **required:** False
@@ -61,7 +97,9 @@ A processor for AutoPkg that will flush logs for a policy on a Jamf Cloud or on-
 
 ## Output variables
 
-- **jamfpolicylogflusher_summary_result:**
+- **pkg_name:**
+  - **description:** The name of the uploaded package.
+- **jamfpkgmetadatauploader_summary_result:**
   - **description:** Description of interesting results.
 - **process_skipped:**
   - **description:** Boolean - True if the process was skipped due to skip_if predicate resolved to True.
