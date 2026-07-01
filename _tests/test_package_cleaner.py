@@ -31,6 +31,9 @@ sys.path.insert(
 from JamfPackageCleanerBase import (  # pylint: disable=import-error, wrong-import-position
     JamfPackageCleanerBase,
 )
+from JamfUploaderBase import (  # pylint: disable=import-error, wrong-import-position
+    JamfUploaderBase,
+)
 
 
 def make_packages(names):
@@ -138,5 +141,72 @@ deleted, lookups, summary = run_cleaner(
 assert len(deleted) == 0, f"expected 0 deleted, got {len(deleted)}"
 assert lookups == 0, f"usage lookup ran with nothing to delete ({lookups} calls)"
 print("  performance guard skips usage lookup when nothing to delete: PASS")
+
+
+# 5. Usage getters must not crash on malformed/empty API objects. A single odd
+#    object (a policy with no package_configuration, a patch title whose
+#    versions come back null, a PreStage with no customPackageIds) must be
+#    treated as "no packages", not abort the whole run. These exercise the real
+#    getter bodies (not the StubCleaner overrides) against the shapes seen on
+#    live servers.
+class UsageGetterHarness(JamfUploaderBase):
+    """Drives the real get_packages_in_* bodies with canned API responses."""
+
+    def __init__(self, objects, value):
+        super().__init__()
+        self._objects = objects
+        self._value = value
+
+    def get_all_api_objects(self, *args, **kwargs):
+        return self._objects
+
+    def get_api_object_value_from_id(self, *args, **kwargs):
+        return self._value
+
+    def output(self, *args, **kwargs):
+        pass
+
+
+# policy with no package_configuration -> [] (was KeyError)
+assert (
+    UsageGetterHarness([{"id": "1"}], {}).get_packages_in_policies("u", "t") == []
+), "get_packages_in_policies crashed on a policy without package_configuration"
+# a malformed package entry must not drop the well-formed entries beside it:
+# [A, <no name>, B] must still yield both A and B, or B looks unused and is deleted
+assert UsageGetterHarness(
+    [{"id": "1"}],
+    {"package_configuration": {"packages": [{"name": "A"}, {"id": 5}, {"name": "B"}]}},
+).get_packages_in_policies("u", "t") == ["A", "B"], (
+    "a malformed package entry dropped its well-formed siblings in the same policy"
+)
+# patch title whose versions come back null -> [] (was TypeError on len(None))
+assert (
+    UsageGetterHarness([{"id": "1"}], None).get_packages_in_patch_titles("u", "t")
+    == []
+), "get_packages_in_patch_titles crashed on null versions"
+# patch title happy path: the package name is pulled out of versions[i].package.name
+assert UsageGetterHarness(
+    [{"id": "1"}], [{"package": {"name": "Foo-1"}}]
+).get_packages_in_patch_titles("u", "t") == ["Foo-1"], (
+    "get_packages_in_patch_titles did not extract the package name from versions"
+)
+# PreStage with a missing / null customPackageIds -> [] (was KeyError/TypeError)
+assert (
+    UsageGetterHarness([{"id": "1"}], None).get_packages_in_prestages("u", "t") == []
+), "get_packages_in_prestages crashed on a PreStage without customPackageIds"
+assert (
+    UsageGetterHarness(
+        [{"id": "1", "customPackageIds": None}], None
+    ).get_packages_in_prestages("u", "t")
+    == []
+), "get_packages_in_prestages crashed on null customPackageIds"
+# and the happy paths still return the package names
+assert UsageGetterHarness(
+    [{"id": "1"}], {"package_configuration": {"packages": [{"name": "Foo-1"}]}}
+).get_packages_in_policies("u", "t") == ["Foo-1"]
+assert UsageGetterHarness(
+    [{"id": "1", "customPackageIds": ["10"]}], "Foo-1"
+).get_packages_in_prestages("u", "t") == ["Foo-1"]
+print("  usage getters tolerate malformed objects, keep happy path: PASS")
 
 print("\n=== All JamfPackageCleaner tests passed! ===")

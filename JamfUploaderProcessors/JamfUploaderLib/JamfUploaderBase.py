@@ -2322,14 +2322,25 @@ class JamfUploaderBase(Processor):
                     token=token,
                     tenant_id=tenant_id,
                 )
+                # a policy with no package_configuration (or an unexpected shape)
+                # simply has no packages assigned
                 try:
                     pkgs = generic_info["package_configuration"]["packages"]
-                    for x in pkgs:
+                except (IndexError, KeyError, TypeError):
+                    pkgs = []
+                for x in pkgs:
+                    # skip a single malformed package entry without dropping the
+                    # well-formed entries alongside it in the same policy
+                    try:
                         pkg = x["name"]
-                        if pkg not in packages_in_policies:
-                            packages_in_policies.append(pkg)
-                except IndexError:
-                    pass
+                    except (IndexError, KeyError, TypeError):
+                        self.output(
+                            f"WARNING: skipping malformed package entry in policy {policy['id']}",
+                            verbose_level=2,
+                        )
+                        continue
+                    if pkg not in packages_in_policies:
+                        packages_in_policies.append(pkg)
             return packages_in_policies
 
     def get_packages_in_patch_titles(self, api_url, token, tenant_id=""):
@@ -2370,11 +2381,11 @@ class JamfUploaderBase(Processor):
                                 if pkg:
                                     if pkg != "None" and pkg not in packages_in_titles:
                                         packages_in_titles.append(pkg)
-                            except IndexError:
+                            except (IndexError, KeyError, TypeError):
                                 pass
-                            except KeyError:
-                                pass
-                except IndexError:
+                # a title with no versions list (None or an unexpected shape)
+                # contributes no packages; skip it rather than aborting
+                except (IndexError, KeyError, TypeError):
                     pass
             return packages_in_titles
 
@@ -2397,7 +2408,9 @@ class JamfUploaderBase(Processor):
                 verbose_level=1,
             )
             for _, prestage in enumerate(prestages):
-                pkg_ids = prestage["customPackageIds"]
+                # a PreStage with no customPackageIds (missing key or null)
+                # has no packages assigned
+                pkg_ids = prestage.get("customPackageIds") or []
                 if len(pkg_ids) > 0:
                     for pkg_id in pkg_ids:
                         pkg = self.get_api_object_value_from_id(
