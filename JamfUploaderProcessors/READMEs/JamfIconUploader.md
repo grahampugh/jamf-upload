@@ -1,8 +1,8 @@
-# JamfPolicyLogFlusher
+# JamfIconUploader
 
 ## Description
 
-A processor for AutoPkg that will flush logs for a policy on a Jamf Cloud or on-prem server.
+A processor for AutoPkg that will upload an icon to a Jamf Cloud or on-prem server. Note that an icon can only be successfully injected into a Mac App Store app item if Cloud Services Connection is enabled.
 
 ## Input variables
 
@@ -36,17 +36,18 @@ A processor for AutoPkg that will flush logs for a policy on a Jamf Cloud or on-
   - **required:** False
   - **description:** Tenant ID for Jamf Platform API Gateway. Required for Platform API authentication.
   - **default:** ""
-- **policy_name:**
-  - **required:** True
-  - **description:** Policy whose log is to be flushed
+- **icon_file:**
+  - **required:** False
+  - **description:** An icon to upload.
+  - **default:** ""
+- **icon_uri:**
+  - **required:** False
+  - **description:** An icon to upload directly from a Jamf Cloud URI.
+  - **default:** ""
 - **sleep:**
   - **required:** False
   - **description:** Pause after running this processor for specified seconds.
   - **default:** "0"
-- **logflush_interval:**
-  - **required:** False
-  - **description:** Log interval to be flushed
-  - **default:** "Zero Days"
 - **max_tries:**
   - **required:** False
   - **description:** Maximum number of attempts to upload the account. Must be an integer between 1 and 10.
@@ -61,7 +62,11 @@ A processor for AutoPkg that will flush logs for a policy on a Jamf Cloud or on-
 
 ## Output variables
 
-- **jamfpolicylogflusher_summary_result:**
+- **selfservice_icon_uri:**
+  - **description:** The uploaded icon's URI.
+- **icon_id:**
+  - **description:** The uploaded icon's ID.
+- **jamficonuploader_summary_result:**
   - **description:** Description of interesting results.
 - **process_skipped:**
   - **description:** Boolean - True if the process was skipped due to skip_if predicate resolved to True.

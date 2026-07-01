@@ -21,12 +21,19 @@ A processor for AutoPkg to read an API object and optionally, output to file (XM
 - **CLIENT_SECRET:**
   - **required:** False
   - **description:** Secret associated with the Client ID, optionally set as a key in the com.github.autopkg preference file.
+- **BEARER_TOKEN:**
+  - **required:** False
+  - **description:** A pre-existing bearer token for the Jamf Pro API. If provided, the token will be validated and used directly, bypassing credential-based authentication.
+- **JAMF_CLI_PROFILE:**
+  - **required:** False
+  - **description:** A jamf-cli profile to use to obtain a bearer token. Requires jamf-cli to be installed and in the PATH. Set to a profile name to enable.
+  - **default:** ""
+- **object_id**:
+  - **required**: False
+  - **description**: ID of an object. May be used instead of supplying an object name.
 - **object_name**:
   - **required**: False
   - **description**: The name of the API object
-- **object_template**:
-  - **required**: True
-  - **description**: Path to the API object template file
 - **object_type**:
   - **required**: True
   - **description**: The API object type. This is in the singular form - the name of the key in the XML template. See the [Object Reference](./Object%20Reference.md) for valid objects.
@@ -65,6 +72,8 @@ A processor for AutoPkg to read an API object and optionally, output to file (XM
   - **description:** Description of interesting results.
 - **object_name**:
   - **description**: The name of the API object
+- **object_list**:
+  - **description**: A list of all objects.
 - **object_id**:
   - **description**: The ID of the API object
 - **raw_object**:
@@ -73,3 +82,9 @@ A processor for AutoPkg to read an API object and optionally, output to file (XM
   - **description**: String containing parsed XML (removes IDs and computers)
 - **output_dir**:
   - **description**: Directory the xml or json file was saved to.
+- **file_path**:
+  - **description**: Path of outputted results.
+- **payload_file_path**:
+  - **description**: Path of outputted payload.
+- **process_skipped:**
+  - **description:** Boolean - True if the process was skipped due to skip_if predicate resolved to True.

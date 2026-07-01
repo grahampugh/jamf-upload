@@ -35,3 +35,5 @@ A processor for AutoPkg that adds or removes pop-up choices from a Jamf Pro Exte
   - **description**: Full path of the modified object file. Intended to pass to `JamfObjectUploader`.
 - **parsed_object**:
   - **description**: Parsed processed object string. For chaining additional `JamfExtensionAttributePopupChoiceAdjuster` processors.
+- **process_skipped:**
+  - **description:** Boolean - True if the process was skipped due to skip_if predicate resolved to True.

@@ -50,7 +50,7 @@ class JamfObjectDeleterBase(JamfUploaderBase):
         jamf_cli_profile = self.env.get("JAMF_CLI_PROFILE")
         object_name = self.env.get("object_name")
         object_type = self.env.get("object_type")
-        skip_if = self.env.get("skip_if")
+        skip_if = self.get_and_clear_skip_if()
 
         # clear any pre-existing summary result
         if "jamfobjectdeleter_summary_result" in self.env:

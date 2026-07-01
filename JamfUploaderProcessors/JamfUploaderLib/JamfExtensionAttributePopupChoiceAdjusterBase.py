@@ -272,7 +272,7 @@ class JamfExtensionAttributePopupChoiceAdjusterBase(JamfUploaderBase):
         output_dir = self.env.get("output_dir") or self.env.get("RECIPE_CACHE_DIR")
         choice_value = self.env.get("choice_value")
         strict_mode = self.to_bool(self.env.get("strict_mode"))
-        skip_if = self.env.get("skip_if")
+        skip_if = self.get_and_clear_skip_if()
 
         process_skipped = False
 

@@ -1,8 +1,8 @@
-# JamfPolicyLogFlusher
+# JamfComputerPreStageUploader
 
 ## Description
 
-A processor for AutoPkg that will flush logs for a policy on a Jamf Cloud or on-prem server.
+A processor for AutoPkg that will create or update a Computer PreStage Enrollment object on a Jamf Pro server.
 
 ## Input variables
 
@@ -36,17 +36,20 @@ A processor for AutoPkg that will flush logs for a policy on a Jamf Cloud or on-
   - **required:** False
   - **description:** Tenant ID for Jamf Platform API Gateway. Required for Platform API authentication.
   - **default:** ""
-- **policy_name:**
-  - **required:** True
-  - **description:** Policy whose log is to be flushed
+- **prestage_name:**
+  - **required:** False
+  - **description:** Name of the object. Required except for settings-related objects.
+- **prestage_template:**
+  - **required:** False
+  - **description:** Full path to the XML template.
+- **replace_prestage:**
+  - **required:** False
+  - **description:** Overwrite an existing object if True.
+  - **default:** False
 - **sleep:**
   - **required:** False
   - **description:** Pause after running this processor for specified seconds.
   - **default:** "0"
-- **logflush_interval:**
-  - **required:** False
-  - **description:** Log interval to be flushed
-  - **default:** "Zero Days"
 - **max_tries:**
   - **required:** False
   - **description:** Maximum number of attempts to upload the account. Must be an integer between 1 and 10.
@@ -61,8 +64,12 @@ A processor for AutoPkg that will flush logs for a policy on a Jamf Cloud or on-
 
 ## Output variables
 
-- **jamfpolicylogflusher_summary_result:**
+- **jamfcomputerprestageuploader_summary_result:**
   - **description:** Description of interesting results.
+- **prestage_name:**
+  - **description:** Jamf object name of the newly created or modified object.
+- **prestage_updated:**
+  - **description:** Boolean - True if the object was changed.
 - **process_skipped:**
   - **description:** Boolean - True if the process was skipped due to skip_if predicate resolved to True.
 - **dry_run_summary_result:**

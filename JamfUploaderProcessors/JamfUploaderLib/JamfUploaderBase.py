@@ -55,7 +55,7 @@ class JamfUploaderBase(Processor):
     """Common functions used by at least two JamfUploader processors."""
 
     # Global version
-    __version__ = "2026.05.29.0"
+    __version__ = "2026.06.30.0"
 
     # Schema registry instance — lazily initialised per processor run
     _registry = None
@@ -71,6 +71,13 @@ class JamfUploaderBase(Processor):
         result = predicate.evaluateWithObject_(self.env)
         self.output(f"({predicate_string}) is {result}", verbose_level=2)
         return result
+
+    def get_and_clear_skip_if(self):
+        """Read skip_if from env and immediately remove it so subsequent processors
+        cannot inherit the value through the shared AutoPkg environment."""
+        skip_if = self.env.get("skip_if")
+        self.env.pop("skip_if", None)
+        return skip_if
 
     def _get_registry(self, jamf_url):
         """Return the shared JamfSchemaRegistry, creating it on first use.
@@ -1556,8 +1563,10 @@ class JamfUploaderBase(Processor):
         curl_cmd.extend(["--output", output_file])
         self.output(f"Output file is: {output_file}", verbose_level=3)
 
-        # write session for jamf API requests
-        if "/api/" in url or "/uapi/" in url or "JSSResource" in url:
+        # write session for jamf API requests (only when not already handled above)
+        if api_type not in ("classic", "jpapi") and (
+            "/api/" in url or "/uapi/" in url or "JSSResource" in url
+        ):
             curl_cmd.extend(["--cookie-jar", cookie_jar])
 
             # look for existing session

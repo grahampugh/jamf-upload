@@ -1,8 +1,8 @@
-# JamfPolicyLogFlusher
+# JamfUnusedPackageCleaner
 
 ## Description
 
-A processor for AutoPkg that will flush logs for a policy on a Jamf Cloud or on-prem server.
+A processor for AutoPkg that will remove unused packages from Jamf Pro.
 
 ## Input variables
 
@@ -36,32 +36,28 @@ A processor for AutoPkg that will flush logs for a policy on a Jamf Cloud or on-
   - **required:** False
   - **description:** Tenant ID for Jamf Platform API Gateway. Required for Platform API authentication.
   - **default:** ""
-- **policy_name:**
-  - **required:** True
-  - **description:** Policy whose log is to be flushed
-- **sleep:**
+- **dry_run:**
   - **required:** False
-  - **description:** Pause after running this processor for specified seconds.
-  - **default:** "0"
-- **logflush_interval:**
+  - **description:** If set to True, nothing is deleted from Jamf Pro. Use together with `-vv` for detailed information. This is used for testing.
+  - **default:** False
+- **output_dir:**
   - **required:** False
-  - **description:** Log interval to be flushed
-  - **default:** "Zero Days"
+  - **description:** Output directory to dump the csv file.
+  - **default:** ""
+- **slack_webhook_url:**
+  - **required:** False
+  - **description:** Slack webhook.
 - **max_tries:**
   - **required:** False
   - **description:** Maximum number of attempts to upload the account. Must be an integer between 1 and 10.
   - **default:** "5"
-- **dry_run:**
-  - **required:** False
-  - **description:** If True, perform read-only checks and report what would change without making any writes.
-  - **default:** False
 - **skip_if:**
   - **required:** False
   - **description:** Skip the process if a supplied predicate is met.
 
 ## Output variables
 
-- **jamfpolicylogflusher_summary_result:**
+- **jamfunusedpackagecleaner_summary_result:**
   - **description:** Description of interesting results.
 - **process_skipped:**
   - **description:** Boolean - True if the process was skipped due to skip_if predicate resolved to True.

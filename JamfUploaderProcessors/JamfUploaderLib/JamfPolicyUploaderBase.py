@@ -232,7 +232,7 @@ class JamfPolicyUploaderBase(JamfUploaderBase):
         sleep_time = self.env.get("sleep")
         replace_icon = self.to_bool(self.env.get("replace_icon"))
         max_tries = self.env.get("max_tries")
-        skip_if = self.env.get("skip_if")
+        skip_if = self.get_and_clear_skip_if()
 
         # verify that max_tries is an integer greater than zero and less than 10
         try:

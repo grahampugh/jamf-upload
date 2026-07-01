@@ -16,8 +16,11 @@ A postprocessor for AutoPkg that will send details about a recipe run to a Micro
   - **required:** False
   - **description:** Category for the created/updated pkg.
 - **NAME:**
-  - **required:** True
+  - **required:** False
   - **description:** Name of the application being created/updated.
+- **version:**
+  - **required:** False
+  - **description:** Version string - provided by previous pkg recipe/processor.
 - **patch_name:**
   - **required:** False
   - **description:** Name of the Patch Policy being updated.
@@ -49,3 +52,7 @@ A postprocessor for AutoPkg that will send details about a recipe run to a Micro
   - **required:** False
   - **description:** Maximum number of attempts to upload the account. Must be an integer between 1 and 10.
   - **default:** "5"
+
+## Output variables
+
+This processor has no output variables.
