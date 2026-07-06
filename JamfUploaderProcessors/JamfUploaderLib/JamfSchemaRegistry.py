@@ -124,6 +124,7 @@ JPAPI_ALIAS_TABLE = {
     "group": "v1/groups",
     "icon": "v1/icon",
     "impact_alert_notification_settings": "v1/impact-alert-notification-settings",
+    "inventory_information_settings": "v1/inventory-information",
     "jamf_pro_version_settings": "v1/jamf-pro-version",
     "jamf_protect_plans_sync_command": "v1/jamf-protect/plans/sync",
     "jamf_protect_register_settings": "v1/jamf-protect/register",
