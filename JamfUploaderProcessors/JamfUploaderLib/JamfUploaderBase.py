@@ -2303,6 +2303,138 @@ class JamfUploaderBase(Processor):
             self.output(f"Value of '{object_path}': {value}", verbose_level=2)
         return value
 
+    def get_packages_in_policies(self, api_url, token, tenant_id=""):
+        """get a list of all packages in all policies"""
+
+        # get all policies
+        policies = self.get_all_api_objects(
+            api_url, "policy", token=token, tenant_id=tenant_id
+        )
+
+        # get all package objects from policies and add to a list
+        if policies:
+            # define a new list
+            packages_in_policies = []
+            self.output(
+                (
+                    "Please wait while we gather a list of all packages in all policies "
+                    f"(total {len(policies)})..."
+                ),
+                verbose_level=1,
+            )
+            for policy in policies:
+                generic_info = self.get_api_object_value_from_id(
+                    api_url,
+                    object_type="policy",
+                    object_id=policy["id"],
+                    object_path="",
+                    token=token,
+                    tenant_id=tenant_id,
+                )
+                # a policy with no package_configuration (or an unexpected shape)
+                # simply has no packages assigned
+                try:
+                    pkgs = generic_info["package_configuration"]["packages"]
+                except (IndexError, KeyError, TypeError):
+                    pkgs = []
+                for x in pkgs:
+                    # skip a single malformed package entry without dropping the
+                    # well-formed entries alongside it in the same policy
+                    try:
+                        pkg = x["name"]
+                    except (IndexError, KeyError, TypeError):
+                        self.output(
+                            f"WARNING: skipping malformed package entry in policy {policy['id']}",
+                            verbose_level=2,
+                        )
+                        continue
+                    if pkg not in packages_in_policies:
+                        packages_in_policies.append(pkg)
+            return packages_in_policies
+
+    def get_packages_in_patch_titles(self, api_url, token, tenant_id=""):
+        """get a list of all packages in all patch software titles"""
+
+        # get all patch software titles
+        titles = self.get_all_api_objects(
+            api_url, "patch_software_title", token=token, tenant_id=tenant_id
+        )
+
+        # get all package objects from patch titles and add to a list
+        if titles:
+            # define a new list
+            packages_in_titles = []
+            self.output(
+                (
+                    "Please wait while we gather a list of all packages in all patch titles "
+                    f"(total {len(titles)})..."
+                ),
+                verbose_level=1,
+            )
+            for title in titles:
+                versions = self.get_api_object_value_from_id(
+                    api_url,
+                    object_type="patch_software_title",
+                    object_id=title["id"],
+                    object_path="versions",
+                    token=token,
+                    tenant_id=tenant_id,
+                )
+                try:
+                    if len(versions) > 0:
+                        for i in range(  # pylint: disable=consider-using-enumerate
+                            len(versions)
+                        ):
+                            try:
+                                pkg = versions[i]["package"]["name"]
+                                if pkg:
+                                    if pkg != "None" and pkg not in packages_in_titles:
+                                        packages_in_titles.append(pkg)
+                            except (IndexError, KeyError, TypeError):
+                                pass
+                # a title with no versions list (None or an unexpected shape)
+                # contributes no packages; skip it rather than aborting
+                except (IndexError, KeyError, TypeError):
+                    pass
+            return packages_in_titles
+
+    def get_packages_in_prestages(self, api_url, token, tenant_id=""):
+        """get a list of all packages in all PreStage Enrollments"""
+
+        # get all prestages
+        prestages = self.get_all_api_objects(
+            api_url, "computer_prestage", token=token, tenant_id=tenant_id
+        )
+
+        # get all package objects from prestages and add to a list
+        if prestages:
+            packages_in_prestages = []
+            self.output(
+                (
+                    "Please wait while we gather a list of all packages in all "
+                    f"PreStage Enrollments (total {len(prestages)})..."
+                ),
+                verbose_level=1,
+            )
+            for _, prestage in enumerate(prestages):
+                # a PreStage with no customPackageIds (missing key or null)
+                # has no packages assigned
+                pkg_ids = prestage.get("customPackageIds") or []
+                if len(pkg_ids) > 0:
+                    for pkg_id in pkg_ids:
+                        pkg = self.get_api_object_value_from_id(
+                            api_url,
+                            object_type="package",
+                            object_id=pkg_id,
+                            object_path="name",
+                            token=token,
+                            tenant_id=tenant_id,
+                        )
+                        if pkg:
+                            if pkg not in packages_in_prestages:
+                                packages_in_prestages.append(pkg)
+            return packages_in_prestages
+
     def delete_object(
         self, jamf_url, object_type, object_id, token, tenant_id="", max_tries=5
     ):
