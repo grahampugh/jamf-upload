@@ -51,6 +51,7 @@ class JamfObjectDeleterBase(JamfUploaderBase):
         object_name = self.env.get("object_name")
         object_type = self.env.get("object_type")
         skip_if = self.get_and_clear_skip_if()
+        dry_run = self.to_bool(self.env.get("dry_run"))
 
         # clear any pre-existing summary result
         if "jamfobjectdeleter_summary_result" in self.env:
@@ -96,7 +97,7 @@ class JamfObjectDeleterBase(JamfUploaderBase):
 
         # cloud_distribution_point endpoint doesn't use IDs or names
         if object_type == "cloud_distribution_point":
-            if self.env.get("dry_run"):
+            if dry_run:
                 self.output(f"DRY RUN: Would DELETE singleton {object_type}")
                 self.env["dry_run_summary_result"] = {
                     "summary_text": "DRY RUN: The following changes would be made in Jamf Pro:",
@@ -137,7 +138,7 @@ class JamfObjectDeleterBase(JamfUploaderBase):
 
             if object_id:
                 self.output(f"{object_type} '{object_name}' exists: ID {object_id}")
-                if self.env.get("dry_run"):
+                if dry_run:
                     self.output(f"DRY RUN: Would DELETE {object_type} '{object_name}' (ID {object_id})")
                     self.env["dry_run_summary_result"] = {
                         "summary_text": "DRY RUN: The following changes would be made in Jamf Pro:",

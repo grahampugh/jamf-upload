@@ -29,13 +29,13 @@ import xml.etree.ElementTree as ET
 from base64 import b64encode
 from collections import abc, namedtuple
 from datetime import datetime, timedelta, timezone
-from Foundation import NSPredicate
 from pathlib import Path
 from shutil import rmtree
 from time import sleep
 from urllib.parse import quote, urlparse
 from uuid import UUID
 from xml.sax.saxutils import escape
+from Foundation import NSPredicate  # pylint: disable=import-error
 
 from autopkglib import (  # pylint: disable=import-error
     Processor,
@@ -1342,7 +1342,12 @@ class JamfUploaderBase(Processor):
         tmp_dir = self.make_tmp_dir(jamf_url=url)
 
         # dry-run: skip write operations but allow auth/token requests
-        if self.env.get("dry_run") and request in ("POST", "PUT", "PATCH", "DELETE"):
+        if self.to_bool(self.env.get("dry_run")) and request in (
+            "POST",
+            "PUT",
+            "PATCH",
+            "DELETE",
+        ):
             if endpoint_type not in ("oauth", "token", "auth", "platform_api_token"):
                 self.output(f"DRY RUN: Would {request} to {url}")
                 r = namedtuple(
@@ -1425,7 +1430,9 @@ class JamfUploaderBase(Processor):
             curl_cmd.extend(["--show-error"])
 
             # we want to be silent except for package uploads with progress enabled
-            if endpoint_type != "package_v1" or not self.env.get("show_upload_progress"):
+            if endpoint_type != "package_v1" or not self.env.get(
+                "show_upload_progress"
+            ):
                 curl_cmd.extend(["--silent"])
 
             # icon download

@@ -212,6 +212,7 @@ class JamfPkgMetadataUploaderBase(JamfUploaderBase):
         sleep_time = self.env.get("sleep")
         max_tries = self.env.get("max_tries")
         skip_if = self.get_and_clear_skip_if()
+        dry_run = self.to_bool(self.env.get("dry_run"))
 
         # verify that max_tries is an integer greater than zero and less than 10
         try:
@@ -305,7 +306,7 @@ class JamfPkgMetadataUploaderBase(JamfUploaderBase):
             self.output(f"Package '{pkg_name}' not found on server")
             pkg_id = 0
 
-        if self.env.get("dry_run"):
+        if dry_run:
             action = "UPDATE metadata for" if int(pkg_id) > 0 else "CREATE"
             self.output(f"DRY RUN: Would {action} package '{pkg_name}'")
             self.env["pkg_name"] = pkg_name

@@ -82,6 +82,7 @@ class JamfPackageRecalculatorBase(JamfUploaderBase):
         bearer_token = self.env.get("BEARER_TOKEN")
         jamf_cli_profile = self.env.get("JAMF_CLI_PROFILE")
         skip_if = self.get_and_clear_skip_if()
+        dry_run = self.to_bool(self.env.get("dry_run"))
 
         process_skipped = False
 
@@ -151,7 +152,7 @@ class JamfPackageRecalculatorBase(JamfUploaderBase):
                 )
             )
 
-            if self.env.get("dry_run"):
+            if dry_run:
                 self.output("DRY RUN: Would recalculate package inventory on Cloud Distribution Point")
                 self.env["dry_run_summary_result"] = {
                     "summary_text": "DRY RUN: The following changes would be made in Jamf Pro:",
