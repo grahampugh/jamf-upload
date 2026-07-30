@@ -95,6 +95,7 @@ class JamfPolicyLogFlusherBase(JamfUploaderBase):
         sleep_time = self.env.get("sleep")
         max_tries = self.env.get("max_tries")
         skip_if = self.get_and_clear_skip_if()
+        dry_run = self.to_bool(self.env.get("dry_run"))
 
         # verify that max_tries is an integer greater than zero and less than 10
         try:
@@ -156,7 +157,7 @@ class JamfPolicyLogFlusherBase(JamfUploaderBase):
 
         if object_id:
             self.output(f"Policy '{policy_name}' exists: ID {object_id}")
-            if self.env.get("dry_run"):
+            if dry_run:
                 self.output(f"DRY RUN: Would flush policy log for '{policy_name}'")
                 self.env["dry_run_summary_result"] = {
                     "summary_text": "DRY RUN: The following changes would be made in Jamf Pro:",

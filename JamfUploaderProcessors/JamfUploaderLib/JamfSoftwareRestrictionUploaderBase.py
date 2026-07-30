@@ -154,6 +154,7 @@ class JamfSoftwareRestrictionUploaderBase(JamfUploaderBase):
         delete_executable = self.to_bool(self.env.get("delete_executable"))
         max_tries = self.env.get("max_tries")
         skip_if = self.get_and_clear_skip_if()
+        dry_run = self.to_bool(self.env.get("dry_run"))
 
         # verify that max_tries is an integer greater than zero and less than 10
         try:
@@ -252,7 +253,7 @@ class JamfSoftwareRestrictionUploaderBase(JamfUploaderBase):
                 f"Software Restriction '{restriction_name}' not found - will create"
             )
 
-        if self.env.get("dry_run"):
+        if dry_run:
             action = "CREATE" if not object_id else "UPDATE"
             self.output(f"DRY RUN: Would {action} restricted_software '{restriction_name}'")
             self.env["restriction_uploaded"] = False
