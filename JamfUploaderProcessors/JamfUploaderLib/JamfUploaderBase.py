@@ -309,6 +309,8 @@ class JamfUploaderBase(Processor):
 
     def to_bool(self, value):
         """Convert a value to a boolean"""
+        if value is None:
+            return False
         if isinstance(value, bool):
             return value
         if isinstance(value, str):
