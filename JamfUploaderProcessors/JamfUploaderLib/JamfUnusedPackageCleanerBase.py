@@ -93,9 +93,16 @@ class JamfUnusedPackageCleanerBase(JamfUploaderBase):
         """get a list of all packages in all patch software titles"""
 
         # get all patch software titles
-        titles = self.get_all_api_objects(
-            api_url, "patch_software_title", token=token, tenant_id=tenant_id
-        )
+        try:
+            titles = self.get_all_api_objects(
+                api_url, "patch_software_title", token=token, tenant_id=tenant_id
+            )
+        except ProcessorError:
+            self.output(
+                "Unable to get patch software titles - assuming none exist",
+                verbose_level=1,
+            )
+            return None
 
         # get all package objects from patch titles and add to a list
         if titles:
