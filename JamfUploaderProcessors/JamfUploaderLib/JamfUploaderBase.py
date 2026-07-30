@@ -1323,6 +1323,7 @@ class JamfUploaderBase(Processor):
         additional_curl_opts="",
         endpoint_type="",
         accept_header="",
+        _retry=False,
     ):
         """
         Build a curl command based on request type (GET, POST, PUT, PATCH, DELETE).
@@ -1648,6 +1649,47 @@ class JamfUploaderBase(Processor):
                     self.output(
                         f"No output from request ({output_file} not found or empty)"
                     )
+        # On a 401 with a bearer token, fetch a fresh token and retry once
+        if (
+            r.status_code == 401
+            and token
+            and not enc_creds
+            and not _retry
+        ):
+            self.output("Received 401 - attempting to obtain a fresh token", verbose_level=1)
+            if api_type == "platform":
+                new_token = self.handle_platform_api_auth(
+                    region=self.env.get("PLATFORM_API_REGION"),
+                    tenant_id=self.env.get("PLATFORM_API_TENANT_ID"),
+                    client_id=self.env.get("CLIENT_ID"),
+                    client_secret=self.env.get("CLIENT_SECRET"),
+                    jamf_cli_profile=self.env.get("JAMF_CLI_PROFILE") or "",
+                )
+            else:
+                jamf_url = (self.env.get("JSS_URL") or "").rstrip("/")
+                new_token = self.handle_api_auth(
+                    jamf_url,
+                    jamf_user=self.env.get("API_USERNAME"),
+                    password=self.env.get("API_PASSWORD"),
+                    client_id=self.env.get("CLIENT_ID"),
+                    client_secret=self.env.get("CLIENT_SECRET"),
+                    jamf_cli_profile=self.env.get("JAMF_CLI_PROFILE") or "",
+                )
+            if new_token and new_token != token:
+                self.output("Retrying request with fresh token", verbose_level=1)
+                return self.curl(
+                    api_type=api_type,
+                    request=request,
+                    url=url,
+                    token=new_token,
+                    enc_creds=enc_creds,
+                    data=data,
+                    additional_curl_opts=additional_curl_opts,
+                    endpoint_type=endpoint_type,
+                    accept_header=accept_header,
+                    _retry=True,
+                )
+
         return r()
 
     def status_check(self, r, endpoint_type, object_name, request):

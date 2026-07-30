@@ -202,7 +202,7 @@ class JamfComputerProfileUploaderBase(JamfUploaderBase):
         self.output(template_contents, verbose_level=2)
 
         # substitute user-assignable keys
-        template_contents = self.substitute_assignable_keys(template_contents)
+        template_contents = self.substitute_assignable_keys(template_contents, xml_escape=True)
 
         self.output("Configuration Profile to be uploaded:", verbose_level=2)
         self.output(template_contents, verbose_level=2)
