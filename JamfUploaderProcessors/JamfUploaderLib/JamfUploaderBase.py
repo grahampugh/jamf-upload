@@ -504,7 +504,7 @@ class JamfUploaderBase(Processor):
                             "URL and user for token matches current request",
                             verbose_level=2,
                         )
-                        if data["token"]:
+                        if data.get("token"):
                             try:
                                 # check if it's expired or not
                                 # this may not always work due to inconsistent
