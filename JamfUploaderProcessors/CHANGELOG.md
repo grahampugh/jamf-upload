@@ -2,6 +2,10 @@
 
 The dates here represent when the features were added to the processors in the `jamf-upload` repo.
 
+## 2026-08-19
+
+* Added `JamfDirectoryServiceGroupEncoder`, which resolves a Directory Service (LDAP/IdP) group name to the base64-encoded `{uuid,serverId}` value required by *directory service group* criteria in smart groups and advanced searches (Jamf Pro 11.29 and later). The encoded value is returned as an output variable for substitution into a template uploaded by `JamfComputerGroupUploader`, `JamfMobileDeviceGroupUploader` or `JamfObjectUploader`.
+
 ## 2026-05-29
 
 * Added `dry_run` option to all processors. When set to `True`, processors perform read-only checks and report what would change without making any writes to the Jamf Pro server.
