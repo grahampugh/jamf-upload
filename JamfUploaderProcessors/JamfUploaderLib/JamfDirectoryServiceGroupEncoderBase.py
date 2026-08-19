@@ -85,7 +85,7 @@ class JamfDirectoryServiceGroupEncoderBase(JamfUploaderBase):
             )
         return ref
 
-    def get_directory_service_groups(self, api_url, token, group_name):
+    def get_directory_service_groups(self, api_url, token, group_name, tenant_id=""):
         """Return the directory service groups whose name matches group_name exactly.
 
         The API performs a 'contains' search across all configured Directory Service
@@ -93,7 +93,9 @@ class JamfDirectoryServiceGroupEncoderBase(JamfUploaderBase):
         searched include both LDAP servers and Cloud Identity Providers; the API returns
         the server's ID as 'ldapServerId' in both cases.
         """
-        url = f"{api_url}/api/v1/ldap/groups?q={quote(group_name)}"
+        object_type = "ldap_group"
+        endpoint = self.api_endpoints(object_type, tenant_id=tenant_id)
+        url = f"{api_url}/{endpoint}?q={quote(group_name)}"
         r = self.curl(api_type="jpapi", request="GET", url=url, token=token)
         if r.status_code != 200:
             raise ProcessorError(
@@ -102,12 +104,14 @@ class JamfDirectoryServiceGroupEncoderBase(JamfUploaderBase):
         results = r.output.get("results", []) if isinstance(r.output, dict) else []
         return [group for group in results if group.get("name") == group_name]
 
-    def resolve_ds_group_value(self, api_url, token, group_name):
+    def resolve_ds_group_value(self, api_url, token, group_name, tenant_id=""):
         """Resolve a directory service group name to its encoded criterion value.
 
         Returns a tuple of (encoded value, uuid, Directory Service server id).
         """
-        groups = self.get_directory_service_groups(api_url, token, group_name)
+        groups = self.get_directory_service_groups(
+            api_url, token, group_name, tenant_id=tenant_id
+        )
         if not groups:
             raise ProcessorError(
                 f"ERROR: no directory service group named '{group_name}' was found on "
@@ -230,7 +234,10 @@ class JamfDirectoryServiceGroupEncoderBase(JamfUploaderBase):
 
                 self.output(f"Looking up directory service group '{group_name}'")
                 encoded_value, group_uuid, server_id = self.resolve_ds_group_value(
-                    api_url, token, group_name
+                    api_url,
+                    token,
+                    group_name,
+                    tenant_id=jamf_platform_gw_tenant_id,
                 )
 
         self.output(f"Directory service group criterion value: {encoded_value}")
