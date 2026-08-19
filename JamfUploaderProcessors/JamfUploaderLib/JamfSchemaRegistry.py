@@ -131,6 +131,7 @@ JPAPI_ALIAS_TABLE = {
     "jamf_protect_settings": "v1/jamf-protect",
     "jcds": "v1/jcds",
     "laps_settings": "v2/local-admin-password/settings",
+    "ldap_group": "v1/ldap/groups",
     "managed_software_updates_available_updates": (
         "v1/managed-software-updates/available-updates"
     ),
