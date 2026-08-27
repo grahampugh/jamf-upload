@@ -428,6 +428,7 @@ class JamfUploaderBase(Processor):
         data["user"] = identifier
         with open(token_file, "w", encoding="utf-8") as fp:
             json.dump(data, fp)
+        self.env["jamfupload_token_file"] = token_file
 
     def write_xml_file(self, jamf_url, data):
         """dump some xml to a temporary file"""
@@ -494,6 +495,7 @@ class JamfUploaderBase(Processor):
         token = ""
 
         if os.path.exists(token_file):
+            self.env["jamfupload_token_file"] = token_file
             with open(token_file, "rb") as file:
                 data = json.load(file)
                 # check that there is a 'token' key
