@@ -43,7 +43,7 @@ class JamfUnusedPackageCleaner(JamfUnusedPackageCleanerBase):
 
     input_variables = {
         "JSS_URL": {
-            "required": True,
+            "required": False,
             "description": "URL to a Jamf Pro server that the API user has write access to.",
         },
         "API_USERNAME": {

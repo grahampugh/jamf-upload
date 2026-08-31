@@ -42,7 +42,7 @@ class JamfExtensionAttributeUploader(JamfExtensionAttributeUploaderBase):
 
     input_variables = {
         "JSS_URL": {
-            "required": True,
+            "required": False,
             "description": "URL to a Jamf Pro server that the API user has write access "
             "to, optionally set as a key in the com.github.autopkg "
             "preference file.",

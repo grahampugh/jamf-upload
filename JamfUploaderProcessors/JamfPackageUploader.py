@@ -46,7 +46,7 @@ class JamfPackageUploader(JamfPackageUploaderBase):
     )
     input_variables = {
         "JSS_URL": {
-            "required": True,
+            "required": False,
             "description": "URL to a Jamf Pro server to which the API user has write access.",
         },
         "API_USERNAME": {

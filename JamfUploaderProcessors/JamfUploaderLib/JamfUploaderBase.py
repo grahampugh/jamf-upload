@@ -27,7 +27,8 @@ import time
 import xml.etree.ElementTree as ET
 
 from base64 import b64encode
-from collections import abc, namedtuple
+from collections import abc
+from types import SimpleNamespace
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from shutil import rmtree
@@ -35,9 +36,11 @@ from time import sleep
 from urllib.parse import quote, urlparse
 from uuid import UUID
 from xml.sax.saxutils import escape
-from Foundation import NSPredicate  # pylint: disable=import-error
+from Foundation import (  # pylint: disable=import-error  # type: ignore[import]
+    NSPredicate,
+)
 
-from autopkglib import (  # pylint: disable=import-error
+from autopkglib import (  # pylint: disable=import-error  # type: ignore[import]
     Processor,
     ProcessorError,
 )
@@ -55,7 +58,7 @@ class JamfUploaderBase(Processor):
     """Common functions used by at least two JamfUploader processors."""
 
     # Global version
-    __version__ = "2026.06.30.0"
+    __version__ = "2026.08.31.0"
 
     # Schema registry instance — lazily initialised per processor run
     _registry = None
@@ -704,31 +707,18 @@ class JamfUploaderBase(Processor):
             return match.group(1)
         return None
 
-    def get_token_from_jamf_cli(self, jamf_url, jamf_cli_profile="", region=""):
+    def get_token_from_jamf_cli(self, jamf_cli_profile=""):
         """Get a bearer token using jamf-cli.
 
-        Calls jamf-cli with the supplied profile. The API type (platform or
-        pro) is determined by whether a region is provided — the profile
-        config lookup in auth() ensures the correct API type is used, so no
-        JWT inspection is needed here.
-
-        For Platform API (region provided), uses make_url_specific_dir for
-        token storage.
-        For Pro/Classic API (no region), uses make_tmp_dir for token
-        storage."""
+        Calls jamf-cli with the supplied profile. The auth-method in the
+        profile config determines the jamf-cli subcommand used. The token
+        is stored in a profile-keyed directory under /tmp/jamf_upload so
+        it can be reused by check_jamf_cli_token on subsequent runs."""
 
         # get jamf-cli path from user path
         jamf_cli_path = shutil.which("jamf-cli")
         if not jamf_cli_path or not os.path.isfile(jamf_cli_path):
             raise ProcessorError(f"jamf-cli not found at {jamf_cli_path}")
-
-        jamf_cli_api_type = "platform" if region else "pro"
-
-        api_url = self.construct_api_url(jamf_url, region)
-        self.output(
-            f"Using jamf-cli to get token for {api_url} " f"({jamf_cli_api_type} API)",
-            verbose_level=1,
-        )
 
         if not jamf_cli_profile:
             raise ProcessorError(
@@ -736,9 +726,24 @@ class JamfUploaderBase(Processor):
                 "authentication, but none was provided"
             )
 
+        # get auth-method from jamf-cli profile config
+        jamf_cli_profile_config = self.get_jamf_cli_profile_config(jamf_cli_profile)
+        if not jamf_cli_profile_config:
+            raise ProcessorError(
+                f"jamf-cli profile '{jamf_cli_profile}' not found or invalid"
+            )
+        api_url = jamf_cli_profile_config.get("url", "")
+        jamf_cli_profile_auth_method = jamf_cli_profile_config.get("auth-method", "")
+
+        self.output(
+            f"Using jamf-cli to get token for {api_url} "
+            f"({jamf_cli_profile_auth_method} API)",
+            verbose_level=1,
+        )
+
         cmd = [
             jamf_cli_path,
-            jamf_cli_api_type,
+            "pro",
             "auth",
             "token",
             "--profile",
@@ -747,6 +752,11 @@ class JamfUploaderBase(Processor):
         self.output(
             f"Requesting token from jamf-cli for profile " f"{jamf_cli_profile}",
             verbose_level=1,
+        )
+
+        self.output(
+            f"Using command: {' '.join(cmd)}",
+            verbose_level=3,
         )
 
         result = subprocess.run(
@@ -779,30 +789,17 @@ class JamfUploaderBase(Processor):
                 if "expires_at" in normalized_output:
                     del normalized_output["expires_at"]
 
-                if region:
-                    # Platform API — store in URL-specific directory
-                    url_specific_dir = self.make_url_specific_dir(api_url)
-                    token_file = os.path.join(
-                        url_specific_dir,
-                        "token_from_jamf_upload.txt",
-                    )
-                    normalized_output["url"] = api_url
-                    normalized_output["user"] = f"jamf-cli:{jamf_cli_profile}"
-                    with open(token_file, "w", encoding="utf-8") as fp:
-                        json.dump(normalized_output, fp)
-
-                    self.output(
-                        f"Platform API token received via jamf-cli "
-                        f"for region {region}"
-                    )
-                else:
-                    # Pro/Classic API — store in session-specific directory
-                    self.write_token_to_json_file(
-                        api_url=api_url,
-                        identifier=f"jamf-cli:{jamf_cli_profile}",
-                        data=normalized_output,
-                    )
-                    self.output("Pro/Classic API token received via jamf-cli")
+                # Store in profile-keyed directory regardless of auth method
+                profile_dir = self.make_profile_dir(jamf_cli_profile)
+                token_file = os.path.join(profile_dir, "token_from_jamf_upload.txt")
+                normalized_output["profile"] = jamf_cli_profile
+                normalized_output.pop("url", None)
+                normalized_output.pop("user", None)
+                with open(token_file, "w", encoding="utf-8") as fp:
+                    json.dump(normalized_output, fp)
+                self.output(
+                    f"Token received via jamf-cli for profile '{jamf_cli_profile}'"
+                )
 
                 self.output(f"Token: {token}", verbose_level=2)
                 self.output(f"Expires: {expires}", verbose_level=2)
@@ -813,57 +810,8 @@ class JamfUploaderBase(Processor):
                     f"jamf-cli output: {result.stdout.strip()}",
                     verbose_level=2,
                 )
-        elif "access_token" in output:
-            # Fallback for access_token format (unlikely but safe)
-            self.output(
-                "WARNING: jamf-cli returned access_token format "
-                "(unexpected). This may indicate a jamf-cli version "
-                "difference.",
-                verbose_level=1,
-            )
-            try:
-                token = str(output["access_token"])
-                expires_in = output.get("expires_in", 1800)
-
-                if region:
-                    url_specific_dir = self.make_url_specific_dir(api_url)
-                    token_file = os.path.join(
-                        url_specific_dir,
-                        "token_from_jamf_upload.txt",
-                    )
-                    output["url"] = api_url
-                    output["user"] = f"jamf-cli:{jamf_cli_profile}"
-                    with open(token_file, "w", encoding="utf-8") as fp:
-                        json.dump(output, fp)
-                else:
-                    normalized_output = output.copy()
-                    normalized_output["token"] = token
-                    expires_timestamp = datetime.now(timezone.utc) + timedelta(
-                        seconds=expires_in
-                    )
-                    normalized_output["expires"] = expires_timestamp.strftime(
-                        "%Y-%m-%dT%H:%M:%S.%fZ"
-                    )
-                    self.write_token_to_json_file(
-                        api_url=api_url,
-                        identifier=f"jamf-cli:{jamf_cli_profile}",
-                        data=normalized_output,
-                    )
-
-                self.output("Token received via jamf-cli (access_token format)")
-                self.output(f"Token: {token}", verbose_level=2)
-                return token
-            except KeyError as e:
-                self.output(f"ERROR: Missing key in token response: {e}")
-                self.output(
-                    f"jamf-cli output: {result.stdout.strip()}",
-                    verbose_level=2,
-                )
         else:
-            self.output(
-                "ERROR: Unexpected response from jamf-cli - "
-                "no token or access_token found"
-            )
+            self.output("ERROR: Unexpected response from jamf-cli - " "no token found")
             self.output(
                 f"jamf-cli output: {result.stdout.strip()}",
                 verbose_level=2,
@@ -922,13 +870,9 @@ class JamfUploaderBase(Processor):
 
         # if jamf-cli is requested, use it to get a token
         if jamf_cli_profile:
-            # check for existing token first using the profile as identifier
-            # This ensures jamf-cli tokens are cached separately from other auth methods
-            token = self.check_api_token(jamf_url, f"jamf-cli:{jamf_cli_profile}")
+            token = self.check_jamf_cli_token(jamf_cli_profile)
             if not token:
-                token = self.get_token_from_jamf_cli(
-                    jamf_url, jamf_cli_profile=jamf_cli_profile, region=""
-                )
+                token = self.get_token_from_jamf_cli(jamf_cli_profile)
             if not token:
                 raise ProcessorError("No token received from jamf-cli, cannot continue")
             return token
@@ -983,6 +927,13 @@ class JamfUploaderBase(Processor):
             raise ProcessorError("Insufficient credentials provided, cannot continue")
         # return token and classic creds
         return token
+
+    def make_profile_dir(self, profile_name, base_dir="/tmp/jamf_upload"):
+        """Return (and create) a directory keyed by jamf-cli profile name."""
+        safe_name = re.sub(r"\W+", "_", profile_name).strip("_")
+        profile_dir = os.path.join(base_dir, "jamf_cli_profiles", safe_name)
+        os.makedirs(profile_dir, exist_ok=True)
+        return profile_dir
 
     def make_url_specific_dir(self, api_url, base_dir="/tmp/jamf_upload"):
         """make a directory specific to the API URL"""
@@ -1058,6 +1009,32 @@ class JamfUploaderBase(Processor):
             self.output("No existing valid token found", verbose_level=2)
         return token
 
+    def check_jamf_cli_token(self, jamf_cli_profile):
+        """Check validity of a cached token obtained via jamf-cli."""
+        profile_dir = self.make_profile_dir(jamf_cli_profile)
+        token_file = os.path.join(profile_dir, "token_from_jamf_upload.txt")
+        token = ""
+        if os.path.exists(token_file):
+            with open(token_file, "rb") as file:
+                data = json.load(file)
+            try:
+                if data.get("profile") == jamf_cli_profile and data.get("token"):
+                    expires_datetime = datetime.strptime(
+                        data["expires"], "%Y-%m-%dT%H:%M:%S.%fZ"
+                    ).replace(tzinfo=timezone.utc)
+                    if expires_datetime > datetime.now(timezone.utc):
+                        self.output("Existing jamf-cli token is valid")
+                        token = data["token"]
+                    else:
+                        self.output("Existing jamf-cli token has expired")
+            except (KeyError, ValueError) as e:
+                self.output(
+                    f"Could not validate cached jamf-cli token: {e}", verbose_level=2
+                )
+        else:
+            self.output("No cached jamf-cli token found", verbose_level=2)
+        return token
+
     def get_platform_api_token(self, api_url="", client_id="", client_secret=""):
         """get a token for the Platform API gateway using client credentials grant flow"""
         url = api_url + "/" + self.api_endpoints("platform_api_token")
@@ -1108,6 +1085,32 @@ class JamfUploaderBase(Processor):
 
         self.output("Handling authentication for Platform API", verbose_level=1)
 
+        # obtain region from jamf-cli profile if present (overrides any region supplied on the command line)
+        if jamf_cli_profile:
+            profile_cfg = self.get_jamf_cli_profile_config(jamf_cli_profile)
+            if profile_cfg:
+                auth_method = profile_cfg.get("auth-method", "")
+                if auth_method == "platform":
+                    tenant_id = profile_cfg.get("tenant-id", "")
+                    api_url = profile_cfg.get("url", "")
+                    self.output(
+                        f"Auto-detected URL '{api_url}' and tenant ID '{tenant_id}' "
+                        f"from jamf-cli profile '{jamf_cli_profile}'",
+                        verbose_level=1,
+                    )
+                else:
+                    raise ProcessorError(
+                        f"jamf-cli profile '{jamf_cli_profile}' is not configured "
+                        "for Platform API (auth-method != 'platform')"
+                    )
+
+            token = self.check_jamf_cli_token(jamf_cli_profile)
+            if not token:
+                token = self.get_token_from_jamf_cli(jamf_cli_profile)
+            if not token:
+                raise ProcessorError("No token received from jamf-cli, cannot continue")
+            return token
+
         # construct the API URL based on the region (if supplied)
         if region:
             api_url = self.construct_api_url(region=region)
@@ -1130,47 +1133,6 @@ class JamfUploaderBase(Processor):
                 "Supplied bearer token is invalid or expired, cannot continue"
             )
 
-        # if jamf-cli is requested, use it to get a token
-        if jamf_cli_profile:
-            # Check for existing token using the profile as identifier
-            # This ensures jamf-cli tokens are cached separately from OAuth tokens
-            token = self.check_platform_api_token(
-                api_url, client_id=f"jamf-cli:{jamf_cli_profile}"
-            )
-            if not token:
-                token = self.get_token_from_jamf_cli(
-                    api_url, jamf_cli_profile=jamf_cli_profile, region=region
-                )
-            if not token:
-                raise ProcessorError("No token received from jamf-cli, cannot continue")
-            return token
-
-        # first try to get the account and password from the Keychain
-        self.output(
-            f"Attempting to retrieve API client credentials from keychain using URL={api_url}, client_id={client_id}, tenant_id={tenant_id}",
-            verbose_level=2,
-        )
-        id_from_kc, pass_from_kc = self.keychain_get_creds(
-            api_url, client_id=client_id, tenant_id=tenant_id
-        )
-        self.output(
-            f"Keychain returned client_id={id_from_kc}, client_secret={'*' * len(pass_from_kc) if pass_from_kc else None}",
-            verbose_level=2,
-        )
-        if id_from_kc and pass_from_kc:
-            if self.is_valid_uuid(id_from_kc):
-                client_id = id_from_kc
-                client_secret = pass_from_kc
-                self.output(
-                    "Using API client credentials found in keychain", verbose_level=2
-                )
-            else:
-                self.output(
-                    "Client ID found in keychain is not a valid UUID", verbose_level=2
-                )
-        else:
-            self.output("Credentials not found in keychain", verbose_level=2)
-
         # check for existing token
         self.output("Checking for existing authentication token", verbose_level=2)
         if client_id and client_secret:
@@ -1190,14 +1152,14 @@ class JamfUploaderBase(Processor):
 
     def auth(
         self,
-        jamf_url,
-        jamf_user=None,
-        password=None,
-        client_id=None,
-        client_secret=None,
-        tenant_id=None,
-        region=None,
-        token=None,
+        jamf_url="",
+        jamf_user="",
+        password="",
+        client_id="",
+        client_secret="",
+        tenant_id="",
+        region="",
+        token="",
         jamf_cli_profile="",
     ):
         """Authenticate to the API and return (token, jamf_url, region, tenant_id).
@@ -1211,91 +1173,69 @@ class JamfUploaderBase(Processor):
         extracted from the profile so it does not need to be supplied
         separately.
         """
-        token = None
-
-        # If a jamf-cli profile is provided, read its config to auto-detect
-        # the API type, region, tenant-id and URL when not explicitly supplied.
+        # If a jamf-cli profile is provided, read its config to determine the
+        # auth method and URL. The profile is authoritative — any caller-supplied
+        # jamf_url is ignored.
+        auth_method = ""
         if jamf_cli_profile:
             profile_cfg = self.get_jamf_cli_profile_config(jamf_cli_profile)
-            if profile_cfg:
-                auth_method = profile_cfg.get("auth-method", "")
-                profile_url = profile_cfg.get("url", "")
-
-                if auth_method == "platform":
-                    # Extract region from the profile URL if not provided
-                    if not region:
-                        region = self.extract_region_from_platform_url(profile_url)
-                        if region:
-                            self.output(
-                                f"Auto-detected region '{region}' from "
-                                f"jamf-cli profile '{jamf_cli_profile}'",
-                                verbose_level=1,
-                            )
-                        else:
-                            self.output(
-                                "WARNING: jamf-cli profile is configured "
-                                "for Platform API but the URL does not "
-                                "contain a recognizable region",
-                                verbose_level=1,
-                            )
-                    # Extract tenant-id from the profile if not provided
-                    if not tenant_id:
-                        tenant_id = profile_cfg.get("tenant-id", "")
-                        if tenant_id:
-                            self.output(
-                                f"Auto-detected tenant ID '{tenant_id}' "
-                                f"from jamf-cli profile "
-                                f"'{jamf_cli_profile}'",
-                                verbose_level=1,
-                            )
-
-                elif auth_method == "oauth2":
-                    if region:
-                        # Profile is for Pro API but region was supplied
-                        self.output(
-                            f"WARNING: jamf-cli profile "
-                            f"'{jamf_cli_profile}' uses auth-method "
-                            f"'{auth_method}' (Pro/Classic API) but a "
-                            f"Platform API region '{region}' was also "
-                            f"supplied. The profile auth-method will be "
-                            f"used; ignoring region and tenant "
-                            f"parameters.",
-                            verbose_level=1,
-                        )
-                        region = None
-                        tenant_id = None
-                    # Extract Jamf Pro URL from profile if not provided
-                    if not jamf_url and profile_url:
-                        jamf_url = profile_url.rstrip("/")
-                        self.output(
-                            f"Auto-detected Jamf Pro URL '{jamf_url}' "
-                            f"from jamf-cli profile "
-                            f"'{jamf_cli_profile}'",
-                            verbose_level=1,
-                        )
-
-        # we still need a Jamf Pro URL to determine the API schema endpoints,
-        # even for platform API types
-        if not jamf_url:
-            raise ProcessorError(
-                "ERROR: no Jamf Pro URL provided for authentication - "
-                "this is required to determine API endpoints, even for "
-                "Platform API authentication"
+            if not profile_cfg:
+                raise ProcessorError(f"jamf-cli profile '{jamf_cli_profile}' not found")
+            auth_method = profile_cfg.get("auth-method", "")
+            profile_url = profile_cfg.get("url", "").rstrip("/")
+            if not profile_url:
+                raise ProcessorError(
+                    f"jamf-cli profile '{jamf_cli_profile}' has no URL"
+                )
+            jamf_url = profile_url
+            self.output(
+                f"Using URL '{jamf_url}' from jamf-cli profile '{jamf_cli_profile}'",
+                verbose_level=1,
             )
+            if auth_method == "platform":
+                region = self.extract_region_from_platform_url(profile_url)
+                if not region:
+                    raise ProcessorError(
+                        f"jamf-cli profile '{jamf_cli_profile}' is configured for "
+                        "Platform API but the URL does not contain a recognizable region"
+                    )
+                tenant_id = profile_cfg.get("tenant-id", "")
+                if not tenant_id:
+                    raise ProcessorError(
+                        f"jamf-cli profile '{jamf_cli_profile}' is configured for "
+                        "Platform API but has no tenant-id"
+                    )
+                self.output(
+                    f"Auto-detected region '{region}' and tenant ID '{tenant_id}' "
+                    f"from jamf-cli profile '{jamf_cli_profile}'",
+                    verbose_level=1,
+                )
 
-        # Determine which token we need based on credentials given.
-        if region and ((tenant_id and client_id) or jamf_cli_profile):
+        if not jamf_url:
+            raise ProcessorError("ERROR: no Jamf Pro URL provided for authentication")
+
+        # Route to the correct auth handler.
+        if jamf_cli_profile:
+            if auth_method == "platform":
+                token = self.handle_platform_api_auth(
+                    region=region,
+                    tenant_id=tenant_id,
+                    jamf_cli_profile=jamf_cli_profile,
+                )
+            else:
+                token = self.handle_api_auth(
+                    jamf_url,
+                    jamf_cli_profile=jamf_cli_profile,
+                )
+        elif region and (tenant_id and client_id):
             token = self.handle_platform_api_auth(
                 client_id=client_id,
                 client_secret=client_secret,
                 token=token,
                 region=region,
                 tenant_id=tenant_id,
-                jamf_cli_profile=jamf_cli_profile,
             )
         elif jamf_url:
-            # handle_api_auth will attempt keychain lookup if no explicit
-            # credentials are provided, so we allow just a URL here
             token = self.handle_api_auth(
                 jamf_url,
                 jamf_user=jamf_user,
@@ -1303,7 +1243,6 @@ class JamfUploaderBase(Processor):
                 client_id=client_id,
                 client_secret=client_secret,
                 token=token,
-                jamf_cli_profile=jamf_cli_profile,
             )
         else:
             raise ProcessorError("ERROR: Insufficient credentials supplied")
@@ -1324,7 +1263,7 @@ class JamfUploaderBase(Processor):
         token="",
         enc_creds="",
         data="",
-        additional_curl_opts="",
+        additional_curl_opts=None,
         endpoint_type="",
         accept_header="",
         _retry=False,
@@ -1355,12 +1294,7 @@ class JamfUploaderBase(Processor):
         ):
             if endpoint_type not in ("oauth", "token", "auth", "platform_api_token"):
                 self.output(f"DRY RUN: Would {request} to {url}")
-                r = namedtuple(
-                    "r",
-                    ["headers", "status_code", "output"],
-                    defaults=(None, None, None),
-                )
-                return r(headers=[], status_code=200, output={})
+                return SimpleNamespace(headers=[], status_code=200, output={})
 
         headers_file = os.path.join(tmp_dir, "curl_headers_from_jamf_upload.txt")
         output_file = self.init_temp_file(url, suffix=".txt")
@@ -1623,9 +1557,7 @@ class JamfUploaderBase(Processor):
         # headers, status code and outputted data
         subprocess.check_output(curl_cmd)
 
-        r = namedtuple(
-            "r", ["headers", "status_code", "output"], defaults=(None, None, None)
-        )
+        r = SimpleNamespace(headers=None, status_code=None, output=None)
         try:
             with open(headers_file, "r", encoding="utf-8") as file:
                 headers = file.readlines()
@@ -1654,13 +1586,10 @@ class JamfUploaderBase(Processor):
                         f"No output from request ({output_file} not found or empty)"
                     )
         # On a 401 with a bearer token, fetch a fresh token and retry once
-        if (
-            r.status_code == 401
-            and token
-            and not enc_creds
-            and not _retry
-        ):
-            self.output("Received 401 - attempting to obtain a fresh token", verbose_level=1)
+        if r.status_code == 401 and token and not enc_creds and not _retry:
+            self.output(
+                "Received 401 - attempting to obtain a fresh token", verbose_level=1
+            )
             if api_type == "platform":
                 new_token = self.handle_platform_api_auth(
                     region=self.env.get("PLATFORM_API_REGION"),
@@ -1694,7 +1623,7 @@ class JamfUploaderBase(Processor):
                     _retry=True,
                 )
 
-        return r()
+        return r
 
     def status_check(self, r, endpoint_type, object_name, request):
         """Return a message dependent on the HTTP response"""
@@ -2432,9 +2361,9 @@ class JamfUploaderBase(Processor):
         except ET.ParseError as xml_error:
             raise ProcessorError from xml_error
 
-        if template_contents_xml.find("scope"):
-            # Remove scope element
-            template_contents_xml.remove(template_contents_xml.find("scope"))
+        scope_element = template_contents_xml.find("scope")
+        if scope_element is not None:
+            template_contents_xml.remove(scope_element)
         # Inject scope element into version element
         template_contents_xml.append(existing_scope)
         # write back to xml
@@ -2508,8 +2437,7 @@ class JamfUploaderBase(Processor):
                 # load object
                 parsed_xml = ""
                 object_xml = ET.fromstring(existing_object)
-                root = ET.ElementTree(object_xml).getroot()
-                parent = root
+                parent = object_xml
                 found = None
 
                 # Traverse the XML tree to find the parent of the target element
@@ -2647,6 +2575,12 @@ class JamfUploaderBase(Processor):
                 template_contents = json.load(file)
         else:
             raise ProcessorError("Template does not exist!")
+
+        if not isinstance(existing_object, dict):
+            raise ProcessorError(
+                f"Could not retrieve existing object for ID {object_id} "
+                f"(type {object_type}) — cannot substitute version locks"
+            )
 
         self.output(f"Existing Object: {existing_object}", verbose_level=3)  # TEMP
         # now extract the main version lock from the existing object

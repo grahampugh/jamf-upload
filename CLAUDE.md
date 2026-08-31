@@ -29,13 +29,13 @@ pylint JamfUploaderProcessors/          # config in .pylintrc
 
 Every processor follows this split:
 
-- **`JamfUploaderProcessors/JamfFooUploader.py`** — thin wrapper that defines AutoPkg `input_variables` / `output_variables` and extends the base class. Contains no logic.
-- **`JamfUploaderProcessors/JamfUploaderLib/JamfFooUploaderBase.py`** — contains all implementation logic.
+- **`JamfUploaderProcessors/JamfFooUploader.py`** — thin wrapper that defines AutoPkg `input_variables` / `output_variables` and extends the base class. Contains no logic. This is the "trusted" file that AutoPkg users verify; logic changes here require users to re-verify trust.
+- **`JamfUploaderProcessors/JamfUploaderLib/JamfFooUploaderBase.py`** — all implementation logic. Changes here do not require re-verification.
 
 The base classes all extend `JamfUploaderBase` (`JamfUploaderLib/JamfUploaderBase.py`), which provides:
 
-- Authentication: basic auth, OAuth bearer tokens, API client credentials
-- HTTP communication via `curl` subprocess calls (not the `requests` library directly, because this is not included in the autopkg python distribution)
+- Authentication: basic auth, OAuth bearer tokens, API client credentials, jamf-cli profile tokens
+- HTTP communication via `curl` subprocess calls (not the `requests` library — it is not bundled in AutoPkg's Python)
 - XML/JSON template substitution
 - Jamf Pro version detection
 - Schema registry integration
@@ -46,8 +46,8 @@ The base classes all extend `JamfUploaderBase` (`JamfUploaderLib/JamfUploaderBas
 
 ### Two API families
 
-- **Classic API** — XML-based, older endpoints (most object types)
-- **Jamf Pro API (JPAPI)** — JSON-based, newer endpoints (packages v1/v3, prestages, etc.)
+- **Classic API** — XML-based, older endpoints (most object types). URLs like `/JSSResource/policies`.
+- **Jamf Pro API (JPAPI)** — JSON-based, newer endpoints (packages v1/v3, prestages, etc.). URLs like `/api/v1/packages`. Prefer this when available; check `jamf_version` before using version-specific endpoints.
 
 Many processors support both; version detection in `JamfUploaderBase` determines which to use.
 
@@ -58,34 +58,54 @@ Many processors support both; version detection in `JamfUploaderBase` determines
 - **JCDS2** — Jamf Cloud Distribution Service (AWS S3 multipart)
 - **AWS CDP** — Customer-owned S3 bucket
 - **SMB** — SMB/CIFS share
-- **dbfileupload** — Legacy Classic API upload
-- **v1/v3 packages API** — Newer REST endpoints
+- **dbfileupload** — Legacy Classic API upload (deprecated)
+- **v1/v3 packages API** — Newer REST endpoints (default on Jamf Pro 11.5+)
+
+### Authentication flow
+
+`JamfUploaderBase.auth()` resolves credentials in this priority order:
+
+1. `BEARER_TOKEN` — pre-existing bearer token (validated before use)
+2. `jamf_credentials_manager` — JamfCredentialsManager library
+3. `CLIENT_ID` / `CLIENT_SECRET` — OAuth 2.0 API client credentials (preferred)
+4. `API_USERNAME` / `API_PASSWORD` — legacy basic auth
+5. `jamf_cli_profile` — reads config and obtains a token via `jamf-cli platform/pro auth token --profile <name>`
+
+When `jamf_cli_profile` is set, the URL, region, and tenant ID are auto-detected from the profile config so they do not need to be supplied separately. Bearer tokens are cached in `/tmp/jamf_upload/` and validated before reuse.
+
+### Template substitution
+
+Templates use `%VARIABLE_NAME%` placeholders (uppercase, percent-delimited). The `substitute_assignable_keys()` method in `JamfUploaderBase` handles replacements. Some keys are intentionally skipped for user-editable content (e.g., script contents in Extension Attributes) — see `skip_script_key_substitution`. Most processors support both `replace` (overwrite) and `update` (merge/patch) modes.
 
 ## Tests
 
-Test scripts and recipes live in `_tests/`. These are mostly shell scripts that exercise the API against a real Jamf Pro server — there is no mock-based unit test suite. Key test scripts:
+Test scripts and recipes live in `_tests/`. These are shell scripts that exercise the API against a real Jamf Pro server — there is no mock-based unit test suite. Key test scripts:
 
 ```sh
 _tests/api_test_pkg.sh          # Test package upload (default mode)
 _tests/api_test_pkg_jcds2.sh    # Test JCDS2 mode
 _tests/api_test_pkg_aws_cdp.sh  # Test AWS CDP mode
-_tests/test_schema_registry.py  # Schema registry unit tests (runnable with autopkg python)
+_tests/test.sh -t <name>        # Run a named test scenario against a live server
 ```
 
-To run the schema registry tests:
+Schema registry unit tests (no server required):
 
 ```sh
 /usr/local/autopkg/python _tests/test_schema_registry.py
 ```
 
-The file `_tests/test.py` contains many preset tests that can be run by selecting a test with the `-t` parameter.
+When modifying authentication or template code, test with both `jamf-upload.sh` (standalone) and an AutoPkg recipe, and exercise multiple auth methods.
 
 ## Adding a new processor
 
 1. Create `JamfUploaderProcessors/JamfFooUploader.py` — thin wrapper only, with `input_variables`, `output_variables`, and a `main()` that calls the base class.
 2. Create `JamfUploaderProcessors/JamfUploaderLib/JamfFooUploaderBase.py` — all logic here, extending `JamfUploaderBase`.
 3. Add documentation in `JamfUploaderProcessors/READMEs/`.
-4. If the new object type needs schema resolution, add an entry to `CLASSIC_ALIAS_TABLE` or `JPAPI_ALIAS_TABLE` in `JamfSchemaRegistry.py`.
+4. Add a case to `jamf-upload.sh` for standalone usage.
+5. If the new object type needs schema resolution, add an entry to `CLASSIC_ALIAS_TABLE` or `JPAPI_ALIAS_TABLE` in `JamfSchemaRegistry.py`.
+6. Update `CHANGELOG.md`.
+
+Logic changes always go in `JamfUploaderLib/*Base.py`. Update `input_variables` in the processor file only when adding new parameters; check whether `jamf-upload.sh` argument parsing also needs updating.
 
 ## Key references
 

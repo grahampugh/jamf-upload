@@ -41,7 +41,7 @@ get_region_url() {
             api_base_url="https://apac.apigw.jamf.com"
             ;;
         *)
-            echo "ERROR: Invalid region specified. Please use one of: us, eu, apac."
+            echo "   [get_region_url] ERROR: Invalid region specified. Please use one of: us, eu, apac."
             exit 1
             ;;
     esac
@@ -51,14 +51,14 @@ get_region_url() {
 }
 
 verify_credentials() {
-    echo "Verifying credentials for $api_base_url"
+    echo "   [main] Verifying credentials for $api_base_url"
 
     # check for username entry in login keychain
     # jss_api_user=$("${this_script_dir}/keychain.sh" -t internet -u -s "$jss_url")
     client_id=$(/usr/bin/security find-internet-password -s "$api_base_url" -g 2>/dev/null | /usr/bin/grep "acct" | /usr/bin/cut -d \" -f 4 )
 
     if [[ ! $client_id ]]; then
-        echo "No keychain entry for $api_base_url found. Please run the set-credentials.sh script to add the Client ID to your keychain"
+        echo "   [main] No keychain entry for $api_base_url found. Please run the set-credentials.sh script to add the Client ID to your keychain"
         exit 1
     fi
 
@@ -67,7 +67,7 @@ verify_credentials() {
     client_secret=$(/usr/bin/security find-internet-password -s "$api_base_url" -a "$client_id" -w -g 2>&1 )
 
     if [[ ! $client_secret ]]; then
-        echo "No password/Client Secret for $client_id found. Please run the set-credentials.sh script to add the Client Secret to your keychain"
+        echo "   [main] No password/Client Secret for $client_id found. Please run the set-credentials.sh script to add the Client Secret to your keychain"
         exit 1
     fi
 
@@ -88,22 +88,22 @@ verify_credentials() {
         --data-urlencode "client_secret=$client_secret" \
         --write-out "%{http_code}" \
         --output "$output_file_token"); then
-        echo "ERROR: Failed to connect to the Platform API."
+        echo "   [main] ERROR: Failed to connect to the Platform API."
         return 1
     fi
 
-    echo "Token request HTTP response: $http_response"
+    echo "   [main] Token request HTTP response: $http_response"
     if [[ $http_response -lt 400 ]]; then
         token=$(plutil -extract access_token raw "$output_file_token")
         if [[ $token ]]; then
-            echo "Token successfully retrieved"
+            echo "   [main] Token successfully retrieved"
             return 0
         else
-            echo "Token download failed - no token received"
+            echo "   [main] Token download failed - no token received"
             return 1
         fi
     else
-        echo "Token download failed - check authentication details"
+        echo "   [main] Token download failed - check authentication details"
         exit 1
     fi
 }
@@ -118,6 +118,10 @@ while test $# -gt 0 ; do
         -r|--region)
             shift
             chosen_region="$1"
+            ;;
+        -e|--environment|--env-id)
+            shift
+            env_id="$1"
             ;;
         -t|--tenant|--tenant-id)
             shift
@@ -183,57 +187,69 @@ if [[ ! $chosen_id ]]; then
 fi
 
 # Ask for the tenant ID (show any existing value of first instance in list as default)
-if [[ ! $tenant_id ]]; then
-    echo "Enter Tenant ID for $api_base_url"
-    read -r -p "Tenant ID : " tenant_id
-    if [[ ! $tenant_id ]]; then
-        echo "   [main] No Tenant ID supplied"
-        exit 1
+if [[ ! $env_id && ! $tenant_id ]]; then
+    echo "Enter Environment ID for $api_base_url or press ENTER to skip and enter a Tenant ID instead"
+    read -r -p "Environment ID : " env_id
+    if [[ ! $env_id ]]; then
+        echo "   [main] No Environment ID supplied - asking for a Tenant ID instead"
+        echo "Enter Tenant ID for $api_base_url or press ENTER to skip and enter an Environment ID instead"
+        read -r -p "Tenant ID : " tenant_id
+        if [[ ! $tenant_id ]]; then
+            echo "   [main] No Tenant ID supplied - cannot continue"
+            exit 1
+        fi
     fi
 fi
 
 # check for existing service entry in login keychain
 region_base="${api_base_url/*:\/\//}"
 
+# create normalised entry for tenant/env ID
+if [[ $env_id ]]; then
+    normalised_entry="$region_base (env $env_id) ($chosen_id)"
+elif [[ $tenant_id ]]; then
+    normalised_entry="$region_base (tenant $tenant_id) ($chosen_id)"
+fi
+
 # first check if there is an entry for the server
 server_check=$(security find-internet-password -s "$api_base_url" 2>/dev/null)
 if [[ $server_check ]]; then
-    echo "Keychain entry/ies for $region_base found"
+    echo "   [main] Keychain entry/ies for $region_base found"
     # next check if there is an entry for the user on that server
-    kc_check=$(security find-internet-password -s "$api_base_url" -l "$region_base ($tenant_id) ($chosen_id)" -a "$chosen_id" -g 2>/dev/null)
+    kc_check=$(security find-internet-password -s "$api_base_url" -l "$normalised_entry" -a "$chosen_id" -g 2>/dev/null)
 
     if [[ $kc_check ]]; then
-        echo "Keychain entry for tenant ID $tenant_id ($chosen_id) found on $region_base"
+        echo "   [main] Keychain entry for $normalised_entry found on $region_base"
         # check for existing password entry in login keychain
-        client_secret=$(security find-internet-password -s "$api_base_url" -l "$region_base ($tenant_id) ($chosen_id)" -a "$chosen_id" -w -g 2>&1)
+        client_secret=$(security find-internet-password -s "$api_base_url" -l "$normalised_entry" -a "$chosen_id" -w -g 2>&1)
         if [[ ${#client_secret} -gt 0 && $client_secret != "security: "* ]]; then
-            echo "Password/Client Secret for tenant ID $tenant_id ($chosen_id) found on $region_base"
+            echo "   [main] Password/Client Secret for $normalised_entry found on $region_base"
         else
-            echo "Password/Client Secret for tenant ID $tenant_id ($chosen_id) not found on $region_base"
+            echo "   [main] Password/Client Secret for $normalised_entry not found on $region_base"
             client_secret=""
         fi
     else
-        echo "Keychain entry for tenant ID $tenant_id ($chosen_id) not found on $region_base"
+        echo "   [main] Keychain entry for $normalised_entry not found on $region_base"
     fi
 else
-    echo "Keychain entry for $region_base not found"
+    echo "   [main] Keychain entry for $region_base not found"
 fi
 
-# now delete any existing entry from the selected instance for the given username
+# now delete any existing entry from the selected instance for the given client and tenant/env ID, since we are going to replace it with the new credentials
 deleted_count=0
 while true; do
     # Find the first entry for this region
-    entry=$(security find-internet-password -s "$api_base_url" -l "$region_base ($tenant_id) ($chosen_id)" -a "$chosen_id" -g 2>/dev/null)
+    entry=$(security find-internet-password -s "$api_base_url" -l "$normalised_entry" -a "$chosen_id" -g 2>/dev/null)
     if [[ -z "$entry" ]]; then
-        echo "No more entries found, done with $api_base_url"
+        echo "   [main] No more entries found, done with $api_base_url"
         break
     fi
     
     # Extract the label from the entry (stored in 0x00000007 attribute)
     label=$(echo "$entry" | grep "0x00000007" | awk -F'"' '{print $2}')
-    if [[ $label == "$region_base ($tenant_id) ($chosen_id)" ]]; then
+    if [[ $label == "$normalised_entry" ]]; then
         # Delete this specific entry
-        echo "Deleting password for $label"
+        echo "   [main] Deleting password for $label"
         if security delete-internet-password -s "$api_base_url" -l "$label"; then
             ((deleted_count++))
         else
@@ -247,21 +263,21 @@ while true; do
 done
 
 if [[ $deleted_count -gt 0 ]]; then
-    echo "Deleted $deleted_count existing keychain entries for $region_base"
+    echo "   [main] Deleted $deleted_count existing keychain entries for $region_base"
 else
-    echo "No existing keychain entries found for $region_base"
+    echo "   [main] No existing keychain entries found for $region_base"
 fi
 
 echo
 
 if [[ ! "$chosen_secret" ]]; then
     echo "Enter Client Secret for $chosen_id on $region_base"
-    [[ $instance_pass ]] && echo "(or press ENTER to use existing Client Secret from keychain for $chosen_id)"
+    [[ $client_secret ]] && echo "(or press ENTER to use existing Client Secret from keychain for $chosen_id)"
     read -r -s -p "Pass : " chosen_secret
-    if [[ $instance_pass && ! "$chosen_secret" ]]; then
-        chosen_secret="$instance_pass"
+    if [[ $client_secret && ! "$chosen_secret" ]]; then
+        chosen_secret="$client_secret"
     elif [[ ! $chosen_secret ]]; then
-        echo "No Client Secret supplied"
+        echo "   [main] No Client Secret supplied - cannot continue"
         exit 1
     fi
 fi
@@ -269,16 +285,16 @@ fi
 # Apply to selected instance
 echo
 echo
-security add-internet-password -U -s "$api_base_url" -l "$region_base ($tenant_id) ($chosen_id)" -a "$chosen_id" -w "$chosen_secret"
-echo "   [main] Credentials for $api_base_url, tenant ID $tenant_id ($chosen_id) added to keychain"
+security add-internet-password -U -s "$api_base_url" -l "$normalised_entry" -a "$chosen_id" -w "$chosen_secret"
+echo "   [main] Credentials for $normalised_entry added to keychain"
 
 # Verify the credentials
 echo
-echo "   [main] Checking credentials for $api_base_url, tenant ID $tenant_id ($chosen_id)"
+echo "   [main] Checking credentials for $normalised_entry"
 if verify_credentials; then
-    echo "   [main] Credentials for $api_base_url, tenant ID $tenant_id ($chosen_id) verified"
+    echo "   [main] Credentials for $normalised_entry verified"
 else
-    echo "   [main] ERROR: Credentials for $api_base_url, tenant ID $tenant_id ($chosen_id) could not be verified"
+    echo "   [main] ERROR: Credentials for $normalised_entry could not be verified"
 fi
 
 echo
