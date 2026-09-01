@@ -25,6 +25,7 @@ Options:
 --profile PROFILE_NAME                   - profile name for jamf-cli
 -r | --region (eu|us|apac)               - region the tenant is hosted in
 -t | --tenant TENANT_ID                  - tenant ID (UUID)
+-e | --environment ENVIRONMENT_ID        - environment ID (UUID); takes precedence over --tenant
 --id | --client-id CLIENT_ID             - API client ID
 --secret | --client-secret CLIENT_SECRET - API client secret
 --no-dialog                              - non-interactive: all values must be supplied via flags
@@ -50,8 +51,16 @@ collect_via_dialog() {
     local profile_arg="Profile Name,required"
     [[ -n "$profile_name" ]] && profile_arg+=",value=$profile_name"
 
-    local tenant_arg="Tenant ID,required"
-    [[ -n "$tenant_id" ]] && tenant_arg+=",value=$tenant_id"
+    # a single ID field is used for either the tenant or environment id; the
+    # "Level" selector determines which it is (environment takes precedence)
+    local level_default="tenant"
+    local id_value="$tenant_id"
+    if [[ -n "$environment_id" ]]; then
+        level_default="environment"
+        id_value="$environment_id"
+    fi
+    local id_arg="Tenant/Environment ID,required"
+    [[ -n "$id_value" ]] && id_arg+=",value=$id_value"
 
     local clientid_arg="Client ID,required"
     [[ -n "$client_id" ]] && clientid_arg+=",value=$client_id"
@@ -69,12 +78,15 @@ collect_via_dialog() {
         --selecttitle "Region" \
         --selectvalues "eu,us,apac" \
         --selectdefault "$region_default" \
-        --textfield "$tenant_arg" \
+        --selecttitle "Level" \
+        --selectvalues "tenant,environment" \
+        --selectdefault "$level_default" \
+        --textfield "$id_arg" \
         --textfield "$clientid_arg" \
         --textfield "$secret_arg" \
         --button1text "Add Profile" \
         --button2text "Cancel" \
-        --height 450 \
+        --height 500 \
         --json 2>/dev/null)
 
     local exit_code=$?
@@ -89,11 +101,22 @@ collect_via_dialog() {
 
     profile_name=$(plutil -extract "Profile Name" raw "$tmp_json" 2>/dev/null)
     chosen_region=$(plutil -extract "Region.selectedValue" raw "$tmp_json" 2>/dev/null)
-    tenant_id=$(plutil -extract "Tenant ID" raw "$tmp_json" 2>/dev/null)
+    platform_level=$(plutil -extract "Level.selectedValue" raw "$tmp_json" 2>/dev/null)
+    local id_value
+    id_value=$(plutil -extract "Tenant/Environment ID" raw "$tmp_json" 2>/dev/null)
     client_id=$(plutil -extract "Client ID" raw "$tmp_json" 2>/dev/null)
     client_secret=$(plutil -extract "Client Secret" raw "$tmp_json" 2>/dev/null)
 
     rm -f "$tmp_json"
+
+    # map the single ID field onto the chosen level
+    if [[ "$platform_level" == "environment" ]]; then
+        environment_id="$id_value"
+        tenant_id=""
+    else
+        tenant_id="$id_value"
+        environment_id=""
+    fi
 
     chosen_region="${chosen_region:l}"
 }
@@ -116,9 +139,19 @@ collect_via_terminal() {
     # validate region
     region_to_url "$chosen_region" &>/dev/null || exit 1
 
-    if [[ -z "$tenant_id" ]]; then
-        read -r "tenant_id?Tenant ID: "
-        [[ -z "$tenant_id" ]] && { echo "   [main] No tenant ID supplied."; exit 1; }
+    # only prompt for an ID if neither a tenant nor an environment id was supplied
+    if [[ -z "$tenant_id" && -z "$environment_id" ]]; then
+        local platform_level
+        read -r "platform_level?Level (tenant/environment) [tenant]: "
+        platform_level="${platform_level:-tenant}"
+        platform_level="${platform_level:l}"
+        if [[ "$platform_level" == "environment" ]]; then
+            read -r "environment_id?Environment ID: "
+            [[ -z "$environment_id" ]] && { echo "   [main] No environment ID supplied."; exit 1; }
+        else
+            read -r "tenant_id?Tenant ID: "
+            [[ -z "$tenant_id" ]] && { echo "   [main] No tenant ID supplied."; exit 1; }
+        fi
     fi
 
     if [[ -z "$client_id" ]]; then
@@ -137,8 +170,18 @@ create_profile() {
     local api_url
     api_url=$(region_to_url "$chosen_region") || return 1
 
+    # environment id takes precedence over tenant id
+    local level_flag level_id
+    if [[ -n "$environment_id" ]]; then
+        level_flag="--environment-id"
+        level_id="$environment_id"
+    else
+        level_flag="--tenant-id"
+        level_id="$tenant_id"
+    fi
+
     if [[ $verbose -eq 1 ]]; then
-        echo "   [create_profile] Creating jamf-cli profile '$profile_name' for $api_url (tenant $tenant_id)"
+        echo "   [create_profile] Creating jamf-cli profile '$profile_name' for $api_url ($level_flag $level_id)"
     fi
 
     # jamf-cli reads the client secret with no-echo (requires a TTY), so use expect
@@ -147,7 +190,7 @@ create_profile() {
         log_user 0
         spawn jamf-cli config add-profile \
             --auth-method platform \
-            --tenant-id {$tenant_id} \
+            $level_flag {$level_id} \
             --url {$api_url} \
             {$profile_name}
         expect -re {[Cc]lient.?[Ii][Dd]}
@@ -238,6 +281,10 @@ while test $# -gt 0; do
             shift
             tenant_id="$1"
             ;;
+        -e|--environment|--environment-id)
+            shift
+            environment_id="$1"
+            ;;
         --id|--client-id)
             shift
             client_id="$1"
@@ -276,7 +323,7 @@ if [[ "$no_dialog" == "true" ]]; then
     missing=()
     [[ -z "$profile_name" ]]  && missing+=("--profile")
     [[ -z "$chosen_region" ]] && missing+=("--region")
-    [[ -z "$tenant_id" ]]     && missing+=("--tenant")
+    [[ -z "$tenant_id" && -z "$environment_id" ]] && missing+=("--tenant or --environment")
     [[ -z "$client_id" ]]     && missing+=("--client-id")
     [[ -z "$client_secret" ]] && missing+=("--client-secret")
     if [[ ${#missing[@]} -gt 0 ]]; then

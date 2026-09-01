@@ -39,7 +39,7 @@ from JamfUploaderBase import (  # pylint: disable=import-error, wrong-import-pos
 class JamfMobileDeviceStaticGroupUploaderBase(JamfUploaderBase):
     """Class for functions used to upload a mobile device group to Jamf"""
 
-    def get_existing_assignments(self, api_url, object_id, token, tenant_id=""):
+    def get_existing_assignments(self, api_url, object_id, token, platform_level_id=""):
         """return the existing members of the static group to ensure we don't overwrite"""
         # first grab the payload from the json object
         existing_assignments_key = self.get_api_object_value_from_id(
@@ -48,7 +48,7 @@ class JamfMobileDeviceStaticGroupUploaderBase(JamfUploaderBase):
             object_id=object_id,
             object_path="mobile_devices",
             token=token,
-            tenant_id=tenant_id,
+            platform_level_id=platform_level_id,
         )
 
         self.output(
@@ -74,7 +74,7 @@ class JamfMobileDeviceStaticGroupUploaderBase(JamfUploaderBase):
         token,
         max_tries,
         object_id=0,
-        tenant_id="",
+        platform_level_id="",
     ):
         """Upload mobile device group"""
 
@@ -90,7 +90,7 @@ class JamfMobileDeviceStaticGroupUploaderBase(JamfUploaderBase):
 
         self.output("Uploading Mobile Device Group...")
         object_type = "static_mobile_device_group"
-        endpoint = self.api_endpoints(object_type, tenant_id=tenant_id)
+        endpoint = self.api_endpoints(object_type, platform_level_id=platform_level_id)
         # if we find an object ID we put, if not, we post
         if object_id:
             url = f"{api_url}/{endpoint}/{object_id}"
@@ -134,7 +134,9 @@ class JamfMobileDeviceStaticGroupUploaderBase(JamfUploaderBase):
         jamf_user = self.env.get("API_USERNAME")
         jamf_password = self.env.get("API_PASSWORD")
         jamf_platform_gw_region = self.env.get("PLATFORM_API_REGION")
-        jamf_platform_gw_tenant_id = self.env.get("PLATFORM_API_TENANT_ID")
+        platform_level_id = self.env.get("PLATFORM_API_ENVIRONMENT_ID") or self.env.get(
+            "PLATFORM_API_TENANT_ID"
+        )
         client_id = self.env.get("CLIENT_ID")
         client_secret = self.env.get("CLIENT_SECRET")
         bearer_token = self.env.get("BEARER_TOKEN")
@@ -181,13 +183,13 @@ class JamfMobileDeviceStaticGroupUploaderBase(JamfUploaderBase):
         mobiledevicegroup_name = self.substitute_assignable_keys(mobiledevicegroup_name)
 
         # get a token
-        token, jamf_url, jamf_platform_gw_region, jamf_platform_gw_tenant_id = (
+        token, jamf_url, jamf_platform_gw_region, platform_level_id = (
             self.auth(
                 jamf_url=jamf_url,
                 jamf_user=jamf_user,
                 password=jamf_password,
                 region=jamf_platform_gw_region,
-                tenant_id=jamf_platform_gw_tenant_id,
+                platform_level_id=platform_level_id,
                 client_id=client_id,
                 client_secret=client_secret,
                 token=bearer_token,
@@ -210,7 +212,7 @@ class JamfMobileDeviceStaticGroupUploaderBase(JamfUploaderBase):
             object_type="static_mobile_device_group",
             object_name=mobiledevicegroup_name,
             token=token,
-            tenant_id=jamf_platform_gw_tenant_id,
+            platform_level_id=platform_level_id,
         )
 
         existing_assignments = []
@@ -232,7 +234,7 @@ class JamfMobileDeviceStaticGroupUploaderBase(JamfUploaderBase):
             # now get any existing assignments
             if not clear_assignments:
                 existing_assignments = self.get_existing_assignments(
-                    api_url, object_id, token, tenant_id=jamf_platform_gw_tenant_id
+                    api_url, object_id, token, platform_level_id=platform_level_id
                 )
 
         if dry_run:
@@ -257,7 +259,7 @@ class JamfMobileDeviceStaticGroupUploaderBase(JamfUploaderBase):
             token=token,
             max_tries=max_tries,
             object_id=object_id,
-            tenant_id=jamf_platform_gw_tenant_id,
+            platform_level_id=platform_level_id,
         )
         group_uploaded = True
 

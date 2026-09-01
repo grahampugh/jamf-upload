@@ -94,14 +94,14 @@ class JamfMobileDeviceAppUploaderBase(JamfUploaderBase):
         token,
         max_tries,
         object_id=0,
-        tenant_id="",
+        platform_level_id="",
     ):
         """Upload Mobile device app"""
 
         self.output("Uploading Mobile device app...")
 
         object_type = "mobile_device_application"
-        endpoint = self.api_endpoints(object_type, tenant_id=tenant_id)
+        endpoint = self.api_endpoints(object_type, platform_level_id=platform_level_id)
         # if we find an object ID we put, if not, we post
         url = f"{api_url}/{endpoint}/id/{object_id}"
 
@@ -141,7 +141,9 @@ class JamfMobileDeviceAppUploaderBase(JamfUploaderBase):
         jamf_user = self.env.get("API_USERNAME")
         jamf_password = self.env.get("API_PASSWORD")
         jamf_platform_gw_region = self.env.get("PLATFORM_API_REGION")
-        jamf_platform_gw_tenant_id = self.env.get("PLATFORM_API_TENANT_ID")
+        platform_level_id = self.env.get("PLATFORM_API_ENVIRONMENT_ID") or self.env.get(
+            "PLATFORM_API_TENANT_ID"
+        )
         client_id = self.env.get("CLIENT_ID")
         client_secret = self.env.get("CLIENT_SECRET")
         bearer_token = self.env.get("BEARER_TOKEN")
@@ -199,7 +201,7 @@ class JamfMobileDeviceAppUploaderBase(JamfUploaderBase):
 
         # get token using oauth or basic auth depending on the credentials given
         if jamf_url:
-            token, jamf_url, jamf_platform_gw_region, jamf_platform_gw_tenant_id = (
+            token, jamf_url, jamf_platform_gw_region, platform_level_id = (
                 self.auth(
                     jamf_url,
                     jamf_user=jamf_user,
@@ -225,7 +227,7 @@ class JamfMobileDeviceAppUploaderBase(JamfUploaderBase):
             object_type="mobile_device_application",
             object_name=mobiledeviceapp_name,
             token=token,
-            tenant_id=jamf_platform_gw_tenant_id,
+            platform_level_id=platform_level_id,
         )
 
         if dry_run:
@@ -258,7 +260,7 @@ class JamfMobileDeviceAppUploaderBase(JamfUploaderBase):
                     object_id=object_id,
                     object_path="general/bundle_id",
                     token=token,
-                    tenant_id=jamf_platform_gw_tenant_id,
+                    platform_level_id=platform_level_id,
                 )
                 if bundleid:
                     self.output(f"Existing bundle ID is '{bundleid}'", verbose_level=1)
@@ -269,7 +271,7 @@ class JamfMobileDeviceAppUploaderBase(JamfUploaderBase):
                     object_id=object_id,
                     object_path="general/version",
                     token=token,
-                    tenant_id=jamf_platform_gw_tenant_id,
+                    platform_level_id=platform_level_id,
                 )
                 if mobiledeviceapp_version:
                     self.output(
@@ -283,7 +285,7 @@ class JamfMobileDeviceAppUploaderBase(JamfUploaderBase):
                     object_id=object_id,
                     object_path="general/free",
                     token=token,
-                    tenant_id=jamf_platform_gw_tenant_id,
+                    platform_level_id=platform_level_id,
                 )
                 if mobiledeviceapp_free:
                     self.output(
@@ -297,7 +299,7 @@ class JamfMobileDeviceAppUploaderBase(JamfUploaderBase):
                     object_id=object_id,
                     object_path="general/itunes_store_url",
                     token=token,
-                    tenant_id=jamf_platform_gw_tenant_id,
+                    platform_level_id=platform_level_id,
                 )
                 if itunes_store_url:
                     self.output(
@@ -317,7 +319,7 @@ class JamfMobileDeviceAppUploaderBase(JamfUploaderBase):
                         object_id=object_id,
                         object_path="self_service/self_service_icon/uri",
                         token=token,
-                        tenant_id=jamf_platform_gw_tenant_id,
+                        platform_level_id=platform_level_id,
                     )
                     if selfservice_icon_uri:
                         self.output(
@@ -331,7 +333,7 @@ class JamfMobileDeviceAppUploaderBase(JamfUploaderBase):
                     token,
                     store_url=itunes_store_url,
                     preferred_location=preferred_vpp_location,
-                    tenant_id=jamf_platform_gw_tenant_id,
+                    platform_level_id=platform_level_id,
                 )
                 if vpp_id:
                     self.output(
@@ -368,7 +370,7 @@ class JamfMobileDeviceAppUploaderBase(JamfUploaderBase):
                         object_id=object_id,
                         object_path="app_configuration/preferences",
                         token=token,
-                        tenant_id=jamf_platform_gw_tenant_id,
+                        platform_level_id=platform_level_id,
                     )
 
                 # we need to substitute the values in the Mobile device app name and template now to
@@ -396,7 +398,7 @@ class JamfMobileDeviceAppUploaderBase(JamfUploaderBase):
                     token=token,
                     max_tries=max_tries,
                     object_id=object_id,
-                    tenant_id=jamf_platform_gw_tenant_id,
+                    platform_level_id=platform_level_id,
                 )
                 mobiledeviceapp_updated = True
 
@@ -429,7 +431,7 @@ class JamfMobileDeviceAppUploaderBase(JamfUploaderBase):
                 object_type="mobile_device_application",
                 object_name=clone_from,
                 token=token,
-                tenant_id=jamf_platform_gw_tenant_id,
+                platform_level_id=platform_level_id,
             )
             if object_id:
                 self.output(
@@ -443,7 +445,7 @@ class JamfMobileDeviceAppUploaderBase(JamfUploaderBase):
                     object_id=object_id,
                     object_path="general/bundle_id",
                     token=token,
-                    tenant_id=jamf_platform_gw_tenant_id,
+                    platform_level_id=platform_level_id,
                 )
                 if bundleid:
                     self.output(f"Existing bundle ID is '{bundleid}'", verbose_level=1)
@@ -454,7 +456,7 @@ class JamfMobileDeviceAppUploaderBase(JamfUploaderBase):
                     object_id=object_id,
                     object_path="general/version",
                     token=token,
-                    tenant_id=jamf_platform_gw_tenant_id,
+                    platform_level_id=platform_level_id,
                 )
                 if mobiledeviceapp_version:
                     self.output(
@@ -468,7 +470,7 @@ class JamfMobileDeviceAppUploaderBase(JamfUploaderBase):
                     object_id=object_id,
                     object_path="general/free",
                     token=token,
-                    tenant_id=jamf_platform_gw_tenant_id,
+                    platform_level_id=platform_level_id,
                 )
                 if mobiledeviceapp_free:
                     self.output(
@@ -482,7 +484,7 @@ class JamfMobileDeviceAppUploaderBase(JamfUploaderBase):
                     object_id=object_id,
                     object_path="general/itunes_store_url",
                     token=token,
-                    tenant_id=jamf_platform_gw_tenant_id,
+                    platform_level_id=platform_level_id,
                 )
                 if itunes_store_url:
                     self.output(
@@ -497,7 +499,7 @@ class JamfMobileDeviceAppUploaderBase(JamfUploaderBase):
                         object_id=object_id,
                         object_path="self_service/self_service_icon/uri",
                         token=token,
-                        tenant_id=jamf_platform_gw_tenant_id,
+                        platform_level_id=platform_level_id,
                     )
                     if selfservice_icon_uri:
                         self.output(
@@ -512,7 +514,7 @@ class JamfMobileDeviceAppUploaderBase(JamfUploaderBase):
                     token,
                     store_url=itunes_store_url,
                     preferred_location=preferred_vpp_location,
-                    tenant_id=jamf_platform_gw_tenant_id,
+                    platform_level_id=platform_level_id,
                 )
                 if vpp_id:
                     self.output(
@@ -544,7 +546,7 @@ class JamfMobileDeviceAppUploaderBase(JamfUploaderBase):
                         object_id=object_id,
                         object_path="app_configuration/preferences",
                         token=token,
-                        tenant_id=jamf_platform_gw_tenant_id,
+                        platform_level_id=platform_level_id,
                     )
                 if appconfig_template:
                     appconfig = self.make_escaped_appconfig_from_template(
@@ -576,7 +578,7 @@ class JamfMobileDeviceAppUploaderBase(JamfUploaderBase):
                     token=token,
                     max_tries=max_tries,
                     object_id=0,
-                    tenant_id=jamf_platform_gw_tenant_id,
+                    platform_level_id=platform_level_id,
                 )
                 mobiledeviceapp_updated = True
 

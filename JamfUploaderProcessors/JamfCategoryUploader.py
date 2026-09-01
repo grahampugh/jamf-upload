@@ -88,6 +88,12 @@ class JamfCategoryUploader(JamfCategoryUploaderBase):
             "Required for Platform API authentication.",
             "default": "",
         },
+        "PLATFORM_API_ENVIRONMENT_ID": {
+            "required": False,
+            "description": "Environment ID for Jamf Platform API Gateway. "
+            "Takes precedence over PLATFORM_API_TENANT_ID if both are set.",
+            "default": "",
+        },
         "PLATFORM_API_TENANT_ID": {
             "required": False,
             "description": "Tenant ID for Jamf Platform API Gateway. "

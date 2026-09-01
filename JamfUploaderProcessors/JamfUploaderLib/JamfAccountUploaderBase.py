@@ -40,14 +40,14 @@ class JamfAccountUploaderBase(JamfUploaderBase):
     """Class for functions used to upload an account to Jamf"""
 
     def get_account_id_from_name(
-        self, api_url, account_type, object_name, token, tenant_id=""
+        self, api_url, account_type, object_name, token, platform_level_id=""
     ):
         """check if an account with the same name exists on the server.
         This function is different to get_api_object_id_from_name because we need to check inside
         users/groups"""
         # define the relationship between the object types and their URL
         object_type = "account"
-        endpoint = self.api_endpoints(object_type, tenant_id=tenant_id)
+        endpoint = self.api_endpoints(object_type, platform_level_id=platform_level_id)
         url = f"{api_url}/{endpoint}"
         r = self.curl(api_type="classic", request="GET", url=url, token=token)
 
@@ -111,7 +111,7 @@ class JamfAccountUploaderBase(JamfUploaderBase):
         token,
         max_tries,
         object_id=0,
-        tenant_id="",
+        platform_level_id="",
     ):
         """Upload account"""
 
@@ -120,7 +120,7 @@ class JamfAccountUploaderBase(JamfUploaderBase):
         # Account endpoint has special structure: /accounts/{userid|groupid}/{id}
         # Use api_endpoints to get the base and append the specific structure
         object_endpoint_type = "account"
-        base_endpoint = self.api_endpoints(object_endpoint_type, tenant_id=tenant_id)
+        base_endpoint = self.api_endpoints(object_endpoint_type, platform_level_id=platform_level_id)
         # Append the account-specific path
         url = f"{api_url}/{base_endpoint}/{object_type}id/{object_id}"
 
@@ -157,7 +157,9 @@ class JamfAccountUploaderBase(JamfUploaderBase):
         jamf_user = self.env.get("API_USERNAME")
         jamf_password = self.env.get("API_PASSWORD")
         jamf_platform_gw_region = self.env.get("PLATFORM_API_REGION")
-        jamf_platform_gw_tenant_id = self.env.get("PLATFORM_API_TENANT_ID")
+        platform_level_id = self.env.get("PLATFORM_API_ENVIRONMENT_ID") or self.env.get(
+            "PLATFORM_API_TENANT_ID"
+        )
         client_id = self.env.get("CLIENT_ID")
         client_secret = self.env.get("CLIENT_SECRET")
         bearer_token = self.env.get("BEARER_TOKEN")
@@ -209,13 +211,13 @@ class JamfAccountUploaderBase(JamfUploaderBase):
                 raise ProcessorError(f"ERROR: Policy file {account_template} not found")
 
         # get a token
-        token, jamf_url, jamf_platform_gw_region, jamf_platform_gw_tenant_id = (
+        token, jamf_url, jamf_platform_gw_region, platform_level_id = (
             self.auth(
                 jamf_url=jamf_url,
                 jamf_user=jamf_user,
                 password=jamf_password,
                 region=jamf_platform_gw_region,
-                tenant_id=jamf_platform_gw_tenant_id,
+                platform_level_id=platform_level_id,
                 client_id=client_id,
                 client_secret=client_secret,
                 token=bearer_token,
@@ -238,7 +240,7 @@ class JamfAccountUploaderBase(JamfUploaderBase):
             account_type=account_type,
             object_name=account_name,
             token=token,
-            tenant_id=jamf_platform_gw_tenant_id,
+            platform_level_id=platform_level_id,
         )
 
         # check for existing LDAP domain
@@ -253,7 +255,7 @@ class JamfAccountUploaderBase(JamfUploaderBase):
                 object_type="ldap_server",
                 object_name=domain,
                 token=token,
-                tenant_id=jamf_platform_gw_tenant_id,
+                platform_level_id=platform_level_id,
             )
             self.env["domain"] = domain
             self.env["domain_id"] = domain_id
@@ -265,7 +267,7 @@ class JamfAccountUploaderBase(JamfUploaderBase):
                 account_type="group",
                 object_name=group,
                 token=token,
-                tenant_id=jamf_platform_gw_tenant_id,
+                platform_level_id=platform_level_id,
             )
             self.env["group"] = group
             self.env["group_id"] = group_id
@@ -312,7 +314,7 @@ class JamfAccountUploaderBase(JamfUploaderBase):
             token=token,
             max_tries=max_tries,
             object_id=object_id,
-            tenant_id=jamf_platform_gw_tenant_id,
+            platform_level_id=platform_level_id,
         )
         account_updated = True
 

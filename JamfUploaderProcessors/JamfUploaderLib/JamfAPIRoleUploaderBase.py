@@ -49,13 +49,13 @@ class JamfAPIRoleUploaderBase(JamfUploaderBase):
         token,
         max_tries,
         object_id=0,
-        tenant_id="",
+        platform_level_id="",
     ):
         """Upload object"""
 
         self.output(f"Uploading {object_type}...")
 
-        endpoint = self.api_endpoints(object_type, tenant_id=tenant_id)
+        endpoint = self.api_endpoints(object_type, platform_level_id=platform_level_id)
         # if we find an object ID we put, if not, we post
         if object_id:
             url = f"{api_url}/{endpoint}/{object_id}"
@@ -95,7 +95,9 @@ class JamfAPIRoleUploaderBase(JamfUploaderBase):
         jamf_user = self.env.get("API_USERNAME")
         jamf_password = self.env.get("API_PASSWORD")
         jamf_platform_gw_region = self.env.get("PLATFORM_API_REGION")
-        jamf_platform_gw_tenant_id = self.env.get("PLATFORM_API_TENANT_ID")
+        platform_level_id = self.env.get("PLATFORM_API_ENVIRONMENT_ID") or self.env.get(
+            "PLATFORM_API_TENANT_ID"
+        )
         client_id = self.env.get("CLIENT_ID")
         client_secret = self.env.get("CLIENT_SECRET")
         bearer_token = self.env.get("BEARER_TOKEN")
@@ -145,13 +147,13 @@ class JamfAPIRoleUploaderBase(JamfUploaderBase):
                 raise ProcessorError(f"ERROR: Policy file {object_template} not found")
 
         # get a token
-        token, jamf_url, jamf_platform_gw_region, jamf_platform_gw_tenant_id = (
+        token, jamf_url, jamf_platform_gw_region, platform_level_id = (
             self.auth(
                 jamf_url=jamf_url,
                 jamf_user=jamf_user,
                 password=jamf_password,
                 region=jamf_platform_gw_region,
-                tenant_id=jamf_platform_gw_tenant_id,
+                platform_level_id=platform_level_id,
                 client_id=client_id,
                 client_secret=client_secret,
                 token=bearer_token,
@@ -180,7 +182,7 @@ class JamfAPIRoleUploaderBase(JamfUploaderBase):
             object_type=object_type,
             object_name=object_name,
             token=token,
-            tenant_id=jamf_platform_gw_tenant_id,
+            platform_level_id=platform_level_id,
             filter_name="displayName",
         )
 
@@ -220,7 +222,7 @@ class JamfAPIRoleUploaderBase(JamfUploaderBase):
             token=token,
             max_tries=max_tries,
             object_id=object_id,
-            tenant_id=jamf_platform_gw_tenant_id,
+            platform_level_id=platform_level_id,
         )
         object_updated = True
 

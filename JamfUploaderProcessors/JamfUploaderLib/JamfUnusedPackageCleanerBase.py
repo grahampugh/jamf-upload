@@ -51,12 +51,12 @@ class Bcolors:
 class JamfUnusedPackageCleanerBase(JamfUploaderBase):
     """Class for functions used removing unused packages from Jamf Pro"""
 
-    def get_packages_in_policies(self, api_url, token, tenant_id=""):
+    def get_packages_in_policies(self, api_url, token, platform_level_id=""):
         """get a list of all packages in all policies"""
 
         # get all policies
         policies = self.get_all_api_objects(
-            api_url, "policy", token=token, tenant_id=tenant_id
+            api_url, "policy", token=token, platform_level_id=platform_level_id
         )
 
         # get all package objects from policies and add to a list
@@ -77,7 +77,7 @@ class JamfUnusedPackageCleanerBase(JamfUploaderBase):
                     object_id=policy["id"],
                     object_path="",
                     token=token,
-                    tenant_id=tenant_id,
+                    platform_level_id=platform_level_id,
                 )
                 try:
                     pkgs = generic_info["package_configuration"]["packages"]
@@ -89,13 +89,13 @@ class JamfUnusedPackageCleanerBase(JamfUploaderBase):
                     pass
             return packages_in_policies
 
-    def get_packages_in_patch_titles(self, api_url, token, tenant_id=""):
+    def get_packages_in_patch_titles(self, api_url, token, platform_level_id=""):
         """get a list of all packages in all patch software titles"""
 
         # get all patch software titles
         try:
             titles = self.get_all_api_objects(
-                api_url, "patch_software_title", token=token, tenant_id=tenant_id
+                api_url, "patch_software_title", token=token, platform_level_id=platform_level_id
             )
         except ProcessorError:
             self.output(
@@ -122,7 +122,7 @@ class JamfUnusedPackageCleanerBase(JamfUploaderBase):
                     object_id=title["id"],
                     object_path="versions",
                     token=token,
-                    tenant_id=tenant_id,
+                    platform_level_id=platform_level_id,
                 )
                 try:
                     if len(versions) > 0:
@@ -142,12 +142,12 @@ class JamfUnusedPackageCleanerBase(JamfUploaderBase):
                     pass
             return packages_in_titles
 
-    def get_packages_in_prestages(self, api_url, token, tenant_id=""):
+    def get_packages_in_prestages(self, api_url, token, platform_level_id=""):
         """get a list of all packages in all PreStage Enrollments"""
 
         # get all prestages
         prestages = self.get_all_api_objects(
-            api_url, "computer_prestage", token=token, tenant_id=tenant_id
+            api_url, "computer_prestage", token=token, platform_level_id=platform_level_id
         )
 
         # get all package objects from prestages and add to a list
@@ -170,7 +170,7 @@ class JamfUnusedPackageCleanerBase(JamfUploaderBase):
                             object_id=pkg_id,
                             object_path="name",
                             token=token,
-                            tenant_id=tenant_id,
+                            platform_level_id=platform_level_id,
                         )
                         if pkg:
                             if pkg not in packages_in_prestages:
@@ -201,13 +201,13 @@ class JamfUnusedPackageCleanerBase(JamfUploaderBase):
                 verbose_level=2,
             )
 
-    def delete_package(self, api_url, object_id, token, max_tries, tenant_id=""):
+    def delete_package(self, api_url, object_id, token, max_tries, platform_level_id=""):
         """Cleaning Packages"""
 
         self.output("Deleting package...")
 
         object_type = "package_v1"
-        endpoint = self.api_endpoints(object_type, tenant_id=tenant_id)
+        endpoint = self.api_endpoints(object_type, platform_level_id=platform_level_id)
         url = f"{api_url}/{endpoint}/{object_id}"
 
         count = 0
@@ -314,7 +314,9 @@ class JamfUnusedPackageCleanerBase(JamfUploaderBase):
         jamf_user = self.env.get("API_USERNAME")
         jamf_password = self.env.get("API_PASSWORD")
         jamf_platform_gw_region = self.env.get("PLATFORM_API_REGION")
-        jamf_platform_gw_tenant_id = self.env.get("PLATFORM_API_TENANT_ID")
+        platform_level_id = self.env.get("PLATFORM_API_ENVIRONMENT_ID") or self.env.get(
+            "PLATFORM_API_TENANT_ID"
+        )
         client_id = self.env.get("CLIENT_ID")
         client_secret = self.env.get("CLIENT_SECRET")
         bearer_token = self.env.get("BEARER_TOKEN")
@@ -420,13 +422,13 @@ class JamfUnusedPackageCleanerBase(JamfUploaderBase):
 
         # get token using oauth or basic auth depending on the credentials given
         if jamf_url:
-            token, jamf_url, jamf_platform_gw_region, jamf_platform_gw_tenant_id = (
+            token, jamf_url, jamf_platform_gw_region, platform_level_id = (
                 self.auth(
                     jamf_url=jamf_url,
                     jamf_user=jamf_user,
                     password=jamf_password,
                     region=jamf_platform_gw_region,
-                    tenant_id=jamf_platform_gw_tenant_id,
+                    platform_level_id=platform_level_id,
                     client_id=client_id,
                     client_secret=client_secret,
                     token=bearer_token,
@@ -446,20 +448,20 @@ class JamfUnusedPackageCleanerBase(JamfUploaderBase):
 
         # get a list of packages in prestage enrollments
         packages_in_prestages = self.get_packages_in_prestages(
-            api_url, token, tenant_id=jamf_platform_gw_tenant_id
+            api_url, token, platform_level_id=platform_level_id
         )
         # get a list of packages in patch software titles
         packages_in_titles = self.get_packages_in_patch_titles(
-            api_url, token, tenant_id=jamf_platform_gw_tenant_id
+            api_url, token, platform_level_id=platform_level_id
         )
         # get a list of packages in policies
         packages_in_policies = self.get_packages_in_policies(
-            api_url, token, tenant_id=jamf_platform_gw_tenant_id
+            api_url, token, platform_level_id=platform_level_id
         )
 
         # get a list of all packages in Jamf Pro
         packages = self.get_all_api_objects(
-            api_url, "package_v1", token=token, tenant_id=jamf_platform_gw_tenant_id
+            api_url, "package_v1", token=token, platform_level_id=platform_level_id
         )
         if packages:
             csv_fields = ["pkg_id", "pkg_name", "used"]
@@ -576,7 +578,7 @@ class JamfUnusedPackageCleanerBase(JamfUploaderBase):
                         "package_v1",
                         pkg_id,
                         token,
-                        tenant_id=jamf_platform_gw_tenant_id,
+                        platform_level_id=platform_level_id,
                     )
                     # Process for SMB shares if defined
                     if len(smb_shares) > 0:

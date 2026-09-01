@@ -45,7 +45,7 @@ from JamfUploaderBase import (  # pylint: disable=import-error, wrong-import-pos
 class JamfPkgMetadataUploaderBase(JamfUploaderBase):
     """Class for functions used to upload package metadata without a package to Jamf"""
 
-    def check_pkg(self, pkg_name, api_url, token, tenant_id=""):
+    def check_pkg(self, pkg_name, api_url, token, platform_level_id=""):
         """check if a package with the same name exists in the repo
         note that it is possible to have more than one with the same name
         which could mess things up"""
@@ -58,7 +58,7 @@ class JamfPkgMetadataUploaderBase(JamfUploaderBase):
             object_name=pkg_name,
             token=token,
             filter_name=filter_name,
-            tenant_id=tenant_id,
+            platform_level_id=platform_level_id,
         )
 
         if object_id:
@@ -66,7 +66,7 @@ class JamfPkgMetadataUploaderBase(JamfUploaderBase):
         else:
             return "-1"
 
-    def get_category_id(self, api_url, category_name, token="", tenant_id=""):
+    def get_category_id(self, api_url, category_name, token="", platform_level_id=""):
         """Get the category ID from the name, or abort if ID not found"""
         # check for existing category
         self.output(f"Checking for '{category_name}' on {api_url}")
@@ -75,7 +75,7 @@ class JamfPkgMetadataUploaderBase(JamfUploaderBase):
             object_type="category",
             object_name=category_name,
             token=token,
-            tenant_id=tenant_id,
+            platform_level_id=platform_level_id,
         )
 
         if object_id:
@@ -95,14 +95,14 @@ class JamfPkgMetadataUploaderBase(JamfUploaderBase):
         token,
         max_tries,
         pkg_id=0,
-        tenant_id="",
+        platform_level_id="",
     ):
         """Update package metadata using v1/packages endpoint."""
 
         # get category ID
         if pkg_metadata["category"]:
             category_id = self.get_category_id(
-                api_url, pkg_metadata["category"], token, tenant_id=tenant_id
+                api_url, pkg_metadata["category"], token, platform_level_id=platform_level_id
             )
         else:
             category_id = "-1"
@@ -139,7 +139,7 @@ class JamfPkgMetadataUploaderBase(JamfUploaderBase):
 
         # if we find a pkg ID we put, if not, we post
         object_type = "package_v1"
-        endpoint = self.api_endpoints(object_type, tenant_id=tenant_id)
+        endpoint = self.api_endpoints(object_type, platform_level_id=platform_level_id)
         if int(pkg_id) > 0:
             url = f"{api_url}/{endpoint}/{pkg_id}"
         else:
@@ -194,7 +194,9 @@ class JamfPkgMetadataUploaderBase(JamfUploaderBase):
         jamf_user = self.env.get("API_USERNAME")
         jamf_password = self.env.get("API_PASSWORD")
         jamf_platform_gw_region = self.env.get("PLATFORM_API_REGION")
-        jamf_platform_gw_tenant_id = self.env.get("PLATFORM_API_TENANT_ID")
+        platform_level_id = self.env.get("PLATFORM_API_ENVIRONMENT_ID") or self.env.get(
+            "PLATFORM_API_TENANT_ID"
+        )
         client_id = self.env.get("CLIENT_ID")
         client_secret = self.env.get("CLIENT_SECRET")
         bearer_token = self.env.get("BEARER_TOKEN")
@@ -265,13 +267,13 @@ class JamfPkgMetadataUploaderBase(JamfUploaderBase):
         self.output(f"Checking for existing metadata '{pkg_name}' on {jamf_url}")
 
         # get a token
-        token, jamf_url, jamf_platform_gw_region, jamf_platform_gw_tenant_id = (
+        token, jamf_url, jamf_platform_gw_region, platform_level_id = (
             self.auth(
                 jamf_url=jamf_url,
                 jamf_user=jamf_user,
                 password=jamf_password,
                 region=jamf_platform_gw_region,
-                tenant_id=jamf_platform_gw_tenant_id,
+                platform_level_id=platform_level_id,
                 client_id=client_id,
                 client_secret=client_secret,
                 token=bearer_token,
@@ -286,7 +288,7 @@ class JamfPkgMetadataUploaderBase(JamfUploaderBase):
         self.output(f"API URL is {api_url}", verbose_level=3)
 
         jamf_pro_version = self.get_jamf_pro_version(
-            api_url, token, tenant_id=jamf_platform_gw_tenant_id
+            api_url, token, platform_level_id=platform_level_id
         )
 
         if APLooseVersion(jamf_pro_version) < APLooseVersion("11.4"):
@@ -296,7 +298,7 @@ class JamfPkgMetadataUploaderBase(JamfUploaderBase):
 
         # check for existing pkg
         object_id = self.check_pkg(
-            pkg_name, api_url, token=token, tenant_id=jamf_platform_gw_tenant_id
+            pkg_name, api_url, token=token, platform_level_id=platform_level_id
         )
         self.output(f"ID: {object_id}", verbose_level=3)  # TEMP
         if object_id != "-1":
@@ -335,7 +337,7 @@ class JamfPkgMetadataUploaderBase(JamfUploaderBase):
                 token=token,
                 max_tries=max_tries,
                 pkg_id=pkg_id,
-                tenant_id=jamf_platform_gw_tenant_id,
+                platform_level_id=platform_level_id,
             )
             pkg_metadata_updated = True
         else:
@@ -353,7 +355,7 @@ class JamfPkgMetadataUploaderBase(JamfUploaderBase):
                 token=token,
                 max_tries=max_tries,
                 pkg_id=pkg_id,
-                tenant_id=jamf_platform_gw_tenant_id,
+                platform_level_id=platform_level_id,
             )
             pkg_metadata_updated = True
 

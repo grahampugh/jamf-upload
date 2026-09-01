@@ -46,13 +46,13 @@ class JamfMSUPlanUploaderBase(JamfUploaderBase):
         self,
         api_url,
         token,
-        tenant_id="",
+        platform_level_id="",
     ):
         """Check if the feature toggle is enabled and raise processor error
         if toggle is set to false"""
         object_type = "managed_software_updates_feature_toggle_settings"
         object_content = self.get_settings_object(
-            api_url, object_type, token, tenant_id=tenant_id
+            api_url, object_type, token, platform_level_id=platform_level_id
         )
         if object_content:
             self.output(
@@ -126,13 +126,13 @@ class JamfMSUPlanUploaderBase(JamfUploaderBase):
         token,
         max_tries,
         object_name=None,
-        tenant_id="",
+        platform_level_id="",
     ):
         """Upload object"""
 
         self.output(f"Uploading {object_type}...")
 
-        endpoint = self.api_endpoints(object_type, tenant_id=tenant_id)
+        endpoint = self.api_endpoints(object_type, platform_level_id=platform_level_id)
         # if we find an object ID or it's an endpoint without IDs, we PUT or PATCH
         # if we're creating a new object, we POST
         url = f"{api_url}/{endpoint}"
@@ -170,7 +170,9 @@ class JamfMSUPlanUploaderBase(JamfUploaderBase):
         jamf_user = self.env.get("API_USERNAME")
         jamf_password = self.env.get("API_PASSWORD")
         jamf_platform_gw_region = self.env.get("PLATFORM_API_REGION")
-        jamf_platform_gw_tenant_id = self.env.get("PLATFORM_API_TENANT_ID")
+        platform_level_id = self.env.get("PLATFORM_API_ENVIRONMENT_ID") or self.env.get(
+            "PLATFORM_API_TENANT_ID"
+        )
         client_id = self.env.get("CLIENT_ID")
         client_secret = self.env.get("CLIENT_SECRET")
         bearer_token = self.env.get("BEARER_TOKEN")
@@ -231,13 +233,13 @@ class JamfMSUPlanUploaderBase(JamfUploaderBase):
         self.output(f"Obtaining API token for {jamf_url}")
 
         # get a token
-        token, jamf_url, jamf_platform_gw_region, jamf_platform_gw_tenant_id = (
+        token, jamf_url, jamf_platform_gw_region, platform_level_id = (
             self.auth(
                 jamf_url=jamf_url,
                 jamf_user=jamf_user,
                 password=jamf_password,
                 region=jamf_platform_gw_region,
-                tenant_id=jamf_platform_gw_tenant_id,
+                platform_level_id=platform_level_id,
                 client_id=client_id,
                 client_secret=client_secret,
                 token=bearer_token,
@@ -254,7 +256,7 @@ class JamfMSUPlanUploaderBase(JamfUploaderBase):
         # check if managed software update feature toggle is enabled - this
         # processor requires it to be enabled
         toggle_value = self.check_feature_toggle(
-            api_url, token, tenant_id=jamf_platform_gw_tenant_id
+            api_url, token, platform_level_id=platform_level_id
         )
         if toggle_value:
             self.output("Software Update Feature is enabled.")
@@ -270,7 +272,7 @@ class JamfMSUPlanUploaderBase(JamfUploaderBase):
             object_type=object_type,
             object_name=group_name,
             token=token,
-            tenant_id=jamf_platform_gw_tenant_id,
+            platform_level_id=platform_level_id,
         )
         if not group_id:
             raise ProcessorError(f"ERROR: Group {group_name} not found")
@@ -325,7 +327,7 @@ class JamfMSUPlanUploaderBase(JamfUploaderBase):
             sleep_time=sleep_time,
             token=token,
             max_tries=max_tries,
-            tenant_id=jamf_platform_gw_tenant_id,
+            platform_level_id=platform_level_id,
         )
         object_updated = True
 

@@ -43,7 +43,9 @@ class JamfObjectDeleterBase(JamfUploaderBase):
         jamf_user = self.env.get("API_USERNAME")
         jamf_password = self.env.get("API_PASSWORD")
         jamf_platform_gw_region = self.env.get("PLATFORM_API_REGION")
-        jamf_platform_gw_tenant_id = self.env.get("PLATFORM_API_TENANT_ID")
+        platform_level_id = self.env.get("PLATFORM_API_ENVIRONMENT_ID") or self.env.get(
+            "PLATFORM_API_TENANT_ID"
+        )
         client_id = self.env.get("CLIENT_ID")
         client_secret = self.env.get("CLIENT_SECRET")
         bearer_token = self.env.get("BEARER_TOKEN")
@@ -71,13 +73,13 @@ class JamfObjectDeleterBase(JamfUploaderBase):
             self.output("Not skipping process as skip_if evaluated to False")
 
         # get a token
-        token, jamf_url, jamf_platform_gw_region, jamf_platform_gw_tenant_id = (
+        token, jamf_url, jamf_platform_gw_region, platform_level_id = (
             self.auth(
                 jamf_url=jamf_url,
                 jamf_user=jamf_user,
                 password=jamf_password,
                 region=jamf_platform_gw_region,
-                tenant_id=jamf_platform_gw_tenant_id,
+                platform_level_id=platform_level_id,
                 client_id=client_id,
                 client_secret=client_secret,
                 token=bearer_token,
@@ -115,7 +117,7 @@ class JamfObjectDeleterBase(JamfUploaderBase):
                 object_type,
                 object_id=0,
                 token=token,
-                tenant_id=jamf_platform_gw_tenant_id,
+                platform_level_id=platform_level_id,
             )
             object_name = object_type
         else:
@@ -133,7 +135,7 @@ class JamfObjectDeleterBase(JamfUploaderBase):
                 object_name=object_name,
                 token=token,
                 filter_name=namekey,
-                tenant_id=jamf_platform_gw_tenant_id,
+                platform_level_id=platform_level_id,
             )
 
             if object_id:
@@ -156,7 +158,7 @@ class JamfObjectDeleterBase(JamfUploaderBase):
                     object_type,
                     object_id,
                     token,
-                    tenant_id=jamf_platform_gw_tenant_id,
+                    platform_level_id=platform_level_id,
                 )
             else:
                 self.output(

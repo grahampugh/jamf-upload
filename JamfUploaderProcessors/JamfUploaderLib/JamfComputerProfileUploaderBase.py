@@ -41,7 +41,7 @@ from JamfUploaderBase import (  # pylint: disable=import-error, wrong-import-pos
 class JamfComputerProfileUploaderBase(JamfUploaderBase):
     """Class for functions used to upload a computer configuration profile to Jamf"""
 
-    def get_existing_uuid_and_identifier(self, api_url, object_id, token, tenant_id=""):
+    def get_existing_uuid_and_identifier(self, api_url, object_id, token, platform_level_id=""):
         """return the existing UUID to ensure we don't change it"""
         # first grab the payload from the xml object
         existing_plist = self.get_api_object_value_from_id(
@@ -50,7 +50,7 @@ class JamfComputerProfileUploaderBase(JamfUploaderBase):
             object_id=object_id,
             object_path="general/payloads",
             token=token,
-            tenant_id=tenant_id,
+            platform_level_id=platform_level_id,
         )
 
         # Jamf seems to sometimes export an empty key which plistlib considers invalid,
@@ -171,7 +171,7 @@ class JamfComputerProfileUploaderBase(JamfUploaderBase):
         max_tries,
         retain_scope=False,
         object_id=0,
-        tenant_id="",
+        platform_level_id="",
     ):
         """Update Configuration Profile metadata."""
         # remove newlines, tabs, leading spaces, and XML-escape the payload
@@ -212,7 +212,7 @@ class JamfComputerProfileUploaderBase(JamfUploaderBase):
         if retain_scope and object_id > 0:
             self.output("Substituting existing scope into template", verbose_level=1)
             existing_scope = self.get_existing_scope(
-                api_url, object_type, object_id, token, tenant_id=tenant_id
+                api_url, object_type, object_id, token, platform_level_id=platform_level_id
             )
             # substitute pre-existing scope
             template_contents = self.replace_scope(template_contents, existing_scope)
@@ -221,7 +221,7 @@ class JamfComputerProfileUploaderBase(JamfUploaderBase):
         # write the template to temp file
         template_xml = self.write_temp_file(api_url, template_contents)
 
-        endpoint = self.api_endpoints(object_type, tenant_id=tenant_id)
+        endpoint = self.api_endpoints(object_type, platform_level_id=platform_level_id)
         # if we find an object ID we put, if not, we post
         url = f"{api_url}/{endpoint}/id/{object_id}"
 
@@ -265,7 +265,9 @@ class JamfComputerProfileUploaderBase(JamfUploaderBase):
         jamf_user = self.env.get("API_USERNAME")
         jamf_password = self.env.get("API_PASSWORD")
         jamf_platform_gw_region = self.env.get("PLATFORM_API_REGION")
-        jamf_platform_gw_tenant_id = self.env.get("PLATFORM_API_TENANT_ID")
+        platform_level_id = self.env.get("PLATFORM_API_ENVIRONMENT_ID") or self.env.get(
+            "PLATFORM_API_TENANT_ID"
+        )
         client_id = self.env.get("CLIENT_ID")
         client_secret = self.env.get("CLIENT_SECRET")
         bearer_token = self.env.get("BEARER_TOKEN")
@@ -424,13 +426,13 @@ class JamfComputerProfileUploaderBase(JamfUploaderBase):
         self.output(f"Checking for existing '{mobileconfig_name}' on {jamf_url}")
 
         # get a token using auth() with Platform API parameters
-        token, jamf_url, jamf_platform_gw_region, jamf_platform_gw_tenant_id = (
+        token, jamf_url, jamf_platform_gw_region, platform_level_id = (
             self.auth(
                 jamf_url=jamf_url,
                 jamf_user=jamf_user,
                 password=jamf_password,
                 region=jamf_platform_gw_region,
-                tenant_id=jamf_platform_gw_tenant_id,
+                platform_level_id=platform_level_id,
                 client_id=client_id,
                 client_secret=client_secret,
                 token=bearer_token,
@@ -449,7 +451,7 @@ class JamfComputerProfileUploaderBase(JamfUploaderBase):
             object_type="os_x_configuration_profile",
             object_name=mobileconfig_name,
             token=token,
-            tenant_id=jamf_platform_gw_tenant_id,
+            platform_level_id=platform_level_id,
         )
 
         if dry_run:
@@ -478,7 +480,7 @@ class JamfComputerProfileUploaderBase(JamfUploaderBase):
                     existing_uuid,
                     existing_identifier,
                 ) = self.get_existing_uuid_and_identifier(
-                    api_url, object_id, token, tenant_id=jamf_platform_gw_tenant_id
+                    api_url, object_id, token, platform_level_id=platform_level_id
                 )
 
                 if mobileconfig:
@@ -517,7 +519,7 @@ class JamfComputerProfileUploaderBase(JamfUploaderBase):
                         max_tries=max_tries,
                         retain_scope=retain_scope,
                         object_id=object_id,
-                        tenant_id=jamf_platform_gw_tenant_id,
+                        platform_level_id=platform_level_id,
                     )
                     profile_updated = True
                 else:
@@ -562,7 +564,7 @@ class JamfComputerProfileUploaderBase(JamfUploaderBase):
                     token=token,
                     max_tries=max_tries,
                     retain_scope=retain_scope,
-                    tenant_id=jamf_platform_gw_tenant_id,
+                    platform_level_id=platform_level_id,
                 )
                 profile_updated = True
             else:
