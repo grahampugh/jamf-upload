@@ -35,9 +35,9 @@ USAGE
 
 region_to_url() {
     case "$1" in
-        us)   echo "https://us.apigw.jamf.com" ;;
-        eu)   echo "https://eu.apigw.jamf.com" ;;
-        apac) echo "https://apac.apigw.jamf.com" ;;
+        us)   echo "https://us.api.jamfcloud.com" ;;
+        eu)   echo "https://eu.api.jamfcloud.com" ;;
+        apac) echo "https://apac.api.jamfcloud.com" ;;
         *)
             echo "   [region_to_url] ERROR: Invalid region '$1'. Use one of: us, eu, apac." >&2
             return 1

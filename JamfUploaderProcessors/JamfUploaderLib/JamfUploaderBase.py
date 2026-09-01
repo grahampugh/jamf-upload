@@ -178,33 +178,32 @@ class JamfUploaderBase(Processor):
     def construct_api_url(self, jamf_url=None, region=None):
         """Construct the platform gateway URL from the region."""
         if region:
-            return f"https://{region}.apigw.jamf.com"
+            return f"https://{region}.api.jamfcloud.com"
         elif jamf_url:
             return jamf_url
         raise ProcessorError("ERROR: No Jamf URL or region provided")
 
     def construct_api_endpoint(self, api_endpoint, tenant_id=None):
-        """transform the api endpoint if tenant ID is provided."""
-        # if jamf_platform_gw_region and jamf_platform_gw_tenant_id are set, we assume it's a platform API type and construct the endpoint accordingly. We are only supporting the pro and proclassic Platform API types. The endpoints need to be transformed from the schema for each of these. For the `pro` type, the endpoint is transformed from `/api/vx/object` to `/api/pro/vx/tenant/$jamf_platform_gw_tenant_id/object`. For the `proclassic` type, the endpoint is transformed from `/JSSResource/object` to `/api/proclassic/tenant/$jamf_platform_gw_tenant_id/object`.
-
+        """transform the api endpoint for the platform gateway if a tenant ID is set."""
+        # When tenant_id is set we are targeting the GA Platform API gateway. The tenant
+        # is now carried in the X-Tenant-Id request header (not the path), and there is no
+        # leading `api/` segment. We only support the `pro` and `proclassic` gateway types.
+        # `api/vx/object`  -> `pro/vx/object`
+        # `JSSResource/object` -> `proclassic/object`
         if tenant_id:
             self.output(
                 "Tenant ID provided, transforming API endpoint for platform gateway",
                 verbose_level=2,
             )
             if "JSSResource" in api_endpoint:
-                api_endpoint = api_endpoint.replace(
-                    "JSSResource", f"api/proclassic/tenant/{tenant_id}"
-                )
+                api_endpoint = api_endpoint.replace("JSSResource", "proclassic")
             elif api_endpoint.startswith("api/"):
                 # first extract the version number (e.g. v1, v2) from the endpoint
                 match = re.match(r"api/(v\d+)/(.+)", api_endpoint)
                 if match:
                     version = match.group(1)
                     rest_of_endpoint = match.group(2)
-                    api_endpoint = (
-                        f"api/pro/{version}/tenant/{tenant_id}/{rest_of_endpoint}"
-                    )
+                    api_endpoint = f"pro/{version}/{rest_of_endpoint}"
                 else:
                     # if the endpoint doesn't match the expected pattern, we can either raise an error or return it unchanged. Here, we'll choose to return it unchanged and log a warning.
                     self.output(
@@ -693,20 +692,6 @@ class JamfUploaderBase(Processor):
         )
         return None
 
-    @staticmethod
-    def extract_region_from_platform_url(url):
-        """Extract the region code from a Platform API gateway URL.
-
-        Given 'https://eu.apigw.jamf.com' returns 'eu'.
-        Returns None if the URL does not match the expected pattern.
-        """
-        if not url:
-            return None
-        match = re.match(r"https?://(\w+)\.apigw\.jamf\.com", url)
-        if match:
-            return match.group(1)
-        return None
-
     def get_token_from_jamf_cli(self, jamf_cli_profile=""):
         """Get a bearer token using jamf-cli.
 
@@ -1193,12 +1178,6 @@ class JamfUploaderBase(Processor):
                 verbose_level=1,
             )
             if auth_method == "platform":
-                region = self.extract_region_from_platform_url(profile_url)
-                if not region:
-                    raise ProcessorError(
-                        f"jamf-cli profile '{jamf_cli_profile}' is configured for "
-                        "Platform API but the URL does not contain a recognizable region"
-                    )
                 tenant_id = profile_cfg.get("tenant-id", "")
                 if not tenant_id:
                     raise ProcessorError(
@@ -1206,7 +1185,7 @@ class JamfUploaderBase(Processor):
                         "Platform API but has no tenant-id"
                     )
                 self.output(
-                    f"Auto-detected region '{region}' and tenant ID '{tenant_id}' "
+                    f"Auto-detected tenant ID '{tenant_id}' "
                     f"from jamf-cli profile '{jamf_cli_profile}'",
                     verbose_level=1,
                 )
@@ -1246,6 +1225,12 @@ class JamfUploaderBase(Processor):
             )
         else:
             raise ProcessorError("ERROR: Insufficient credentials supplied")
+
+        # persist the resolved tenant_id (which may have been auto-detected from a
+        # jamf-cli profile rather than supplied via env) so curl() can add the
+        # X-Tenant-Id header on subsequent Platform API gateway requests
+        if tenant_id:
+            self.env["PLATFORM_API_TENANT_ID"] = tenant_id
 
         return token, jamf_url, region, tenant_id
 
@@ -1353,6 +1338,12 @@ class JamfUploaderBase(Processor):
                 curl_cmd.extend(["--header", f"authorization: Bearer {token}"])
             elif endpoint_type != "oauth":
                 raise ProcessorError("No token or credentials supplied")
+
+            # when routed through the GA Platform API gateway, the tenant is
+            # carried in the X-Tenant-Id header rather than the URL path
+            tenant_id = self.env.get("PLATFORM_API_TENANT_ID")
+            if tenant_id:
+                curl_cmd.extend(["--header", f"X-Tenant-Id: {tenant_id}"])
 
             # write session for jamf API requests
             curl_cmd.extend(["--cookie-jar", cookie_jar])
@@ -1466,8 +1457,8 @@ class JamfUploaderBase(Processor):
                 curl_cmd.extend(["--upload-file", data])
                 curl_cmd.extend(["--header", "Content-type: application/json"])
 
-            # URL must match {region}.apigw.jamf.com
-            if not re.match(r"^https:\/\/[a-z1-9]{2}\.apigw\.jamf\.com", url):
+            # URL must match {region}.api.jamfcloud.com
+            if not re.match(r"^https:\/\/[a-z1-9]{2}\.api\.jamfcloud\.com", url):
                 raise ProcessorError(f"Invalid URL for Platform API request: {url}")
 
         # Content-Type for POST/PUT
