@@ -54,7 +54,7 @@ Specific*Uploader (JamfUploaderProcessors/Jamf*.py)
 
 - `JamfUploaderProcessors/` - AutoPkg processor files (thin wrappers)
 - `JamfUploaderProcessors/JamfUploaderLib/` - Base classes with all logic
-- `JamfUploaderProcessors/READMEs/` - Individual processor documentation
+- [Wiki](https://github.com/grahampugh/jamf-upload/wiki) - Individual processor documentation
 - `_Templates_Examples/` - XML/JSON templates for policies, profiles, groups
 - `_tests/` - Test scripts and test recipes
 - `Jamf_Helper_Recipes/` - Helper recipes for common operations
@@ -130,7 +130,7 @@ When making changes:
 
 1. Create `JamfUploaderProcessors/Jamf[Object]Uploader.py` (thin wrapper)
 2. Create `JamfUploaderProcessors/JamfUploaderLib/Jamf[Object]UploaderBase.py` (logic)
-3. Add processor README in `JamfUploaderProcessors/READMEs/`
+3. Add processor documentation as a new page in the [Wiki](https://github.com/grahampugh/jamf-upload/wiki)
 4. Add case to `jamf-upload.sh` for standalone usage
 5. Update CHANGELOG.md
 

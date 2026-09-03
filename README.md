@@ -19,6 +19,10 @@ This repo contains the sourcecode of the JamfUploader processors. Identical copi
 
 **Please see the [Wiki](https://github.com/grahampugh/jamf-upload/wiki/JamfUploader-AutoPkg-Processors) for instructions on using the AutoPkg processors.**
 
+## Processor READMEs
+
+These are now situated in the [Wiki](https://github.com/grahampugh/jamf-upload/wiki).
+
 ## Additional Resources
 
 The `jamf-upload.sh` script can be used to take advantage of the JamfUploader processors without needing any AutoPkg recipes.

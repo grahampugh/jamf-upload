@@ -100,7 +100,7 @@ When modifying authentication or template code, test with both `jamf-upload.sh` 
 
 1. Create `JamfUploaderProcessors/JamfFooUploader.py` — thin wrapper only, with `input_variables`, `output_variables`, and a `main()` that calls the base class.
 2. Create `JamfUploaderProcessors/JamfUploaderLib/JamfFooUploaderBase.py` — all logic here, extending `JamfUploaderBase`.
-3. Add documentation in `JamfUploaderProcessors/READMEs/`.
+3. Add documentation as a new page in the [wiki](https://github.com/grahampugh/jamf-upload/wiki).
 4. Add a case to `jamf-upload.sh` for standalone usage.
 5. If the new object type needs schema resolution, add an entry to `CLASSIC_ALIAS_TABLE` or `JPAPI_ALIAS_TABLE` in `JamfSchemaRegistry.py`.
 6. Update `CHANGELOG.md`.
@@ -110,5 +110,5 @@ Logic changes always go in `JamfUploaderLib/*Base.py`. Update `input_variables` 
 ## Key references
 
 - Wiki: <https://github.com/grahampugh/jamf-upload/wiki>
-- Processor input/output docs: `JamfUploaderProcessors/READMEs/`
+- Processor input/output docs: [wiki](https://github.com/grahampugh/jamf-upload/wiki)
 - Changelog: `JamfUploaderProcessors/CHANGELOG.md`
