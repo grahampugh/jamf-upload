@@ -17,7 +17,7 @@ There are some additional processors.
 
 This repo contains the sourcecode of the JamfUploader processors. Identical copies of the processors are hosted in the [autopkg/grahampugh-recipes](https://github.com/autopkg/grahampugh-recipes) repo, in the [JamfUploaderProcessors](https://github.com/autopkg/grahampugh-recipes/tree/main/JamfUploaderProcessors) folder).
 
-**Please see the [Wiki](https://github.com/grahampugh/jamf-upload/wiki/JamfUploader-AutoPkg-Processors) for instructions on using the AutoPkg processors.**
+**Please see the [Wiki](https://github.com/grahampugh/jamf-upload/wiki) for instructions on using the AutoPkg processors.**
 
 ## Processor READMEs
 
