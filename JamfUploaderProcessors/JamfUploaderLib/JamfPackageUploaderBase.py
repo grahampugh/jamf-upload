@@ -186,7 +186,7 @@ class JamfPackageUploaderBase(JamfUploaderBase):
         sleep_time,
         token,
         max_tries,
-        tenant_id="",
+        platform_level_id="",
     ):
         """Upload a package to a Cloud Distribution Point using the v1/packages endpoint"""
 
@@ -207,7 +207,7 @@ class JamfPackageUploaderBase(JamfUploaderBase):
             pkg_path = tmp_pkg_path
 
         object_type = "package_v1"
-        endpoint = self.api_endpoints(object_type, tenant_id=tenant_id)
+        endpoint = self.api_endpoints(object_type, platform_level_id=platform_level_id)
         url = f"{api_url}/{endpoint}/{pkg_id}/upload"
         count = 0
         while True:
@@ -303,7 +303,7 @@ class JamfPackageUploaderBase(JamfUploaderBase):
     # ------------------------------------------------------------------------
     # Begin function on uploading pkg metadata
 
-    def check_pkg(self, pkg_name, api_url, token, tenant_id=""):
+    def check_pkg(self, pkg_name, api_url, token, platform_level_id=""):
         """check if a package with the same name exists in the repo
         note that it is possible to have more than one with the same name
         which could mess things up"""
@@ -316,7 +316,7 @@ class JamfPackageUploaderBase(JamfUploaderBase):
             object_name=pkg_name,
             token=token,
             filter_name=filter_name,
-            tenant_id=tenant_id,
+            platform_level_id=platform_level_id,
         )
 
         if object_id:
@@ -324,7 +324,7 @@ class JamfPackageUploaderBase(JamfUploaderBase):
         else:
             return "-1"
 
-    def get_category_id(self, api_url, category_name, token="", tenant_id=""):
+    def get_category_id(self, api_url, category_name, token="", platform_level_id=""):
         """Get the category ID from the name, or abort if ID not found"""
         # check for existing category
         self.output(f"Checking for '{category_name}' on {api_url}")
@@ -333,7 +333,7 @@ class JamfPackageUploaderBase(JamfUploaderBase):
             object_type="category",
             object_name=category_name,
             token=token,
-            tenant_id=tenant_id,
+            platform_level_id=platform_level_id,
         )
 
         if object_id:
@@ -353,14 +353,14 @@ class JamfPackageUploaderBase(JamfUploaderBase):
         token,
         max_tries,
         pkg_id=0,
-        tenant_id="",
+        platform_level_id="",
     ):
         """Update package metadata using v1/packages endpoint. Requires 11.5+"""
 
         # get category ID
         if pkg_metadata["category"]:
             category_id = self.get_category_id(
-                api_url, pkg_metadata["category"], token, tenant_id
+                api_url, pkg_metadata["category"], token, platform_level_id
             )
         else:
             category_id = "-1"
@@ -398,7 +398,7 @@ class JamfPackageUploaderBase(JamfUploaderBase):
 
         # if we find a pkg ID we put, if not, we post
         object_type = "package_v1"
-        endpoint = self.api_endpoints(object_type, tenant_id=tenant_id)
+        endpoint = self.api_endpoints(object_type, platform_level_id=platform_level_id)
         if int(pkg_id) > 0:
             url = f"{api_url}/{endpoint}/{pkg_id}"
         else:
@@ -447,11 +447,11 @@ class JamfPackageUploaderBase(JamfUploaderBase):
     # ------------------------------------------------------------------------
     # Begin function for recalulating inventory on Cloud Distribution Point (for pkg_api_mode)
 
-    def recalculate_packages(self, api_url, token, tenant_id="", pkg_name=""):
+    def recalculate_packages(self, api_url, token, platform_level_id="", pkg_name=""):
         """Send a request to recalulate the Cloud Distribution Point inventory"""
         # get the Cloud Distribution Point file list
         object_type = "cloud_distribution_point"
-        endpoint = self.api_endpoints(object_type, tenant_id=tenant_id)
+        endpoint = self.api_endpoints(object_type, platform_level_id=platform_level_id)
         url = f"{api_url}/{endpoint}/refresh-inventory"
         if pkg_name:
             self.output(
@@ -493,14 +493,14 @@ class JamfPackageUploaderBase(JamfUploaderBase):
     # ------------------------------------------------------------------------
     # Begin functions for hash verification after JCDS upload
 
-    def get_pkg_server_sha3_and_size(self, api_url, pkg_id, token, tenant_id=""):
+    def get_pkg_server_sha3_and_size(self, api_url, pkg_id, token, platform_level_id=""):
         """Fetch the sha3512 hash and size for a package record from the server.
 
         Uses the named sha3512 field directly rather than hashType/hashValue, which
         can be in a transitional state (e.g. SHA_512 empty) while the server recomputes.
         """
         object_type = "package_v1"
-        endpoint = self.api_endpoints(object_type, tenant_id=tenant_id)
+        endpoint = self.api_endpoints(object_type, platform_level_id=platform_level_id)
         url = f"{api_url}/{endpoint}/{pkg_id}"
         r = self.curl(api_type="jpapi", request="GET", url=url, token=token)
         if r.status_code == 200:
@@ -518,7 +518,7 @@ class JamfPackageUploaderBase(JamfUploaderBase):
         token,
         poll_interval=15,
         poll_timeout=300,
-        tenant_id="",
+        platform_level_id="",
     ):
         """Poll GET /v1/packages/{id} until the server has computed a new hash, then verify it.
 
@@ -532,7 +532,7 @@ class JamfPackageUploaderBase(JamfUploaderBase):
         elapsed = 0
         while elapsed < poll_timeout:
             sha3512, size = self.get_pkg_server_sha3_and_size(
-                api_url, pkg_id, token, tenant_id
+                api_url, pkg_id, token, platform_level_id
             )
             if sha3512 and sha3512 != previous_hash:
                 try:
@@ -607,7 +607,9 @@ class JamfPackageUploaderBase(JamfUploaderBase):
         jamf_user = self.env.get("API_USERNAME")
         jamf_password = self.env.get("API_PASSWORD")
         jamf_platform_gw_region = self.env.get("PLATFORM_API_REGION")
-        jamf_platform_gw_tenant_id = self.env.get("PLATFORM_API_TENANT_ID")
+        platform_level_id = self.env.get("PLATFORM_API_ENVIRONMENT_ID") or self.env.get(
+            "PLATFORM_API_TENANT_ID"
+        )
         client_id = self.env.get("CLIENT_ID")
         client_secret = self.env.get("CLIENT_SECRET")
         bearer_token = self.env.get("BEARER_TOKEN")
@@ -772,13 +774,13 @@ class JamfPackageUploaderBase(JamfUploaderBase):
 
         # get token using oauth or basic auth depending on the credentials given
         if jamf_url:
-            token, jamf_url, jamf_platform_gw_region, jamf_platform_gw_tenant_id = (
+            token, jamf_url, jamf_platform_gw_region, platform_level_id = (
                 self.auth(
                     jamf_url=jamf_url,
                     jamf_user=jamf_user,
                     password=jamf_password,
                     region=jamf_platform_gw_region,
-                    tenant_id=jamf_platform_gw_tenant_id,
+                    platform_level_id=platform_level_id,
                     client_id=client_id,
                     client_secret=client_secret,
                     token=bearer_token,
@@ -798,7 +800,7 @@ class JamfPackageUploaderBase(JamfUploaderBase):
         # Version 11.5+ will use the v1/packages endpoint
         # Version 11.4- is not supported any more
         jamf_pro_version = self.get_jamf_pro_version(
-            api_url, token, tenant_id=jamf_platform_gw_tenant_id
+            api_url, token, platform_level_id=platform_level_id
         )
 
         if APLooseVersion(jamf_pro_version) < APLooseVersion("11.5"):
@@ -814,7 +816,7 @@ class JamfPackageUploaderBase(JamfUploaderBase):
             object_name=pkg_name,
             token=token,
             filter_name=filter_name,
-            tenant_id=jamf_platform_gw_tenant_id,
+            platform_level_id=platform_level_id,
         )
         if object_id:
             self.output(f"Package '{pkg_name}' already exists: ID {object_id}")
@@ -925,13 +927,13 @@ class JamfPackageUploaderBase(JamfUploaderBase):
         if smb_shares or aws_cdp_mode:
             # get token using oauth or basic auth depending on the credentials given
             if jamf_url:
-                token, jamf_url, jamf_platform_gw_region, jamf_platform_gw_tenant_id = (
+                token, jamf_url, jamf_platform_gw_region, platform_level_id = (
                     self.auth(
                         jamf_url=jamf_url,
                         jamf_user=jamf_user,
                         password=jamf_password,
                         region=jamf_platform_gw_region,
-                        tenant_id=jamf_platform_gw_tenant_id,
+                        platform_level_id=platform_level_id,
                         client_id=client_id,
                         client_secret=client_secret,
                         token=bearer_token,
@@ -961,7 +963,7 @@ class JamfPackageUploaderBase(JamfUploaderBase):
                 token=token,
                 max_tries=max_tries,
                 pkg_id=pkg_id,
-                tenant_id=jamf_platform_gw_tenant_id,
+                platform_level_id=platform_level_id,
             )
             pkg_metadata_updated = True
         elif int(pkg_id) <= 0 and (
@@ -981,7 +983,7 @@ class JamfPackageUploaderBase(JamfUploaderBase):
                 token=token,
                 max_tries=max_tries,
                 pkg_id=pkg_id,
-                tenant_id=jamf_platform_gw_tenant_id,
+                platform_level_id=platform_level_id,
             )
             pkg_metadata_updated = True
         elif not skip_metadata_upload:
@@ -1006,7 +1008,7 @@ class JamfPackageUploaderBase(JamfUploaderBase):
 
             # capture the sha3512 the server currently holds so we can detect when it changes
             previous_hash, _ = self.get_pkg_server_sha3_and_size(
-                api_url, pkg_id, token, jamf_platform_gw_tenant_id
+                api_url, pkg_id, token, platform_level_id
             )
             self.output(
                 f"Server sha3512 before upload: {previous_hash or '(none)'}",
@@ -1029,7 +1031,7 @@ class JamfPackageUploaderBase(JamfUploaderBase):
                     sleep_time=sleep_time,
                     token=token,
                     max_tries=max_tries,
-                    tenant_id=jamf_platform_gw_tenant_id,
+                    platform_level_id=platform_level_id,
                 )
                 pkg_uploaded = True
 
@@ -1043,13 +1045,13 @@ class JamfPackageUploaderBase(JamfUploaderBase):
                         )
                         sleep(int(recalculate_wait_time))
                     if jamf_url:
-                        token, jamf_url, jamf_platform_gw_region, jamf_platform_gw_tenant_id = (
+                        token, jamf_url, jamf_platform_gw_region, platform_level_id = (
                             self.auth(
                                 jamf_url=jamf_url,
                                 jamf_user=jamf_user,
                                 password=jamf_password,
                                 region=jamf_platform_gw_region,
-                                tenant_id=jamf_platform_gw_tenant_id,
+                                platform_level_id=platform_level_id,
                                 client_id=client_id,
                                 client_secret=client_secret,
                                 token=bearer_token,
@@ -1061,7 +1063,7 @@ class JamfPackageUploaderBase(JamfUploaderBase):
                     packages_recalculated = self.recalculate_packages(
                         api_url,
                         token,
-                        jamf_platform_gw_tenant_id,
+                        platform_level_id,
                         pkg_name=None if recalculate else pkg_name,
                     )
 
@@ -1075,7 +1077,7 @@ class JamfPackageUploaderBase(JamfUploaderBase):
                         token=token,
                         poll_interval=hash_poll_interval,
                         poll_timeout=hash_poll_timeout,
-                        tenant_id=jamf_platform_gw_tenant_id,
+                        platform_level_id=platform_level_id,
                     )
                     if not upload_verified and upload_attempt < max_tries:
                         self.output(
@@ -1085,7 +1087,7 @@ class JamfPackageUploaderBase(JamfUploaderBase):
                         )
                         # use the now-stale server hash as the new baseline for next poll
                         previous_hash, _ = self.get_pkg_server_sha3_and_size(
-                            api_url, pkg_id, token, jamf_platform_gw_tenant_id
+                            api_url, pkg_id, token, platform_level_id
                         )
                 else:
                     # Jamf Pro < 11.10 — no refresh endpoint, skip verification

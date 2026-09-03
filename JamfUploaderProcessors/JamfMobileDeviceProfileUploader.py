@@ -44,7 +44,7 @@ class JamfMobileDeviceProfileUploader(JamfMobileDeviceProfileUploaderBase):
     )
     input_variables = {
         "JSS_URL": {
-            "required": True,
+            "required": False,
             "description": "URL to a Jamf Pro server that the API user has write access "
             "to, optionally set as a key in the com.github.autopkg "
             "preference file.",
@@ -88,6 +88,12 @@ class JamfMobileDeviceProfileUploader(JamfMobileDeviceProfileUploaderBase):
             "required": False,
             "description": "Region for Jamf Platform API Gateway (e.g., 'us1', 'eu1', 'au1'). "
             "Required for Platform API authentication.",
+            "default": "",
+        },
+        "PLATFORM_API_ENVIRONMENT_ID": {
+            "required": False,
+            "description": "Environment ID for Jamf Platform API Gateway. "
+            "Takes precedence over PLATFORM_API_TENANT_ID if both are set.",
             "default": "",
         },
         "PLATFORM_API_TENANT_ID": {

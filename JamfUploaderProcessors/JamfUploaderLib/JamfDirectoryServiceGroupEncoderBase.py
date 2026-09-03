@@ -85,7 +85,7 @@ class JamfDirectoryServiceGroupEncoderBase(JamfUploaderBase):
             )
         return ref
 
-    def get_directory_service_groups(self, api_url, token, group_name, tenant_id=""):
+    def get_directory_service_groups(self, api_url, token, group_name, platform_level_id=""):
         """Return the directory service groups whose name matches group_name exactly.
 
         The API performs a 'contains' search across all configured Directory Service
@@ -94,7 +94,7 @@ class JamfDirectoryServiceGroupEncoderBase(JamfUploaderBase):
         the server's ID as 'ldapServerId' in both cases.
         """
         object_type = "ldap_group"
-        endpoint = self.api_endpoints(object_type, tenant_id=tenant_id)
+        endpoint = self.api_endpoints(object_type, platform_level_id=platform_level_id)
         url = f"{api_url}/{endpoint}?q={quote(group_name)}"
         r = self.curl(api_type="jpapi", request="GET", url=url, token=token)
         if r.status_code != 200:
@@ -104,13 +104,13 @@ class JamfDirectoryServiceGroupEncoderBase(JamfUploaderBase):
         results = r.output.get("results", []) if isinstance(r.output, dict) else []
         return [group for group in results if group.get("name") == group_name]
 
-    def resolve_ds_group_value(self, api_url, token, group_name, tenant_id=""):
+    def resolve_ds_group_value(self, api_url, token, group_name, platform_level_id=""):
         """Resolve a directory service group name to its encoded criterion value.
 
         Returns a tuple of (encoded value, uuid, Directory Service server id).
         """
         groups = self.get_directory_service_groups(
-            api_url, token, group_name, tenant_id=tenant_id
+            api_url, token, group_name, platform_level_id=platform_level_id
         )
         if not groups:
             raise ProcessorError(
@@ -153,7 +153,9 @@ class JamfDirectoryServiceGroupEncoderBase(JamfUploaderBase):
         jamf_user = self.env.get("API_USERNAME")
         jamf_password = self.env.get("API_PASSWORD")
         jamf_platform_gw_region = self.env.get("PLATFORM_API_REGION")
-        jamf_platform_gw_tenant_id = self.env.get("PLATFORM_API_TENANT_ID")
+        platform_level_id = self.env.get("PLATFORM_API_ENVIRONMENT_ID") or self.env.get(
+            "PLATFORM_API_TENANT_ID"
+        )
         client_id = self.env.get("CLIENT_ID")
         client_secret = self.env.get("CLIENT_SECRET")
         bearer_token = self.env.get("BEARER_TOKEN")
@@ -213,13 +215,13 @@ class JamfDirectoryServiceGroupEncoderBase(JamfUploaderBase):
                     token,
                     jamf_url,
                     jamf_platform_gw_region,
-                    jamf_platform_gw_tenant_id,
+                    platform_level_id,
                 ) = self.auth(
                     jamf_url=jamf_url,
                     jamf_user=jamf_user,
                     password=jamf_password,
                     region=jamf_platform_gw_region,
-                    tenant_id=jamf_platform_gw_tenant_id,
+                    platform_level_id=platform_level_id,
                     client_id=client_id,
                     client_secret=client_secret,
                     token=bearer_token,
@@ -237,7 +239,7 @@ class JamfDirectoryServiceGroupEncoderBase(JamfUploaderBase):
                     api_url,
                     token,
                     group_name,
-                    tenant_id=jamf_platform_gw_tenant_id,
+                    platform_level_id=platform_level_id,
                 )
 
         self.output(f"Directory service group criterion value: {encoded_value}")

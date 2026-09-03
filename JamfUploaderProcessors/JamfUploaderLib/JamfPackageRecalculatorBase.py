@@ -35,11 +35,11 @@ from JamfUploaderBase import (  # pylint: disable=import-error, wrong-import-pos
 class JamfPackageRecalculatorBase(JamfUploaderBase):
     """Class for functions used to upload a package to Jamf"""
 
-    def recalculate_packages(self, api_url, token, tenant_id=""):
+    def recalculate_packages(self, api_url, token, platform_level_id=""):
         """Send a request to recalulate the JCDS packages"""
         # get the JCDS file list
         object_type = "cloud_distribution_point"
-        endpoint = self.api_endpoints(object_type, tenant_id=tenant_id)
+        endpoint = self.api_endpoints(object_type, platform_level_id=platform_level_id)
         url = f"{api_url}/{endpoint}/refresh-inventory"
 
         request = "POST"
@@ -76,7 +76,9 @@ class JamfPackageRecalculatorBase(JamfUploaderBase):
         jamf_user = self.env.get("API_USERNAME")
         jamf_password = self.env.get("API_PASSWORD")
         jamf_platform_gw_region = self.env.get("PLATFORM_API_REGION")
-        jamf_platform_gw_tenant_id = self.env.get("PLATFORM_API_TENANT_ID")
+        platform_level_id = self.env.get("PLATFORM_API_ENVIRONMENT_ID") or self.env.get(
+            "PLATFORM_API_TENANT_ID"
+        )
         client_id = self.env.get("CLIENT_ID")
         client_secret = self.env.get("CLIENT_SECRET")
         bearer_token = self.env.get("BEARER_TOKEN")
@@ -96,13 +98,13 @@ class JamfPackageRecalculatorBase(JamfUploaderBase):
             self.output("Not skipping process as skip_if evaluated to False")
 
         # get a token
-        token, jamf_url, jamf_platform_gw_region, jamf_platform_gw_tenant_id = (
+        token, jamf_url, jamf_platform_gw_region, platform_level_id = (
             self.auth(
                 jamf_url=jamf_url,
                 jamf_user=jamf_user,
                 password=jamf_password,
                 region=jamf_platform_gw_region,
-                tenant_id=jamf_platform_gw_tenant_id,
+                platform_level_id=platform_level_id,
                 client_id=client_id,
                 client_secret=client_secret,
                 token=bearer_token,
@@ -117,7 +119,7 @@ class JamfPackageRecalculatorBase(JamfUploaderBase):
         self.output(f"API URL is {api_url}", verbose_level=3)
 
         jamf_pro_version = self.get_jamf_pro_version(
-            api_url, token, tenant_id=jamf_platform_gw_tenant_id
+            api_url, token, platform_level_id=platform_level_id
         )
         if APLooseVersion(jamf_pro_version) >= APLooseVersion("11.5"):
             # set default mode to pkg_api_mode if using Jamf Cloud / AWS
@@ -138,13 +140,13 @@ class JamfPackageRecalculatorBase(JamfUploaderBase):
             # check token using oauth or basic auth depending on the credentials given
             # as package upload may have taken some time
             # get a token
-            token, jamf_url, jamf_platform_gw_region, jamf_platform_gw_tenant_id = (
+            token, jamf_url, jamf_platform_gw_region, platform_level_id = (
                 self.auth(
                     jamf_url=jamf_url,
                     jamf_user=jamf_user,
                     password=jamf_password,
                     region=jamf_platform_gw_region,
-                    tenant_id=jamf_platform_gw_tenant_id,
+                    platform_level_id=platform_level_id,
                     client_id=client_id,
                     client_secret=client_secret,
                     token=bearer_token,
@@ -164,7 +166,7 @@ class JamfPackageRecalculatorBase(JamfUploaderBase):
 
             # now send the recalculation request
             packages_recalculated = self.recalculate_packages(
-                api_url, token, tenant_id=jamf_platform_gw_tenant_id
+                api_url, token, platform_level_id=platform_level_id
             )
         else:
             packages_recalculated = False
