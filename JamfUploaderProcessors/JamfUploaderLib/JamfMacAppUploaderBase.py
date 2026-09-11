@@ -72,14 +72,14 @@ class JamfMacAppUploaderBase(JamfUploaderBase):
         token,
         max_tries,
         object_id=0,
-        tenant_id="",
+        platform_level_id="",
     ):
         """Upload MAS app"""
 
         self.output("Uploading MAS app...")
 
         object_type = "mac_application"
-        endpoint = self.api_endpoints(object_type, tenant_id=tenant_id)
+        endpoint = self.api_endpoints(object_type, platform_level_id=platform_level_id)
         # if we find an object ID we put, if not, we post
         url = f"{api_url}/{endpoint}/id/{object_id}"
 
@@ -116,7 +116,9 @@ class JamfMacAppUploaderBase(JamfUploaderBase):
         jamf_user = self.env.get("API_USERNAME")
         jamf_password = self.env.get("API_PASSWORD")
         jamf_platform_gw_region = self.env.get("PLATFORM_API_REGION")
-        jamf_platform_gw_tenant_id = self.env.get("PLATFORM_API_TENANT_ID")
+        platform_level_id = self.env.get("PLATFORM_API_ENVIRONMENT_ID") or self.env.get(
+            "PLATFORM_API_TENANT_ID"
+        )
         client_id = self.env.get("CLIENT_ID")
         client_secret = self.env.get("CLIENT_SECRET")
         bearer_token = self.env.get("BEARER_TOKEN")
@@ -131,6 +133,7 @@ class JamfMacAppUploaderBase(JamfUploaderBase):
         macapp_updated = False
         max_tries = self.env.get("max_tries")
         skip_if = self.get_and_clear_skip_if()
+        dry_run = self.to_bool(self.env.get("dry_run"))
 
         # verify that max_tries is an integer greater than zero and less than 10
         try:
@@ -171,7 +174,7 @@ class JamfMacAppUploaderBase(JamfUploaderBase):
 
         # get token using oauth or basic auth depending on the credentials given
         if jamf_url:
-            token, jamf_url, jamf_platform_gw_region, jamf_platform_gw_tenant_id = (
+            token, jamf_url, jamf_platform_gw_region, platform_level_id = (
                 self.auth(
                     jamf_url,
                     jamf_user=jamf_user,
@@ -197,10 +200,10 @@ class JamfMacAppUploaderBase(JamfUploaderBase):
             object_type="mac_application",
             object_name=macapp_name,
             token=token,
-            tenant_id=jamf_platform_gw_tenant_id,
+            platform_level_id=platform_level_id,
         )
 
-        if self.env.get("dry_run"):
+        if dry_run:
             action = "CREATE" if not object_id else "UPDATE"
             self.output(f"DRY RUN: Would {action} mac_application '{macapp_name}'")
             self.env["macapp_updated"] = False
@@ -227,7 +230,7 @@ class JamfMacAppUploaderBase(JamfUploaderBase):
                     object_id=object_id,
                     object_path="general/bundle_id",
                     token=token,
-                    tenant_id=jamf_platform_gw_tenant_id,
+                    platform_level_id=platform_level_id,
                 )
                 if bundleid:
                     self.output(f"Existing bundle ID is '{bundleid}'", verbose_level=1)
@@ -238,7 +241,7 @@ class JamfMacAppUploaderBase(JamfUploaderBase):
                     object_id=object_id,
                     object_path="general/version",
                     token=token,
-                    tenant_id=jamf_platform_gw_tenant_id,
+                    platform_level_id=platform_level_id,
                 )
                 if macapp_version:
                     self.output(
@@ -252,7 +255,7 @@ class JamfMacAppUploaderBase(JamfUploaderBase):
                     object_id=object_id,
                     object_path="general/is_free",
                     token=token,
-                    tenant_id=jamf_platform_gw_tenant_id,
+                    platform_level_id=platform_level_id,
                 )
                 if macapp_is_free:
                     self.output(
@@ -266,7 +269,7 @@ class JamfMacAppUploaderBase(JamfUploaderBase):
                     object_id=object_id,
                     object_path="general/url",
                     token=token,
-                    tenant_id=jamf_platform_gw_tenant_id,
+                    platform_level_id=platform_level_id,
                 )
                 if appstore_url:
                     self.output(
@@ -280,7 +283,7 @@ class JamfMacAppUploaderBase(JamfUploaderBase):
                         object_id=object_id,
                         object_path="self_service/self_service_icon/uri",
                         token=token,
-                        tenant_id=jamf_platform_gw_tenant_id,
+                        platform_level_id=platform_level_id,
                     )
                     if selfservice_icon_uri:
                         self.output(
@@ -294,7 +297,7 @@ class JamfMacAppUploaderBase(JamfUploaderBase):
                     token,
                     store_url=appstore_url,
                     preferred_location=preferred_vpp_location,
-                    tenant_id=jamf_platform_gw_tenant_id,
+                    platform_level_id=platform_level_id,
                 )
                 if vpp_id:
                     self.output(
@@ -341,7 +344,7 @@ class JamfMacAppUploaderBase(JamfUploaderBase):
                     token=token,
                     max_tries=max_tries,
                     object_id=object_id,
-                    tenant_id=jamf_platform_gw_tenant_id,
+                    platform_level_id=platform_level_id,
                 )
                 macapp_updated = True
 
@@ -370,7 +373,7 @@ class JamfMacAppUploaderBase(JamfUploaderBase):
                 object_type="mac_application",
                 object_name=clone_from,
                 token=token,
-                tenant_id=jamf_platform_gw_tenant_id,
+                platform_level_id=platform_level_id,
             )
             if object_id:
                 self.output(f"MAS app '{clone_from}' already exists: ID {object_id}")
@@ -382,7 +385,7 @@ class JamfMacAppUploaderBase(JamfUploaderBase):
                     object_id=object_id,
                     object_path="general/bundle_id",
                     token=token,
-                    tenant_id=jamf_platform_gw_tenant_id,
+                    platform_level_id=platform_level_id,
                 )
                 if bundleid:
                     self.output(f"Existing bundle ID is '{bundleid}'", verbose_level=1)
@@ -393,7 +396,7 @@ class JamfMacAppUploaderBase(JamfUploaderBase):
                     object_id=object_id,
                     object_path="general/version",
                     token=token,
-                    tenant_id=jamf_platform_gw_tenant_id,
+                    platform_level_id=platform_level_id,
                 )
                 if macapp_version:
                     self.output(
@@ -407,7 +410,7 @@ class JamfMacAppUploaderBase(JamfUploaderBase):
                     object_id=object_id,
                     object_path="general/is_free",
                     token=token,
-                    tenant_id=jamf_platform_gw_tenant_id,
+                    platform_level_id=platform_level_id,
                 )
                 if macapp_is_free:
                     self.output(
@@ -421,7 +424,7 @@ class JamfMacAppUploaderBase(JamfUploaderBase):
                     object_id=object_id,
                     object_path="general/url",
                     token=token,
-                    tenant_id=jamf_platform_gw_tenant_id,
+                    platform_level_id=platform_level_id,
                 )
                 if appstore_url:
                     self.output(
@@ -435,7 +438,7 @@ class JamfMacAppUploaderBase(JamfUploaderBase):
                         object_id=object_id,
                         object_path="self_service/self_service_icon/uri",
                         token=token,
-                        tenant_id=jamf_platform_gw_tenant_id,
+                        platform_level_id=platform_level_id,
                     )
                     if selfservice_icon_uri:
                         self.output(
@@ -450,7 +453,7 @@ class JamfMacAppUploaderBase(JamfUploaderBase):
                     token,
                     store_url=appstore_url,
                     preferred_location=preferred_vpp_location,
-                    tenant_id=jamf_platform_gw_tenant_id,
+                    platform_level_id=platform_level_id,
                 )
                 if vpp_id:
                     self.output(
@@ -497,7 +500,7 @@ class JamfMacAppUploaderBase(JamfUploaderBase):
                     token=token,
                     max_tries=max_tries,
                     object_id=0,
-                    tenant_id=jamf_platform_gw_tenant_id,
+                    platform_level_id=platform_level_id,
                 )
                 macapp_updated = True
 

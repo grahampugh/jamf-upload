@@ -41,14 +41,14 @@ class JamfPolicyLogFlusherBase(JamfUploaderBase):
     """Class for functions used to flush a policy in Jamf"""
 
     def flush_policy(
-        self, api_url, object_id, interval, sleep_time, token, max_tries, tenant_id=""
+        self, api_url, object_id, interval, sleep_time, token, max_tries, platform_level_id=""
     ):
         """Send policy log flush request"""
 
         self.output("Sending policy log flush request...")
 
         object_type = "logflush"
-        endpoint = self.api_endpoints(object_type, tenant_id=tenant_id)
+        endpoint = self.api_endpoints(object_type, platform_level_id=platform_level_id)
         # pylint: disable=line-too-long
         url = f"{api_url}/{endpoint}/policy/id/{object_id}/interval/{quote(interval)}"
 
@@ -85,7 +85,9 @@ class JamfPolicyLogFlusherBase(JamfUploaderBase):
         jamf_user = self.env.get("API_USERNAME")
         jamf_password = self.env.get("API_PASSWORD")
         jamf_platform_gw_region = self.env.get("PLATFORM_API_REGION")
-        jamf_platform_gw_tenant_id = self.env.get("PLATFORM_API_TENANT_ID")
+        platform_level_id = self.env.get("PLATFORM_API_ENVIRONMENT_ID") or self.env.get(
+            "PLATFORM_API_TENANT_ID"
+        )
         client_id = self.env.get("CLIENT_ID")
         client_secret = self.env.get("CLIENT_SECRET")
         bearer_token = self.env.get("BEARER_TOKEN")
@@ -95,6 +97,7 @@ class JamfPolicyLogFlusherBase(JamfUploaderBase):
         sleep_time = self.env.get("sleep")
         max_tries = self.env.get("max_tries")
         skip_if = self.get_and_clear_skip_if()
+        dry_run = self.to_bool(self.env.get("dry_run"))
 
         # verify that max_tries is an integer greater than zero and less than 10
         try:
@@ -122,13 +125,13 @@ class JamfPolicyLogFlusherBase(JamfUploaderBase):
             self.output("Not skipping process as skip_if evaluated to False")
 
         # get a token
-        token, jamf_url, jamf_platform_gw_region, jamf_platform_gw_tenant_id = (
+        token, jamf_url, jamf_platform_gw_region, platform_level_id = (
             self.auth(
                 jamf_url=jamf_url,
                 jamf_user=jamf_user,
                 password=jamf_password,
                 region=jamf_platform_gw_region,
-                tenant_id=jamf_platform_gw_tenant_id,
+                platform_level_id=platform_level_id,
                 client_id=client_id,
                 client_secret=client_secret,
                 token=bearer_token,
@@ -151,12 +154,12 @@ class JamfPolicyLogFlusherBase(JamfUploaderBase):
             object_type="policy",
             object_name=policy_name,
             token=token,
-            tenant_id=jamf_platform_gw_tenant_id,
+            platform_level_id=platform_level_id,
         )
 
         if object_id:
             self.output(f"Policy '{policy_name}' exists: ID {object_id}")
-            if self.env.get("dry_run"):
+            if dry_run:
                 self.output(f"DRY RUN: Would flush policy log for '{policy_name}'")
                 self.env["dry_run_summary_result"] = {
                     "summary_text": "DRY RUN: The following changes would be made in Jamf Pro:",
@@ -176,7 +179,7 @@ class JamfPolicyLogFlusherBase(JamfUploaderBase):
                 sleep_time,
                 token=token,
                 max_tries=max_tries,
-                tenant_id=jamf_platform_gw_tenant_id,
+                platform_level_id=platform_level_id,
             )
         else:
             self.output(

@@ -64,13 +64,13 @@ class JamfPackageCleanerBase(JamfUploaderBase):
                 verbose_level=2,
             )
 
-    def delete_package(self, api_url, object_id, token, max_tries, tenant_id=""):
+    def delete_package(self, api_url, object_id, token, max_tries, platform_level_id=""):
         """Cleaning Packages"""
 
         self.output("Deleting package...")
 
         object_type = "package_v1"
-        endpoint = self.api_endpoints(object_type, tenant_id=tenant_id)
+        endpoint = self.api_endpoints(object_type, platform_level_id=platform_level_id)
         url = f"{api_url}/{endpoint}/{object_id}"
 
         count = 0
@@ -100,7 +100,9 @@ class JamfPackageCleanerBase(JamfUploaderBase):
         jamf_user = self.env.get("API_USERNAME")
         jamf_password = self.env.get("API_PASSWORD")
         jamf_platform_gw_region = self.env.get("PLATFORM_API_REGION")
-        jamf_platform_gw_tenant_id = self.env.get("PLATFORM_API_TENANT_ID")
+        platform_level_id = self.env.get("PLATFORM_API_ENVIRONMENT_ID") or self.env.get(
+            "PLATFORM_API_TENANT_ID"
+        )
         client_id = self.env.get("CLIENT_ID")
         client_secret = self.env.get("CLIENT_SECRET")
         bearer_token = self.env.get("BEARER_TOKEN")
@@ -125,6 +127,9 @@ class JamfPackageCleanerBase(JamfUploaderBase):
             max_tries = 5
 
         process_skipped = False
+        self.env["packages_kept_in_use"] = "0"
+        self.env.pop("jamfpackagecleaner_summary_result", None)
+        self.env.pop("dry_run_summary_result", None)
 
         # skip the process if skip_if is True
         if skip_if and self.predicate_evaluates_as_true(skip_if):
@@ -198,12 +203,6 @@ class JamfPackageCleanerBase(JamfUploaderBase):
                     )
                 )
 
-        # Clear any pre-existing summary result
-        if "jamfpackagecleaner_summary_result" in self.env:
-            del self.env["jamfpackagecleaner_summary_result"]
-        if "dry_run_summary_result" in self.env:
-            del self.env["dry_run_summary_result"]
-
         # Abort if the package name match string is too short
         if len(pkg_name_match) < minimum_name_length:
             self.output(
@@ -217,13 +216,13 @@ class JamfPackageCleanerBase(JamfUploaderBase):
         self.output(f"Getting all packages from {jamf_url}")
 
         # get a token
-        token, jamf_url, jamf_platform_gw_region, jamf_platform_gw_tenant_id = (
+        token, jamf_url, jamf_platform_gw_region, platform_level_id = (
             self.auth(
                 jamf_url=jamf_url,
                 jamf_user=jamf_user,
                 password=jamf_password,
                 region=jamf_platform_gw_region,
-                tenant_id=jamf_platform_gw_tenant_id,
+                platform_level_id=platform_level_id,
                 client_id=client_id,
                 client_secret=client_secret,
                 token=bearer_token,
@@ -239,7 +238,7 @@ class JamfPackageCleanerBase(JamfUploaderBase):
 
         # check for existing
         object_type = "package_v1"
-        url = f"{api_url}/{self.api_endpoints(object_type, tenant_id=jamf_platform_gw_tenant_id)}"
+        url = f"{api_url}/{self.api_endpoints(object_type, platform_level_id=platform_level_id)}"
         jamf_packages = self.paginated_get(
             api_type="jpapi",
             url=url,
@@ -282,21 +281,21 @@ class JamfPackageCleanerBase(JamfUploaderBase):
                 "Checking whether any packages due for deletion are still in use..."
             )
             packages_in_use = set()
-            for usage_getter in (
-                self.get_packages_in_policies,
-                self.get_packages_in_patch_titles,
-                self.get_packages_in_prestages,
+            for usage_getter, usage_kwargs in (
+                (self.get_packages_in_policies, {}),
+                (self.get_packages_in_patch_titles, {"fail_on_error": True}),
+                (self.get_packages_in_prestages, {}),
             ):
                 # enumerating every policy, patch title, and PreStage Enrollment
                 # can take time, so refresh the token before each lookup (as the
                 # deletion loop below does) to avoid it expiring mid-enumeration
-                token, jamf_url, jamf_platform_gw_region, jamf_platform_gw_tenant_id = (
+                token, jamf_url, jamf_platform_gw_region, platform_level_id = (
                     self.auth(
                         jamf_url=jamf_url,
                         jamf_user=jamf_user,
                         password=jamf_password,
                         region=jamf_platform_gw_region,
-                        tenant_id=jamf_platform_gw_tenant_id,
+                        platform_level_id=platform_level_id,
                         client_id=client_id,
                         client_secret=client_secret,
                         token=bearer_token,
@@ -307,7 +306,10 @@ class JamfPackageCleanerBase(JamfUploaderBase):
                     jamf_url=jamf_url, region=jamf_platform_gw_region
                 )
                 found_in_use = usage_getter(
-                    api_url, token, tenant_id=jamf_platform_gw_tenant_id
+                    api_url,
+                    token,
+                    platform_level_id=platform_level_id,
+                    **usage_kwargs,
                 )
                 if found_in_use:
                     packages_in_use.update(found_in_use)
@@ -336,6 +338,8 @@ class JamfPackageCleanerBase(JamfUploaderBase):
                         f"♻️  {package['packageName']} (in use, will be kept)",
                         verbose_level=2,
                     )
+
+        self.env["packages_kept_in_use"] = str(len(packages_kept_in_use))
 
         # Check that we're not going to delete too many packages
         if len(packages_to_delete) > maximum_allowed_packages_to_delete:
@@ -382,13 +386,13 @@ class JamfPackageCleanerBase(JamfUploaderBase):
         for package in packages_to_delete:
             # package deletion could take time, so we check the token before each deletion
             # get a token
-            token, jamf_url, jamf_platform_gw_region, jamf_platform_gw_tenant_id = (
+            token, jamf_url, jamf_platform_gw_region, platform_level_id = (
                 self.auth(
                     jamf_url=jamf_url,
                     jamf_user=jamf_user,
                     password=jamf_password,
                     region=jamf_platform_gw_region,
-                    tenant_id=jamf_platform_gw_tenant_id,
+                    platform_level_id=platform_level_id,
                     client_id=client_id,
                     client_secret=client_secret,
                     token=bearer_token,
@@ -406,7 +410,7 @@ class JamfPackageCleanerBase(JamfUploaderBase):
                 object_id=package["id"],
                 token=token,
                 max_tries=max_tries,
-                tenant_id=jamf_platform_gw_tenant_id,
+                platform_level_id=platform_level_id,
             )
             self.output(f"Deleting {package['packageName']}", verbose_level=2)
 
@@ -449,7 +453,7 @@ class JamfPackageCleanerBase(JamfUploaderBase):
                 "pkg_name_match": pkg_name_match,
                 "found_matches": str(len(found_packages)),
                 "versions_to_keep": str(versions_to_keep),
-                "kept_in_use": str(len(packages_kept_in_use)),
+                "kept_in_use": self.env["packages_kept_in_use"],
                 "deleted": str(len(packages_to_delete)),
             },
         }

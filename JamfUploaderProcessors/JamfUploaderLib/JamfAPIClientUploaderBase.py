@@ -49,13 +49,13 @@ class JamfAPIClientUploaderBase(JamfUploaderBase):
         token,
         max_tries,
         object_id=0,
-        tenant_id="",
+        platform_level_id="",
     ):
         """Update API Client metadata."""
 
         self.output(f"Uploading {object_type}...")
 
-        endpoint = self.api_endpoints(object_type, tenant_id=tenant_id)
+        endpoint = self.api_endpoints(object_type, platform_level_id=platform_level_id)
         # if we find an object ID we put, if not, we post
         if object_id:
             url = f"{api_url}/{endpoint}/{object_id}"
@@ -100,13 +100,13 @@ class JamfAPIClientUploaderBase(JamfUploaderBase):
         token,
         max_tries,
         object_id,
-        tenant_id="",
+        platform_level_id="",
     ):
         """Generate the API Client Credentials"""
 
         self.output("Getting API Client credentials...")
 
-        endpoint = self.api_endpoints(object_type, tenant_id=tenant_id)
+        endpoint = self.api_endpoints(object_type, platform_level_id=platform_level_id)
         url = f"{api_url}/{endpoint}/{object_id}/client-credentials"
 
         api_client_id = ""
@@ -159,7 +159,9 @@ class JamfAPIClientUploaderBase(JamfUploaderBase):
         jamf_user = self.env.get("API_USERNAME")
         jamf_password = self.env.get("API_PASSWORD")
         jamf_platform_gw_region = self.env.get("PLATFORM_API_REGION")
-        jamf_platform_gw_tenant_id = self.env.get("PLATFORM_API_TENANT_ID")
+        platform_level_id = self.env.get("PLATFORM_API_ENVIRONMENT_ID") or self.env.get(
+            "PLATFORM_API_TENANT_ID"
+        )
         client_id = self.env.get("CLIENT_ID")
         client_secret = self.env.get("CLIENT_SECRET")
         bearer_token = self.env.get("BEARER_TOKEN")
@@ -173,6 +175,7 @@ class JamfAPIClientUploaderBase(JamfUploaderBase):
         sleep_time = self.env.get("sleep")
         max_tries = self.env.get("max_tries")
         skip_if = self.get_and_clear_skip_if()
+        dry_run = self.to_bool(self.env.get("dry_run"))
 
         # verify that max_tries is an integer greater than zero and less than 10
         try:
@@ -202,13 +205,13 @@ class JamfAPIClientUploaderBase(JamfUploaderBase):
         object_uploaded = False
 
         # get a token
-        token, jamf_url, jamf_platform_gw_region, jamf_platform_gw_tenant_id = (
+        token, jamf_url, jamf_platform_gw_region, platform_level_id = (
             self.auth(
                 jamf_url=jamf_url,
                 jamf_user=jamf_user,
                 password=jamf_password,
                 region=jamf_platform_gw_region,
-                tenant_id=jamf_platform_gw_tenant_id,
+                platform_level_id=platform_level_id,
                 client_id=client_id,
                 client_secret=client_secret,
                 token=bearer_token,
@@ -233,7 +236,7 @@ class JamfAPIClientUploaderBase(JamfUploaderBase):
                 object_type=object_type,
                 object_name=object_name,
                 token=token,
-                tenant_id=jamf_platform_gw_tenant_id,
+                platform_level_id=platform_level_id,
                 filter_name="clientId",
             )
         else:
@@ -243,7 +246,7 @@ class JamfAPIClientUploaderBase(JamfUploaderBase):
                 object_type=object_type,
                 object_name=object_name,
                 token=token,
-                tenant_id=jamf_platform_gw_tenant_id,
+                platform_level_id=platform_level_id,
                 filter_name="displayName",
             )
 
@@ -293,7 +296,7 @@ class JamfAPIClientUploaderBase(JamfUploaderBase):
             verbose_level=2,
         )
 
-        if self.env.get("dry_run"):
+        if dry_run:
             action = "CREATE" if not object_id else "UPDATE"
             self.output(f"DRY RUN: Would {action} api_client '{object_name}'")
             self.env["api_client_updated"] = False
@@ -315,7 +318,7 @@ class JamfAPIClientUploaderBase(JamfUploaderBase):
             token=token,
             max_tries=max_tries,
             object_id=object_id,
-            tenant_id=jamf_platform_gw_tenant_id,
+            platform_level_id=platform_level_id,
         )
         object_uploaded = True
 
@@ -342,7 +345,7 @@ class JamfAPIClientUploaderBase(JamfUploaderBase):
                 token,
                 max_tries,
                 object_id,
-                tenant_id=jamf_platform_gw_tenant_id,
+                platform_level_id=platform_level_id,
             )
             self.output(f"Client ID: {api_client_id}")
             self.output(f"Client Secret: {api_client_secret}")

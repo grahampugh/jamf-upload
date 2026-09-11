@@ -8,9 +8,10 @@ I welcome contributions to this project. **Please only issue PRs to [grahampugh/
 
 Details of these processors can be found in the [wiki][3].
 
-There are also descriptions of the input and output variables in the [READMEs folder][4].
+## Processor READMEs
+
+These are now situated in the [Wiki](https://github.com/grahampugh/jamf-upload/wiki).
 
 [1]: https://github.com/grahampugh/jamf-upload/tree/main/JamfUploaderProcessors
 [2]: https://github.com/autopkg/grahampugh-recipes/tree/main/JamfUploaderProcessors
 [3]: https://github.com/grahampugh/jamf-upload/wiki/JamfUploader-AutoPkg-Processors
-[4]: READMEs/

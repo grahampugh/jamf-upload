@@ -43,13 +43,13 @@ class JamfComputerGroupDeleterBase(JamfUploaderBase):
     other objects depend on it.
     """
 
-    def delete_computer_group(self, api_url, object_id, token, max_tries, tenant_id=""):
+    def delete_computer_group(self, api_url, object_id, token, max_tries, platform_level_id=""):
         """Delete computer group"""
 
         self.output("Deleting Computer Group...")
 
         object_type = "computer_group"
-        endpoint = self.api_endpoints(object_type, tenant_id=tenant_id)
+        endpoint = self.api_endpoints(object_type, platform_level_id=platform_level_id)
         url = f"{api_url}/{endpoint}/id/{object_id}"
 
         count = 0
@@ -77,7 +77,9 @@ class JamfComputerGroupDeleterBase(JamfUploaderBase):
         jamf_user = self.env.get("API_USERNAME")
         jamf_password = self.env.get("API_PASSWORD")
         jamf_platform_gw_region = self.env.get("PLATFORM_API_REGION")
-        jamf_platform_gw_tenant_id = self.env.get("PLATFORM_API_TENANT_ID")
+        platform_level_id = self.env.get("PLATFORM_API_ENVIRONMENT_ID") or self.env.get(
+            "PLATFORM_API_TENANT_ID"
+        )
         client_id = self.env.get("CLIENT_ID")
         client_secret = self.env.get("CLIENT_SECRET")
         bearer_token = self.env.get("BEARER_TOKEN")
@@ -85,6 +87,7 @@ class JamfComputerGroupDeleterBase(JamfUploaderBase):
         computergroup_name = self.env.get("computergroup_name")
         max_tries = self.env.get("max_tries")
         skip_if = self.get_and_clear_skip_if()
+        dry_run = self.to_bool(self.env.get("dry_run"))
 
         # verify that max_tries is an integer greater than zero and less than 10
         try:
@@ -112,13 +115,13 @@ class JamfComputerGroupDeleterBase(JamfUploaderBase):
             self.output("Not skipping process as skip_if evaluated to False")
 
         # get a token
-        token, jamf_url, jamf_platform_gw_region, jamf_platform_gw_tenant_id = (
+        token, jamf_url, jamf_platform_gw_region, platform_level_id = (
             self.auth(
                 jamf_url=jamf_url,
                 jamf_user=jamf_user,
                 password=jamf_password,
                 region=jamf_platform_gw_region,
-                tenant_id=jamf_platform_gw_tenant_id,
+                platform_level_id=platform_level_id,
                 client_id=client_id,
                 client_secret=client_secret,
                 token=bearer_token,
@@ -141,12 +144,12 @@ class JamfComputerGroupDeleterBase(JamfUploaderBase):
             object_type="computer_group",
             object_name=computergroup_name,
             token=token,
-            tenant_id=jamf_platform_gw_tenant_id,
+            platform_level_id=platform_level_id,
         )
 
         if object_id:
             self.output(f"Computer Group '{computergroup_name}' exists: ID {object_id}")
-            if self.env.get("dry_run"):
+            if dry_run:
                 self.output(f"DRY RUN: Would DELETE computer group '{computergroup_name}' (ID {object_id})")
                 self.env["dry_run_summary_result"] = {
                     "summary_text": "DRY RUN: The following changes would be made in Jamf Pro:",
@@ -164,7 +167,7 @@ class JamfComputerGroupDeleterBase(JamfUploaderBase):
                 object_id,
                 token,
                 max_tries,
-                tenant_id=jamf_platform_gw_tenant_id,
+                platform_level_id=platform_level_id,
             )
         else:
             self.output(

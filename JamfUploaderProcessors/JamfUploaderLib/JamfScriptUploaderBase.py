@@ -63,7 +63,7 @@ class JamfScriptUploaderBase(JamfUploaderBase):
         token,
         max_tries,
         object_id=0,
-        tenant_id="",
+        platform_level_id="",
     ):
         """Update script metadata."""
 
@@ -117,7 +117,7 @@ class JamfScriptUploaderBase(JamfUploaderBase):
 
         # if we find an object ID we put, if not, we post
         object_type = "script"
-        endpoint = self.api_endpoints(object_type, tenant_id=tenant_id)
+        endpoint = self.api_endpoints(object_type, platform_level_id=platform_level_id)
         if object_id:
             url = f"{api_url}/{endpoint}/{object_id}"
         else:
@@ -157,7 +157,9 @@ class JamfScriptUploaderBase(JamfUploaderBase):
         jamf_user = self.env.get("API_USERNAME")
         jamf_password = self.env.get("API_PASSWORD")
         jamf_platform_gw_region = self.env.get("PLATFORM_API_REGION")
-        jamf_platform_gw_tenant_id = self.env.get("PLATFORM_API_TENANT_ID")
+        platform_level_id = self.env.get("PLATFORM_API_ENVIRONMENT_ID") or self.env.get(
+            "PLATFORM_API_TENANT_ID"
+        )
         client_id = self.env.get("CLIENT_ID")
         client_secret = self.env.get("CLIENT_SECRET")
         bearer_token = self.env.get("BEARER_TOKEN")
@@ -184,6 +186,7 @@ class JamfScriptUploaderBase(JamfUploaderBase):
         sleep_time = self.env.get("sleep")
         max_tries = self.env.get("max_tries")
         skip_if = self.get_and_clear_skip_if()
+        dry_run = self.to_bool(self.env.get("dry_run"))
 
         # verify that max_tries is an integer greater than zero and less than 10
         try:
@@ -225,13 +228,13 @@ class JamfScriptUploaderBase(JamfUploaderBase):
         script_category = self.substitute_assignable_keys(script_category)
 
         # get a token
-        token, jamf_url, jamf_platform_gw_region, jamf_platform_gw_tenant_id = (
+        token, jamf_url, jamf_platform_gw_region, platform_level_id = (
             self.auth(
                 jamf_url=jamf_url,
                 jamf_user=jamf_user,
                 password=jamf_password,
                 region=jamf_platform_gw_region,
-                tenant_id=jamf_platform_gw_tenant_id,
+                platform_level_id=platform_level_id,
                 client_id=client_id,
                 client_secret=client_secret,
                 token=bearer_token,
@@ -255,7 +258,7 @@ class JamfScriptUploaderBase(JamfUploaderBase):
                 object_type="category",
                 object_name=script_category,
                 token=token,
-                tenant_id=jamf_platform_gw_tenant_id,
+                platform_level_id=platform_level_id,
             )
 
             if not category_id:
@@ -287,7 +290,7 @@ class JamfScriptUploaderBase(JamfUploaderBase):
             object_type="script",
             object_name=script_name,
             token=token,
-            tenant_id=jamf_platform_gw_tenant_id,
+            platform_level_id=platform_level_id,
         )
 
         if object_id:
@@ -304,7 +307,7 @@ class JamfScriptUploaderBase(JamfUploaderBase):
                 )
                 return
 
-        if self.env.get("dry_run"):
+        if dry_run:
             action = "CREATE" if not object_id else "UPDATE"
             self.output(f"DRY RUN: Would {action} script '{script_name}'")
             self.env["script_name"] = script_name
@@ -341,7 +344,7 @@ class JamfScriptUploaderBase(JamfUploaderBase):
             token=token,
             max_tries=max_tries,
             object_id=object_id,
-            tenant_id=jamf_platform_gw_tenant_id,
+            platform_level_id=platform_level_id,
         )
         script_uploaded = True
 

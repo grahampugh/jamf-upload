@@ -57,7 +57,7 @@ Valid object types:
 Arguments:
     --prefs <path>          Inherit AutoPkg prefs file provided by the full path to the file
     -v[vvv]                 Set value of verbosity
-    --url <JSS_URL>         The Jamf Pro URL (required even if using Platform API credentials)
+    --url <JSS_URL>         The Jamf Pro URL
     --region (eu|us|apac)   The region that the Jamf Pro tenant is hosted in. This is required when using platform API 
                             credentials and will be used to construct the API base URL for authentication and API calls
     --tenant <TENANT_ID>    The tenant ID for the Jamf Pro platform API

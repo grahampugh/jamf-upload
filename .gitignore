@@ -140,3 +140,6 @@ jamf_signed_computerprofile_upload.py
 jira-creds.txt
 jira-creds.sh
 
+
+# Claude Code local artifacts
+.claude/

@@ -47,7 +47,7 @@ class JamfPolicyUploaderBase(JamfUploaderBase):
         object_id,
         token,
         retain_scope=False,
-        tenant_id="",
+        platform_level_id="",
     ):
         """prepare the policy contents"""
         # import template from file and replace any keys in the template
@@ -67,7 +67,7 @@ class JamfPolicyUploaderBase(JamfUploaderBase):
         if retain_scope and object_id > 0:
             self.output("Substituting existing scope into template", verbose_level=1)
             existing_scope = self.get_existing_scope(
-                api_url, object_type, object_id, token, tenant_id=tenant_id
+                api_url, object_type, object_id, token, platform_level_id=platform_level_id
             )
             # substitute pre-existing scope
             template_contents = self.replace_scope(template_contents, existing_scope)
@@ -88,14 +88,14 @@ class JamfPolicyUploaderBase(JamfUploaderBase):
         token,
         max_tries,
         object_id=0,
-        tenant_id="",
+        platform_level_id="",
     ):
         """Upload policy"""
 
         self.output("Uploading Policy...")
 
         object_type = "policy"
-        endpoint = self.api_endpoints(object_type, tenant_id=tenant_id)
+        endpoint = self.api_endpoints(object_type, platform_level_id=platform_level_id)
         # if we find an object ID we put, if not, we post
         url = f"{api_url}/{endpoint}/id/{object_id}"
 
@@ -136,7 +136,7 @@ class JamfPolicyUploaderBase(JamfUploaderBase):
         token,
         max_tries,
         object_id=None,
-        tenant_id="",
+        platform_level_id="",
     ):
         """Upload an icon to the policy that was just created"""
         # check that the policy exists.
@@ -150,7 +150,7 @@ class JamfPolicyUploaderBase(JamfUploaderBase):
                 object_type="policy",
                 object_name=object_name,
                 token=token,
-                tenant_id=tenant_id,
+                platform_level_id=platform_level_id,
             )
 
             if not object_id:
@@ -165,7 +165,7 @@ class JamfPolicyUploaderBase(JamfUploaderBase):
             object_id=object_id,
             object_path="self_service/self_service_icon/filename",
             token=token,
-            tenant_id=tenant_id,
+            platform_level_id=platform_level_id,
         )
         if existing_icon:
             self.output(f"Existing policy icon is '{existing_icon}'", verbose_level=1)
@@ -177,7 +177,7 @@ class JamfPolicyUploaderBase(JamfUploaderBase):
 
         if existing_icon != policy_icon_name or replace_object:
             object_type = "policy_icon"
-            endpoint = self.api_endpoints(object_type, tenant_id=tenant_id)
+            endpoint = self.api_endpoints(object_type, platform_level_id=platform_level_id)
             url = f"{api_url}/{endpoint}/id/{object_id}"
 
             self.output("Uploading icon...")
@@ -219,7 +219,9 @@ class JamfPolicyUploaderBase(JamfUploaderBase):
         jamf_user = self.env.get("API_USERNAME")
         jamf_password = self.env.get("API_PASSWORD")
         jamf_platform_gw_region = self.env.get("PLATFORM_API_REGION")
-        jamf_platform_gw_tenant_id = self.env.get("PLATFORM_API_TENANT_ID")
+        platform_level_id = self.env.get("PLATFORM_API_ENVIRONMENT_ID") or self.env.get(
+            "PLATFORM_API_TENANT_ID"
+        )
         client_id = self.env.get("CLIENT_ID")
         client_secret = self.env.get("CLIENT_SECRET")
         bearer_token = self.env.get("BEARER_TOKEN")
@@ -233,6 +235,7 @@ class JamfPolicyUploaderBase(JamfUploaderBase):
         replace_icon = self.to_bool(self.env.get("replace_icon"))
         max_tries = self.env.get("max_tries")
         skip_if = self.get_and_clear_skip_if()
+        dry_run = self.to_bool(self.env.get("dry_run"))
 
         # verify that max_tries is an integer greater than zero and less than 10
         try:
@@ -278,13 +281,13 @@ class JamfPolicyUploaderBase(JamfUploaderBase):
         self.output(f"Checking for existing '{policy_name}' on {jamf_url}")
 
         # get a token
-        token, jamf_url, jamf_platform_gw_region, jamf_platform_gw_tenant_id = (
+        token, jamf_url, jamf_platform_gw_region, platform_level_id = (
             self.auth(
                 jamf_url=jamf_url,
                 jamf_user=jamf_user,
                 password=jamf_password,
                 region=jamf_platform_gw_region,
-                tenant_id=jamf_platform_gw_tenant_id,
+                platform_level_id=platform_level_id,
                 client_id=client_id,
                 client_secret=client_secret,
                 token=bearer_token,
@@ -304,7 +307,7 @@ class JamfPolicyUploaderBase(JamfUploaderBase):
             object_type="policy",
             object_name=policy_name,
             token=token,
-            tenant_id=jamf_platform_gw_tenant_id,
+            platform_level_id=platform_level_id,
         )
 
         # we need to substitute the values in the template now to
@@ -315,7 +318,7 @@ class JamfPolicyUploaderBase(JamfUploaderBase):
             object_id,
             token,
             retain_scope,
-            tenant_id=jamf_platform_gw_tenant_id,
+            platform_level_id=platform_level_id,
         )
 
         if object_id:
@@ -332,7 +335,7 @@ class JamfPolicyUploaderBase(JamfUploaderBase):
                 )
                 return
 
-        if self.env.get("dry_run"):
+        if dry_run:
             action = "CREATE" if not object_id else "UPDATE"
             self.output(f"DRY RUN: Would {action} policy '{policy_name}'")
             self.env["policy_name"] = policy_name
@@ -355,7 +358,7 @@ class JamfPolicyUploaderBase(JamfUploaderBase):
             token=token,
             max_tries=max_tries,
             object_id=object_id,
-            tenant_id=jamf_platform_gw_tenant_id,
+            platform_level_id=platform_level_id,
         )
         policy_updated = True
 
@@ -390,7 +393,7 @@ class JamfPolicyUploaderBase(JamfUploaderBase):
                     token=token,
                     max_tries=max_tries,
                     object_id=policy_id,
-                    tenant_id=jamf_platform_gw_tenant_id,
+                    platform_level_id=platform_level_id,
                 )
             except UnboundLocalError:
                 policy_icon_name = self.upload_policy_icon(
@@ -401,7 +404,7 @@ class JamfPolicyUploaderBase(JamfUploaderBase):
                     sleep_time=sleep_time,
                     token=token,
                     max_tries=max_tries,
-                    tenant_id=jamf_platform_gw_tenant_id,
+                    platform_level_id=platform_level_id,
                 )
 
         # output the summary

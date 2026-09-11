@@ -77,7 +77,7 @@ class JamfPatchUploaderBase(JamfUploaderBase):
         sleep_time,
         token,
         max_tries,
-        tenant_id="",
+        platform_level_id="",
     ):
         """Uploads an updated patch softwaretitle including the linked pkg"""
         self.output("Linking pkg versions in patch softwaretitle...")
@@ -96,7 +96,7 @@ class JamfPatchUploaderBase(JamfUploaderBase):
                 object_type="package",
                 object_name=pkg_name,
                 token=token,
-                tenant_id=tenant_id,
+                platform_level_id=platform_level_id,
             )
             if pkg_id:
                 self.output(f"Found id '{pkg_id}' for package '{pkg_name}'.")
@@ -110,7 +110,7 @@ class JamfPatchUploaderBase(JamfUploaderBase):
 
         # Get current softwaretitle
         object_type = "patch_software_title"
-        endpoint = self.api_endpoints(object_type, tenant_id=tenant_id)
+        endpoint = self.api_endpoints(object_type, platform_level_id=platform_level_id)
         url = f"{api_url}/{endpoint}/id/{patch_softwaretitle_id}"
 
         # No need to loop over curl function, since we only make a "GET" request.
@@ -213,14 +213,14 @@ class JamfPatchUploaderBase(JamfUploaderBase):
         token,
         max_tries,
         patch_id=0,
-        tenant_id="",
+        platform_level_id="",
     ):
         """Uploads the patch policy"""
         self.output("Uploading Patch policy...")
 
         # For patch policies the url differs when creating a new one or updating one.
         object_type = "patch_policy"
-        endpoint = self.api_endpoints(object_type, tenant_id=tenant_id)
+        endpoint = self.api_endpoints(object_type, platform_level_id=platform_level_id)
         if patch_id:
             url = f"{api_url}/{endpoint}/id/{patch_id}"
         else:
@@ -261,7 +261,9 @@ class JamfPatchUploaderBase(JamfUploaderBase):
         jamf_user = self.env.get("API_USERNAME")
         jamf_password = self.env.get("API_PASSWORD")
         jamf_platform_gw_region = self.env.get("PLATFORM_API_REGION")
-        jamf_platform_gw_tenant_id = self.env.get("PLATFORM_API_TENANT_ID")
+        platform_level_id = self.env.get("PLATFORM_API_ENVIRONMENT_ID") or self.env.get(
+            "PLATFORM_API_TENANT_ID"
+        )
         client_id = self.env.get("CLIENT_ID")
         client_secret = self.env.get("CLIENT_SECRET")
         bearer_token = self.env.get("BEARER_TOKEN")
@@ -276,6 +278,7 @@ class JamfPatchUploaderBase(JamfUploaderBase):
         sleep_time = self.env.get("sleep")
         max_tries = self.env.get("max_tries")
         skip_if = self.get_and_clear_skip_if()
+        dry_run = self.to_bool(self.env.get("dry_run"))
 
         # verify that max_tries is an integer greater than zero and less than 10
         try:
@@ -323,13 +326,13 @@ class JamfPatchUploaderBase(JamfUploaderBase):
         self.output(f"Checking for existing '{patch_softwaretitle}' on {jamf_url}")
 
         # get a token
-        token, jamf_url, jamf_platform_gw_region, jamf_platform_gw_tenant_id = (
+        token, jamf_url, jamf_platform_gw_region, platform_level_id = (
             self.auth(
                 jamf_url=jamf_url,
                 jamf_user=jamf_user,
                 password=jamf_password,
                 region=jamf_platform_gw_region,
-                tenant_id=jamf_platform_gw_tenant_id,
+                platform_level_id=platform_level_id,
                 client_id=client_id,
                 client_secret=client_secret,
                 token=bearer_token,
@@ -356,7 +359,7 @@ class JamfPatchUploaderBase(JamfUploaderBase):
                 object_type="policy",
                 object_name=patch_icon_policy_name,
                 token=token,
-                tenant_id=jamf_platform_gw_tenant_id,
+                platform_level_id=platform_level_id,
             )
             if patch_icon_policy_id:
                 # Only try to extract an icon, if a policy with the given name was found.
@@ -366,7 +369,7 @@ class JamfPatchUploaderBase(JamfUploaderBase):
                     object_id=patch_icon_policy_id,
                     object_path="self_service/self_service_icon/id",
                     token=token,
-                    tenant_id=jamf_platform_gw_tenant_id,
+                    platform_level_id=platform_level_id,
                 )
                 if patch_icon_id:
                     # Icon id could be extracted
@@ -403,7 +406,7 @@ class JamfPatchUploaderBase(JamfUploaderBase):
             object_type="patch_software_title",
             object_name=patch_softwaretitle,
             token=token,
-            tenant_id=jamf_platform_gw_tenant_id,
+            platform_level_id=platform_level_id,
         )
 
         if not patch_softwaretitle_id:
@@ -430,7 +433,7 @@ class JamfPatchUploaderBase(JamfUploaderBase):
             sleep_time,
             token,
             max_tries,
-            tenant_id=jamf_platform_gw_tenant_id,
+            platform_level_id=platform_level_id,
         )
 
         # Patch Policy
@@ -450,7 +453,7 @@ class JamfPatchUploaderBase(JamfUploaderBase):
                 object_type="patch_policy",
                 object_name=patch_name,
                 token=token,
-                tenant_id=jamf_platform_gw_tenant_id,
+                platform_level_id=platform_level_id,
             )
 
             if patch_id:
@@ -467,7 +470,7 @@ class JamfPatchUploaderBase(JamfUploaderBase):
                     )
                     return
 
-            if self.env.get("dry_run"):
+            if dry_run:
                 action = "CREATE" if not patch_id else "UPDATE"
                 self.output(f"DRY RUN: Would {action} patch_policy '{patch_name}'")
                 self.env["patch_updated"] = False
@@ -489,7 +492,7 @@ class JamfPatchUploaderBase(JamfUploaderBase):
                 token=token,
                 max_tries=max_tries,
                 patch_id=patch_id,
-                tenant_id=jamf_platform_gw_tenant_id,
+                platform_level_id=platform_level_id,
             )
 
             # Parse xml output to get patch id of freshly created patch policy.

@@ -53,7 +53,7 @@ class JamfMobileDeviceExtensionAttributeUploaderBase(JamfUploaderBase):
         token,
         max_tries,
         object_id=None,
-        tenant_id="",
+        platform_level_id="",
     ):
         """Update extension attribute metadata."""
 
@@ -94,7 +94,7 @@ class JamfMobileDeviceExtensionAttributeUploaderBase(JamfUploaderBase):
 
         # if we find an object ID we put, if not, we post
         object_type = "mobile_device_extension_attribute"
-        endpoint = self.api_endpoints(object_type, tenant_id=tenant_id)
+        endpoint = self.api_endpoints(object_type, platform_level_id=platform_level_id)
         url = f"{api_url}/{endpoint}/id/{object_id}"
 
         self.output(
@@ -144,7 +144,9 @@ class JamfMobileDeviceExtensionAttributeUploaderBase(JamfUploaderBase):
         jamf_user = self.env.get("API_USERNAME")
         jamf_password = self.env.get("API_PASSWORD")
         jamf_platform_gw_region = self.env.get("PLATFORM_API_REGION")
-        jamf_platform_gw_tenant_id = self.env.get("PLATFORM_API_TENANT_ID")
+        platform_level_id = self.env.get("PLATFORM_API_ENVIRONMENT_ID") or self.env.get(
+            "PLATFORM_API_TENANT_ID"
+        )
         client_id = self.env.get("CLIENT_ID")
         client_secret = self.env.get("CLIENT_SECRET")
         bearer_token = self.env.get("BEARER_TOKEN")
@@ -162,6 +164,7 @@ class JamfMobileDeviceExtensionAttributeUploaderBase(JamfUploaderBase):
         sleep_time = self.env.get("sleep")
         max_tries = self.env.get("max_tries")
         skip_if = self.get_and_clear_skip_if()
+        dry_run = self.to_bool(self.env.get("dry_run"))
 
         # verify that max_tries is an integer greater than zero and less than 10
         try:
@@ -200,13 +203,13 @@ class JamfMobileDeviceExtensionAttributeUploaderBase(JamfUploaderBase):
 
         # now start the process of uploading the object
         # get a token
-        token, jamf_url, jamf_platform_gw_region, jamf_platform_gw_tenant_id = (
+        token, jamf_url, jamf_platform_gw_region, platform_level_id = (
             self.auth(
                 jamf_url=jamf_url,
                 jamf_user=jamf_user,
                 password=jamf_password,
                 region=jamf_platform_gw_region,
-                tenant_id=jamf_platform_gw_tenant_id,
+                platform_level_id=platform_level_id,
                 client_id=client_id,
                 client_secret=client_secret,
                 token=bearer_token,
@@ -228,7 +231,7 @@ class JamfMobileDeviceExtensionAttributeUploaderBase(JamfUploaderBase):
             object_type="mobile_device_extension_attribute",
             object_name=ea_name,
             token=token,
-            tenant_id=jamf_platform_gw_tenant_id,
+            platform_level_id=platform_level_id,
         )
 
         if object_id:
@@ -249,7 +252,7 @@ class JamfMobileDeviceExtensionAttributeUploaderBase(JamfUploaderBase):
                 )
                 return
 
-        if self.env.get("dry_run"):
+        if dry_run:
             action = "CREATE" if not object_id else "UPDATE"
             self.output(f"DRY RUN: Would {action} mobile_device_extension_attribute '{ea_name}'")
             self.env["ea_uploaded"] = False
@@ -275,7 +278,7 @@ class JamfMobileDeviceExtensionAttributeUploaderBase(JamfUploaderBase):
             token=token,
             max_tries=max_tries,
             object_id=object_id,
-            tenant_id=jamf_platform_gw_tenant_id,
+            platform_level_id=platform_level_id,
         )
         ea_uploaded = True
 

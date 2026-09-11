@@ -476,7 +476,7 @@ assert result["endpoint"] == "JSSResource/policies"
 print(f"  resolve('policy') Classic precedence: PASS -> {result['endpoint']}")
 
 # Test 22: Verify JPAPI_ALIAS_TABLE has all expected entries
-expected_alias_count = 56
+expected_alias_count = 58
 actual_alias_count = len(JPAPI_ALIAS_TABLE)
 assert actual_alias_count == expected_alias_count, (
     f"JPAPI_ALIAS_TABLE should have {expected_alias_count} entries, "

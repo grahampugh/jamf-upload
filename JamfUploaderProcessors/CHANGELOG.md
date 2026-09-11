@@ -2,9 +2,13 @@
 
 The dates here represent when the features were added to the processors in the `jamf-upload` repo.
 
+## 2026-08-19
+
+* Added `JamfDirectoryServiceGroupEncoder`, which resolves a Directory Service (LDAP/IdP) group name to the base64-encoded `{uuid,serverId}` value required by *directory service group* criteria in smart groups and advanced searches (Jamf Pro 11.29 and later). The encoded value is returned as an output variable for substitution into a template uploaded by `JamfComputerGroupUploader`, `JamfMobileDeviceGroupUploader` or `JamfObjectUploader`.
+
 ## 2026-06-18
 
-* Added `exclude_packages_in_use` option to `JamfPackageCleaner`. When set to `True`, any package that is still referenced by a policy, patch software title, or PreStage Enrollment is kept even if it would otherwise be deleted. The `versions_to_keep` newest packages are always kept, so this option only ever spares additional older packages. The usage lookup is skipped when there is nothing to delete. Moved the `get_packages_in_policies`, `get_packages_in_patch_titles`, and `get_packages_in_prestages` helpers up into `JamfUploaderBase` so they are shared by `JamfPackageCleaner` and `JamfUnusedPackageCleaner`. Made those helpers tolerant of policies, patch titles, and PreStage Enrollments that come back with missing or null package fields, so a single unexpected object is treated as "no packages" instead of aborting the run.
+* Added `exclude_packages_in_use` option and `packages_kept_in_use` output to `JamfPackageCleaner`. When set to `True`, any package that is still referenced by a policy, patch software title, or PreStage Enrollment is kept even if it would otherwise be deleted. The `versions_to_keep` newest packages are always kept, so this option only ever spares additional older packages. The usage lookup is skipped when there is nothing to delete. Moved the `get_packages_in_policies`, `get_packages_in_patch_titles`, and `get_packages_in_prestages` helpers up into `JamfUploaderBase` so they are shared by `JamfPackageCleaner` and `JamfUnusedPackageCleaner`. Made those helpers tolerant of policies, patch titles, and PreStage Enrollments that come back with missing or null package fields, so a single unexpected object is treated as "no packages" instead of aborting the run.
 
 ## 2026-05-29
 

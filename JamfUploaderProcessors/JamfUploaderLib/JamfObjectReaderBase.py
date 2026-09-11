@@ -167,7 +167,9 @@ class JamfObjectReaderBase(JamfUploaderBase):
         jamf_user = self.env.get("API_USERNAME")
         jamf_password = self.env.get("API_PASSWORD")
         jamf_platform_gw_region = self.env.get("PLATFORM_API_REGION")
-        jamf_platform_gw_tenant_id = self.env.get("PLATFORM_API_TENANT_ID")
+        platform_level_id = self.env.get("PLATFORM_API_ENVIRONMENT_ID") or self.env.get(
+            "PLATFORM_API_TENANT_ID"
+        )
         client_id = self.env.get("CLIENT_ID")
         client_secret = self.env.get("CLIENT_SECRET")
         bearer_token = self.env.get("BEARER_TOKEN")
@@ -226,13 +228,13 @@ class JamfObjectReaderBase(JamfUploaderBase):
         self.output(f"API type for {object_type} is {api_type}", verbose_level=3)
 
         # get a token
-        token, jamf_url, jamf_platform_gw_region, jamf_platform_gw_tenant_id = (
+        token, jamf_url, jamf_platform_gw_region, platform_level_id = (
             self.auth(
                 jamf_url=jamf_url,
                 jamf_user=jamf_user,
                 password=jamf_password,
                 region=jamf_platform_gw_region,
-                tenant_id=jamf_platform_gw_tenant_id,
+                platform_level_id=platform_level_id,
                 client_id=client_id,
                 client_secret=client_secret,
                 token=bearer_token,
@@ -274,7 +276,7 @@ class JamfObjectReaderBase(JamfUploaderBase):
             object_list = self.get_all_api_objects(
                 api_url,
                 object_type,
-                tenant_id=jamf_platform_gw_tenant_id,
+                platform_level_id=platform_level_id,
                 uuid=uuid,
                 token=token,
                 namekey=namekey,
@@ -331,7 +333,7 @@ class JamfObjectReaderBase(JamfUploaderBase):
                     object_type=object_type,
                     object_id=object_id,
                     object_path=namekey_path,
-                    tenant_id=jamf_platform_gw_tenant_id,
+                    platform_level_id=platform_level_id,
                     token=token,
                 )
             object_list = [{"id": object_id, namekey: object_name}]
@@ -357,7 +359,7 @@ class JamfObjectReaderBase(JamfUploaderBase):
                         object_type=object_type,
                         object_name=object_name,
                         token=token,
-                        tenant_id=jamf_platform_gw_tenant_id,
+                        platform_level_id=platform_level_id,
                         filter_name=namekey,
                     )
                     if object_id:
@@ -372,7 +374,7 @@ class JamfObjectReaderBase(JamfUploaderBase):
                     object_name=object_name,
                     token=token,
                     filter_name=namekey,
-                    tenant_id=jamf_platform_gw_tenant_id,
+                    platform_level_id=platform_level_id,
                     id_key=id_key,
                 )
 
@@ -387,7 +389,7 @@ class JamfObjectReaderBase(JamfUploaderBase):
 
         elif "_settings" in object_type:
             object_content = self.get_settings_object(
-                api_url, object_type, token, tenant_id=jamf_platform_gw_tenant_id
+                api_url, object_type, token, platform_level_id=platform_level_id
             )
             if object_content:
                 self.output(
@@ -458,7 +460,7 @@ class JamfObjectReaderBase(JamfUploaderBase):
                             i,
                             object_path="",
                             token=token,
-                            tenant_id=jamf_platform_gw_tenant_id,
+                            platform_level_id=platform_level_id,
                         )
 
                         # parse the object
@@ -511,7 +513,7 @@ class JamfObjectReaderBase(JamfUploaderBase):
                         i,
                         object_path="",
                         token=token,
-                        tenant_id=jamf_platform_gw_tenant_id,
+                        platform_level_id=platform_level_id,
                     )
 
                     # parse the object

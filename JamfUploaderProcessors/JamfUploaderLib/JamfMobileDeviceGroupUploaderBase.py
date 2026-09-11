@@ -48,7 +48,7 @@ class JamfMobileDeviceGroupUploaderBase(JamfUploaderBase):
         token,
         max_tries,
         object_id=0,
-        tenant_id="",
+        platform_level_id="",
     ):
         """Upload Mobile Device Group"""
 
@@ -60,7 +60,7 @@ class JamfMobileDeviceGroupUploaderBase(JamfUploaderBase):
             raise ProcessorError("Template does not exist!")
 
         # substitute user-assignable keys
-        template_contents = self.substitute_assignable_keys(template_contents)
+        template_contents = self.substitute_assignable_keys(template_contents, xml_escape=True)
 
         self.output("Mobile Device Group data:", verbose_level=2)
         self.output(template_contents, verbose_level=2)
@@ -70,7 +70,7 @@ class JamfMobileDeviceGroupUploaderBase(JamfUploaderBase):
         template_xml = self.write_temp_file(api_url, template_contents)
 
         object_type = "mobile_device_group"
-        endpoint = self.api_endpoints(object_type, tenant_id=tenant_id)
+        endpoint = self.api_endpoints(object_type, platform_level_id=platform_level_id)
         # if we find an object ID we put, if not, we post
         url = f"{api_url}/{endpoint}/id/{object_id}"
 
@@ -110,7 +110,9 @@ class JamfMobileDeviceGroupUploaderBase(JamfUploaderBase):
         jamf_user = self.env.get("API_USERNAME")
         jamf_password = self.env.get("API_PASSWORD")
         jamf_platform_gw_region = self.env.get("PLATFORM_API_REGION")
-        jamf_platform_gw_tenant_id = self.env.get("PLATFORM_API_TENANT_ID")
+        platform_level_id = self.env.get("PLATFORM_API_ENVIRONMENT_ID") or self.env.get(
+            "PLATFORM_API_TENANT_ID"
+        )
         client_id = self.env.get("CLIENT_ID")
         client_secret = self.env.get("CLIENT_SECRET")
         bearer_token = self.env.get("BEARER_TOKEN")
@@ -121,6 +123,7 @@ class JamfMobileDeviceGroupUploaderBase(JamfUploaderBase):
         sleep_time = self.env.get("sleep")
         max_tries = self.env.get("max_tries")
         skip_if = self.get_and_clear_skip_if()
+        dry_run = self.to_bool(self.env.get("dry_run"))
         group_uploaded = False
 
         # verify that max_tries is an integer greater than zero and less than 10
@@ -148,7 +151,7 @@ class JamfMobileDeviceGroupUploaderBase(JamfUploaderBase):
         elif skip_if:
             self.output("Not skipping process as skip_if evaluated to False")
 
-        # we need to substitute the values in the computer group name now to
+        # we need to substitute the values in the mobile device group name now to
         # account for version strings in the name
         # substitute user-assignable keys
         mobiledevicegroup_name = self.substitute_assignable_keys(mobiledevicegroup_name)
@@ -164,13 +167,13 @@ class JamfMobileDeviceGroupUploaderBase(JamfUploaderBase):
                 )
 
         # get a token
-        token, jamf_url, jamf_platform_gw_region, jamf_platform_gw_tenant_id = (
+        token, jamf_url, jamf_platform_gw_region, platform_level_id = (
             self.auth(
                 jamf_url=jamf_url,
                 jamf_user=jamf_user,
                 password=jamf_password,
                 region=jamf_platform_gw_region,
-                tenant_id=jamf_platform_gw_tenant_id,
+                platform_level_id=platform_level_id,
                 client_id=client_id,
                 client_secret=client_secret,
                 token=bearer_token,
@@ -193,7 +196,7 @@ class JamfMobileDeviceGroupUploaderBase(JamfUploaderBase):
             object_type="mobile_device_group",
             object_name=mobiledevicegroup_name,
             token=token,
-            tenant_id=jamf_platform_gw_tenant_id,
+            platform_level_id=platform_level_id,
         )
 
         if object_id:
@@ -213,7 +216,7 @@ class JamfMobileDeviceGroupUploaderBase(JamfUploaderBase):
                 )
                 return
 
-        if self.env.get("dry_run"):
+        if dry_run:
             action = "CREATE" if not object_id else "UPDATE"
             self.output(f"DRY RUN: Would {action} mobile_device_group '{mobiledevicegroup_name}'")
             self.env["group_uploaded"] = False
@@ -234,7 +237,7 @@ class JamfMobileDeviceGroupUploaderBase(JamfUploaderBase):
             token=token,
             max_tries=max_tries,
             object_id=object_id,
-            tenant_id=jamf_platform_gw_tenant_id,
+            platform_level_id=platform_level_id,
         )
         group_uploaded = True
 
