@@ -118,6 +118,14 @@ class JamfObjectDeleter(JamfObjectDeleterBase):
             "description": "Type of the object. This is the name of the key in the XML template",
             "default": "",
         },
+        "sleep": {
+            "required": False,
+            "description": "Pause after a successful delete. The value must be an integer, "
+            "and represents the number of seconds to sleep. If the value is less "
+            "than or equal to 10, the sleep will default to 10 seconds to prevent "
+            "immediate lockout.",
+            "default": "0",
+        },
         "skip_if": {
             "required": False,
             "description": "Skip the process if the supplied predicate evaluates to True.",
