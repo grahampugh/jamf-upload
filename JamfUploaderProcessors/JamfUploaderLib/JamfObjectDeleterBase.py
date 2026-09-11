@@ -75,19 +75,23 @@ class JamfObjectDeleterBase(JamfUploaderBase):
         elif skip_if:
             self.output("Not skipping process as skip_if evaluated to False")
 
+        # we need to substitute the values in the object name now to
+        # account for version strings in the name
+        # substitute user-assignable keys
+        if object_name:
+            object_name = self.substitute_assignable_keys(object_name)
+
         # get a token
-        token, jamf_url, jamf_platform_gw_region, platform_level_id = (
-            self.auth(
-                jamf_url=jamf_url,
-                jamf_user=jamf_user,
-                password=jamf_password,
-                region=jamf_platform_gw_region,
-                platform_level_id=platform_level_id,
-                client_id=client_id,
-                client_secret=client_secret,
-                token=bearer_token,
-                jamf_cli_profile=jamf_cli_profile,
-            )
+        token, jamf_url, jamf_platform_gw_region, platform_level_id = self.auth(
+            jamf_url=jamf_url,
+            jamf_user=jamf_user,
+            password=jamf_password,
+            region=jamf_platform_gw_region,
+            platform_level_id=platform_level_id,
+            client_id=client_id,
+            client_secret=client_secret,
+            token=bearer_token,
+            jamf_cli_profile=jamf_cli_profile,
         )
 
         # construct the api_url based on the API type
@@ -107,7 +111,11 @@ class JamfObjectDeleterBase(JamfUploaderBase):
                 self.env["dry_run_summary_result"] = {
                     "summary_text": "DRY RUN: The following changes would be made in Jamf Pro:",
                     "report_fields": ["action", "type", "name"],
-                    "data": {"action": "DELETE", "type": object_type, "name": object_type},
+                    "data": {
+                        "action": "DELETE",
+                        "type": object_type,
+                        "name": object_type,
+                    },
                 }
                 self.env["process_skipped"] = process_skipped
                 return
@@ -144,11 +152,17 @@ class JamfObjectDeleterBase(JamfUploaderBase):
             if object_id:
                 self.output(f"{object_type} '{object_name}' exists: ID {object_id}")
                 if dry_run:
-                    self.output(f"DRY RUN: Would DELETE {object_type} '{object_name}' (ID {object_id})")
+                    self.output(
+                        f"DRY RUN: Would DELETE {object_type} '{object_name}' (ID {object_id})"
+                    )
                     self.env["dry_run_summary_result"] = {
                         "summary_text": "DRY RUN: The following changes would be made in Jamf Pro:",
                         "report_fields": ["action", "type", "name"],
-                        "data": {"action": "DELETE", "type": object_type, "name": object_name},
+                        "data": {
+                            "action": "DELETE",
+                            "type": object_type,
+                            "name": object_name,
+                        },
                     }
                     self.env["process_skipped"] = process_skipped
                     return

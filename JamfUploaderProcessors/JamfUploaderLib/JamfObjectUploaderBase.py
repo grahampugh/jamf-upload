@@ -222,7 +222,7 @@ class JamfObjectUploaderBase(JamfUploaderBase):
         # get api type
         api_type = self.api_type(object_type)
 
-        # we need to substitute the values in the computer group name now to
+        # we need to substitute the values in the object name now to
         # account for version strings in the name
         # substitute user-assignable keys
         if object_name:
