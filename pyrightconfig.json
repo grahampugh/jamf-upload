@@ -1,0 +1,5 @@
+{
+    "extraPaths": ["/Library/AutoPkg"],
+    "reportOptionalMemberAccess": "none",
+    "reportOperatorIssue": "none"
+}
