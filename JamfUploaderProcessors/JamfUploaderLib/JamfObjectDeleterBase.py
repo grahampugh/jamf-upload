@@ -20,6 +20,8 @@ limitations under the License.
 import os.path
 import sys
 
+from time import sleep
+
 from autopkglib import (  # pylint: disable=import-error
     ProcessorError,
 )
@@ -52,6 +54,7 @@ class JamfObjectDeleterBase(JamfUploaderBase):
         jamf_cli_profile = self.env.get("JAMF_CLI_PROFILE")
         object_name = self.env.get("object_name")
         object_type = self.env.get("object_type")
+        sleep_time = self.env.get("sleep")
         skip_if = self.get_and_clear_skip_if()
         dry_run = self.to_bool(self.env.get("dry_run"))
 
@@ -166,6 +169,13 @@ class JamfObjectDeleterBase(JamfUploaderBase):
                     verbose_level=1,
                 )
                 return
+
+        # sleep if required
+        if sleep_time:
+            if int(sleep_time) > 10:
+                sleep(int(sleep_time))
+            else:
+                sleep(10)
 
         # output the summary
 
