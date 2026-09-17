@@ -113,6 +113,7 @@ class JamfPackageCleanerBase(JamfUploaderBase):
         maximum_allowed_packages_to_delete = int(
             self.env.get("maximum_allowed_packages_to_delete")
         )
+        exclude_packages_in_use = self.to_bool(self.env.get("exclude_packages_in_use"))
         dry_run = self.to_bool(self.env.get("dry_run"))
         max_tries = self.env.get("max_tries")
         skip_if = self.get_and_clear_skip_if()
@@ -126,6 +127,9 @@ class JamfPackageCleanerBase(JamfUploaderBase):
             max_tries = 5
 
         process_skipped = False
+        self.env["packages_kept_in_use"] = "0"
+        self.env.pop("jamfpackagecleaner_summary_result", None)
+        self.env.pop("dry_run_summary_result", None)
 
         # skip the process if skip_if is True
         if skip_if and self.predicate_evaluates_as_true(skip_if):
@@ -199,12 +203,6 @@ class JamfPackageCleanerBase(JamfUploaderBase):
                     )
                 )
 
-        # Clear any pre-existing summary result
-        if "jamfpackagecleaner_summary_result" in self.env:
-            del self.env["jamfpackagecleaner_summary_result"]
-        if "dry_run_summary_result" in self.env:
-            del self.env["dry_run_summary_result"]
-
         # Abort if the package name match string is too short
         if len(pkg_name_match) < minimum_name_length:
             self.output(
@@ -270,6 +268,78 @@ class JamfPackageCleanerBase(JamfUploaderBase):
         # Divide the packages into those to keep and those to delete
         packages_to_keep = found_packages[:versions_to_keep]
         packages_to_delete = found_packages[versions_to_keep:]  # noqa: E203
+
+        # Optionally spare any packages that are still in use. The newest
+        # 'versions_to_keep' packages are always kept above, so this only ever
+        # removes packages from the deletion list and can never cause more to be
+        # deleted. The usage lookup is skipped entirely when there is nothing to
+        # delete, to avoid enumerating every policy, patch software title, and
+        # PreStage Enrollment unnecessarily.
+        packages_kept_in_use = []
+        if exclude_packages_in_use and packages_to_delete:
+            self.output(
+                "Checking whether any packages due for deletion are still in use..."
+            )
+            packages_in_use = set()
+            for usage_getter, usage_kwargs in (
+                (self.get_packages_in_policies, {}),
+                (self.get_packages_in_patch_titles, {"fail_on_error": True}),
+                (self.get_packages_in_prestages, {}),
+            ):
+                # enumerating every policy, patch title, and PreStage Enrollment
+                # can take time, so refresh the token before each lookup (as the
+                # deletion loop below does) to avoid it expiring mid-enumeration
+                token, jamf_url, jamf_platform_gw_region, platform_level_id = (
+                    self.auth(
+                        jamf_url=jamf_url,
+                        jamf_user=jamf_user,
+                        password=jamf_password,
+                        region=jamf_platform_gw_region,
+                        platform_level_id=platform_level_id,
+                        client_id=client_id,
+                        client_secret=client_secret,
+                        token=bearer_token,
+                        jamf_cli_profile=jamf_cli_profile,
+                    )
+                )
+                api_url = self.construct_api_url(
+                    jamf_url=jamf_url, region=jamf_platform_gw_region
+                )
+                found_in_use = usage_getter(
+                    api_url,
+                    token,
+                    platform_level_id=platform_level_id,
+                    **usage_kwargs,
+                )
+                if found_in_use:
+                    packages_in_use.update(found_in_use)
+
+            # Names are compared exactly (case-sensitive), matching how
+            # JamfUnusedPackageCleaner decides what is unused. This assumes the
+            # JPAPI package "packageName" is identical to the package name stored
+            # in policies, patch titles, and PreStage Enrollments. If those ever
+            # diverge, an in-use package could be missed here, so keep this
+            # comparison consistent with the getters above.
+            retained_for_deletion = []
+            for package in packages_to_delete:
+                if package["packageName"] in packages_in_use:
+                    packages_kept_in_use.append(package)
+                else:
+                    retained_for_deletion.append(package)
+            packages_to_delete = retained_for_deletion
+
+            if packages_kept_in_use:
+                self.output(
+                    f"Keeping {len(packages_kept_in_use)} package(s) that are still in use",
+                    verbose_level=1,
+                )
+                for package in packages_kept_in_use:
+                    self.output(
+                        f"♻️  {package['packageName']} (in use, will be kept)",
+                        verbose_level=2,
+                    )
+
+        self.env["packages_kept_in_use"] = str(len(packages_kept_in_use))
 
         # Check that we're not going to delete too many packages
         if len(packages_to_delete) > maximum_allowed_packages_to_delete:
@@ -376,12 +446,14 @@ class JamfPackageCleanerBase(JamfUploaderBase):
                 "pkg_name_match",
                 "found_matches",
                 "versions_to_keep",
+                "kept_in_use",
                 "deleted",
             ],
             "data": {
                 "pkg_name_match": pkg_name_match,
                 "found_matches": str(len(found_packages)),
                 "versions_to_keep": str(versions_to_keep),
+                "kept_in_use": self.env["packages_kept_in_use"],
                 "deleted": str(len(packages_to_delete)),
             },
         }
