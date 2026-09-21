@@ -41,7 +41,9 @@ from JamfUploaderBase import (  # pylint: disable=import-error, wrong-import-pos
 class JamfComputerProfileUploaderBase(JamfUploaderBase):
     """Class for functions used to upload a computer configuration profile to Jamf"""
 
-    def get_existing_uuid_and_identifier(self, api_url, object_id, token, platform_level_id=""):
+    def get_existing_uuid_and_identifier(
+        self, api_url, object_id, token, platform_level_id=""
+    ):
         """return the existing UUID to ensure we don't change it"""
         # first grab the payload from the xml object
         existing_plist = self.get_api_object_value_from_id(
@@ -202,7 +204,9 @@ class JamfComputerProfileUploaderBase(JamfUploaderBase):
         self.output(template_contents, verbose_level=2)
 
         # substitute user-assignable keys
-        template_contents = self.substitute_assignable_keys(template_contents, xml_escape=True)
+        template_contents = self.substitute_assignable_keys(
+            template_contents, xml_escape=True
+        )
 
         self.output("Configuration Profile to be uploaded:", verbose_level=2)
         self.output(template_contents, verbose_level=2)
@@ -212,7 +216,11 @@ class JamfComputerProfileUploaderBase(JamfUploaderBase):
         if retain_scope and object_id > 0:
             self.output("Substituting existing scope into template", verbose_level=1)
             existing_scope = self.get_existing_scope(
-                api_url, object_type, object_id, token, platform_level_id=platform_level_id
+                api_url,
+                object_type,
+                object_id,
+                token,
+                platform_level_id=platform_level_id,
             )
             # substitute pre-existing scope
             template_contents = self.replace_scope(template_contents, existing_scope)
@@ -318,6 +326,8 @@ class JamfComputerProfileUploaderBase(JamfUploaderBase):
         # substitute values in the profile name and category
         profile_name = self.substitute_assignable_keys(profile_name)
         profile_category = self.substitute_assignable_keys(profile_category)
+        payload = self.substitute_assignable_keys(payload)
+        mobileconfig = self.substitute_assignable_keys(mobileconfig)
 
         # handle files with no path
         if payload and "/" not in payload:
@@ -426,18 +436,16 @@ class JamfComputerProfileUploaderBase(JamfUploaderBase):
         self.output(f"Checking for existing '{mobileconfig_name}' on {jamf_url}")
 
         # get a token using auth() with Platform API parameters
-        token, jamf_url, jamf_platform_gw_region, platform_level_id = (
-            self.auth(
-                jamf_url=jamf_url,
-                jamf_user=jamf_user,
-                password=jamf_password,
-                region=jamf_platform_gw_region,
-                platform_level_id=platform_level_id,
-                client_id=client_id,
-                client_secret=client_secret,
-                token=bearer_token,
-                jamf_cli_profile=jamf_cli_profile,
-            )
+        token, jamf_url, jamf_platform_gw_region, platform_level_id = self.auth(
+            jamf_url=jamf_url,
+            jamf_user=jamf_user,
+            password=jamf_password,
+            region=jamf_platform_gw_region,
+            platform_level_id=platform_level_id,
+            client_id=client_id,
+            client_secret=client_secret,
+            token=bearer_token,
+            jamf_cli_profile=jamf_cli_profile,
         )
 
         # construct the api_url based on the API type
@@ -456,12 +464,18 @@ class JamfComputerProfileUploaderBase(JamfUploaderBase):
 
         if dry_run:
             action = "CREATE" if not object_id else "UPDATE"
-            self.output(f"DRY RUN: Would {action} configuration profile '{mobileconfig_name}'")
+            self.output(
+                f"DRY RUN: Would {action} configuration profile '{mobileconfig_name}'"
+            )
             self.env["profile_updated"] = False
             self.env["dry_run_summary_result"] = {
                 "summary_text": "DRY RUN: The following changes would be made in Jamf Pro:",
                 "report_fields": ["action", "type", "name"],
-                "data": {"action": action, "type": "os_x_configuration_profile", "name": mobileconfig_name},
+                "data": {
+                    "action": action,
+                    "type": "os_x_configuration_profile",
+                    "name": mobileconfig_name,
+                },
             }
             self.env["process_skipped"] = process_skipped
             return
