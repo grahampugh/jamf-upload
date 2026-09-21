@@ -326,8 +326,10 @@ class JamfComputerProfileUploaderBase(JamfUploaderBase):
         # substitute values in the profile name and category
         profile_name = self.substitute_assignable_keys(profile_name)
         profile_category = self.substitute_assignable_keys(profile_category)
-        payload = self.substitute_assignable_keys(payload)
-        mobileconfig = self.substitute_assignable_keys(mobileconfig)
+        payload = self.substitute_assignable_keys(payload) if payload else None
+        mobileconfig = (
+            self.substitute_assignable_keys(mobileconfig) if mobileconfig else None
+        )
 
         # handle files with no path
         if payload and "/" not in payload:
