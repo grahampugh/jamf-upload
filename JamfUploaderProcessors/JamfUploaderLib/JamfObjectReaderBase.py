@@ -181,6 +181,25 @@ class JamfObjectReaderBase(JamfUploaderBase):
         object_type = self.env.get("object_type")
         output_dir = self.env.get("output_dir")
         settings_key = self.env.get("settings_key")
+        # sections: inventory record sections to request (e.g. EXTENSION_ATTRIBUTES).
+        # Only meaningful for the inventory list object types; accepts a list or a
+        # comma-separated string.
+        sections = self.env.get("sections")
+        if isinstance(sections, str):
+            sections = [s.strip() for s in sections.split(",") if s.strip()]
+        elif isinstance(sections, (list, tuple)):
+            sections = [str(s).strip() for s in sections if str(s).strip()]
+        else:
+            sections = None
+        inventory_section_types = ("computer_inventory", "mobile_device_detail")
+        if sections and object_type not in inventory_section_types:
+            self.output(
+                f"WARNING: 'sections' is only supported for the inventory list object "
+                f"types (computer_inventory, mobile_device_detail); ignoring for "
+                f"{object_type}",
+                verbose_level=1,
+            )
+            sections = None
         uuid = self.env.get("uuid")
         elements_to_remove = self.env.get("elements_to_remove")
         elements_to_remove = (
@@ -280,6 +299,7 @@ class JamfObjectReaderBase(JamfUploaderBase):
                 uuid=uuid,
                 token=token,
                 namekey=namekey,
+                sections=sections,
             )
             if list_only:
                 self.env["object_list"] = object_list

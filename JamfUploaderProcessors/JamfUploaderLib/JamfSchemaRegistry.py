@@ -110,6 +110,8 @@ JPAPI_ALIAS_TABLE = {
     "computer": "preview/computers",
     "computer_extension_attribute": "v1/computer-extension-attributes",
     "computer_group_v1": "v1/computer-groups",
+    "computer_inventory": "v3/computers-inventory",
+    "computer_inventory_detail": "v4/computers-inventory-detail",
     "computer_inventory_collection_settings": (
         "v1/computer-inventory-collection-settings"
     ),
@@ -147,6 +149,7 @@ JPAPI_ALIAS_TABLE = {
         "v1/managed-software-updates/update-statuses"
     ),
     "mobile_device": "v2/mobile-devices",
+    "mobile_device_detail": "v2/mobile-devices/detail",
     "mobile_device_extension_attribute": "v1/mobile-device-extension-attributes",
     "mobile_device_group_v1": "v1/mobile-device-groups",
     "mobile_device_prestage": "v3/mobile-device-prestages",

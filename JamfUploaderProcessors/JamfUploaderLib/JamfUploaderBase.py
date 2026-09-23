@@ -274,6 +274,8 @@ class JamfUploaderBase(Processor):
             "account_group": "groups",
             "blueprint_deploy_command": "blueprints",
             "blueprint_undeploy_command": "blueprints",
+            "computer_inventory": "computers-inventory",
+            "mobile_device_detail": "mobile-devices-detail",
         }
         if object_type in special:
             return special[object_type]
@@ -2007,11 +2009,23 @@ class JamfUploaderBase(Processor):
         object_type,
         namekey,
         domain,
+        sections=None,
     ):
         """get a list of all objects of a particular type, handling pagination if needed.
-        For JPAPI endpoints only, as Classic API endpoints do not paginate."""
+        For JPAPI endpoints only, as Classic API endpoints do not paginate.
 
-        url_filter = "?page=0&page-size=1"
+        If `sections` (a list of section names) is supplied, each is appended as a
+        repeated `&section=` query parameter. This applies to the inventory list
+        object types (`computer_inventory`, `mobile_device_detail`) which return
+        full records grouped into sections such as EXTENSION_ATTRIBUTES. When
+        sections are requested the `sort` parameter is omitted, because those
+        endpoints do not accept the default name key as a sort field."""
+
+        section_qs = ""
+        if sections:
+            section_qs = "".join(f"&section={s}" for s in sections)
+
+        url_filter = f"?page=0&page-size=1{section_qs}"
         r = self.curl(
             api_type=api_type, request="GET", url=f"{url}{url_filter}", token=token
         )
@@ -2027,7 +2041,12 @@ class JamfUploaderBase(Processor):
             object_list = []
 
             for page in range(0, (total_objects + 99) // 100):
-                url_filter = f"?page={page}&page-size=100&sort={namekey}&sort-order=asc"
+                if section_qs:
+                    url_filter = f"?page={page}&page-size=100{section_qs}"
+                else:
+                    url_filter = (
+                        f"?page={page}&page-size=100&sort={namekey}&sort-order=asc"
+                    )
                 self.output(f"Getting page {page} of objects", verbose_level=2)
                 if page > 0:
                     time.sleep(0.5)  # be nice to the server
@@ -2063,9 +2082,20 @@ class JamfUploaderBase(Processor):
         return object_list
 
     def get_all_api_objects(
-        self, domain, object_type, platform_level_id="", uuid="", token="", namekey=""
+        self,
+        domain,
+        object_type,
+        platform_level_id="",
+        uuid="",
+        token="",
+        namekey="",
+        sections=None,
     ):
-        """get a list of all objects of a particular type"""
+        """get a list of all objects of a particular type.
+
+        `sections`, when supplied, is passed through to `paginated_get` to request
+        specific inventory record sections (e.g. EXTENSION_ATTRIBUTES) for the
+        inventory list object types."""
 
         # Resolve the correct name key for this object type if not provided
         if not namekey:
@@ -2100,6 +2130,7 @@ class JamfUploaderBase(Processor):
                 object_type,
                 namekey,
                 domain,
+                sections=sections,
             )
         else:
             raise ProcessorError(f"ERROR: Unknown API type {api_type}")
