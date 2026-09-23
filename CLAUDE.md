@@ -107,6 +107,10 @@ When modifying authentication or template code, test with both `jamf-upload.sh` 
 
 Logic changes always go in `JamfUploaderLib/*Base.py`. Update `input_variables` in the processor file only when adding new parameters; check whether `jamf-upload.sh` argument parsing also needs updating.
 
+## Documentation
+
+All processor and object-reference documentation lives in the [jamf-upload wiki](https://github.com/grahampugh/jamf-upload/wiki). Make documentation updates there, not in code. The `JamfUploaderProcessors/READMEs/` folder in `autopkg/grahampugh-recipes` is stale — those docs have been moved to the wiki and the folder is pending deletion at the next sync, so do not edit it.
+
 ## Key references
 
 - Wiki: <https://github.com/grahampugh/jamf-upload/wiki>

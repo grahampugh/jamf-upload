@@ -17,7 +17,6 @@ See the License for the specific language governing permissions and
 limitations under the License.
 """
 
-import xml.etree.ElementTree as ET
 import json
 import os
 import sys
@@ -41,142 +40,37 @@ from JamfUploaderBase import (  # pylint: disable=import-error, wrong-import-pos
 class JamfExtensionAttributePopupChoiceAdjusterBase(JamfUploaderBase):
     """Class for functions used to adjust an Extension Attribute Pop-up Choice"""
 
-    def generate_filename_from_object(self, is_json, parsed_object):
+    def generate_filename_from_object(self, parsed_object):
         """
         Generate a filename based on the object instance and name.
 
         Args:
-            is_json (bool): Flag indicating if the object is in JSON format.
             parsed_object (str): The parsed object string.
 
         Returns:
             str: The generated filename.
         """
         object_instance = urlparse(self.env.get("JSS_URL")).hostname.split(".")[0]
-        if is_json:
-            ext = ".json"
-            object_name = json.loads(parsed_object)["name"]
-        else:
-            ext = ".xml"
-            object_name = ET.fromstring(parsed_object).find("./name").text
+        object_name = json.loads(parsed_object)["name"]
 
-        return f"{object_instance}_{object_name}{ext}"
+        return f"{object_instance}_{object_name}.json"
 
-    def validate_ea_type(self, is_json, parsed_object):
+    def validate_ea_type(self, parsed_object):
         """
         Validate the type of the extension attribute.
 
         Args:
-            is_json (bool): Flag indicating if the object is in JSON format.
             parsed_object (str): The parsed object string.
 
         Raises:
             ProcessorError: If the extension attribute type is invalid.
         """
-        if is_json:
-            data = json.loads(parsed_object)
+        data = json.loads(parsed_object)
 
-            if data.get("inputType") != "POPUP":
-                raise ProcessorError(
-                    "Invalid Extension Attribute inputType, must be POPUP."
-                )
-        else:
-            root = ET.fromstring(parsed_object)
-
-            if root.find(".//input_type/type").text != "Pop-up Menu":
-                raise ProcessorError(
-                    "Invalid Extension Attribute input_type, must be Pop-up Menu."
-                )
-
-    def add_xml_tag(
-        self, parsed_object, parent_xpath, element, choice_value, strict_mode
-    ):  # pylint: disable=too-many-arguments
-        """
-        Add an XML tag to the parsed object.
-
-        Args:
-            parsed_object (str): The parsed object string.
-            parent_xpath (str): The XPath of the parent element.
-            element (str): The name of the element to add.
-            choice_value (str): The value of the choice to add.
-            strict_mode (str): Flag indicating if strict mode is enabled.
-
-        Returns:
-            str: The modified parsed object string.
-
-        Raises:
-            ProcessorError: If the parent element is not found or the element already exists.
-        """
-        root = ET.fromstring(parsed_object)
-        parent = root.find(parent_xpath)
-
-        if parent is None:
-            raise ProcessorError(f"Parent element not found for XPath: {parent_xpath}")
-
-        for child in parent.findall(element):
-            if child.text == choice_value and not strict_mode:
-                self.output(
-                    f"WARNING: Element <{element}> with choice_value '{choice_value}' already exists "
-                    f"in {parent_xpath}, parsed object unchanged."
-                )
-                return ET.tostring(
-                    root, encoding="UTF-8", xml_declaration=True
-                ).decode()
-            if child.text == choice_value:
-                raise ProcessorError(
-                    f"Element <{element}> with choice_value '{choice_value}' already exists in "
-                    f"{parent_xpath}"
-                )
-
-        new_tag = ET.Element(element)
-        new_tag.text = choice_value
-        parent.append(new_tag)
-
-        self.output(
-            f"Added element <{element}> and choice_value '{choice_value}' to {parent_xpath}"
-        )
-        return ET.tostring(root, encoding="UTF-8", xml_declaration=True).decode()
-
-    def remove_xml_tag(self, parsed_object, element, choice_value, strict_mode):
-        """
-        Remove an XML tag from the parsed object.
-
-        Args:
-            parsed_object (str): The parsed object string.
-            element (str): The name of the element to remove.
-            choice_value (str): The value of the choice to remove.
-            strict_mode (str): Flag indicating if strict mode is enabled.
-
-        Returns:
-            str: The modified parsed object string.
-
-        Raises:
-            ProcessorError: If the element is not found and strict mode is enabled.
-        """
-        root = ET.fromstring(parsed_object)
-        removed = False
-
-        for parent in list(root.iter()):
-            for child in list(parent):
-                if child.tag == element and child.text == choice_value:
-                    parent.remove(child)
-                    removed = True
-
-        if removed:
-            self.output(
-                f"Removed all instances of <{element}> containing '{choice_value}' from XML."
-            )
-        elif not strict_mode:
-            self.output(
-                f"WARNING: Element <{element}> with choice_value '{choice_value}' not found, "
-                "parsed object unchanged."
-            )
-        else:
+        if data.get("inputType") != "POPUP":
             raise ProcessorError(
-                f"Element <{element}> with choice_value '{choice_value}' not found."
+                "Invalid Extension Attribute inputType, must be POPUP."
             )
-
-        return ET.tostring(root, encoding="UTF-8", xml_declaration=True).decode()
 
     def add_json_key(self, parsed_object, element, choice_value, strict_mode):
         """
@@ -303,41 +197,29 @@ class JamfExtensionAttributePopupChoiceAdjusterBase(JamfUploaderBase):
         if not strict_mode:
             self.output("WARNING: Strict mode disabled!")
 
-        is_json = parsed_object.strip().startswith(
+        if not parsed_object.strip().startswith(
             "{"
-        ) or parsed_object.strip().startswith("[")
-        self.validate_ea_type(is_json, parsed_object)
+        ) and not parsed_object.strip().startswith("["):
+            raise ProcessorError("Unsupported data format. Use JSON.")
+
+        self.validate_ea_type(parsed_object)
 
         if object_template:
             filename = os.path.basename(object_template)
         else:
-            filename = self.generate_filename_from_object(is_json, parsed_object)
+            filename = self.generate_filename_from_object(parsed_object)
 
         object_template = os.path.join(output_dir, filename)
 
-        if parsed_object.strip().startswith("<"):
-            element = "choice"
-            parent_xpath = "./input_type/popup_choices"
-            if choice_operation == "add":
-                parsed_object = self.add_xml_tag(
-                    parsed_object, parent_xpath, element, choice_value, strict_mode
-                )
-            elif choice_operation == "remove":
-                parsed_object = self.remove_xml_tag(
-                    parsed_object, element, choice_value, strict_mode
-                )
-        elif is_json:
-            element = "popupMenuChoices"
-            if choice_operation == "add":
-                parsed_object = self.add_json_key(
-                    parsed_object, element, choice_value, strict_mode
-                )
-            elif choice_operation == "remove":
-                parsed_object = self.remove_json_key(
-                    parsed_object, element, choice_value, strict_mode
-                )
-        else:
-            raise ProcessorError("Unsupported data format. Use XML or JSON.")
+        element = "popupMenuChoices"
+        if choice_operation == "add":
+            parsed_object = self.add_json_key(
+                parsed_object, element, choice_value, strict_mode
+            )
+        elif choice_operation == "remove":
+            parsed_object = self.remove_json_key(
+                parsed_object, element, choice_value, strict_mode
+            )
 
         with open(object_template, "w", encoding="utf-8") as file:
             file.write(parsed_object)
