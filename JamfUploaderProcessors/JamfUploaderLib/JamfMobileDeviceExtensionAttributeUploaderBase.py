@@ -57,45 +57,26 @@ class JamfMobileDeviceExtensionAttributeUploaderBase(JamfUploaderBase):
     ):
         """Update extension attribute metadata."""
 
-        if ea_input_type == "popup":
-            ea_xml_type = "Pop-up Menu"
-        elif ea_input_type == "text":
-            ea_xml_type = "Text Field"
-        elif ea_input_type == "ldap":
-            ea_xml_type = "Directory Service Attribute Mapping"
-        else:
+        if ea_input_type not in ("popup", "text", "ldap"):
             raise ProcessorError(f"ERROR: EA input type {ea_input_type} not supported")
 
+        # format inventoryDisplayType & dataType correctly
+        ea_inventory_display = ea_inventory_display.replace(" ", "_").upper()
+        ea_data_type = ea_data_type.upper()
+
         # build the object
-        ea_data = (
-            "<mobile_device_extension_attribute>"
-            + f"<name>{object_name}</name>"
-            + "<enabled>true</enabled>"
-            + f"<description>{ea_description}</description>"
-            + f"<data_type>{ea_data_type}</data_type>"
-            + f"<inventory_display>{ea_inventory_display}</inventory_display>"
-            + "<recon_display>Extension Attributes</recon_display>"
-            + "<input_type>"
-            + f"<type>{ea_xml_type}</type>"
-        )
+        ea_data = {
+            "name": object_name,
+            "description": ea_description,
+            "dataType": ea_data_type,
+            "inventoryDisplayType": ea_inventory_display,
+            "inputType": ea_input_type,
+        }
+
         if ea_input_type == "popup":
-            ea_data += "<popup_choices>"
-            for choice in ea_popup_choices:
-                ea_data += f"<choice>{choice}</choice>"
-            ea_data += "</popup_choices>"
+            ea_data["popupMenuChoices"] = ea_popup_choices
         elif ea_input_type == "ldap":
-            # pylint: disable=line-too-long
-            ea_data += f"<attribute_mapping>{ea_directory_service_attribute_mapping}</attribute_mapping>"
-        ea_data += "</input_type>" + "</mobile_device_extension_attribute>"
-
-        self.output("Uploading Extension Attribute...")
-        # write the template to temp file
-        template_xml = self.write_temp_file(ea_data)
-
-        # if we find an object ID we put, if not, we post
-        object_type = "mobile_device_extension_attribute"
-        endpoint = self.api_endpoints(object_type, platform_level_id=platform_level_id)
-        url = f"{api_url}/{endpoint}/id/{object_id}"
+            ea_data["ldapAttributeMapping"] = ea_directory_service_attribute_mapping
 
         self.output(
             "Extension Attribute data:",
@@ -106,6 +87,17 @@ class JamfMobileDeviceExtensionAttributeUploaderBase(JamfUploaderBase):
             verbose_level=2,
         )
 
+        self.output("Uploading Extension Attribute...")
+        ea_json = self.write_json_file(api_url, ea_data)
+
+        # if we find an object ID we put, if not, we post
+        object_type = "mobile_device_extension_attribute"
+        endpoint = self.api_endpoints(object_type, platform_level_id=platform_level_id)
+        if object_id:
+            url = f"{api_url}/{endpoint}/{object_id}"
+        else:
+            url = f"{api_url}/{endpoint}"
+
         count = 0
         while True:
             count += 1
@@ -115,11 +107,11 @@ class JamfMobileDeviceExtensionAttributeUploaderBase(JamfUploaderBase):
             )
             request = "PUT" if object_id else "POST"
             r = self.curl(
-                api_type="classic",
+                api_type="jpapi",
                 request=request,
                 url=url,
                 token=token,
-                data=template_xml,
+                data=ea_json,
             )
             # check HTTP response
             if (
@@ -198,7 +190,7 @@ class JamfMobileDeviceExtensionAttributeUploaderBase(JamfUploaderBase):
             self.output("Not skipping process as skip_if evaluated to False")
 
         # determine input type
-        if ea_input_type != "popup" and ea_input_type != "ldap":
+        if ea_input_type not in ("popup", "text", "ldap"):
             raise ProcessorError(f"ERROR: EA input type {ea_input_type} not supported")
 
         # now start the process of uploading the object
