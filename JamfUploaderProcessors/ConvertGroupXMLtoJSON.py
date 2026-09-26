@@ -128,7 +128,7 @@ class ConvertGroupXMLtoJSON(Processor):
         )
 
         # Build the Jamf Pro API JSON structure
-        json_data = {
+        json_data: Dict[str, Any] = {
             "name": group_name,
             "description": "This JSON was auto-converted from Classic API XML format",
         }
