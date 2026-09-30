@@ -133,6 +133,15 @@ class JamfObjectReader(JamfObjectReaderBase):
             "description": "Output directory to dump the xml or json file",
             "default": "",
         },
+        "sections": {
+            "required": False,
+            "description": (
+                "Inventory record sections to request when reading the inventory "
+                "list object types (computer_inventory, mobile_device_detail), e.g. "
+                "EXTENSION_ATTRIBUTES or HARDWARE. Accepts a list or a comma-separated "
+                "string. Ignored for all other object types."
+            ),
+        },
         "elements_to_remove": {
             "required": False,
             "description": (
