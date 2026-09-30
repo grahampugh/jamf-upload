@@ -1583,22 +1583,23 @@ class JamfUploaderBase(Processor):
             raise ProcessorError(f"WARNING: {headers_file} not found") from exc
         if r.status_code is not None:
             self.output(f"HTTP response: {r.status_code}", verbose_level=3)
-            if int(r.status_code) < 400:
-                if os.path.exists(output_file) and os.path.getsize(output_file) > 0:
-                    if "ics.services.jamfcloud.com" in url:
-                        r.output = output_file
-                    else:
-                        with open(output_file, "rb") as file:
-                            try:
-                                file.seek(0)  # Reset file pointer to beginning
-                                r.output = json.load(file)
-                            except (json.JSONDecodeError, ValueError):
-                                file.seek(0)  # Reset file pointer to beginning
-                                r.output = file.read()
+            # read the output for error responses too, so that status_check can
+            # report the error description
+            if os.path.exists(output_file) and os.path.getsize(output_file) > 0:
+                if "ics.services.jamfcloud.com" in url and int(r.status_code) < 400:
+                    r.output = output_file
                 else:
-                    self.output(
-                        f"No output from request ({output_file} not found or empty)"
-                    )
+                    with open(output_file, "rb") as file:
+                        try:
+                            file.seek(0)  # Reset file pointer to beginning
+                            r.output = json.load(file)
+                        except (json.JSONDecodeError, ValueError):
+                            file.seek(0)  # Reset file pointer to beginning
+                            r.output = file.read()
+            elif int(r.status_code) < 400:
+                self.output(
+                    f"No output from request ({output_file} not found or empty)"
+                )
         # On a 401 with a bearer token, fetch a fresh token and retry once
         if r.status_code == 401 and token and not enc_creds and not _retry:
             self.output(
@@ -1671,7 +1672,16 @@ class JamfUploaderBase(Processor):
 
             if r.status_code >= 400:
                 # extract the error message
-                if isinstance(r.output, (bytes, bytearray)):
+                if isinstance(r.output, dict):
+                    # Jamf Pro API JSON error, e.g.
+                    # {"httpStatus": 400, "errors": [{"description": "..."}]}
+                    error_lines = [
+                        str(err.get("description") or err.get("code"))
+                        for err in r.output.get("errors") or []
+                        if isinstance(err, dict)
+                        and (err.get("description") or err.get("code"))
+                    ]
+                elif isinstance(r.output, (bytes, bytearray)):
                     error_lines = re.findall(
                         r"<p>Error:(.*?)</p>", r.output.decode("utf-8")
                     )
@@ -1680,7 +1690,7 @@ class JamfUploaderBase(Processor):
                 else:
                     error_lines = []
                 if error_lines:
-                    error_message = error_lines[0].strip()
+                    error_message = "; ".join(line.strip() for line in error_lines)
                     if object_name:
                         raise ProcessorError(
                             f"ERROR: {endpoint_type} '{object_name}' {action} failed - "
