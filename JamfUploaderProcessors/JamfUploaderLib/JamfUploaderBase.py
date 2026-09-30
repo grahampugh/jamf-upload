@@ -17,6 +17,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 """
 
+import html
 import json
 import os
 import re
@@ -1641,6 +1642,58 @@ class JamfUploaderBase(Processor):
 
         return r
 
+    def format_dependency_error(self, description):
+        """Rewrite a PREREQUISITE_NOT_MET description to list each dependent object
+        by type and name, with an absolute link to it in Jamf Pro"""
+        dependencies = re.findall(r"ObjectDependency\{([^}]*)\}", description)
+        if not dependencies:
+            return description
+        jamf_url = (self.env.get("JSS_URL") or "").rstrip("/")
+        dependency_lines = []
+        for dependency in dependencies:
+            fields = dict(re.findall(r"(\w+)='([^']*)'", dependency))
+            line = (
+                f"{fields.get('nameLocalization', 'UNKNOWN')}: "
+                f"'{fields.get('identifiableName', 'unknown')}'"
+            )
+            if fields.get("hyperlink"):
+                line += f" - {jamf_url}{fields['hyperlink']}"
+            dependency_lines.append(line)
+        summary = description.split(" as it has", 1)[0]
+        return (
+            f"{summary} as it is referenced by:\n  " + "\n  ".join(dependency_lines)
+        )
+
+    def extract_classic_error(self, output):
+        """Return the error message lines from a Classic API error response.
+
+        The Classic API returns an HTML status page such as:
+            <p style="...">Bad Request</p>
+            <p>Error: Duplicate name</p>
+            <p>You can get technical details <a href="...">here</a>...</p>
+        """
+        if isinstance(output, (bytes, bytearray)):
+            output = output.decode("utf-8", errors="replace")
+        # the usual form
+        error_lines = re.findall(r"<p>Error:(.*?)</p>", output, re.S)
+        if error_lines:
+            return error_lines
+        # otherwise use every paragraph except the status line (the first
+        # paragraph) and the standard "technical details" footer
+        paragraphs = [
+            " ".join(html.unescape(re.sub(r"<[^>]+>", " ", p)).split())
+            for p in re.findall(r"<p[^>]*>(.*?)</p>", output, re.S | re.I)
+        ]
+        if paragraphs:
+            return [
+                p
+                for p in paragraphs[1:]
+                if p and not p.startswith("You can get technical details")
+            ]
+        # not HTML: use the plain text, if any, up to a sensible length
+        text = " ".join(html.unescape(re.sub(r"<[^>]+>", " ", output)).split())
+        return [text[:500]] if text else []
+
     def status_check(self, r, endpoint_type, object_name, request):
         """Return a message dependent on the HTTP response"""
         if request == "DELETE":
@@ -1676,17 +1729,15 @@ class JamfUploaderBase(Processor):
                     # Jamf Pro API JSON error, e.g.
                     # {"httpStatus": 400, "errors": [{"description": "..."}]}
                     error_lines = [
-                        str(err.get("description") or err.get("code"))
+                        self.format_dependency_error(
+                            str(err.get("description") or err.get("code"))
+                        )
                         for err in r.output.get("errors") or []
                         if isinstance(err, dict)
                         and (err.get("description") or err.get("code"))
                     ]
-                elif isinstance(r.output, (bytes, bytearray)):
-                    error_lines = re.findall(
-                        r"<p>Error:(.*?)</p>", r.output.decode("utf-8")
-                    )
-                elif isinstance(r.output, str):
-                    error_lines = re.findall(r"<p>Error:(.*?)</p>", r.output)
+                elif isinstance(r.output, (bytes, bytearray, str)):
+                    error_lines = self.extract_classic_error(r.output)
                 else:
                     error_lines = []
                 if error_lines:
