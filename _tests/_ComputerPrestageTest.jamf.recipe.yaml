@@ -3,6 +3,7 @@ MinimumVersion: "2.3"
 
 Input:
   PRESTAGE_TEMPLATE: computer-prestage-example-account.json
+  DEP_PROGRAM_ID: "3"
 
 Process:
   - Processor: com.github.grahampugh.jamf-upload.processors/JamfComputerPreStageUploader
