@@ -993,6 +993,7 @@ prestage)
         computerprestage
         --name "Test PreStage 3"
         --template "templates/computer-prestage-example.json"
+        --key DEP_PROGRAM_ID="3"
         --replace
     )
 ;;
@@ -1002,6 +1003,7 @@ prestage2)
         computerprestage
         --name "Test PreStage with Account"
         --template "templates/computer-prestage-example-account.json"
+        --key DEP_PROGRAM_ID="3"
         --replace
     )
 ;;

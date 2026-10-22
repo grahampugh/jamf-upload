@@ -223,6 +223,7 @@ class JamfComputerPreStageUploaderBase(JamfUploaderBase):
 
         xml_escape = False
         prestage_name, template_file = self.prepare_template(
+            api_url,
             object_type,
             prestage_template,
             prestage_name,

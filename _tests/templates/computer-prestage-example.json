@@ -2,7 +2,7 @@
     "keepExistingSiteMembership": false,
     "enrollmentSiteId": "-1",
     "id": "2",
-    "displayName": "Test Prestage 2",
+    "displayName": "%prestage_name%",
     "supportPhoneNumber": "08003689330",
     "supportEmailAddress": "",
     "department": "",
@@ -13,7 +13,7 @@
     "requireAuthentication": false,
     "authenticationPrompt": "Enroll!",
     "profileUuid": "B033659294BEBCB17BF9C018554B089A",
-    "deviceEnrollmentProgramInstanceId": "1",
+    "deviceEnrollmentProgramInstanceId": "%DEP_PROGRAM_ID%",
     "versionLock": 19,
     "siteId": "-1",
     "skipSetupItems": {

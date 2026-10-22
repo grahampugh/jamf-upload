@@ -2929,10 +2929,6 @@ class JamfUploaderBase(Processor):
                 replacement_value,
             )
 
-        # PreStages need to iterate the versionLock value in order to replace them
-        if object_type == "computer_prestage":
-            template_contents = self.inject_version_lock(template_contents)
-
         self.output("object data:", verbose_level=2)
         self.output(template_contents, verbose_level=2)
 
