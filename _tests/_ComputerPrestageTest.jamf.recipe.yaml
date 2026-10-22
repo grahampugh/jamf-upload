@@ -1,0 +1,14 @@
+Identifier: com.github.grahampugh.recipes.tests.ComputerPreStage
+MinimumVersion: "2.3"
+
+Input:
+  PRESTAGE_TEMPLATE: computer-prestage-example-account.json
+  DEP_PROGRAM_ID: "3"
+
+Process:
+  - Processor: com.github.grahampugh.jamf-upload.processors/JamfComputerPreStageUploader
+    Arguments:
+      prestage_name: Test PreStage Enrollment
+      prestage_template: "%PRESTAGE_TEMPLATE%"
+      replace_prestage: False
+      

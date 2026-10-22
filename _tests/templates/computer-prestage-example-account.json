@@ -1,6 +1,6 @@
 {
     "keepExistingSiteMembership": false,
-    "displayName": "%NAME%",
+    "displayName": "%prestage_name%",
     "supportPhoneNumber": "",
     "supportEmailAddress": "",
     "department": "",
@@ -11,7 +11,7 @@
     "requireAuthentication": false,
     "authenticationPrompt": "",
     "profileUuid": "",
-    "deviceEnrollmentProgramInstanceId": "1",
+    "deviceEnrollmentProgramInstanceId": "%DEP_PROGRAM_ID%",
     "versionLock": 8,
     "siteId": "-1",
     "skipSetupItems": {
