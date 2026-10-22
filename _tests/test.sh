@@ -178,7 +178,7 @@ done
 
 # path to test items
 if [[ ! $pkg_path ]]; then
-    pkg_path="/Users/gpugh/Downloads/Workbrew-1.1.7.pkg"
+    pkg_path="$HOME/Downloads/Workbrew-2.0.2.pkg"
 fi
 
 # set pkg name
