@@ -978,6 +978,15 @@ class JamfPackageUploaderBase(JamfUploaderBase):
             else:
                 raise ProcessorError("ERROR: Jamf Pro URL not supplied")
 
+        # capture the hashes the server currently holds for an existing package so we can
+        # detect when they change. This must happen before the metadata update, as that PUT
+        # can blank the server-computed hash fields.
+        previous_hashes = {}
+        if int(pkg_id) > 0:
+            previous_hashes = self.get_pkg_server_hashes(
+                self.get_pkg_server_record(api_url, pkg_id, token, platform_level_id)
+            )
+
         # now process the package metadata
         if (
             int(pkg_id) > 0
@@ -1041,10 +1050,6 @@ class JamfPackageUploaderBase(JamfUploaderBase):
                     "ERROR: Package ID not obtained so cannot upload package"
                 )
 
-            # capture the hashes the server currently holds so we can detect when they change
-            previous_hashes = self.get_pkg_server_hashes(
-                self.get_pkg_server_record(api_url, pkg_id, token, platform_level_id)
-            )
             self.output(
                 f"Server hashes before upload: {previous_hashes}",
                 verbose_level=2,
