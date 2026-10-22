@@ -51,6 +51,17 @@ from JamfUploaderBase import (  # pylint: disable=import-error, wrong-import-pos
 class JamfPackageUploaderBase(JamfUploaderBase):
     """Class for functions used to upload a package to Jamf"""
 
+    # server package record hash fields, strongest first
+    HASH_PREFERENCE = ("sha3512", "sha256", "md5")
+
+    # hashes of a zero-byte file. The server can report these while it is still receiving
+    # or processing an upload, so they mean "not computed yet" rather than a mismatch.
+    EMPTY_FILE_HASHES = {
+        "sha3512": hashlib.sha3_512(b"").hexdigest(),
+        "sha256": hashlib.sha256(b"").hexdigest(),
+        "md5": hashlib.md5(b"").hexdigest(),
+    }
+
     def sha512sum(self, filename):
         """calculate the SHA512 hash of the package
         (see https://stackoverflow.com/a/44873382)"""
@@ -493,77 +504,97 @@ class JamfPackageUploaderBase(JamfUploaderBase):
     # ------------------------------------------------------------------------
     # Begin functions for hash verification after JCDS upload
 
-    def get_pkg_server_sha3_and_size(self, api_url, pkg_id, token, platform_level_id=""):
-        """Fetch the sha3512 hash and size for a package record from the server.
+    def get_pkg_server_record(self, api_url, pkg_id, token, platform_level_id=""):
+        """Fetch the package record from the server. Returns an empty dict on failure.
 
-        Uses the named sha3512 field directly rather than hashType/hashValue, which
-        can be in a transitional state (e.g. SHA_512 empty) while the server recomputes.
+        The named sha3512, sha256 and md5 fields are used rather than hashType/hashValue,
+        which are only populated by JCDS (an AWS S3 distribution point only computes md5).
         """
         object_type = "package_v1"
         endpoint = self.api_endpoints(object_type, platform_level_id=platform_level_id)
         url = f"{api_url}/{endpoint}/{pkg_id}"
         r = self.curl(api_type="jpapi", request="GET", url=url, token=token)
         if r.status_code == 200:
-            obj = json.loads(json.dumps(r.output))
-            return obj.get("sha3512", ""), obj.get("size", 0)
-        return "", 0
+            return json.loads(json.dumps(r.output))
+        return {}
 
-    def poll_pkg_hash(  # pylint: disable=too-many-arguments
+    def get_pkg_server_hashes(self, record):
+        """Extract the hash fields we verify against from a package record"""
+        return {
+            field: (record.get(field) or "") for field in self.HASH_PREFERENCE
+        }
+
+    def poll_pkg_hash(  # pylint: disable=too-many-arguments, too-many-return-statements
         self,
         api_url,
         pkg_id,
         pkg_name,
-        local_sha3,
-        previous_hash,
+        local_hashes,
+        previous_hashes,
         token,
         poll_interval=15,
         poll_timeout=300,
         platform_level_id="",
     ):
-        """Poll GET /v1/packages/{id} until the server has computed a new hash, then verify it.
+        """Poll GET /v1/packages/{id} until the server has computed a hash, then verify it.
 
-        The server recomputes hashes asynchronously after upload. On a replace, it keeps returning
-        the previous file's sha3512 until processing finishes, so we must distinguish:
-          - empty / previous hash  → still processing, keep waiting
-          - size == 0              → upload error, treat as mismatch immediately
-          - matches local_sha3     → success
-          - any other value        → corruption / mismatch
+        local_hashes and previous_hashes are dicts keyed by 'sha3512', 'sha256' and 'md5'.
+        The strongest hash the server has populated (in that order) decides:
+          - cloudTransferStatus ERROR → failure
+          - cloudTransferStatus other than READY → keep waiting
+          - no hash populated      → still processing, keep waiting
+          - hash of an empty file  → server has not received/processed the file yet, keep waiting
+          - equals previous hash   → server has not recomputed yet, keep waiting
+          - matches local hash     → success
+          - any other value        → corruption / mismatch, fail immediately
         """
         elapsed = 0
         while elapsed < poll_timeout:
-            sha3512, size = self.get_pkg_server_sha3_and_size(
+            record = self.get_pkg_server_record(
                 api_url, pkg_id, token, platform_level_id
             )
-            if sha3512 and sha3512 != previous_hash:
-                try:
-                    size_is_zero = int(size) == 0
-                except (ValueError, TypeError):
-                    size_is_zero = False  # empty string or None — not yet computed, not a failure
-                if size_is_zero:
-                    self.output(
-                        f"WARNING: Package '{pkg_name}' — server reported size=0 after {elapsed}s, "
-                        "indicating a failed upload",
-                        verbose_level=1,
-                    )
-                    return False
-                if sha3512 == local_sha3:
-                    self.output(
-                        f"Package '{pkg_name}' hash verified after {elapsed}s (SHA3-512 match)",
-                        verbose_level=1,
-                    )
-                    return True
-                else:
-                    self.output(
-                        f"WARNING: Package '{pkg_name}' hash mismatch after {elapsed}s — "
-                        f"server={sha3512}, local={local_sha3}",
-                        verbose_level=1,
-                    )
-                    return False
-            self.output(
-                f"Waiting for server to compute hash for '{pkg_name}' "
-                f"(elapsed {elapsed}s / {poll_timeout}s) …",
-                verbose_level=2,
-            )
+            status = record.get("cloudTransferStatus") or ""
+            server_hashes = self.get_pkg_server_hashes(record)
+            if status == "ERROR":
+                self.output(
+                    f"WARNING: Package '{pkg_name}' — distribution point reports "
+                    "the transfer as ERROR",
+                    verbose_level=1,
+                )
+                return False
+            if status and status != "READY":
+                self.output(
+                    f"Waiting for transfer of '{pkg_name}' (status {status}, "
+                    f"elapsed {elapsed}s / {poll_timeout}s) …",
+                    verbose_level=2,
+                )
+            else:
+                for field in self.HASH_PREFERENCE:
+                    server_hash = server_hashes[field]
+                    if not server_hash or server_hash == self.EMPTY_FILE_HASHES[field]:
+                        continue
+                    # the strongest populated hash decides. Size is deliberately not checked:
+                    # an AWS distribution point does not report it
+                    if server_hash == local_hashes.get(field):
+                        self.output(
+                            f"Package '{pkg_name}' hash verified after {elapsed}s "
+                            f"({field} match)",
+                            verbose_level=1,
+                        )
+                        return True
+                    if server_hash != previous_hashes.get(field):
+                        self.output(
+                            f"WARNING: Package '{pkg_name}' hash mismatch after {elapsed}s — "
+                            f"{field}: server={server_hash}, local={local_hashes.get(field)}",
+                            verbose_level=1,
+                        )
+                        return False
+                    break  # still the previous file's hash
+                self.output(
+                    f"Waiting for server to compute hash for '{pkg_name}' "
+                    f"(elapsed {elapsed}s / {poll_timeout}s) …",
+                    verbose_level=2,
+                )
             sleep(poll_interval)
             elapsed += poll_interval
 
@@ -766,8 +797,12 @@ class JamfPackageUploaderBase(JamfUploaderBase):
         if not pkg_display_name:
             pkg_display_name = pkg_name
 
-        # calculate the local SHA-3-512 hash for post-upload verification
-        sha3string = self.sha3sum(pkg_path)
+        # calculate the local hashes for post-upload verification
+        local_hashes = {
+            "sha3512": self.sha3sum(pkg_path),
+            "sha256": self.sha256sum(pkg_path),
+            "md5": self.md5sum(pkg_path),
+        }
 
         # now start the process of uploading the package
         self.output(f"Checking for existing package '{pkg_name}' on {jamf_url}")
@@ -1006,12 +1041,12 @@ class JamfPackageUploaderBase(JamfUploaderBase):
                     "ERROR: Package ID not obtained so cannot upload package"
                 )
 
-            # capture the sha3512 the server currently holds so we can detect when it changes
-            previous_hash, _ = self.get_pkg_server_sha3_and_size(
-                api_url, pkg_id, token, platform_level_id
+            # capture the hashes the server currently holds so we can detect when they change
+            previous_hashes = self.get_pkg_server_hashes(
+                self.get_pkg_server_record(api_url, pkg_id, token, platform_level_id)
             )
             self.output(
-                f"Server sha3512 before upload: {previous_hash or '(none)'}",
+                f"Server hashes before upload: {previous_hashes}",
                 verbose_level=2,
             )
 
@@ -1072,8 +1107,8 @@ class JamfPackageUploaderBase(JamfUploaderBase):
                         api_url=api_url,
                         pkg_id=pkg_id,
                         pkg_name=pkg_name,
-                        local_sha3=sha3string,
-                        previous_hash=previous_hash,
+                        local_hashes=local_hashes,
+                        previous_hashes=previous_hashes,
                         token=token,
                         poll_interval=hash_poll_interval,
                         poll_timeout=hash_poll_timeout,
@@ -1085,9 +1120,11 @@ class JamfPackageUploaderBase(JamfUploaderBase):
                             f"(attempt {upload_attempt + 1}/{max_tries})",
                             verbose_level=1,
                         )
-                        # use the now-stale server hash as the new baseline for next poll
-                        previous_hash, _ = self.get_pkg_server_sha3_and_size(
-                            api_url, pkg_id, token, platform_level_id
+                        # use the now-stale server hashes as the new baseline for next poll
+                        previous_hashes = self.get_pkg_server_hashes(
+                            self.get_pkg_server_record(
+                                api_url, pkg_id, token, platform_level_id
+                            )
                         )
                 else:
                     # Jamf Pro < 11.10 — no refresh endpoint, skip verification
