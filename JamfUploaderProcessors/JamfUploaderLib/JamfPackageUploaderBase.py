@@ -895,7 +895,7 @@ class JamfPackageUploaderBase(JamfUploaderBase):
             # check for existing package
             local_pkg = self.check_local_pkg(smb_url, pkg_name)
             if not local_pkg or replace:
-                if replace:
+                if local_pkg and replace:
                     self.output(
                         "Replacing existing package as 'replace_pkg' is set to True",
                         verbose_level=1,
@@ -933,7 +933,7 @@ class JamfPackageUploaderBase(JamfUploaderBase):
         if cloud_dp or not smb_shares:
             self.output("Handling Cloud Distribution Point", verbose_level=2)
             if not pkg_id or replace:
-                if replace:
+                if pkg_id and replace:
                     self.output(
                         "Replacing existing package as 'replace_pkg' is set to True",
                         verbose_level=1,
