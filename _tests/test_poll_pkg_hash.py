@@ -36,12 +36,17 @@ class _Obj:
     def __init__(self, records):
         self._records = list(records)
         self._messages = []
+        self.refreshes = []
 
     def get_pkg_server_record(self, api_url, pkg_id, token, platform_level_id=""):
         return self._records.pop(0) if len(self._records) > 1 else self._records[0]
 
     def get_pkg_server_hashes(self, record):
         return PBase.get_pkg_server_hashes(self, record)
+
+    def recalculate_packages(self, api_url, token, platform_level_id="", pkg_name=""):
+        self.refreshes.append(pkg_name)
+        return True
 
     def output(self, msg, verbose_level=1):
         self._messages.append(msg)
@@ -114,5 +119,23 @@ tests = [
 ]
 
 passed = sum(run(*t) for t in tests)
+
+# refresh is re-requested before every poll after the first, only when asked for
+for label, kwargs, expected in [
+    ("refresh requested on polls 2 and 3 (per-package)", {"refresh_pkg_name": "Test.pkg"}, ["Test.pkg", "Test.pkg"]),
+    ("global refresh requested when refresh_pkg_name=''", {"refresh_pkg_name": ""}, [None, None]),
+    ("no refresh by default", {}, []),
+]:
+    obj = _Obj([{}, {}, {"md5": LOCAL["md5"]}])
+    obj.poll_pkg_hash(
+        api_url="u", pkg_id="1", pkg_name="Test.pkg", local_hashes=LOCAL,
+        previous_hashes={}, token="t", poll_interval=1, poll_timeout=5, **kwargs,
+    )
+    ok = obj.refreshes == expected
+    print(f"[{'PASS' if ok else 'FAIL'}] {label}")
+    if not ok:
+        print(f"       expected={expected}, got={obj.refreshes}")
+    passed += ok
+tests = tests + [None] * 3
 print(f"\n{passed}/{len(tests)} tests passed")
 sys.exit(0 if passed == len(tests) else 1)

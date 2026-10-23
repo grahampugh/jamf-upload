@@ -535,8 +535,13 @@ class JamfPackageUploaderBase(JamfUploaderBase):
         poll_interval=15,
         poll_timeout=300,
         platform_level_id="",
+        refresh_pkg_name=None,
     ):
         """Poll GET /v1/packages/{id} until the server has computed a hash, then verify it.
+
+        If refresh_pkg_name is set, the inventory refresh is requested again before each poll
+        after the first (the caller has already requested one), as a single request can fail
+        transiently. A failed refresh is not an error.
 
         local_hashes and previous_hashes are dicts keyed by 'sha3512', 'sha256' and 'md5'.
         The strongest hash the server has populated (in that order) decides:
@@ -550,10 +555,18 @@ class JamfPackageUploaderBase(JamfUploaderBase):
         """
         elapsed = 0
         while elapsed < poll_timeout:
+            if elapsed > 0 and refresh_pkg_name is not None:
+                self.recalculate_packages(
+                    api_url, token, platform_level_id, pkg_name=refresh_pkg_name or None
+                )
             record = self.get_pkg_server_record(
                 api_url, pkg_id, token, platform_level_id
             )
             status = record.get("cloudTransferStatus") or ""
+            self.output(
+                f"Package '{pkg_name}' cloudTransferStatus: {status or '(none)'}",
+                verbose_level=2,
+            )
             server_hashes = self.get_pkg_server_hashes(record)
             if status == "ERROR":
                 self.output(
@@ -1118,6 +1131,7 @@ class JamfPackageUploaderBase(JamfUploaderBase):
                         poll_interval=hash_poll_interval,
                         poll_timeout=hash_poll_timeout,
                         platform_level_id=platform_level_id,
+                        refresh_pkg_name="" if recalculate else pkg_name,
                     )
                     if not upload_verified and upload_attempt < max_tries:
                         self.output(
