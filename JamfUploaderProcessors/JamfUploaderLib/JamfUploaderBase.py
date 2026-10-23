@@ -59,7 +59,7 @@ class JamfUploaderBase(Processor):
     """Common functions used by at least two JamfUploader processors."""
 
     # Global version
-    __version__ = "2026.09.30.0"
+    __version__ = "2026.10.23.0"
 
     # Schema registry instance — lazily initialised per processor run
     _registry = None
@@ -1660,9 +1660,7 @@ class JamfUploaderBase(Processor):
                 line += f" - {jamf_url}{fields['hyperlink']}"
             dependency_lines.append(line)
         summary = description.split(" as it has", 1)[0]
-        return (
-            f"{summary} as it is referenced by:\n  " + "\n  ".join(dependency_lines)
-        )
+        return f"{summary} as it is referenced by:\n  " + "\n  ".join(dependency_lines)
 
     def extract_classic_error(self, output):
         """Return the error message lines from a Classic API error response.
@@ -1764,7 +1762,9 @@ class JamfUploaderBase(Processor):
         url = (
             jamf_url
             + "/"
-            + self.api_endpoints("jamf_pro_version_settings", platform_level_id=platform_level_id)
+            + self.api_endpoints(
+                "jamf_pro_version_settings", platform_level_id=platform_level_id
+            )
         )
         r = self.curl(api_type="jpapi", request="GET", url=url, token=token)
         if r.status_code == 200:
@@ -1792,7 +1792,11 @@ class JamfUploaderBase(Processor):
         api_type = self.api_type(object_type)
         if api_type == "classic":
             # do XML stuff
-            url = jamf_url + "/" + self.api_endpoints(object_type, platform_level_id=platform_level_id)
+            url = (
+                jamf_url
+                + "/"
+                + self.api_endpoints(object_type, platform_level_id=platform_level_id)
+            )
             r = self.curl(api_type=api_type, request="GET", url=url, token=token)
 
             if r.status_code == 200:
@@ -2206,7 +2210,9 @@ class JamfUploaderBase(Processor):
 
         return object_list
 
-    def get_settings_object(self, jamf_url, object_type, token="", platform_level_id=""):
+    def get_settings_object(
+        self, jamf_url, object_type, token="", platform_level_id=""
+    ):
         """get the content of a settings-style endpoint"""
         # Get results from Jamf Pro as JSON object
         self.output(
@@ -2261,7 +2267,13 @@ class JamfUploaderBase(Processor):
         return object_content
 
     def get_api_object_contents_from_id(
-        self, jamf_url, object_type, object_id, object_path="", token="", platform_level_id=""
+        self,
+        jamf_url,
+        object_type,
+        object_id,
+        object_path="",
+        token="",
+        platform_level_id="",
     ):
         """get the full contents or the value of an item in a Classic or Jamf Pro API object"""
 
@@ -2594,7 +2606,9 @@ class JamfUploaderBase(Processor):
         output, _ = proc.communicate(xml)
         return output
 
-    def get_existing_scope(self, jamf_url, object_type, object_id, token, platform_level_id=""):
+    def get_existing_scope(
+        self, jamf_url, object_type, object_id, token, platform_level_id=""
+    ):
         """return the existing scope"""
         existing_scope_xml = self.get_api_object_contents_from_id(
             jamf_url,
@@ -2813,7 +2827,13 @@ class JamfUploaderBase(Processor):
         return ""
 
     def substitute_existing_version_locks(
-        self, jamf_url, object_type, object_id, object_template, token, platform_level_id=""
+        self,
+        jamf_url,
+        object_type,
+        object_id,
+        object_template,
+        token,
+        platform_level_id="",
     ):
         """replace the existing version lock to ensure we don't change it"""
         # first grab the payload from the json object
@@ -3204,7 +3224,12 @@ class JamfUploaderBase(Processor):
         return False
 
     def get_vpp_id(
-        self, api_url, token, store_url=None, preferred_location=None, platform_level_id=""
+        self,
+        api_url,
+        token,
+        store_url=None,
+        preferred_location=None,
+        platform_level_id="",
     ):
         """Determine the Volume Purchasing Location ID that hosts the app's content."""
         locations = self._get_volume_purchasing_locations(
@@ -3230,7 +3255,11 @@ class JamfUploaderBase(Processor):
                 verbose_level=3,
             )
             if self._location_contains_app_content(
-                api_url, token, location_id, target_adam_id, platform_level_id=platform_level_id
+                api_url,
+                token,
+                location_id,
+                target_adam_id,
+                platform_level_id=platform_level_id,
             ):
                 return location_id
         self.output(
