@@ -54,6 +54,10 @@ class JamfPackageUploaderBase(JamfUploaderBase):
     # server package record hash fields, strongest first
     HASH_PREFERENCE = ("sha3512", "sha256", "md5")
 
+    # seconds a package that is READY at the local file's size is given to show a hash before
+    # it is accepted on size alone (Jamf Pro computes no hash for some large packages)
+    SIZE_FALLBACK_GRACE = 20
+
     # hashes of a zero-byte file. The server can report these while it is still receiving
     # or processing an upload, so they mean "not computed yet" rather than a mismatch.
     EMPTY_FILE_HASHES = {
@@ -536,6 +540,8 @@ class JamfPackageUploaderBase(JamfUploaderBase):
         poll_timeout=300,
         platform_level_id="",
         refresh_pkg_name=None,
+        local_size=None,
+        previous_size=None,
     ):
         """Poll GET /v1/packages/{id} until the server has computed a hash, then verify it.
 
@@ -552,8 +558,15 @@ class JamfPackageUploaderBase(JamfUploaderBase):
           - equals previous hash   → server has not recomputed yet, keep waiting
           - matches local hash     → success
           - any other value        → corruption / mismatch, fail immediately
+
+        Jamf Pro computes no hash at all for some large packages on an AWS S3 distribution
+        point, although it still updates size. So when the package is READY with no usable hash
+        and its size equals local_size for SIZE_FALLBACK_GRACE seconds, it is accepted on size
+        alone with a warning that integrity was not verified. If previous_size equals local_size
+        a replace cannot be confirmed by size, and the warning says so.
         """
         elapsed = 0
+        size_matched_at = None
         while elapsed < poll_timeout:
             if elapsed > 0 and refresh_pkg_name is not None:
                 self.recalculate_packages(
@@ -582,12 +595,13 @@ class JamfPackageUploaderBase(JamfUploaderBase):
                     verbose_level=2,
                 )
             else:
+                hash_populated = False
                 for field in self.HASH_PREFERENCE:
                     server_hash = server_hashes[field]
                     if not server_hash or server_hash == self.EMPTY_FILE_HASHES[field]:
                         continue
-                    # the strongest populated hash decides. Size is deliberately not checked:
-                    # an AWS distribution point does not report it
+                    hash_populated = True
+                    # the strongest populated hash decides
                     if server_hash == local_hashes.get(field):
                         self.output(
                             f"Package '{pkg_name}' hash verified after {elapsed}s "
@@ -603,6 +617,29 @@ class JamfPackageUploaderBase(JamfUploaderBase):
                         )
                         return False
                     break  # still the previous file's hash
+                # size fallback: only when the server has no usable hash at all
+                if (
+                    not hash_populated
+                    and local_size
+                    and str(record.get("size") or "") == str(local_size)
+                ):
+                    if size_matched_at is None:
+                        size_matched_at = elapsed
+                    if elapsed - size_matched_at >= self.SIZE_FALLBACK_GRACE:
+                        same_size = str(previous_size or "") == str(local_size)
+                        reason = (
+                            "was replaced by a file of identical size, so the replace "
+                            "cannot be confirmed by size, and Jamf Pro computed no new hash"
+                            if same_size
+                            else "is READY at the expected size, but Jamf Pro computed no hash"
+                        )
+                        self.output(
+                            f"WARNING: Package '{pkg_name}' {reason} ({local_size} bytes); "
+                            "integrity NOT verified. Jamf Pro does not hash some large packages."
+                        )
+                        return True
+                else:
+                    size_matched_at = None
                 self.output(
                     f"Waiting for server to compute hash for '{pkg_name}' "
                     f"(elapsed {elapsed}s / {poll_timeout}s) …",
@@ -995,10 +1032,13 @@ class JamfPackageUploaderBase(JamfUploaderBase):
         # detect when they change. This must happen before the metadata update, as that PUT
         # can blank the server-computed hash fields.
         previous_hashes = {}
+        previous_size = None
         if int(pkg_id) > 0:
-            previous_hashes = self.get_pkg_server_hashes(
-                self.get_pkg_server_record(api_url, pkg_id, token, platform_level_id)
+            previous_record = self.get_pkg_server_record(
+                api_url, pkg_id, token, platform_level_id
             )
+            previous_hashes = self.get_pkg_server_hashes(previous_record)
+            previous_size = previous_record.get("size")
 
         # now process the package metadata
         if (
@@ -1064,7 +1104,7 @@ class JamfPackageUploaderBase(JamfUploaderBase):
                 )
 
             self.output(
-                f"Server hashes before upload: {previous_hashes}",
+                f"Server hashes before upload: {previous_hashes} (size {previous_size})",
                 verbose_level=2,
             )
 
@@ -1132,6 +1172,8 @@ class JamfPackageUploaderBase(JamfUploaderBase):
                         poll_timeout=hash_poll_timeout,
                         platform_level_id=platform_level_id,
                         refresh_pkg_name="" if recalculate else pkg_name,
+                        local_size=os.path.getsize(pkg_path),
+                        previous_size=previous_size,
                     )
                     if not upload_verified and upload_attempt < max_tries:
                         self.output(
@@ -1140,11 +1182,11 @@ class JamfPackageUploaderBase(JamfUploaderBase):
                             verbose_level=1,
                         )
                         # use the now-stale server hashes as the new baseline for next poll
-                        previous_hashes = self.get_pkg_server_hashes(
-                            self.get_pkg_server_record(
-                                api_url, pkg_id, token, platform_level_id
-                            )
+                        previous_record = self.get_pkg_server_record(
+                            api_url, pkg_id, token, platform_level_id
                         )
+                        previous_hashes = self.get_pkg_server_hashes(previous_record)
+                        previous_size = previous_record.get("size")
                 else:
                     # Jamf Pro < 11.10 — no refresh endpoint, skip verification
                     upload_verified = True

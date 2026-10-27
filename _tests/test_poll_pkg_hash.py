@@ -32,6 +32,7 @@ class _Obj:
 
     HASH_PREFERENCE = PBase.HASH_PREFERENCE
     EMPTY_FILE_HASHES = PBase.EMPTY_FILE_HASHES
+    SIZE_FALLBACK_GRACE = 2
 
     def __init__(self, records):
         self._records = list(records)
@@ -119,6 +120,35 @@ tests = [
 ]
 
 passed = sum(run(*t) for t in tests)
+
+# size fallback when Jamf Pro computes no hash (large packages on AWS)
+SIZE = 3000000000
+for label, records, expected, prev_size, local_size in [
+    ("size fallback: READY, no hash, size matches → True", [{"cloudTransferStatus": "READY", "size": str(SIZE)}], True, None, SIZE),
+    ("size fallback: size is the old size → waits, times out False", [{"cloudTransferStatus": "READY", "size": "100"}], False, "100", SIZE),
+    ("size fallback: size 0 → False", [{"cloudTransferStatus": "READY", "size": "0"}], False, None, SIZE),
+    ("size fallback: identical-size replace accepted (with warning)", [{"cloudTransferStatus": "READY", "size": str(SIZE)}], True, str(SIZE), SIZE),
+    ("size fallback: old hash lingering blocks fallback → False", [{"cloudTransferStatus": "READY", "size": str(SIZE), "md5": OLD["md5"]}], False, str(SIZE), SIZE),
+    ("size fallback: still transferring → False", [{"cloudTransferStatus": "PENDING", "size": str(SIZE)}], False, None, SIZE),
+    ("no local_size → no fallback, False", [{"cloudTransferStatus": "READY", "size": str(SIZE)}], False, None, None),
+]:
+    obj = _Obj(records)
+    result = obj.poll_pkg_hash(
+        api_url="u", pkg_id="1", pkg_name="Test.pkg", local_hashes=LOCAL,
+        previous_hashes={"md5": OLD["md5"]} if "lingering" in label else {},
+        token="t", poll_interval=1, poll_timeout=6, local_size=local_size, previous_size=prev_size,
+    )
+    ok = result == expected
+    tests.append(None)
+    print(f"[{'PASS' if ok else 'FAIL'}] {label}")
+    if not ok:
+        print(f"       expected={expected}, got={result}")
+    passed += ok
+    if "identical" in label:
+        ok = any("cannot be confirmed by size" in m for m in obj._messages)
+        tests.append(None)
+        print(f"[{'PASS' if ok else 'FAIL'}] identical-size warning text")
+        passed += ok
 
 # refresh is re-requested before every poll after the first, only when asked for
 for label, kwargs, expected in [
