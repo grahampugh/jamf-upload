@@ -51,6 +51,9 @@ from JamfUploaderBase import (  # pylint: disable=import-error, wrong-import-pos
 class JamfPackageUploaderBase(JamfUploaderBase):
     """Class for functions used to upload a package to Jamf"""
 
+    # HTTP status of the most recent get_pkg_server_record request
+    last_record_status = None
+
     # server package record hash fields, strongest first
     HASH_PREFERENCE = ("sha3512", "sha256", "md5")
 
@@ -202,8 +205,13 @@ class JamfPackageUploaderBase(JamfUploaderBase):
         token,
         max_tries,
         platform_level_id="",
+        reauth=None,
     ):
-        """Upload a package to a Cloud Distribution Point using the v1/packages endpoint"""
+        """Upload a package to a Cloud Distribution Point using the v1/packages endpoint
+
+        reauth is an optional callable returning a fresh token. On a 401 it is called (forcing
+        a new token) and the upload is retried with it, as a large upload can outlast the token.
+        """
 
         # if pkg_name does not match the package name in pkg_path we copy the package locally first
         pkg_dirname = os.path.dirname(pkg_path)
@@ -241,6 +249,13 @@ class JamfPackageUploaderBase(JamfUploaderBase):
                 data=pkg_path,
                 endpoint_type="package_v1",
             )
+
+            # an expired or rejected token needs replacing before the next attempt
+            if r.status_code == 401 and reauth:
+                self.output(
+                    "Package upload returned 401 - obtaining a fresh token", verbose_level=1
+                )
+                token = reauth(force=True)
 
             # check HTTP response
             if self.status_check(r, "Package upload", pkg_name, request) == "break":
@@ -518,6 +533,7 @@ class JamfPackageUploaderBase(JamfUploaderBase):
         endpoint = self.api_endpoints(object_type, platform_level_id=platform_level_id)
         url = f"{api_url}/{endpoint}/{pkg_id}"
         r = self.curl(api_type="jpapi", request="GET", url=url, token=token)
+        self.last_record_status = r.status_code
         if r.status_code == 200:
             return json.loads(json.dumps(r.output))
         return {}
@@ -542,6 +558,7 @@ class JamfPackageUploaderBase(JamfUploaderBase):
         refresh_pkg_name=None,
         local_size=None,
         previous_size=None,
+        reauth=None,
     ):
         """Poll GET /v1/packages/{id} until the server has computed a hash, then verify it.
 
@@ -564,6 +581,9 @@ class JamfPackageUploaderBase(JamfUploaderBase):
         and its size equals local_size for SIZE_FALLBACK_GRACE seconds, it is accepted on size
         alone with a warning that integrity was not verified. If previous_size equals local_size
         a replace cannot be confirmed by size, and the warning says so.
+
+        reauth is an optional callable returning a fresh token, called (forcing a new token)
+        if the package record request returns 401.
         """
         elapsed = 0
         size_matched_at = None
@@ -575,6 +595,12 @@ class JamfPackageUploaderBase(JamfUploaderBase):
             record = self.get_pkg_server_record(
                 api_url, pkg_id, token, platform_level_id
             )
+            if not record and reauth and self.last_record_status == 401:
+                self.output(
+                    "Package record request returned 401 - obtaining a fresh token",
+                    verbose_level=1,
+                )
+                token = reauth(force=True)
             status = record.get("cloudTransferStatus") or ""
             self.output(
                 f"Package '{pkg_name}' cloudTransferStatus: {status or '(none)'}",
@@ -1040,6 +1066,23 @@ class JamfPackageUploaderBase(JamfUploaderBase):
             previous_hashes = self.get_pkg_server_hashes(previous_record)
             previous_size = previous_record.get("size")
 
+        def reauth(force=False):
+            """Return a current token, forcing a new one if the cached one was rejected"""
+            if force:
+                self.invalidate_cached_token(jamf_url)
+            new_token, _, _, _ = self.auth(
+                jamf_url=jamf_url,
+                jamf_user=jamf_user,
+                password=jamf_password,
+                region=jamf_platform_gw_region,
+                platform_level_id=platform_level_id,
+                client_id=client_id,
+                client_secret=client_secret,
+                token=bearer_token,
+                jamf_cli_profile=jamf_cli_profile,
+            )
+            return new_token
+
         # now process the package metadata
         if (
             int(pkg_id) > 0
@@ -1112,6 +1155,9 @@ class JamfPackageUploaderBase(JamfUploaderBase):
             upload_attempt = 0
             while not upload_verified and upload_attempt < max_tries:
                 upload_attempt += 1
+                if upload_attempt > 1:
+                    # the previous attempt and its hash polling may have outlasted the token
+                    token = reauth()
                 self.output(
                     f"Uploading package to Cloud DP (attempt {upload_attempt})",
                     verbose_level=1,
@@ -1125,6 +1171,7 @@ class JamfPackageUploaderBase(JamfUploaderBase):
                     token=token,
                     max_tries=max_tries,
                     platform_level_id=platform_level_id,
+                    reauth=reauth,
                 )
                 pkg_uploaded = True
 
@@ -1174,6 +1221,7 @@ class JamfPackageUploaderBase(JamfUploaderBase):
                         refresh_pkg_name="" if recalculate else pkg_name,
                         local_size=os.path.getsize(pkg_path),
                         previous_size=previous_size,
+                        reauth=reauth,
                     )
                     if not upload_verified and upload_attempt < max_tries:
                         self.output(
