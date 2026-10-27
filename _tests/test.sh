@@ -67,6 +67,10 @@ while [[ "$#" -gt 0 ]]; do
     --dry-run)
         dry_run=1
     ;;
+    --key)
+        shift
+        keyvalue="$1"
+    ;;
     -h | --help)
         echo "Usage: test.sh -t|--test TEST_TYPE [-u|--url JAMF_URL] [-v VERBOSITY]"
         echo "Available TEST_TYPE values:"
@@ -1113,6 +1117,7 @@ pkg)
         --notes "$(date)"
         --replace
         --progress
+        --key "$keyvalue"
     )
 ;;
 pkg-plus-calc*)

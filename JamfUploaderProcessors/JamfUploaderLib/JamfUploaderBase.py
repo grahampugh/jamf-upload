@@ -459,6 +459,17 @@ class JamfUploaderBase(Processor):
             )
         return self.env["jamfupload_tmp_dir"]
 
+    def invalidate_cached_token(self, jamf_url):
+        """Delete the cached token file, so that the next authentication fetches a new token
+        rather than reusing one the server may already have rejected"""
+        token_file = os.path.join(
+            self.make_tmp_dir(jamf_url), "token_from_jamf_upload.txt"
+        )
+        try:
+            os.remove(token_file)
+        except OSError:
+            pass
+
     def get_netloc(self, jamf_url):
         """get the FQDN from any URL and replace dots with underscores"""
         # Parse the URL and extract the netloc (domain)
@@ -533,7 +544,7 @@ class JamfUploaderBase(Processor):
                                 else:
                                     self.output(
                                         f"Existing token expired - {data['expires']} "
-                                        "vs {datetime.now(timezone.utc)}"
+                                        f"vs {datetime.now(timezone.utc)}"
                                     )
 
                             except ValueError:
@@ -1617,6 +1628,9 @@ class JamfUploaderBase(Processor):
                 )
             else:
                 jamf_url = (self.env.get("JSS_URL") or "").rstrip("/")
+                # the cached token may be one the server has rejected despite its expiry
+                # time not having passed, so make sure we get a new one
+                self.invalidate_cached_token(jamf_url)
                 new_token = self.handle_api_auth(
                     jamf_url,
                     jamf_user=self.env.get("API_USERNAME"),

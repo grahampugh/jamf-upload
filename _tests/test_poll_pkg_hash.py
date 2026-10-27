@@ -33,6 +33,7 @@ class _Obj:
     HASH_PREFERENCE = PBase.HASH_PREFERENCE
     EMPTY_FILE_HASHES = PBase.EMPTY_FILE_HASHES
     SIZE_FALLBACK_GRACE = 2
+    last_record_status = None
 
     def __init__(self, records):
         self._records = list(records)
@@ -149,6 +150,38 @@ for label, records, expected, prev_size, local_size in [
         tests.append(None)
         print(f"[{'PASS' if ok else 'FAIL'}] identical-size warning text")
         passed += ok
+
+# a 401 on the package record request forces a new token
+class _Obj401(_Obj):
+    def get_pkg_server_record(self, api_url, pkg_id, token, platform_level_id=""):
+        self.tokens.append(token)
+        if token == "old":
+            self.last_record_status = 401
+            return {}
+        self.last_record_status = 200
+        return {"md5": LOCAL["md5"]}
+
+
+obj = _Obj401([{}])
+obj.tokens = []
+forced = []
+
+
+def _reauth(force=False):
+    forced.append(force)
+    return "new"
+
+
+result = obj.poll_pkg_hash(
+    api_url="u", pkg_id="1", pkg_name="Test.pkg", local_hashes=LOCAL,
+    previous_hashes={}, token="old", poll_interval=1, poll_timeout=5, reauth=_reauth,
+)
+ok = result is True and forced == [True] and obj.tokens == ["old", "new"]
+print(f"[{'PASS' if ok else 'FAIL'}] 401 on record request → forced reauth, then verifies")
+if not ok:
+    print(f"       result={result}, forced={forced}, tokens={obj.tokens}")
+passed += ok
+tests = tests + [None]
 
 # refresh is re-requested before every poll after the first, only when asked for
 for label, kwargs, expected in [
