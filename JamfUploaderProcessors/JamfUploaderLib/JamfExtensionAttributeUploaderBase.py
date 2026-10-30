@@ -211,6 +211,11 @@ class JamfExtensionAttributeUploaderBase(JamfUploaderBase):
 
         ea_uploaded = False
 
+        # we need to substitute the values in the extension attribute name now to
+        # account for keys that are only set during the run, such as a name prefix
+        # substitute user-assignable keys
+        ea_name = self.substitute_assignable_keys(ea_name)
+
         # determine input type
         if ea_input_type == "script":
             # handle files with a relative path
