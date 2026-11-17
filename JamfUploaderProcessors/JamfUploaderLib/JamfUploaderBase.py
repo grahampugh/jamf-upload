@@ -59,10 +59,15 @@ class JamfUploaderBase(Processor):
     """Common functions used by at least two JamfUploader processors."""
 
     # Global version
-    __version__ = "2026.10.23.0"
+    __version__ = "2026.11.17.0"
 
     # Schema registry instance — lazily initialised per processor run
     _registry = None
+
+    # Maps a bearer token the server rejected (401) to the token that replaced it.
+    # Shared by all processors in the process, so that callers still holding the old
+    # token do not trigger a re-authentication on every subsequent request.
+    _renewed_tokens = {}
 
     def predicate_evaluates_as_true(self, predicate_string):
         """Evaluates predicate against our environment dictionary."""
@@ -1270,6 +1275,14 @@ class JamfUploaderBase(Processor):
             rmtree(tmp_dir)
         return tmp_dir
 
+    def current_token(self, token):
+        """Return the token that has replaced the given one after a 401, or the token itself"""
+        seen = set()
+        while token in self._renewed_tokens and token not in seen:
+            seen.add(token)
+            token = self._renewed_tokens[token]
+        return token
+
     def curl(
         self,
         api_type,
@@ -1298,6 +1311,10 @@ class JamfUploaderBase(Processor):
         Jamf Pro versions older than 10.35 use basic auth for all Classic API requests.
         The Jamf Platform API uses OAuth 2.0 for authentication.
         """
+        # use the replacement if this token was already rejected and renewed by an earlier call
+        if token and not enc_creds:
+            token = self.current_token(token)
+
         tmp_dir = self.make_tmp_dir(jamf_url=url)
 
         # dry-run: skip write operations but allow auth/token requests
@@ -1641,7 +1658,10 @@ class JamfUploaderBase(Processor):
                 )
             if new_token and new_token != token:
                 self.output("Retrying request with fresh token", verbose_level=1)
-                return self.curl(
+                # remember the replacement so that later requests made with the old token
+                # (held by the caller) use the new one rather than failing with a 401 again
+                JamfUploaderBase._renewed_tokens[token] = new_token
+                r_retry = self.curl(
                     api_type=api_type,
                     request=request,
                     url=url,
@@ -1653,6 +1673,10 @@ class JamfUploaderBase(Processor):
                     accept_header=accept_header,
                     _retry=True,
                 )
+                if r_retry.status_code == 401:
+                    # the new token was rejected too, so do not keep substituting it
+                    JamfUploaderBase._renewed_tokens.pop(token, None)
+                return r_retry
 
         return r
 
