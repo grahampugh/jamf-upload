@@ -2,6 +2,10 @@
 
 The dates here represent when the features were added to the processors in the `jamf-upload` repo.
 
+## 2026-11-24
+
+* (#405) Fixed `JamfSoftwareRestrictionUploader` failing with `'bool' object has no attribute 'replace'` when `match_exact_process_name`, `kill_process` or `delete_executable` is true. `substitute_limited_assignable_keys` in `JamfUploaderBase` now writes booleans as lowercase `true` or `false` and only XML-escapes string values. `display_message` is no longer converted to a boolean.
+
 ## 2026-08-19
 
 * Added `JamfDirectoryServiceGroupEncoder`, which resolves a Directory Service (LDAP/IdP) group name to the base64-encoded `{uuid,serverId}` value required by *directory service group* criteria in smart groups and advanced searches (Jamf Pro 11.29 and later). The encoded value is returned as an output variable for substitution into a template uploaded by `JamfComputerGroupUploader`, `JamfMobileDeviceGroupUploader` or `JamfObjectUploader`.
