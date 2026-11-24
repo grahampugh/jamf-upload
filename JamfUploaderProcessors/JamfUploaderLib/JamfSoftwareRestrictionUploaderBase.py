@@ -145,7 +145,7 @@ class JamfSoftwareRestrictionUploaderBase(JamfUploaderBase):
         restriction_computergroup = self.env.get("restriction_computergroup")
         sleep_time = self.env.get("sleep")
         replace_restriction = self.to_bool(self.env.get("replace_restriction"))
-        display_message = self.to_bool(self.env.get("display_message"))
+        display_message = self.env.get("display_message")
         match_exact_process_name = self.to_bool(
             self.env.get("match_exact_process_name")
         )

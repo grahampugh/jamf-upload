@@ -1962,6 +1962,8 @@ class JamfUploaderBase(Processor):
 
         Optionally, if the xml_escape key is set, the value is escaped for XML special characters.
         This is designed primarily to account for ampersands in the substituted strings.
+
+        Boolean values are written as lowercase "true" or "false", as Jamf Pro expects.
         """
         loop = 5
         while loop > 0:
@@ -1971,17 +1973,17 @@ class JamfUploaderBase(Processor):
                 break
             found_keys = [i.replace("%", "") for i in found_keys]
             for found_key in found_keys:
-                if cli_custom_keys.get(found_key):
+                value = cli_custom_keys.get(found_key)
+                if isinstance(value, bool):
+                    value = str(value).lower()
+                if value:
                     self.output(
-                        f"Replacing any instances of '{found_key}' with "
-                        f"'{str(cli_custom_keys[found_key])}'",
+                        f"Replacing any instances of '{found_key}' with '{value}'",
                         verbose_level=2,
                     )
-                    if xml_escape and not isinstance(self.env.get(found_key), int):
-                        replacement_key = escape(cli_custom_keys[found_key])
-                    else:
-                        replacement_key = cli_custom_keys[found_key]
-                    data = data.replace(f"%{found_key}%", str(replacement_key))
+                    if xml_escape and isinstance(value, str):
+                        value = escape(value)
+                    data = data.replace(f"%{found_key}%", str(value))
         return data
 
     def get_path_to_file(self, filename):
